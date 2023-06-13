@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+[project]
+name = "GEMDAT"
+version = "0.0.0"
+description = "Generalized Molecular Dynamics Analysis Tool"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+	{name = "Victor Azizi", email = "v.azizi@esciencecenter.nl"},
+	{name = "Stef Smeets", email = "s.smeets@esciencecenter.nl"},
+]
+keywords = [
+    "analysis",
+    "molecular dynamics",
+    "plastic crystals",
+    "batteries",
+]
+license = {text = "Apache 2.0 License"}
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [ ]
+
+[project.urls]
+homepage = "https://github.com/GEMDAT-repos/GEMDAT"
+issues = "https://github.com/GEMDAT-repos/GEMDAT/issues"
+documentation = "https://gemdat.readthedocs.io"
+changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
+
+[project.optional-dependencies]
+develop = [
+    "pre-commit",
+    "mypy",
+]
+
+docs = [ ]
+publishing = [
+    "twine",
+    "wheel",
+    "build",
+]
+
+[tool.setuptools]
+package-dir = {"GEMDAT" = "src"}
+include-package-data = true
+
+[tool.coverage.run]
+branch = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+# Enable Pyflakes `E` and `F` codes by default.
+select = [
+	"F",  # Pyflakes
+	"E",  # pycodestyle (error)
+	"W",  # pycodestyle (warning)
+	"I",    # isort
+]
+
+line-length = 96
+
+[tool.isort]
+profile = "black"
