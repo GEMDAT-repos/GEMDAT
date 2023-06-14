@@ -1,16 +1,21 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
+
+def size(*args, **kwargs):
+    raise NotImplementedError
+
 
 def plot_collective(sites):
     ## Plot a histogram of the number of jumps vs. timestep
-    centers = np.arange(250, size(sites.atoms[:,0]), 500)
-    times = np.sort(sites.all_trans[:,4])
+    centers = np.arange(250, size(sites.atoms[:, 0]), 500)
+    times = np.sort(sites.all_trans[:, 4])
     plt.figure()
     plt.hist(times, bins=centers)
     plt.title('Histogram of jumps vs. time')
     plt.xlabel('Time (steps)')
     plt.ylabel('Nr. of jumps')
-    
+
     ## Plot which types of jumps are 'collective'
     plt.figure()
     plt.imshow(sites.coll_matrix, cmap='viridis', aspect='auto')
