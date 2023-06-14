@@ -38,10 +38,6 @@ jobs:
         run: |
           python -m pip install -e .[develop]
 
-      - name: Test if GEMDAT is available
-        run: |
-          python -m pymatgen.analysis.GEMDAT
-
       - name: Test with pytest
         run: |
           coverage run -p -m pytest
