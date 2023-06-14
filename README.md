@@ -1,4 +1,4 @@
-<!-- [![Documentation Status](https://readthedocs.org/projects/XXX/badge/?version=latest)](https://XXX.readthedocs.io/en/latest/?badge=latest) -->
+[![Documentation Status](https://readthedocs.org/projects/gemdat/badge/?version=latest)](https://gemdat.readthedocs.io/en/latest/?badge=latest)
 [![Tests](https://github.com/GEMDAT-repos/gemdat/actions/workflows/test.yaml/badge.svg)](https://github.com/GEMDAT-repos/GEMDAT/actions/workflows/test.yaml)
 <!-- [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/XXX)](https://pypi.org/project/XXX/) -->
 <!-- [![PyPI](https://img.shields.io/pypi/v/XXX.svg?style=flat)](https://pypi.org/project/XXX/) -->
