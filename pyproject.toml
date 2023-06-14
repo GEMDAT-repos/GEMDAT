@@ -46,7 +46,12 @@ develop = [
     "coverage[toml]",
 ]
 
-docs = [ ]
+docs = [
+    "markdown-include",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+]
 publishing = [
     "twine",
     "wheel",
