@@ -57,8 +57,7 @@ jobs:
           echo $'\n```' >> $GITHUB_STEP_SUMMARY
 
       - name: Make coverage badge
-        if: ${{ github.ref == 'refs/heads/main' }}
-        if: ${{ matrix.python-version == '3.10' }}
+        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == '3.10' }}
         uses: schneegans/dynamic-badges-action@v1.6.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
