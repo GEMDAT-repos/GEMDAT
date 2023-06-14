@@ -59,7 +59,7 @@ publishing = [
 ]
 
 [tool.setuptools]
-package-dir = {"pymatgen.analysis.GEMDAT" = "src"}
+package-dir = {"GEMDAT" = "src", "pymatgen.analysis.GEMDAT" = "src"}
 include-package-data = true
 
 [tool.coverage.run]

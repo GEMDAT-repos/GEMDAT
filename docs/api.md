@@ -1,1 +1,1 @@
-<!-- ::: pymatgen.analysis.GEMDAT -->
+::: GEMDAT
