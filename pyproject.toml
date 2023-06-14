@@ -42,6 +42,8 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 develop = [
     "pre-commit",
     "mypy",
+    "pytest",
+    "coverage[toml]",
 ]
 
 docs = [ ]
