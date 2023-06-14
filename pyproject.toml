@@ -72,7 +72,7 @@ select = [
 	"I",    # isort
 ]
 
-line-length = 96
+line-length = 110
 
 [tool.isort]
 profile = "black"
