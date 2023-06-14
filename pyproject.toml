@@ -30,7 +30,10 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering",
 ]
-dependencies = [ ]
+dependencies = [
+  'numpy',
+  'matplotlib',
+]
 
 [project.urls]
 homepage = "https://github.com/GEMDAT-repos/GEMDAT"
@@ -77,7 +80,15 @@ select = [
 	"I",    # isort
 ]
 
-line-length = 96
+line-length = 110
 
 [tool.isort]
 profile = "black"
+
+[tool.mypy]
+files = ["src", "tests"]
+allow_redefinition = true
+
+[[tool.mypy.overrides]]
+module = ["matplotlib.*"]
+ignore_missing_imports = true
