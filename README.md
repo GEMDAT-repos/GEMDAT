@@ -25,6 +25,16 @@ The source code is available from [Github](https://github.com/GEMDAT-repos/GEMDA
 
 Suggestions, improvements, and edits are most welcome.
 
+## Usage
+
+The following snippet can be used to test the code (provided that you have some VASP data or intermediate `.mat` files.
+
+```python
+import GEMDAT
+GEMDAT.analyse_md('<path to data>', 'Li', 'argyrodite')
+
+```
+
 ## Development
 
 Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-development) to get started with development.
