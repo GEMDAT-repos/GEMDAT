@@ -1,3 +1,5 @@
-from .displacements import plot_element_displacement
-
-__all__ = ['plot_element_displacement']
+__all__ = [
+    'get_displacements',
+    'plot_displacement_per_site'
+    'plot_displacement_per_element',
+]
