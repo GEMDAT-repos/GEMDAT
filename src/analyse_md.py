@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from scipy.io import loadmat, savemat
 
 from .calc_rates import calc_rates
 from .calc_rdfs import calc_rdfs
@@ -9,9 +10,9 @@ from .find_sites import find_sites
 from .jumps_vs_dist import jumps_vs_dist
 from .make_movie import make_movie
 from .plot_collective import plot_collective
-from .plot_jump_paths import plot_jump_paths
+from .plot_from_displacement import plots_from_displacement
 from .plot_rdfs import plot_rdfs
-from .plots_from_displacement import plots_from_displacement
+from .plot_sites import plot_jump_paths
 from .possible_collective import possible_collective
 from .read_lammps import read_lammps
 from .read_vasp import read_vasp
@@ -107,7 +108,8 @@ def analyse_md(folder, diff_elem, material):
             return
     else:  # sim_data exists already
         print('Found simulation data file in given folder')
-        load(sim_data_file)
+        sim_data_mat = loadmat(sim_data_file, matlab_compatible=True)
+        sim_data = sim_data_mat['sim_data']
 
     ## Find sites and transitions
     # Check if sites_file already exists:
@@ -140,12 +142,13 @@ def analyse_md(folder, diff_elem, material):
                                                jump_res)
         # The correlation factor:
         sites.correlation_factor = sim_data.tracer_diffusion / sites.jump_diffusivity
-        save(sites_file, 'sites')
+        savemat(sites_file, 'sites')
     else:
-        load(sites_file)
+        sites_mat = loadmat(sites_file)
+        sites = sites_mat['sites']
         print('Found sites file:', sites_file)
-        if sites.material != material:
-            print('ERROR! The material in sites.mat (', sites.material,
+        if sites['material'] != material:
+            print('ERROR! The material in sites.mat (', sites['material'],
                   ') differs from the given one (', material, ')!')
             print(
                 'If this is not a mistake rename or remove sites.mat and try again.'
@@ -174,11 +177,11 @@ def analyse_md(folder, diff_elem, material):
     if rdfs and not os.path.isfile(rdf_file):
         print('Radial Distribution Functions file', rdf_file, 'not found')
         rdf = calc_rdfs(sites, sim_data, rdf_res, rdf_max_dist)
-        save(rdf_file, 'rdf')
+        savemat(rdf_file, 'rdf')
         plot_rdfs(rdf)
     elif rdfs:
         print('Using Radial Distribution Functions file', rdf_file)
-        load(rdf_file)
+        loadmat(rdf_file)
         plot_rdfs(rdf)
 
     ## Movie of the transitions:

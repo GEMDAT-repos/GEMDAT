@@ -7,9 +7,15 @@
     pkgs = nixpkgs.legacyPackages.x86_64-linux;
     ruffpkg = ruff_270.legacyPackages.x86_64-linux.ruff;
     mypython = pkgs.python310;
+    pythonpkgs = pkgs.python310Packages;
     in with pkgs; {
       devShell.x86_64-linux =
-        mkShell { buildInputs = [ ruffpkg ];
+        mkShell { buildInputs = [
+          ruffpkg
+          pythonpkgs.numpy
+          pythonpkgs.matplotlib
+          pythonpkgs.scipy
+        ];
         pythonWithPkgs = mypython.withPackages (pythonPkgs: with pythonPkgs; [
           # This list contains tools for Python development.
           # You can also add other tools, like black.
@@ -21,10 +27,6 @@
           setuptools
           virtualenvwrapper
           wheel
-          numpy
-          scipy
-          mypy
-          coverage
         ]);
         shellHook = ''
           # fixes libstdc++ issues and libgl.so issues

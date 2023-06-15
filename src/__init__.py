@@ -1,11 +1,5 @@
-def hello():
-    """Prints hello world."""
-    print('hello world')
-
+from .analyse_md import analyse_md
 
 __all__ = [
-    'hello',
+    'analyse_md',
 ]
-
-if __name__ == '__main__':
-    hello()
