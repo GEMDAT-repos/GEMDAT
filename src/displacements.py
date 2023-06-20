@@ -30,7 +30,7 @@ def calculate_cell_offsets_from_coords(coords: np.ndarray) -> np.ndarray:
     first = coords[0, np.newaxis]
     diff = np.diff(coords, axis=0, prepend=first)
 
-    digits = -1 * (np.digitize(diff, bins=[-0.5, 0.5]) - 1)
+    digits = np.digitize(diff, bins=[0.5, -0.5]) - 1
 
     offsets = np.cumsum(digits, axis=0)
     return offsets
