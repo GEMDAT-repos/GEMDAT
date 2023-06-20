@@ -54,7 +54,6 @@ def calculate_lengths(vectors: np.ndarray,
     """
     tmp = np.dot(vectors, metric_tensor)
     total_displacement = np.einsum('ij,ji->i', tmp, vectors.T)
-    # total_displacement = np.array([np.linalg.multi_dot((d, m, d.T)) for d in differences])
     assert total_displacement.shape[0] == vectors.shape[0]
     assert total_displacement.ndim == 1
     return np.sqrt(total_displacement)
