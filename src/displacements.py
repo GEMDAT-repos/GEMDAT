@@ -4,6 +4,96 @@ from pymatgen.core import Element, Lattice
 from pymatgen.core.trajectory import Trajectory
 
 
+def calculate_cell_offsets(traj: Trajectory) -> np.ndarray:
+    """Calculate cell offsets from trajectory."""
+    assert not traj.coords_are_displacement
+    coords = traj.coords
+    return calculate_cell_offsets_from_coords(coords)
+
+
+def calculate_cell_offsets_from_coords(coords: np.ndarray) -> np.ndarray:
+    """Calculate cell offsets from starting position.
+
+    For example, if a site is at [0, 0, 0.9] -> [0, 0, 0.1]
+    assume it has jumped to the next cell: [0, 0, 1.1]
+
+    Parameters
+    ----------
+    coords : np.ndarray[i, j, k]
+        3-dimensional numpy array with dimensions i: time_steps, j: sites, k: coordinates
+
+    Returns
+    -------
+    offsets : np.ndarray[i, j, k]
+        Integer array with unit cell offset vectors.
+    """
+    first = coords[0, np.newaxis]
+    diff = np.diff(coords, axis=0, prepend=first)
+
+    digits = -1 * (np.digitize(diff, bins=[-0.5, 0.5]) - 1)
+
+    offsets = np.cumsum(digits, axis=0)
+    return offsets
+
+
+def calculate_lengths(vectors: np.ndarray,
+                      metric_tensor: np.ndarray) -> np.ndarray:
+    """Calculate vector lengths using the metric tensor (Dunitz 1078, p227).
+
+    Parameters
+    ----------
+    vectors : np.ndarray[i, j, k]
+        Vectors as in fractional coordinates
+    metric_tensor : np.ndarray
+        Metric tensor for the lattice
+
+    Returns
+    -------
+    lengths : np.ndarray
+        Vector lengths
+    """
+    tmp = np.dot(vectors, metric_tensor)
+    total_displacement = np.einsum('ij,ji->i', tmp, vectors.T)
+    # total_displacement = np.array([np.linalg.multi_dot((d, m, d.T)) for d in differences])
+    assert total_displacement.shape[0] == vectors.shape[0]
+    assert total_displacement.ndim == 1
+    return np.sqrt(total_displacement)
+
+
+def calculate_displacements(traj_coords: np.ndarray) -> np.ndarray:
+    """Calculate displacements from first set of positions.
+
+    Corrects for elements jumping to the next unit cell.
+
+    Parameters
+    ----------
+    traj_coords : np.array[i, j, k]
+        3-dimensional numpy array with dimensions i: time_steps, j: sites, k: coordinates
+
+    Returns
+    -------
+    displacements : np.ndarray[i, j]
+        Displacements from first set of positions.
+    """
+    offsets = calculate_cell_offsets_from_coords(traj_coords)
+
+    corrected_coords = traj_coords + offsets
+
+    displacements = []
+
+    first = corrected_coords[equilibration_steps]
+
+    for disp in corrected_coords[equilibration_steps:]:
+        diff_vectors = disp - first
+        lengths = calculate_lengths(diff_vectors,
+                                    metric_tensor=lattice.metric_tensor)
+        displacements.append(lengths)
+
+    displacements = np.array(displacements)
+
+    return displacements
+
+
 def plot_displacement_per_site(displacements: np.ndarray):
     """Plot displacement per site.
 
@@ -72,31 +162,6 @@ def plot_displacement_histogram(displacements: np.ndarray):
     plt.show()
 
 
-def calculate_cell_offsets(traj: Trajectory):
-    assert not traj.coords_are_displacement
-    coords = traj.coords
-    return calculate_cell_offsets_from_coords(coords)
-
-
-def calculate_cell_offsets_from_coords(coords: np.ndarray):
-    first = coords[0, np.newaxis]
-    diff = np.diff(coords, axis=0, prepend=first)
-
-    digits = -1 * (np.digitize(diff, bins=[-0.5, 0.5]) - 1)
-
-    offset = np.cumsum(digits, axis=0)
-    return offset
-
-
-def calculate_lengths(frac_distances, metric_tensor):
-    tmp = np.dot(differences, metric_tensor)
-    total_displacement = np.einsum('ij,ji->i', tmp, differences.T)
-    # total_displacement = np.array([np.linalg.multi_dot((d, m, d.T)) for d in differences])
-    assert total_displacement.shape[0] == frac_distances.shape[0]
-    assert total_displacement.ndim == 1
-    return np.sqrt(total_displacement)
-
-
 if __name__ == '__main__':
     from pathlib import Path
 
@@ -152,19 +217,7 @@ if __name__ == '__main__':
     print(lattice)
     print(traj_coords.shape)
 
-    offsets = calculate_cell_offsets_from_coords(traj_coords)
-
-    corrected_coords = traj_coords + offsets
-
-    displacements = []
-
-    for disp in corrected_coords[equilibration_steps:]:
-        differences = disp - corrected_coords[equilibration_steps]
-        lengths = calculate_lengths(differences,
-                                    metric_tensor=lattice.metric_tensor)
-        displacements.append(lengths)
-
-    displacements = np.array(displacements)
+    displacements = calculate_displacements(traj_coords)
 
     plot_displacement_per_site(displacements)
 
