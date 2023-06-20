@@ -88,6 +88,9 @@ def make_movie(sites, sim_data, start_end, movie_file, step_frame):
             F.grab_frame()
             return atoms
 
+        jump_count = 0
+        disp_count = 0
+
         while jump_count < nr_jumps and jump_times[jump_count] == i:
             sites['all_trans'][trans_nr[jump_count], 0]
             prev_site = sites['all_trans'][trans_nr[jump_count], 1]
