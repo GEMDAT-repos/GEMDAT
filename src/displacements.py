@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from gemdat import load_project
 from pymatgen.core import Element, Lattice
 from pymatgen.core.trajectory import Trajectory
 
@@ -59,19 +60,25 @@ def calculate_lengths(vectors: np.ndarray,
     return np.sqrt(total_displacement)
 
 
-def calculate_displacements(traj_coords: np.ndarray) -> np.ndarray:
+def calculate_displacements(traj_coords: np.ndarray,
+                            lattice: Lattice,
+                            equilibration_steps: int = 0) -> np.ndarray:
     """Calculate displacements from first set of positions.
 
     Corrects for elements jumping to the next unit cell.
 
     Parameters
     ----------
-    traj_coords : np.array[i, j, k]
+    traj_coords : np.ndarray
         3-dimensional numpy array with dimensions i: time_steps, j: sites, k: coordinates
+    lattice : Lattice
+        Lattice parameters
+    equilibration_steps : int, optional
+        Number of steps to skip before equilibration
 
     Returns
     -------
-    displacements : np.ndarray[i, j]
+    displacements : np.ndarray
         Displacements from first set of positions.
     """
     offsets = calculate_cell_offsets_from_coords(traj_coords)
@@ -162,61 +169,22 @@ def plot_displacement_histogram(displacements: np.ndarray):
 
 
 if __name__ == '__main__':
-    from pathlib import Path
-
-    import yaml
-    from pymatgen.io.vasp.outputs import Vasprun
-
     vasp_xml = '/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml'
-
-    path_coords = Path('traj_coords.npy')
-    path_data = Path('data.yaml')
 
     # skip first timesteps
     equilibration_steps = 1250
 
-    if not (path_coords.exists() and path_data.exists()):
-        vasprun = Vasprun(
-            vasp_xml,
-            parse_dos=False,
-            parse_eigen=False,
-            parse_projected_eigen=False,
-            parse_potcar_file=False,
-        )
+    traj_coords, data = load_project(vasp_xml, diffusing_element='Li')
 
-        traj = vasprun.get_trajectory()
-
-        structure = vasprun.structures[0]
-
-        lattice = structure.lattice
-        species = structure.species
-
-        data = {
-            'species': [e.as_dict() for e in species],
-            'lattice': lattice.as_dict()
-        }
-
-        with open('data.yaml', 'w') as f:
-            yaml.dump(data, f)
-
-        traj.to_positions()
-        np.save('traj_coords.npy', traj.coords)
-
-        traj_coords = traj.coords
-    else:
-        traj_coords = np.load('traj_coords.npy')
-
-        with open('data.yaml') as f:
-            data = yaml.safe_load(f)
-
-        species = [Element.from_dict(e) for e in data['species']]
-        lattice = Lattice.from_dict(data['lattice'])
+    species = data['species']
+    lattice = data['lattice']
 
     print(species)
     print(lattice)
     print(traj_coords.shape)
 
-    displacements = calculate_displacements(traj_coords)
+    displacements = calculate_displacements(
+        traj_coords, lattice=lattice, equilibration_steps=equilibration_steps)
 
     plot_displacement_per_site(displacements)
 
