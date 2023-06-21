@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 
 def vibration_properties(traj_coords: np.ndarray, *, time_step: float):
@@ -27,26 +28,59 @@ def vibration_properties(traj_coords: np.ndarray, *, time_step: float):
 
     f = frequency * np.arange(len(speed) // 2 + 1) / len(speed)
 
-    plt.figure()
+    fig, ax = plt.subplots()
+
     sum_freqs = np.sum(one_sided, axis=1)
     smoothed = np.convolve(sum_freqs, np.ones(51), 'same') / 51
-    plt.plot(f, smoothed, linewidth=3)
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Occurrence (a.u.)')
-    plt.gca().set_yticklabels([])
-    plt.plot([attempt_freq, attempt_freq], [0, 1], '-r', linewidth=3)
-    plt.plot(
-        [attempt_freq - attempt_freq_std, attempt_freq - attempt_freq_std],
-        [0, 1],
-        ':r',
-        linewidth=3)
-    plt.plot(
-        [attempt_freq + attempt_freq_std, attempt_freq + attempt_freq_std],
-        [0, 1],
-        ':r',
-        linewidth=3)
-    plt.ylim([0, np.max(sum_freqs)])
+    ax.plot(f, smoothed, linewidth=3)
+
+    ax.set(title='Frequency vs Occurence',
+           xlabel='Frequency (Hz)',
+           ylabel='Occurrence (a.u.)')
+
+    ax.plot([attempt_freq, attempt_freq], [0, 1], '-r', linewidth=3)
+    ax.plot([attempt_freq - attempt_freq_std, attempt_freq - attempt_freq_std],
+            [0, 1],
+            ':r',
+            linewidth=3)
+    ax.plot([attempt_freq + attempt_freq_std, attempt_freq + attempt_freq_std],
+            [0, 1],
+            ':r',
+            linewidth=3)
+    ax.set_ylim([0, np.max(sum_freqs)])
     # plt.xlim([0, 2.5E13])
+    plt.show()
+
+    ###
+
+    amplitude = [0]
+
+    for i, speed_range in enumerate(speed.T):
+        for j, time_step in enumerate(speed_range):
+            if np.sign(speed_range[j]) != np.sign(speed_range[j - 1]):
+                amplitude.append(0)
+
+            amplitude[-1] += speed_range[j]
+
+    _mean_vib = np.mean(amplitude)
+    vibration_amp = np.std(amplitude)
+
+    print(f'{_mean_vib=}')
+    print(f'{vibration_amp=}')
+
+    ###
+
+    fig, ax = plt.subplots()
+    ax.hist(amplitude, bins=100, density=True)
+
+    x = np.linspace(-2, 2, 100)
+    y_gauss = stats.norm.pdf(x, 0, vibration_amp)
+    ax.plot(x, y_gauss, 'r')
+
+    ax.set(title='Histogram of vibrational amplitudes with fitted Gaussian',
+           xlabel='Amplitude (Angstrom)',
+           ylabel='Occurrence (a.u.)')
+
     plt.show()
 
 
