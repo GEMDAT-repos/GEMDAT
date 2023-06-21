@@ -168,7 +168,7 @@ def plot_displacement_histogram(displacements: np.ndarray):
 
 
 if __name__ == '__main__':
-    from gemdat import load_project
+    from GEMDAT import load_project
 
     vasp_xml = '/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml'
 

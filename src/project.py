@@ -62,7 +62,7 @@ def load_project(directory: str | Path,
         traj_coords = np.load('traj_coords.npy')
 
         with open('data.yaml') as f:
-            data = yaml.safe_load(f)
+            data = yaml.unsafe_load(f)
 
     data['species'] = [Element.from_dict(e) for e in data['species']]
     data['lattice'] = Lattice.from_dict(data['lattice'])
