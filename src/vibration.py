@@ -53,14 +53,17 @@ def vibration_properties(traj_coords: np.ndarray, *, time_step: float):
 
     ###
 
-    amplitude = [0]
+    amplitude = []
 
     for i, speed_range in enumerate(speed.T):
-        for j, time_step in enumerate(speed_range):
-            if np.sign(speed_range[j]) != np.sign(speed_range[j - 1]):
-                amplitude.append(0)
+        signs = np.sign(speed_range)
 
-            amplitude[-1] += speed_range[j]
+        # get indices where sign flips
+        splits = np.where(signs != np.roll(signs, shift=-1))[0]
+        # strip first and last splits
+        subarrays = np.split(speed_range, splits[1:-1] + 1)
+
+        amplitude.extend([np.sum(array) for array in subarrays])
 
     _mean_vib = np.mean(amplitude)
     vibration_amp = np.std(amplitude)
