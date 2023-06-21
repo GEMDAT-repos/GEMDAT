@@ -45,6 +45,8 @@ def read_outcar(outcar_file, vasprun_file, sim_data):
     time = 0
     nr_elements = 0
 
+    line_prev = None
+
     # First read in things that are constant throughout the MD simulation
     with open(outcar_file, 'r') as file:
         line = file.readline()
