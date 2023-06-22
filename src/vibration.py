@@ -200,9 +200,11 @@ if __name__ == '__main__':
     diffusing_element = data['diffusing_element']
     time_step = data['time_step']
 
-    displacements = calculate_displacements(traj_coords,
-                                            lattice,
-                                            equilibration_steps=1250)
+    # skip first timesteps
+    equilibration_steps = 1250
+
+    displacements = calculate_displacements(
+        traj_coords, lattice, equilibration_steps=equilibration_steps)
 
     # grab displacements for diffusing element only
     idx = np.argwhere([e.name == diffusing_element for e in species])
