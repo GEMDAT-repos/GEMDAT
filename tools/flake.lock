@@ -19,7 +19,8 @@
     "root": {
       "inputs": {
         "nixpkgs": "nixpkgs",
-        "ruff_270": "ruff_270"
+        "ruff_270": "ruff_270",
+        "ruff_274": "ruff_274"
       }
     },
     "ruff_270": {
@@ -35,6 +36,22 @@
         "owner": "nixos",
         "repo": "nixpkgs",
         "rev": "7913a0c185438e52c04b2ffff539f9fdb6b89e05",
+        "type": "github"
+      }
+    },
+    "ruff_274": {
+      "locked": {
+        "lastModified": 1687355477,
+        "narHash": "sha256-zT3/AkNN8ovVwgVA7HYFfhp5uJqAzhRsNK3CJH+KJVI=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "1bc7f069be719c24fef65e01383ca48bf3088027",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "1bc7f069be719c24fef65e01383ca48bf3088027",
         "type": "github"
       }
     }
