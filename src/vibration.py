@@ -40,8 +40,21 @@ def meanfreq(x: np.ndarray, fs: float = 1.0):
     return mnfreq
 
 
-def calculate_amplitude(speed):
-    """Calculate vibration amplitude."""
+def calculate_amplitude(speed: np.ndarray) -> tuple[np.ndarray, float]:
+    """Calculate vibration amplitude.
+
+    Parameters
+    ----------
+    speed : np.ndarray
+        Input array with displacement velocities
+
+    Returns
+    -------
+    amplitudes : np.ndarray
+        Output array with vibrational amplitudes
+    vibration amplitude : float
+        Mean vibration amplitude
+    """
     amplitudes = []
 
     for i, speed_range in enumerate(speed):
@@ -64,7 +77,24 @@ def calculate_amplitude(speed):
 
 
 def calculate_attempt_frequency(displacements: np.ndarray, *, fs: float = 1):
-    """Get the attempt frequency."""
+    """Calculate attempt frequency.
+
+    Parameters
+    ----------
+    displacements : np.ndarray
+        Input array with displacements
+    fs : float, optional
+        Sampling frequency
+
+    Returns
+    -------
+    speed : np.ndarray
+        Output array with speeds
+    attempt_freq : float
+        Attempt frequency
+    attempt_freq_std : float
+        Attempt frequency standard deviation
+    """
     speed = np.diff(displacements.T, prepend=0)
 
     freq_mean = meanfreq(speed, fs=fs)
@@ -83,7 +113,19 @@ def plot_frequency_vs_occurence(speed: np.ndarray,
                                 fs: float = 1,
                                 freq: Optional[float] = None,
                                 freq_std: Optional[float] = None):
-    """Plot frequency vs occurence."""
+    """Plot attempt frequency vs occurence.
+
+    Parameters
+    ----------
+    speed : np.ndarray
+        Input array with displacement velocities
+    fs : float, optional
+        Sampling frequency
+    freq : Optional[float], optional
+        Attempt frequency
+    freq_std : Optional[float], optional
+        Attempt frequency standard deviation
+    """
     length = speed.shape[1]
     half_length = length // 2 + 1
 
