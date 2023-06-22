@@ -1,61 +1,100 @@
 import numpy as np
-from scipy import stats
+from scipy import signal, stats
 
 
-def vibration_properties(traj_coords: np.ndarray, *, time_step: float):
+def meanfreq(x: np.ndarray, fs: float = 1.0):
+    """Estimates the mean frequency in terms of the sample rate, fs.
+
+    Vectorized version of https://stackoverflow.com/a/56487241
+
+    Parameters
+    ----------
+    x : np.ndarray[i, j]
+        Time series of measurement values. The mean frequency is computed
+        along the last axis (-1).
+    fs : float, optional
+        Sampling frequency of the `x` time series. Defaults to 1.0.
+
+    Returns
+    -------
+    mnfreq : np.ndarray
+        Array of mean frequencies.
+    """
+    if x.ndim == 1:
+        x = x.reshape(1, -1)
+
+    assert x.ndim == 2
+
+    f, Pxx_den = signal.periodogram(x, fs, axis=-1)
+    width = np.tile(f[1] - f[0], Pxx_den.shape)
+    P = Pxx_den * width
+    pwr = np.sum(P, axis=1).reshape(-1, 1)
+
+    f = f.reshape(1, -1)
+
+    mnfreq = np.dot(P, f.T) / pwr
+
+    return mnfreq
+
+
+def vibration_properties(displacements: np.ndarray, *, time_step: float):
     """Get the attempt frequency and vibration amplitude."""
     frequency = 1 / time_step
 
-    len(traj_coords)
+    length = len(displacements)
+    half_length = length // 2 + 1
 
-    speed = np.diff(diff_displacements, prepend=0, axis=0)
+    speed = np.diff(displacements.T, prepend=0)
 
-    freq_mean = np.mean(speed, axis=0)
+    freq_mean = meanfreq(speed, fs=frequency)
 
     attempt_freq = np.mean(freq_mean)
     attempt_freq_std = np.std(freq_mean)
 
-    print(f'{attempt_freq=}')
-    print(f'{attempt_freq_std=}')
+    print(f'{attempt_freq=:g}')
+    print(f'{attempt_freq_std=:g}')
 
-    trans = np.fft.fft(speed, axis=0)
-    two_sided = np.abs(trans / len(speed))
-    one_sided = two_sided[:len(speed) // 2 + 1]
+    trans = np.fft.fft(speed)
+
+    two_sided = np.abs(trans / length)
+    one_sided = two_sided[:, :half_length]
 
     ####
 
     import matplotlib.pyplot as plt
 
-    f = frequency * np.arange(len(speed) // 2 + 1) / len(speed)
+    f = frequency * np.arange(half_length) / length
 
     fig, ax = plt.subplots()
 
-    sum_freqs = np.sum(one_sided, axis=1)
+    sum_freqs = np.sum(one_sided, axis=0)
     smoothed = np.convolve(sum_freqs, np.ones(51), 'same') / 51
     ax.plot(f, smoothed, linewidth=3)
+
+    y_max = np.max(sum_freqs)
+
+    ax.vlines([attempt_freq], 0, y_max, colors='red')
+    ax.vlines(
+        [attempt_freq + attempt_freq_std, attempt_freq - attempt_freq_std],
+        0,
+        y_max,
+        colors='red',
+        linestyles='dashed')
 
     ax.set(title='Frequency vs Occurence',
            xlabel='Frequency (Hz)',
            ylabel='Occurrence (a.u.)')
 
-    ax.plot([attempt_freq, attempt_freq], [0, 1], '-r', linewidth=3)
-    ax.plot([attempt_freq - attempt_freq_std, attempt_freq - attempt_freq_std],
-            [0, 1],
-            ':r',
-            linewidth=3)
-    ax.plot([attempt_freq + attempt_freq_std, attempt_freq + attempt_freq_std],
-            [0, 1],
-            ':r',
-            linewidth=3)
-    ax.set_ylim([0, np.max(sum_freqs)])
-    # plt.xlim([0, 2.5E13])
+    ax.set_ylim([0, y_max])
+    ax.set_xlim([-0.1e13, 2.5e13])
+
     plt.show()
 
     ###
 
     amplitude = []
 
-    for i, speed_range in enumerate(speed.T):
+    for i, speed_range in enumerate(speed):
         signs = np.sign(speed_range)
 
         # get indices where sign flips
@@ -65,11 +104,11 @@ def vibration_properties(traj_coords: np.ndarray, *, time_step: float):
 
         amplitude.extend([np.sum(array) for array in subarrays])
 
-    _mean_vib = np.mean(amplitude)
+    mean_vib = np.mean(amplitude)
     vibration_amp = np.std(amplitude)
 
-    print(f'{_mean_vib=}')
-    print(f'{vibration_amp=}')
+    print(f'{mean_vib=:g}')
+    print(f'{vibration_amp=:g}')
 
     ###
 
