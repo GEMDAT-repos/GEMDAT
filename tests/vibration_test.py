@@ -1,5 +1,5 @@
 import numpy as np
-from GEMDAT.vibration import meanfreq
+from gemdat.vibration import meanfreq
 
 
 def test_meanfreq_single_timestep():

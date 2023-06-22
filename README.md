@@ -30,8 +30,8 @@ Suggestions, improvements, and edits are most welcome.
 The following snippet can be used to test the code (provided that you have some VASP data or intermediate `.mat` files.
 
 ```python
-import GEMDAT
-GEMDAT.analyse_md('<path to data>', 'Li', 'argyrodite')
+import gemdat
+gemdat.analyse_md('<path to data>', 'Li', 'argyrodite')
 
 ```
 

@@ -147,7 +147,7 @@ def plot_vibrational_amplitudes(amplitudes: np.ndarray, *,
 
 
 if __name__ == '__main__':
-    from GEMDAT import calculate_displacements, load_project
+    from gemdat import calculate_displacements, load_project
 
     vasp_xml = '/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml'
 
