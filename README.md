@@ -30,9 +30,18 @@ Suggestions, improvements, and edits are most welcome.
 The following snippet can be used to test the code (provided that you have some VASP data or intermediate `.mat` files.
 
 ```python
+from gemdat import Data, plot_all
+from pathlib import Path
+
+data = Data(Path('../example/vasprun.xml'), cache=Path('cache'))
+
+plot_all(data = data)
+```
+
+**not yet available:**
+```python
 import gemdat
 gemdat.analyse_md('<path to data>', 'Li', 'argyrodite')
-
 ```
 
 ## Development

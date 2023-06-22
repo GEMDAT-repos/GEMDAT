@@ -1,4 +1,7 @@
+import pickle
 from functools import cached_property
+from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -6,26 +9,38 @@ from pymatgen.io import vasp
 
 
 class Data():
-
     equilibration_steps = 1250
-    vasprun = None
 
-    @classmethod
-    def from_vasprun(cls, run: vasp.outputs.Vasprun):
-        data = cls()
-        data.vasprun = run
-        return data
-        # probably need to do some correct initialization here maybe pydantic
-
-    @cached_property
-    def trajectory(self):
-        return self.vasprun.get_trajectory()
+    def __init__(self, xml_file: Path, cache: Optional[Path] = None):
+        if cache and cache.exists():
+            with open(cache, 'rb') as f:
+                data = pickle.load(f)
+            self.structure = data['structure']
+            self.trajectory_coords = data['trajectory_coords']
+            self.species = data['species']
+            self.lattice = data['lattice']
+        else:
+            run = vasp.Vasprun(xml_file)
+            self.structure = run.structures[0]
+            trajectory = run.get_trajectory()
+            trajectory.to_positions()
+            self.trajectory_coords = trajectory.coords
+            self.species = self.structure.species
+            self.lattice = self.structure.lattice
+            if cache:
+                with open(cache, 'wb') as f:
+                    pickle.dump(
+                        {
+                            'structure': self.structure,
+                            'trajectory_coords': self.trajectory_coords,
+                            'species': self.species,
+                            'lattice': self.lattice,
+                        }, f)
 
     @cached_property
     def cell_offsets(self) -> np.ndarray:
         """Calculate cell offsets from trajectory."""
-        assert not self.trajectory.coords_are_displacement
-        coords = self.trajectory.coords
+        coords = self.trajectory_coords
         return self.cell_offsets_from_coords(coords)
 
     def cell_offsets_from_coords(self, coords: np.ndarray) -> np.ndarray:
@@ -91,9 +106,9 @@ class Data():
         displacements : np.ndarray[i, j]
             Displacements from first set of positions.
         """
-        offsets = self.cell_offsets_from_coords(self.trajectory.coords)
+        offsets = self.cell_offsets_from_coords(self.trajectory_coords)
 
-        corrected_coords = self.trajectory.coords + offsets
+        corrected_coords = self.trajectory_coords + offsets
 
         displacements = []
 
@@ -108,15 +123,3 @@ class Data():
         displacements = np.array(displacements)
 
         return displacements.T
-
-    @cached_property
-    def structure(self):
-        return self.vasprun.structures[0]
-
-    @cached_property
-    def species(self):
-        return self.structure.species
-
-    @cached_property
-    def lattice(self):
-        return self.structure.lattice
