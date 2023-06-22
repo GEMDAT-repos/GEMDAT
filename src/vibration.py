@@ -1,3 +1,6 @@
+from typing import Optional
+
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal, stats
 
@@ -37,16 +40,34 @@ def meanfreq(x: np.ndarray, fs: float = 1.0):
     return mnfreq
 
 
-def vibration_properties(displacements: np.ndarray, *, time_step: float):
-    """Get the attempt frequency and vibration amplitude."""
-    frequency = 1 / time_step
+def calculate_amplitude(speed):
+    """Calculate vibration amplitude."""
+    amplitudes = []
 
-    length = len(displacements)
-    half_length = length // 2 + 1
+    for i, speed_range in enumerate(speed):
+        signs = np.sign(speed_range)
 
+        # get indices where sign flips
+        splits = np.where(signs != np.roll(signs, shift=-1))[0]
+        # strip first and last splits
+        subarrays = np.split(speed_range, splits[1:-1] + 1)
+
+        amplitudes.extend([np.sum(array) for array in subarrays])
+
+    mean_vib = np.mean(amplitudes)
+    vibration_amp = np.std(amplitudes)
+
+    print(f'{mean_vib=:g}')
+    print(f'{vibration_amp=:g}')
+
+    return amplitudes, vibration_amp
+
+
+def calculate_attempt_frequency(displacements: np.ndarray, *, fs: float = 1):
+    """Get the attempt frequency."""
     speed = np.diff(displacements.T, prepend=0)
 
-    freq_mean = meanfreq(speed, fs=frequency)
+    freq_mean = meanfreq(speed, fs=fs)
 
     attempt_freq = np.mean(freq_mean)
     attempt_freq_std = np.std(freq_mean)
@@ -54,18 +75,26 @@ def vibration_properties(displacements: np.ndarray, *, time_step: float):
     print(f'{attempt_freq=:g}')
     print(f'{attempt_freq_std=:g}')
 
+    return speed, attempt_freq, attempt_freq_std
+
+
+def plot_frequency_vs_occurence(speed: np.ndarray,
+                                *,
+                                fs: float = 1,
+                                freq: Optional[float] = None,
+                                freq_std: Optional[float] = None):
+    """Plot frequency vs occurence."""
+    length = speed.shape[1]
+    half_length = length // 2 + 1
+
     trans = np.fft.fft(speed)
 
     two_sided = np.abs(trans / length)
     one_sided = two_sided[:, :half_length]
 
-    ####
-
-    import matplotlib.pyplot as plt
-
-    f = frequency * np.arange(half_length) / length
-
     fig, ax = plt.subplots()
+
+    f = fs * np.arange(half_length) / length
 
     sum_freqs = np.sum(one_sided, axis=0)
     smoothed = np.convolve(sum_freqs, np.ones(51), 'same') / 51
@@ -73,13 +102,14 @@ def vibration_properties(displacements: np.ndarray, *, time_step: float):
 
     y_max = np.max(sum_freqs)
 
-    ax.vlines([attempt_freq], 0, y_max, colors='red')
-    ax.vlines(
-        [attempt_freq + attempt_freq_std, attempt_freq - attempt_freq_std],
-        0,
-        y_max,
-        colors='red',
-        linestyles='dashed')
+    if freq:
+        ax.vlines([freq], 0, y_max, colors='red')
+    if freq and freq_std:
+        ax.vlines([freq + freq_std, freq - freq_std],
+                  0,
+                  y_max,
+                  colors='red',
+                  linestyles='dashed')
 
     ax.set(title='Frequency vs Occurence',
            xlabel='Frequency (Hz)',
@@ -90,33 +120,23 @@ def vibration_properties(displacements: np.ndarray, *, time_step: float):
 
     plt.show()
 
-    ###
 
-    amplitude = []
+def plot_vibrational_amplitudes(amplitudes: np.ndarray, *,
+                                vibration_amplitude: float):
+    """Plot histogram of vibrational amplitudes with fitted Gaussian.
 
-    for i, speed_range in enumerate(speed):
-        signs = np.sign(speed_range)
-
-        # get indices where sign flips
-        splits = np.where(signs != np.roll(signs, shift=-1))[0]
-        # strip first and last splits
-        subarrays = np.split(speed_range, splits[1:-1] + 1)
-
-        amplitude.extend([np.sum(array) for array in subarrays])
-
-    mean_vib = np.mean(amplitude)
-    vibration_amp = np.std(amplitude)
-
-    print(f'{mean_vib=:g}')
-    print(f'{vibration_amp=:g}')
-
-    ###
-
+    Parameters
+    ----------
+    amplitudes : np.ndarray
+        Input array with vibrational amplitudes
+    vibration_amplitude : float
+        Sigma of the vibrational amplitudes
+    """
     fig, ax = plt.subplots()
-    ax.hist(amplitude, bins=100, density=True)
+    ax.hist(amplitudes, bins=100, density=True)
 
     x = np.linspace(-2, 2, 100)
-    y_gauss = stats.norm.pdf(x, 0, vibration_amp)
+    y_gauss = stats.norm.pdf(x, 0, vibration_amplitude)
     ax.plot(x, y_gauss, 'r')
 
     ax.set(title='Histogram of vibrational amplitudes with fitted Gaussian',
@@ -133,23 +153,30 @@ if __name__ == '__main__':
 
     traj_coords, data = load_project(vasp_xml, diffusing_element='Li')
 
-    # skip first timesteps
-    equilibration_steps = 1250
-
     species = data['species']
     lattice = data['lattice']
     diffusing_element = data['diffusing_element']
-
-    print(species)
-    print(lattice)
-    print(traj_coords.shape)
+    time_step = data['time_step']
 
     displacements = calculate_displacements(traj_coords,
-                                            data['lattice'],
+                                            lattice,
                                             equilibration_steps=1250)
 
     # grab displacements for diffusing element only
-    idx = np.argwhere([e.name == diffusing_element for e in data['species']])
+    idx = np.argwhere([e.name == diffusing_element for e in species])
     diff_displacements = displacements[:, idx].squeeze()
 
-    vibration_properties(diff_displacements, time_step=data['time_step'])
+    fs = 1 / time_step
+
+    speed, attempt_freq, attempt_freq_std = calculate_attempt_frequency(
+        diff_displacements, fs=fs)
+
+    plot_frequency_vs_occurence(speed,
+                                fs=fs,
+                                freq=attempt_freq,
+                                freq_std=attempt_freq_std)
+
+    amplitudes, vibration_amplitude = calculate_amplitude(speed)
+
+    plot_vibrational_amplitudes(amplitudes,
+                                vibration_amplitude=vibration_amplitude)
