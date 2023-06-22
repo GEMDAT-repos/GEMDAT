@@ -12,21 +12,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  codestyle:
-
-    runs-on: ubuntu-latest
+  pre-commit:
     if: github.event.pull_request.draft == false
-
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install additional dependencies
-        run: |
-          pip install ruff
-
-      - name: Check code style
-        run: |
-          ruff src
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+    - uses: pre-commit/action@v3.0.0
+    runs-on: ubuntu-latest
