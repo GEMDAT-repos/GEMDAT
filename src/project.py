@@ -66,5 +66,6 @@ def load_project(directory: str | Path,
 
     data['species'] = [Element.from_dict(e) for e in data['species']]
     data['lattice'] = Lattice.from_dict(data['lattice'])
+    data['diffusing_element'] = diffusing_element
 
     return traj_coords, data
