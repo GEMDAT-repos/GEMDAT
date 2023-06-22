@@ -24,7 +24,6 @@ class Data():
     @cached_property
     def cell_offsets(self) -> np.ndarray:
         """Calculate cell offsets from trajectory."""
-
         assert not self.trajectory.coords_are_displacement
         coords = self.trajectory.coords
         return self.cell_offsets_from_coords(coords)
