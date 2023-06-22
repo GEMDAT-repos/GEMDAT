@@ -1,10 +1,5 @@
 import numpy as np
 
-
-def tracer_properties():
-    pass
-
-
 if __name__ == '__main__':
     from gemdat import calculate_displacements, load_project
     from gemdat.constants import avogadro, e_charge, k_boltzmann
@@ -17,6 +12,7 @@ if __name__ == '__main__':
     species = data['species']
     diffusing_element = data['diffusing_element']
     time_step = data['time_step']
+    nr_diffusing = data['nr_diffusing']
 
     # skip first timesteps
     equilibration_steps = 1250
@@ -35,7 +31,6 @@ if __name__ == '__main__':
     volume_ang = lattice.volume
     volume_m3 = volume_ang * angstrom_to_meter**3
 
-    nr_diffusing = sum([e.name == diffusing_element for e in species])
     particle_density = nr_diffusing / volume_m3
 
     mol_per_liter = (particle_density * 1e-3) / avogadro
