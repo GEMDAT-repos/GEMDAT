@@ -96,7 +96,7 @@ def calculate_displacements(traj_coords: np.ndarray,
 
     displacements = np.array(displacements)
 
-    return displacements
+    return displacements.T
 
 
 def plot_displacement_per_site(displacements: np.ndarray):
@@ -109,7 +109,7 @@ def plot_displacement_per_site(displacements: np.ndarray):
     """
     fig, ax = plt.subplots()
 
-    for site_displacement in displacements.T:
+    for site_displacement in displacements:
         ax.plot(site_displacement, lw=0.3)
 
     ax.set(title='Displacement of diffusing element',
@@ -134,7 +134,7 @@ def plot_displacement_per_element(species: list[Element],
 
     grouped = defaultdict(list)
 
-    for specie, displacement in zip(species, displacements.T):
+    for specie, displacement in zip(species, displacements):
         grouped[specie.name].append(displacement)
 
     fig, ax = plt.subplots()
@@ -160,7 +160,7 @@ def plot_displacement_histogram(displacements: np.ndarray):
         Numpy array with displacements
     """
     fig, ax = plt.subplots()
-    ax.hist(displacements[-1])
+    ax.hist(displacements[:, -1])
     ax.set(title='Histogram of displacement of diffusing element',
            xlabel='Displacement (Angstrom)',
            ylabel='Nr. of atoms')
@@ -168,7 +168,7 @@ def plot_displacement_histogram(displacements: np.ndarray):
 
 
 if __name__ == '__main__':
-    from GEMDAT import load_project
+    from gemdat import load_project
 
     vasp_xml = '/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml'
 

@@ -95,7 +95,7 @@ def calculate_attempt_frequency(displacements: np.ndarray, *, fs: float = 1):
     attempt_freq_std : float
         Attempt frequency standard deviation
     """
-    speed = np.diff(displacements.T, prepend=0)
+    speed = np.diff(displacements, prepend=0)
 
     freq_mean = meanfreq(speed, fs=fs)
 
@@ -206,7 +206,7 @@ if __name__ == '__main__':
 
     # grab displacements for diffusing element only
     idx = np.argwhere([e.name == diffusing_element for e in species])
-    diff_displacements = displacements[:, idx].squeeze()
+    diff_displacements = displacements[idx].squeeze()
 
     fs = 1 / time_step
 
