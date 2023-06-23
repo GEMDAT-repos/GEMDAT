@@ -1,10 +1,10 @@
 from typing import List, Union
 
-import GEMDAT.plots as available_plots
+import gemdat.plots as available_plots
 
 
 def plot(plots: Union[List[str], str], **kwargs) -> None:
-    """Main plotting function of GEMDAT. it takes two mandatory arguments:
+    """Main plotting function of gemdat. it takes two mandatory arguments:
 
     - plots, a list of plot names, or just a plot name for the plot you want.
     - Optional arguments which are passed down to the plotting functions.
