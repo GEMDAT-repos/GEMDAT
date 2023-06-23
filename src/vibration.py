@@ -68,12 +68,12 @@ def calculate_amplitude(speed: np.ndarray) -> tuple[np.ndarray, float]:
         amplitudes.extend([np.sum(array) for array in subarrays])
 
     mean_vib = np.mean(amplitudes)
-    vibration_amp = np.std(amplitudes)
+    vibration_amp: float = np.std(amplitudes)
 
     print(f'{mean_vib=:g}')
     print(f'{vibration_amp=:g}')
 
-    return amplitudes, vibration_amp
+    return np.asarray(amplitudes), vibration_amp
 
 
 def calculate_attempt_frequency(displacements: np.ndarray, *, fs: float = 1):

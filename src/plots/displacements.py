@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pymatgen.core import Element, Lattice
-
 from ..data import Data
 
 
@@ -66,7 +64,7 @@ def plot_displacement_histogram(data: Data):
         Numpy array with displacements
     """
     fig, ax = plt.subplots()
-    ax.hist(data.displacements[:,-1])
+    ax.hist(data.displacements[:, -1])
     ax.set(title='Histogram of displacement of diffusing element',
            xlabel='Displacement (Angstrom)',
            ylabel='Nr. of atoms')

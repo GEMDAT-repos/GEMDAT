@@ -3,6 +3,7 @@ from typing import Optional
 
 import numpy as np
 import yaml
+
 from pymatgen.core import Element, Lattice
 from pymatgen.io.vasp.outputs import Vasprun
 
