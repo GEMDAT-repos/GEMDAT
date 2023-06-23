@@ -80,7 +80,6 @@ select = [
 	"F",  # Pyflakes
 	"E",  # pycodestyle (error)
 	"W",  # pycodestyle (warning)
-	"I",    # isort
 ]
 
 line-length = 110

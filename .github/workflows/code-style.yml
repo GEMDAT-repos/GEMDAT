@@ -19,7 +19,8 @@ jobs:
     - uses: actions/checkout@v3
     - name: dependencies
       run: |
-        pip install -e .
+        python -m pip install --upgrade pip
+        python -m pip install -e .
     - uses: actions/setup-python@v4
       with:
         python-version: '3.10'
