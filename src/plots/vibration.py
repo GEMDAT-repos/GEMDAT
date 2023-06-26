@@ -4,14 +4,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
-from ..data import Data
-
 
 def plot_frequency_vs_occurence(*,
-                                data: Data,
-                                fs: Optional[float] = None,
+                                speed: np.ndarray,
+                                fs: float = 1,
                                 freq: Optional[float] = None,
-                                freq_std: Optional[float] = None):
+                                freq_std: Optional[float] = None,
+                                **kwargs):
     """Plot attempt frequency vs occurence.
 
     Parameters
@@ -25,13 +24,11 @@ def plot_frequency_vs_occurence(*,
     freq_std : Optional[float], optional
         Attempt frequency standard deviation
     """
-    if not fs:
-        fs = 1 / data.time_step
 
-    length = data.speed.shape[1]
+    length = speed.shape[1]
     half_length = length // 2 + 1
 
-    trans = np.fft.fft(data.speed)
+    trans = np.fft.fft(speed)
 
     two_sided = np.abs(trans / length)
     one_sided = two_sided[:, :half_length]
@@ -65,9 +62,8 @@ def plot_frequency_vs_occurence(*,
     plt.show()
 
 
-def plot_vibrational_amplitudes(*,
-                                data: Data,
-                                vibration_amplitude: Optional[float] = None):
+def plot_vibrational_amplitudes(*, amplitudes: np.ndarray,
+                                vibration_amplitude: float, **kwargs):
     """Plot histogram of vibrational amplitudes with fitted Gaussian.
 
     Parameters
@@ -78,11 +74,8 @@ def plot_vibrational_amplitudes(*,
         Sigma of the vibrational amplitudes
     """
 
-    if not vibration_amplitude:
-        vibration_amplitude = data.vibration_amplitude
-
     fig, ax = plt.subplots()
-    ax.hist(data.amplitudes, bins=100, density=True)
+    ax.hist(amplitudes, bins=100, density=True)
 
     x = np.linspace(-2, 2, 100)
     y_gauss = stats.norm.pdf(x, 0, vibration_amplitude)

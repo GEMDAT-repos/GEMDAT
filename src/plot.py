@@ -1,9 +1,13 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
 import gemdat.plots as available_plots
 
+from .data import Data
 
-def plot(plots: Union[List[str], str], **kwargs) -> None:
+
+def plot(plots: Union[List[str], str],
+         data: Optional[Data] = None,
+         **kwargs) -> None:
     """Main plotting function of gemdat. it takes two mandatory arguments:
 
     - plots, a list of plot names, or just a plot name for the plot you want.
@@ -26,6 +30,10 @@ def plot(plots: Union[List[str], str], **kwargs) -> None:
     # Convert plots to list, if it is not already a list
     if not isinstance(plots, list):
         plots = [plots]
+
+    # extract data if present, but prioritise kwargs
+    if data:
+        kwargs = {**data.dict(), **kwargs}
 
     for plot in plots:
         plot_function = getattr(available_plots, plot)

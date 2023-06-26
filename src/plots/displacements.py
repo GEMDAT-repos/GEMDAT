@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from pymatgen.core import Structure
 
-from ..data import Data
 
-
-def plot_displacement_per_site(data: Data):
+def plot_displacement_per_site(*, displacements: np.ndarray, **kwargs):
     """Plot displacement per site.
 
     Parameters
@@ -14,7 +13,7 @@ def plot_displacement_per_site(data: Data):
     """
     fig, ax = plt.subplots()
 
-    for site_displacement in data.displacements:
+    for site_displacement in displacements:
         ax.plot(site_displacement, lw=0.3)
 
     ax.set(title='Displacement of diffusing element',
@@ -24,7 +23,9 @@ def plot_displacement_per_site(data: Data):
     plt.show()
 
 
-def plot_displacement_per_element(data: Data):
+def plot_displacement_per_element(structure: Structure,
+                                  displacements: np.ndarray, species,
+                                  **kwargs):
     """Plot displacement per element.
 
     Parameters
@@ -33,12 +34,13 @@ def plot_displacement_per_element(data: Data):
         Pymatgen structure used for labelling
     displacements : np.ndarray
         Numpy array with displacements
+    species:
     """
     from collections import defaultdict
 
     grouped = defaultdict(list)
 
-    for specie, displacement in zip(data.species, data.displacements):
+    for specie, displacement in zip(species, displacements):
         grouped[specie.name].append(displacement)
 
     fig, ax = plt.subplots()
@@ -55,7 +57,7 @@ def plot_displacement_per_element(data: Data):
     plt.show()
 
 
-def plot_displacement_histogram(data: Data):
+def plot_displacement_histogram(displacements: np.ndarray, **kwargs):
     """Plot histogram of total displacement at final timestep.
 
     Parameters
@@ -64,7 +66,7 @@ def plot_displacement_histogram(data: Data):
         Numpy array with displacements
     """
     fig, ax = plt.subplots()
-    ax.hist(data.displacements[:, -1])
+    ax.hist(displacements[:, -1])
     ax.set(title='Histogram of displacement of diffusing element',
            xlabel='Displacement (Angstrom)',
            ylabel='Nr. of atoms')
