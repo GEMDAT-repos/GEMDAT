@@ -36,6 +36,8 @@ from pathlib import Path
 data = Data(Path('../example/vasprun.xml'), cache=Path('cache'))
 
 plot_all(data = data)
+# or
+plot(data = data, plots = ['plot_frequency_vs_occurence'])
 ```
 
 **not yet available:**
