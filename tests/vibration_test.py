@@ -1,10 +1,10 @@
 import numpy as np
-from gemdat.vibration import meanfreq
+from gemdat.data import Data
 
 
 def test_meanfreq_single_timestep():
     x = np.sin(np.linspace(0, 1, 6))
-    ret = meanfreq(x)
+    ret = Data.meanfreq(x)
 
     expected = np.array([[0.2303359]])
 
@@ -17,7 +17,7 @@ def test_meanfreq():
         np.sin(np.linspace(0, 2, 6)),
         np.sin(np.linspace(0, 3, 6)),
     ])
-    ret = meanfreq(x)
+    ret = Data.meanfreq(x)
 
     expected = np.array([[0.2303359], [0.21308077], [0.17074241]])
 
