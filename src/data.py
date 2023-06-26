@@ -1,5 +1,5 @@
 import pickle
-from functools import cached_property
+from functools import cache, cached_property
 from pathlib import Path
 from typing import Optional
 
@@ -130,7 +130,8 @@ class Data():
 
         return displacements.T
 
-    def meanfreq(self, x: np.ndarray, fs: float = 1.0):
+    @staticmethod
+    def meanfreq(x: np.ndarray, fs: float = 1.0):
         """Estimates the mean frequency in terms of the sample rate, fs.
 
         Vectorized version of https://stackoverflow.com/a/56487241
@@ -164,7 +165,7 @@ class Data():
 
         return mnfreq
 
-    @cached_property
+    @cache
     def diff_displacements(self, *, diffusing_element='Li'):
         idx = np.argwhere([e.name == diffusing_element for e in self.species])
         return self.displacements[idx].squeeze()
@@ -191,7 +192,7 @@ class Data():
         """
 
         fs = 1 / self.time_step
-        speed = np.diff(self.diff_displacements, prepend=0)
+        speed = np.diff(self.diff_displacements(), prepend=0)
 
         freq_mean = self.meanfreq(speed, fs=fs)
 
