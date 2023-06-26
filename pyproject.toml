@@ -36,6 +36,7 @@ dependencies = [
   'numpy',
   'scipy',
   'matplotlib',
+  'pydantic',
 ]
 
 [project.urls]
@@ -80,13 +81,13 @@ select = [
 	"F",  # Pyflakes
 	"E",  # pycodestyle (error)
 	"W",  # pycodestyle (warning)
-	"I",    # isort
+  "I",  # isort
 ]
 
 line-length = 110
 
-[tool.isort]
-profile = "black"
+[tool.ruff.isort]
+known-third-party = ["pymatgen"]
 
 [tool.mypy]
 files = ["src", "tests"]

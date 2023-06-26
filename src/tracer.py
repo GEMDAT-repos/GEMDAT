@@ -63,6 +63,7 @@ if __name__ == '__main__':
 
     # expected values:
     from math import isclose
+
     # assert tracer_diffusion == 0
     # assert tracer_conductivity == 0
     assert isclose(particle_density, 2.4557e28, rel_tol=1e-4)
