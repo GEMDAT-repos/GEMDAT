@@ -23,7 +23,7 @@ class Data(BaseModel):
     parameters: dict
 
     @classmethod
-    def from_cache(cls, cache: Path):
+    def from_cache(cls, cache: str | Path):
         """Load data from cache using pickle.
 
         Parameters
@@ -40,7 +40,7 @@ class Data(BaseModel):
             data = pickle.load(f)
         return cls(**data)
 
-    def to_cache(self, cache: Path):
+    def to_cache(self, cache: str | Path):
         """Dump data to cache using pickle.
 
         Parameters
@@ -52,7 +52,9 @@ class Data(BaseModel):
             pickle.dump(self.dict(), f)
 
     @classmethod
-    def from_vasprun(cls, xml_file: Path, cache: Optional[Path] = None):
+    def from_vasprun(cls,
+                     xml_file: str | Path,
+                     cache: Optional[str | Path] = None):
         """Load data from vasprun.xml.
 
         Parameters
@@ -67,7 +69,7 @@ class Data(BaseModel):
         data : Data
             Dataclass with simulation data
         """
-        if cache and cache.exists():
+        if cache and Path(cache).exists():
             return Data.from_cache(cache)
 
         run = vasp.Vasprun(
