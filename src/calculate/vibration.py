@@ -7,8 +7,8 @@ from .displacements import Displacements
 class Vibration():
 
     @staticmethod
-    def calculate_all(data, fs: float, diffusing_element: str,
-                      equilibration_steps: int, **kwargs) -> dict:
+    def calculate_all(data, diffusing_element: str, equilibration_steps: int,
+                      **kwargs) -> dict:
         displacements = Displacements.displacements(data.trajectory_coords,
                                                     data.lattice,
                                                     equilibration_steps)
@@ -17,7 +17,7 @@ class Vibration():
             species=data.species,
             diffusing_element='Li')
         speed, attempt_freq, attempt_freq_std = Vibration.attempt_frequency(
-            diff_displacements, fs)
+            diff_displacements, data.time_step)
         amplitudes, vibration_amplitude = Vibration.amplitude(speed)
 
         return {
@@ -26,6 +26,7 @@ class Vibration():
             'attempt_freq_std': attempt_freq_std,
             'amplitudes': amplitudes,
             'vibration_amplitude': vibration_amplitude,
+            'fs': 1 / data.time_step,
         }
 
     @staticmethod
@@ -69,7 +70,7 @@ class Vibration():
         return displacements[idx].squeeze()
 
     @staticmethod
-    def attempt_frequency(displacements: np.ndarray, fs: float = 1):
+    def attempt_frequency(displacements: np.ndarray, time_step: float = 1):
         """Calculate attempt frequency.
 
         Parameters
@@ -89,6 +90,7 @@ class Vibration():
             Attempt frequency standard deviation
         """
 
+        fs = 1 / time_step
         speed = np.diff(displacements, prepend=0)
 
         freq_mean = Vibration.meanfreq(speed, fs=fs)
