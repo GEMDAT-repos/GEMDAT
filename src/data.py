@@ -7,6 +7,9 @@ from pydantic import BaseModel
 from pymatgen.core import Structure
 from pymatgen.io import vasp
 
+from .calculate.displacements import Displacements
+from .calculate.vibration import Vibration
+
 
 class Data(BaseModel):
     """Dataclass to store simulation data."""
@@ -50,6 +53,12 @@ class Data(BaseModel):
         """
         with open(cache, 'wb') as f:
             pickle.dump(self.dict(), f)
+
+    def calculate_all(self, **kwargs):
+        return {
+            **Displacements.calculate_all(self, **kwargs),
+            **Vibration.calculate_all(self, **kwargs)
+        }
 
     @classmethod
     def from_vasprun(cls, xml_file: Path, cache: Optional[Path] = None):

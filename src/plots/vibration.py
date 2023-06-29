@@ -7,7 +7,7 @@ from scipy import stats
 
 def plot_frequency_vs_occurence(*,
                                 speed: np.ndarray,
-                                fs: float = 1,
+                                fs: float,
                                 freq: Optional[float] = None,
                                 freq_std: Optional[float] = None,
                                 **kwargs):
