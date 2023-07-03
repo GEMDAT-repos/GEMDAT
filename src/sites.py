@@ -63,6 +63,34 @@ def calculate_transitions(*, coords, site_coords, lattice: Lattice,
     return np.vstack(all_transitions)
 
 
+def calculate_transitions_matrix(all_transitions: np.ndarray,
+                                 n_diffusing: int) -> np.ndarray:
+    """Convert list of transition events to dense transitions matrix.
+
+    Parameters
+    ----------
+    all_transitions : np.ndarray
+        Input array with transition events
+    n_diffusing : int
+        Number of diffusing elements. This defines the shape of the output matrix.
+
+    Returns
+    -------
+    np.ndarray
+        Square matrix with number of each transitions
+    """
+    start_col = 1  # transition starts
+    stop_col = 2  # transition stop
+
+    transitions = np.zeros((n_diffusing, n_diffusing), dtype=int)
+    idx, counts = np.unique(all_transitions[:, [start_col, stop_col]],
+                            return_counts=True,
+                            axis=0)
+    start_idx, stop_idx = idx.T
+    transitions[start_idx, stop_idx] = counts
+    return transitions
+
+
 if __name__ == '__main__':
     from gemdat import Data
 
@@ -117,9 +145,10 @@ if __name__ == '__main__':
     traj_coords = data.trajectory_coords
 
     species = data.species
-    idx = np.argwhere([e.name == diffusing_element for e in species]).flatten()
+    diffusing_idx = np.argwhere([e.name == diffusing_element
+                                 for e in species]).flatten()
 
-    diff_coords = traj_coords[equilibration_steps:, idx, :]
+    diff_coords = traj_coords[equilibration_steps:, diffusing_idx, :]
 
     assert diff_coords.shape == (73750, 48, 3)
 
@@ -129,3 +158,10 @@ if __name__ == '__main__':
                                             dist_close=dist_close)
 
     assert all_transitions.shape == (1336, 5)
+
+    n_diffusing = len(diffusing_idx)
+
+    transitions = calculate_transitions_matrix(all_transitions,
+                                               n_diffusing=n_diffusing)
+
+    assert transitions.shape == (48, 48)
