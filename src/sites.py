@@ -91,6 +91,38 @@ def calculate_transitions_matrix(all_transitions: np.ndarray,
     return transitions
 
 
+def split_transitions_in_parts(all_transitions: np.ndarray,
+                               n_steps: int,
+                               n_parts=10) -> list[np.ndarray]:
+    """Split list of transition events into equal parts in time.
+
+    Parameters
+    ----------
+    all_transitions : np.ndarray
+        Input array with transition events
+    n_steps : int
+        Number of time steps
+    n_parts : int, optional
+        Number of parts to split into
+
+    Returns
+    -------
+    transitions_parts : np.ndarray
+        Sorted list of transition events split into equal parts.
+        The first dimension corresponds to `n_parts`.
+    """
+    col = 4
+
+    bins = np.linspace(0, n_steps + 1, n_parts + 1, dtype=int)
+    parts = np.digitize(all_transitions[:, col], bins=bins)
+    parts = parts[parts.argsort()]
+    splits = np.unique(parts, return_index=True)[1][1:]
+
+    sorted_transitions = all_transitions[all_transitions[:, col].argsort()]
+
+    return np.split(sorted_transitions, splits)
+
+
 if __name__ == '__main__':
     from gemdat import Data
 
@@ -165,3 +197,15 @@ if __name__ == '__main__':
                                                n_diffusing=n_diffusing)
 
     assert transitions.shape == (48, 48)
+
+    n_steps = len(diff_coords)
+    split_transitions = split_transitions_in_parts(all_transitions, n_steps)
+    success = np.stack([
+        calculate_transitions_matrix(part, n_diffusing=n_diffusing)
+        for part in split_transitions
+    ])
+
+    assert len(split_transitions) == 10
+    assert success.shape == (10, 48, 48)
+    assert np.sum(success[0]) == 134
+    assert np.sum(success[9]) == 142
