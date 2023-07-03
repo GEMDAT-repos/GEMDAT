@@ -149,6 +149,23 @@ def split_transitions_in_parts(all_transitions: np.ndarray,
     return np.split(sorted_transitions, splits)
 
 
+def calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
+    """Calculate occupancy per site.
+
+    Parameters
+    ----------
+    atom_sites : np.ndarray
+        Input array with atom sites
+
+    Returns
+    -------
+    dict[int, int]
+        For each site, count for how many time steps it is occupied by an atom
+    """
+    unq, counts = np.unique(atom_sites, return_counts=True)
+    return dict(zip(unq, counts))
+
+
 if __name__ == '__main__':
     from gemdat import Data
 
@@ -199,6 +216,8 @@ if __name__ == '__main__':
 
     equilibration_steps = 1250
 
+    n_parts = 10
+
     diffusing_element = 'Li'
     traj_coords = data.trajectory_coords
 
@@ -230,13 +249,30 @@ if __name__ == '__main__':
     assert transitions.shape == (48, 48)
 
     n_steps = len(diff_coords)
-    split_transitions = split_transitions_in_parts(all_transitions, n_steps)
+    split_transitions = split_transitions_in_parts(all_transitions, n_steps,
+                                                   n_parts)
     success = np.stack([
         calculate_transitions_matrix(part, n_diffusing=n_diffusing)
         for part in split_transitions
     ])
 
-    assert len(split_transitions) == 10
-    assert success.shape == (10, 48, 48)
+    assert len(split_transitions) == n_parts
+    assert success.shape == (n_parts, 48, 48)
     assert np.sum(success[0]) == 134
     assert np.sum(success[9]) == 142
+
+    occupancy = calculate_occupancy(atom_sites)
+
+    assert occupancy[-1] == 3015185
+    assert occupancy[0] == 1706
+    assert occupancy[43] == 6350
+
+    split_atom_sites = np.split(atom_sites, n_parts)
+    occupancy_parts = [calculate_occupancy(part) for part in split_atom_sites]
+
+    assert len(occupancy_parts) == n_parts
+
+    assert occupancy_parts[0][0] == 241
+    assert occupancy_parts[0][43] == 1231
+    assert occupancy_parts[9][0] == 87
+    assert occupancy_parts[9][43] == 391
