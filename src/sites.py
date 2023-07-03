@@ -2,9 +2,13 @@ import numpy as np
 from pymatgen.core import Lattice
 
 
-def calculate_transitions(*, coords, site_coords, lattice: Lattice,
-                          dist_close: float):
-    """Find transitions between sites.
+def calculate_atom_sites(*, coords, site_coords, lattice: Lattice,
+                         dist_close: float):
+    """Calculate nearest site for each atom coordinate.
+
+    Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
+    all `site_coords` has to be generated. This includes lattice translations. The nearest site
+    may be in the neighbouring unit cell.
 
     Parameters
     ----------
@@ -19,12 +23,12 @@ def calculate_transitions(*, coords, site_coords, lattice: Lattice,
 
     Returns
     -------
-    all_transitions : np.ndarray
-        Output array with transition events.
-        Contains 5 columns: atom index, time start, time stop, site start, site stop
+    atom_sites : np.ndarray
+        Output array with site locations for each atom at each time step [time, atom].
+        The value corresponds to the index in the `site_coords`.
+        -1 indicates that atom is not at any site.
     """
-
-    all_transitions = []
+    atom_sites = []
 
     for atom_index, atom_coords in enumerate(coords.swapaxes(0, 1)):
         pdist = lattice.get_all_distances(atom_coords, site_coords)
@@ -38,20 +42,42 @@ def calculate_transitions(*, coords, site_coords, lattice: Lattice,
         # Site index when close, -1 when in transition
         atom_site = np.where(is_at_site, nearest, -1)
 
+        atom_sites.append(atom_site)
+
+    return np.hstack(atom_sites)
+
+
+def calculate_transitions(*, atom_sites: np.ndarray) -> np.ndarray:
+    """Find transitions between sites.
+
+    Parameters
+    ----------
+    atom_sites : np.ndarray
+        Input array with atom sites
+
+    Returns
+    -------
+    all_transitions : np.ndarray
+        Output array with transition events.
+        Contains 5 columns: atom index, time start, time stop, site start, site stop
+    """
+
+    all_transitions = []
+
+    for atom_index, atom_site in enumerate(atom_sites.T):
+
         # Indices when atom jumps to new or back to same site
-        i, _ = np.nonzero((atom_site != np.roll(atom_site, shift=1))
-                          & (atom_site >= 0))
+        i, = np.nonzero((atom_site != np.roll(atom_site, shift=1))
+                        & (atom_site >= 0))
 
         # Log transition events
-        i_event = np.nonzero(atom_site[i,
-                                       0] != np.roll(atom_site[i,
-                                                               0], shift=-1))
+        i_event = np.nonzero(atom_site[i] != np.roll(atom_site[i], shift=-1))
         time_start = i[i_event]
         time_stop = np.roll(i, shift=-1)[i_event]
         transitions = np.vstack([
             np.ones_like(time_start) * atom_index,
-            atom_site[time_start, 0],
-            atom_site[time_stop, 0],
+            atom_site[time_start],
+            atom_site[time_stop],
             time_start,
             time_stop,
         ]).T
@@ -184,10 +210,15 @@ if __name__ == '__main__':
 
     assert diff_coords.shape == (73750, 48, 3)
 
-    all_transitions = calculate_transitions(coords=diff_coords,
-                                            lattice=lattice,
-                                            site_coords=site_coords,
-                                            dist_close=dist_close)
+    atom_sites = calculate_atom_sites(coords=diff_coords,
+                                      site_coords=site_coords,
+                                      lattice=lattice,
+                                      dist_close=dist_close)
+
+    assert atom_sites.shape == (73750, 48)
+    assert atom_sites.sum() == 9228360
+
+    all_transitions = calculate_transitions(atom_sites=atom_sites)
 
     assert all_transitions.shape == (1336, 5)
 
