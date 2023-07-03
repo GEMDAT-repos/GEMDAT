@@ -36,6 +36,10 @@ dependencies = [
   'numpy',
   'scipy',
   'matplotlib',
+  'pydantic==1.*',
+  'pandas',
+  'streamlit',
+  'xarray',
 ]
 
 [project.urls]
@@ -64,8 +68,11 @@ publishing = [
     "build",
 ]
 
+[project.scripts]
+gemdash= "gemdat.dashboard:gemdash"
+
 [tool.setuptools]
-package-dir = {"gemdat" = "src", "pymatgen.analysis.gemdat" = "src"}
+package-dir = {"gemdat" = "src", "pymatgen.analysis.gemdat" = "src", "gemdat.dashboard" = "dashboard" }
 include-package-data = true
 
 [tool.coverage.run]
@@ -91,8 +98,4 @@ known-third-party = ["pymatgen"]
 [tool.mypy]
 files = ["src", "tests"]
 allow_redefinition = true
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["yaml.*"]
 ignore_missing_imports = true
