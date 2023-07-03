@@ -30,24 +30,12 @@ Suggestions, improvements, and edits are most welcome.
 The following snippet can be used to test the code (provided that you have some VASP data or intermediate `.mat` files.
 
 ```python
-from pathlib import Path
-
 from gemdat import Data, plot_all, plot
-from gemdat.calculate import calculate_displacements, calculate_speed, calculate_diff_displacements, calculate_amplitudes, calculate_vibration_amplitude, calculate_attempt_freq, calculate_attempt_freq_std
 
 data = Data.from_vasprun(Path('../example/vasprun.xml'), cache=Path('cache'))
-displacements = calculate_displacements(data.trajectory_coords, data.lattice)
-diff_displacements = calculate_diff_displacements(displacements=displacements, species=data.species)
-speed = calculate_speed(diff_displacements)
-freq = calculate_attempt_freq(diff_displacements)
-freq_std = calculate_attempt_freq_std(diff_displacements)
-amplitudes = calculate_amplitudes(speed)
-vibration_amplitude = calculate_vibration_amplitude(speed)
+extra = data.calculate_all(equilibration_steps=1250, diffusing_element='Li')
 
-plot(data = data, plots = ['plot_frequency_vs_occurence'])
-# or
-
-plot_all(data = data, displacements=displacements, speed=speed, amplitudes=amplitudes, vibration_amplitude=vibration_amplitude, freq=freq, freq_std=freq_std)
+plot_all(data = data, **extra)
 ```
 
 **not yet available:**
