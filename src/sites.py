@@ -85,11 +85,11 @@ if __name__ == '__main__':
 
     if min_dist < 2 * dist_close:
         # Crystallographic sites are overlapping with the chosen dist_close, making it smaller
-        dist_close = 0.5 * (min_dist - 0.01)
+        dist_close = (0.5 * min_dist) - 0.005
 
         # Two crystallographic sites are within half an Angstrom of each other
         # This is NOT realistic, check/change the given crystallographic site
-        if dist_close < 0.25:
+        if dist_close * 2 < 0.5:
             idx = np.argwhere(pdist == min_dist)
             collisions = [
                 f'{structure.sites[i]}-{structure.sites[j]}' for i, j in idx
