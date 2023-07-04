@@ -41,19 +41,18 @@ with st.sidebar:
                                      max_value=10,
                                      value=3)
 
+extra = data.calculate_all(equilibration_steps=equilibration_steps,
+                           diffusing_element=diffusing_element)
+
 with fig_tab:
     st.title('GEMDAT pregenerated figures')
-
-    extra = data.calculate_all(equilibration_steps=equilibration_steps,
-                               diffusing_element=diffusing_element)
 
     figures = plot_all(data=data, **extra, show=False)
 
     # automagically divide the plots over the number of columns
     for num, col in enumerate(st.columns(number_of_cols)):
-        with col:
-            for figure in figures[num::number_of_cols]:
-                st.pyplot(figure)
+        for figure in figures[num::number_of_cols]:
+            col.pyplot(figure)
 
 with pyg_tab:
     pass
