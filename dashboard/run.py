@@ -10,7 +10,11 @@ st.set_page_config(page_title='Gemdat gemdash dashboard', layout='wide')
 
 fig_tab, pyg_tab = st.tabs(['Figures', 'PyGWalker'])
 
-data = Data.from_vasprun(Path('../example/vasprun.xml'), cache=Path('cache'))
+with st.sidebar:
+    data_location = st.text_input('Location of data', 'vasprun.xml')
+    cache_location = st.text_input('Location of cache', 'cache')
+
+data = Data.from_vasprun(Path(data_location), cache=Path(cache_location))
 
 with st.sidebar:
     # Get list of present elements as tuple of strings
