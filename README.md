@@ -30,9 +30,9 @@ Suggestions, improvements, and edits are most welcome.
 The following snippet can be used to test the code (provided that you have some VASP data or intermediate `.mat` files.
 
 ```python
-from gemdat import Data, plot_all, plot
+from gemdat import SimulationData, plot_all, plot
 
-data = Data.from_vasprun(Path('../example/vasprun.xml'), cache=Path('cache'))
+data = SimulationData.from_vasprun(Path('../example/vasprun.xml'), cache=Path('cache'))
 extra = data.calculate_all(equilibration_steps=1250, diffusing_element='Li')
 
 plot_all(data = data, **extra)

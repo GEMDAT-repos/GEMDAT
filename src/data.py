@@ -1,29 +1,28 @@
 import pickle
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
-from pydantic import BaseModel
-from pymatgen.core import Structure
+from pymatgen.core import Lattice, Species, Structure
 from pymatgen.io import vasp
 
 from .calculate.displacements import Displacements
 from .calculate.vibration import Vibration
 
 
-class Data(BaseModel):
+@dataclass(slots=True)
+class SimulationData:
     """Dataclass to store simulation data."""
-
-    class Config:
-        arbitrary_types_allowed = True
 
     structure: Structure
     trajectory_coords: np.ndarray
-    species: object
-    lattice: object
+    species: Species
+    lattice: Lattice
     time_step: float
     temperature: float
-    parameters: dict
+    parameters: dict[str, Any]
+    extras: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_cache(cls, cache: str | Path):
@@ -36,7 +35,7 @@ class Data(BaseModel):
 
         Returns
         -------
-        data : Data
+        data : SimulationData
             Dataclass with simulation data
         """
         with open(cache, 'rb') as f:
@@ -52,13 +51,14 @@ class Data(BaseModel):
             Name of cache file
         """
         with open(cache, 'wb') as f:
-            pickle.dump(self.dict(), f)
+            pickle.dump(asdict(self), f)
 
     def calculate_all(self, **kwargs):
-        return {
-            **Displacements.calculate_all(self, **kwargs),
-            **Vibration.calculate_all(self, **kwargs)
-        }
+        """Calculate extra parameters and place them in `.extras` attribute."""
+        self.extras.update(
+            Displacements.calculate_all(self, **kwargs, **self.extras))
+        self.extras.update(
+            Vibration.calculate_all(self, **kwargs, **self.extras))
 
     @classmethod
     def from_vasprun(cls,
@@ -79,7 +79,7 @@ class Data(BaseModel):
             Dataclass with simulation data
         """
         if cache and Path(cache).exists():
-            return Data.from_cache(cache)
+            return cls.from_cache(cache)
 
         run = vasp.Vasprun(
             xml_file,

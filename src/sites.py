@@ -167,13 +167,21 @@ def calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
 
 
 if __name__ == '__main__':
-    from gemdat import Data
+    from gemdat import SimulationData
 
     vasp_xml = '/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml'
 
-    data = Data.from_vasprun(vasp_xml, cache='vasprun.xml.cache')
+    equilibration_steps = 1250
+    diffusing_element = 'Li'
 
-    dist_close = 2 * 0.4839  # 'vibration_amplitude' in simdata
+    data = SimulationData.from_vasprun(vasp_xml, cache='vasprun.xml.cache')
+
+    data.calculate_all(
+        equilibration_steps=equilibration_steps,
+        diffusing_element='Li',
+    )
+
+    dist_close = 2 * data.extras['vibration_amplitude']
 
     lattice = data.lattice
 
@@ -214,11 +222,8 @@ if __name__ == '__main__':
                 f'Crystallographic sites are too close together (expected: >{dist_close*2:.4f}, '
                 f'got: {min_dist:.4f} for {msg}')
 
-    equilibration_steps = 1250
-
     n_parts = 10
 
-    diffusing_element = 'Li'
     traj_coords = data.trajectory_coords
 
     species = data.species

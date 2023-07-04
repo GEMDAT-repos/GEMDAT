@@ -36,7 +36,6 @@ dependencies = [
   'numpy',
   'scipy',
   'matplotlib',
-  'pydantic==1.*',
 ]
 
 [project.urls]
