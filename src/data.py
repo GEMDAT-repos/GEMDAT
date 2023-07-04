@@ -8,6 +8,7 @@ from pymatgen.core import Lattice, Species, Structure
 from pymatgen.io import vasp
 
 from .calculate.displacements import Displacements
+from .calculate.tracer import Tracer
 from .calculate.vibration import Vibration
 
 
@@ -59,6 +60,7 @@ class SimulationData:
             Displacements.calculate_all(self, **kwargs, **self.extras))
         self.extras.update(
             Vibration.calculate_all(self, **kwargs, **self.extras))
+        self.extras.update(Tracer.calculate_all(self, **kwargs, **self.extras))
 
     @classmethod
     def from_vasprun(cls,
