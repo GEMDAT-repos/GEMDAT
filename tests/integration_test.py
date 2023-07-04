@@ -1,9 +1,23 @@
+"""
+Run integration test with:
+
+VASP_XML=/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml pytest
+"""
+
+import os
+
 import numpy as np
+import pytest
 from gemdat import SimulationData
 
-VASP_XML = '/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml'
+VASP_XML = os.environ.get('VASP_XML')
+
+vaspxml_available = pytest.mark.skipif(
+    VASP_XML is None,
+    reason='vasprun.xml test data is required for this test.')
 
 
+@vaspxml_available
 def test_tracer():
     equilibration_steps = 1250
     diffusing_element = 'Li'
@@ -27,6 +41,7 @@ def test_tracer():
     assert isclose(data.extras['tracer_conduc'], 94.995, rel_tol=1e-4)
 
 
+@vaspxml_available
 def test_sites():
     from gemdat.io import load_known_material
     from gemdat.sites import (
