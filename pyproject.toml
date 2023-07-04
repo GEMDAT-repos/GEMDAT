@@ -37,9 +37,6 @@ dependencies = [
   'scipy',
   'matplotlib',
   'pydantic==1.*',
-  'pandas',
-  'streamlit',
-  'xarray',
 ]
 
 [project.urls]
@@ -62,17 +59,23 @@ docs = [
     "mkdocs-material",
     "mkdocstrings[python]",
 ]
+
 publishing = [
     "twine",
     "wheel",
     "build",
 ]
 
+gemdash = [
+  'streamlit',
+  'xarray',
+]
+
 [project.scripts]
 gemdash= "gemdat.dashboard:gemdash"
 
 [tool.setuptools]
-package-dir = {"gemdat" = "src", "pymatgen.analysis.gemdat" = "src", "gemdat.dashboard" = "dashboard" }
+package-dir = {"gemdat" = "src", "pymatgen.analysis.gemdat" = "src" }
 include-package-data = true
 
 [tool.coverage.run]
