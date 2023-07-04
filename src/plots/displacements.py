@@ -20,7 +20,7 @@ def plot_displacement_per_site(*, displacements: np.ndarray, **kwargs):
            xlabel='Time step',
            ylabel='Displacement (Angstrom)')
 
-    plt.show()
+    return fig
 
 
 def plot_displacement_per_element(structure: Structure,
@@ -54,7 +54,7 @@ def plot_displacement_per_element(structure: Structure,
            xlabel='Time step',
            ylabel='Displacement (Angstrom)')
 
-    plt.show()
+    return fig
 
 
 def plot_displacement_histogram(displacements: np.ndarray, **kwargs):
@@ -70,4 +70,5 @@ def plot_displacement_histogram(displacements: np.ndarray, **kwargs):
     ax.set(title='Histogram of displacement of diffusing element',
            xlabel='Displacement (Angstrom)',
            ylabel='Nr. of atoms')
-    plt.show()
+
+    return fig

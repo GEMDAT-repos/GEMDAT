@@ -2,13 +2,16 @@ from dataclasses import asdict
 from typing import List, Optional, Union
 
 import gemdat.plots as available_plots
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 from .data import SimulationData
 
 
 def plot(plots: Union[List[str], str],
          data: Optional[SimulationData] = None,
-         **kwargs) -> None:
+         show: bool = True,
+         **kwargs) -> List[Figure]:
     """Main plotting function of gemdat. it takes two mandatory arguments:
 
     - plots, a list of plot names, or just a plot name for the plot you want.
@@ -25,7 +28,8 @@ def plot(plots: Union[List[str], str],
 
     Returns
     -------
-    None
+    Figure:
+        A list of matplotlib figures
     """
 
     # Convert plots to list, if it is not already a list
@@ -36,12 +40,20 @@ def plot(plots: Union[List[str], str],
     if data:
         kwargs = {**asdict(data), **kwargs}
 
+    figures = []
+
     for plot in plots:
         plot_function = getattr(available_plots, plot)
-        plot_function(**kwargs)
+        figure = plot_function(**kwargs)
+        figures.append(figure)
+
+    if show:
+        plt.show()
+
+    return figures
 
 
-def plot_all(**kwargs) -> None:
+def plot_all(**kwargs) -> List[Figure]:
     """The Plot All function finds out which plots are available for plotting,
     and plots those.
 
@@ -54,6 +66,7 @@ def plot_all(**kwargs) -> None:
 
     Returns
     -------
-    None
+    Figure:
+        A list of matplotlib figures
     """
-    plot(plots=available_plots.__all__, **kwargs)
+    return plot(plots=available_plots.__all__, **kwargs)

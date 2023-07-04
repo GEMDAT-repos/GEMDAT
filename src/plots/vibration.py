@@ -59,7 +59,7 @@ def plot_frequency_vs_occurence(*,
     ax.set_ylim([0, y_max])
     ax.set_xlim([-0.1e13, 2.5e13])
 
-    plt.show()
+    return fig
 
 
 def plot_vibrational_amplitudes(*, amplitudes: np.ndarray,
@@ -85,4 +85,4 @@ def plot_vibrational_amplitudes(*, amplitudes: np.ndarray,
            xlabel='Amplitude (Angstrom)',
            ylabel='Occurrence (a.u.)')
 
-    plt.show()
+    return fig
