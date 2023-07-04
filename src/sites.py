@@ -1,5 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
-from pymatgen.core import Lattice, Structure
+from pymatgen.core import Structure
+
+if TYPE_CHECKING:
+    from gemdat.data import SimulationData
 
 
 class SitesData:
@@ -11,20 +18,47 @@ class SitesData:
     def site_coords(self):
         return self.structure.frac_coords
 
-    def calculate_all(self, data, n_parts: int = 10):
+    @property
+    def succes(self):
+        """Alias for `self.transitions_parts`."""
+        return self.transitions_parts
+
+    def calculate_all(self, data: SimulationData, n_parts: int = 10):
+        """Calculate all parameters.
+
+        Parameters
+        ----------
+        data : SimulationData
+            Input simulation data
+        n_parts : int, optional
+            Number of parts to divide data into for statistics
+        """
         self.dist_close = self.calculate_dist_close(data)
         self.atom_sites = self.calculate_atom_sites(data)
         self.all_transitions = self.calculate_transitions()
         self.transitions = self.calculate_transitions_matrix(
             n_diffusing=data.extras['n_diffusing'])
-        self.success = self.calculate_success(
+        self.transitions_parts = self.calculate_transitions_matrix_parts(
             n_steps=data.extras['n_steps'],
             n_diffusing=data.extras['n_diffusing'],
             n_parts=n_parts)
         self.occupancy = self.calculate_occupancy()
         self.occupancy_parts = self.calculate_occupancy_parts(n_parts=n_parts)
 
-    def calculate_dist_close(self, data):
+    def calculate_dist_close(self, data: SimulationData):
+        """Calculate tolerance wihin which atoms are considered to be close to
+        a site.
+
+        Parameters
+        ----------
+        data : SimulationData
+            Simulation data
+
+        Returns
+        -------
+        dist_close : float
+            Atoms within this distance (in Angstrom) are considered to be close to a site
+        """
         dist_close = 2 * data.extras['vibration_amplitude']
 
         pdist = data.lattice.get_all_distances(self.site_coords,
@@ -59,82 +93,143 @@ class SitesData:
 
         return dist_close
 
-    def calculate_atom_sites(self, data):
-        return calculate_atom_sites(coords=data.extras['diff_coords'],
-                                    site_coords=self.site_coords,
-                                    lattice=data.lattice,
-                                    dist_close=self.dist_close)
+    def calculate_atom_sites(self, data: SimulationData):
+        """Calculate nearest site for each atom coordinate.
+
+        Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
+        all `site_coords` has to be generated. This includes lattice translations. The nearest site
+        may be in the neighbouring unit cell.
+
+        Parameters
+        ----------
+        data : SimulationData
+            Simulation data
+
+        Returns
+        -------
+        atom_sites : np.ndarray
+            Output array with site locations for each atom at each time step [time, atom].
+            The value corresponds to the index in the `site_coords`.
+            -1 indicates that atom is not at any site.
+        """
+
+        # Input array with atom coordinates [time, atom, (x, y, z)]
+        coords = data.extras['diff_coords']
+
+        # Unit cell parameters
+        lattice = data.lattice
+
+        # Atoms within this distance (in Angstrom) are considered to be close to a site
+        dist_close = self.dist_close
+
+        # Input array with site coordinates [site, (x, y, z)]
+        site_coords = self.site_coords
+
+        atom_sites = []
+
+        for atom_index, atom_coords in enumerate(coords.swapaxes(0, 1)):
+            pdist = lattice.get_all_distances(atom_coords, site_coords)
+
+            # index of nearest site
+            nearest = pdist.argmin(axis=1, keepdims=True)
+
+            # True if atom is close enough to a site
+            is_at_site = np.take_along_axis(pdist, nearest,
+                                            axis=1) < dist_close
+
+            # Site index when close, -1 when in transition
+            atom_site = np.where(is_at_site, nearest, -1)
+
+            atom_sites.append(atom_site)
+
+        return np.hstack(atom_sites)
 
     def calculate_occupancy(self):
-        return calculate_occupancy(self.atom_sites)
+        """Calculate occupancy per site.
 
-    def calculate_occupancy_parts(self, n_parts: int):
+        Returns
+        -------
+        occupancy: dict[int, int]
+            For each site, count for how many time steps it is occupied by an atom
+        """
+        return _calculate_occupancy(self.atom_sites)
+
+    def calculate_occupancy_parts(self, n_parts: int) -> list[dict[int, int]]:
+        """Calculate occupancy per site, divided in parts.
+
+        Parameters
+        ----------
+        n_parts : int, optional
+            Number of parts to split into
+
+        Returns
+        -------
+        occupancy_parts: list[dict[int, int]]
+            Returns a list of dicts, where each dict corresponds to a part of the data.
+            Eech dict counts the number of time steps a site is occupied by an atom
+        """
         split_atom_sites = np.split(self.atom_sites, n_parts)
-        return [calculate_occupancy(part) for part in split_atom_sites]
+        return [_calculate_occupancy(part) for part in split_atom_sites]
 
     def calculate_transitions(self):
-        return calculate_transitions(atom_sites=self.atom_sites)
+        """Find transitions between sites.
+
+        Returns
+        -------
+        all_transitions : np.ndarray
+            Output array with transition events.
+            Contains 5 columns: atom index, time start, time stop, site start, site stop
+        """
+        return _calculate_transitions(atom_sites=self.atom_sites)
 
     def calculate_transitions_matrix(self, n_diffusing: int):
-        return calculate_transitions_matrix(self.all_transitions,
-                                            n_diffusing=n_diffusing)
+        """Convert list of transition events to dense transitions matrix.
 
-    def calculate_success(self, *, n_steps: int, n_diffusing: int,
-                          n_parts: int):
-        split_transitions = split_transitions_in_parts(self.all_transitions,
-                                                       n_steps, n_parts)
+        Parameters
+        ----------
+        n_diffusing : int
+            Number of diffusing elements. This defines the shape of the output matrix.
+
+        Returns
+        -------
+        transitions_matrix : np.ndarray
+            Square matrix with number of each transitions
+        """
+        return _calculate_transitions_matrix(self.all_transitions,
+                                             n_diffusing=n_diffusing)
+
+    def calculate_transitions_matrix_parts(self, *, n_steps: int,
+                                           n_diffusing: int,
+                                           n_parts: int) -> np.ndarray:
+        """Divide list of transition events in equal parts and convert to dense
+        transition matrices.
+
+        Note: equivalent to `sites.succes` in the matlab code.
+
+        Parameters
+        ----------
+        n_steps : int
+            Number of steps
+        n_diffusing : int
+            Number of diffusing elements. This defines the shape of the output matrix.
+        n_parts : int
+            Number of parts to divide the transitions events list into
+
+        Returns
+        -------
+        transitions_matrix_parts : np.ndarray
+            Stacked square matrices with number of each transitions.
+            The number of stacked matrices is equal to the number of parts specified.
+        """
+        split_transitions = _split_transitions_in_parts(
+            self.all_transitions, n_steps, n_parts)
         return np.stack([
-            calculate_transitions_matrix(part, n_diffusing=n_diffusing)
+            _calculate_transitions_matrix(part, n_diffusing=n_diffusing)
             for part in split_transitions
         ])
 
 
-def calculate_atom_sites(*, coords, site_coords, lattice: Lattice,
-                         dist_close: float):
-    """Calculate nearest site for each atom coordinate.
-
-    Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
-    all `site_coords` has to be generated. This includes lattice translations. The nearest site
-    may be in the neighbouring unit cell.
-
-    Parameters
-    ----------
-    coords : np.ndarray
-        Input array with atom coordinates [time, atom, (x, y, z)]
-    site_coords : np.ndarray
-        Input array with site coordinates [site, (x, y, z)]
-    lattice : Lattice
-        Unit cell parameters
-    dist_close : float
-        Atoms within this distance (in Angstrom) are considered to be close to a site
-
-    Returns
-    -------
-    atom_sites : np.ndarray
-        Output array with site locations for each atom at each time step [time, atom].
-        The value corresponds to the index in the `site_coords`.
-        -1 indicates that atom is not at any site.
-    """
-    atom_sites = []
-
-    for atom_index, atom_coords in enumerate(coords.swapaxes(0, 1)):
-        pdist = lattice.get_all_distances(atom_coords, site_coords)
-
-        # index of nearest site
-        nearest = pdist.argmin(axis=1, keepdims=True)
-
-        # True if atom is close enough to a site
-        is_at_site = np.take_along_axis(pdist, nearest, axis=1) < dist_close
-
-        # Site index when close, -1 when in transition
-        atom_site = np.where(is_at_site, nearest, -1)
-
-        atom_sites.append(atom_site)
-
-    return np.hstack(atom_sites)
-
-
-def calculate_transitions(*, atom_sites: np.ndarray) -> np.ndarray:
+def _calculate_transitions(*, atom_sites: np.ndarray) -> np.ndarray:
     """Find transitions between sites.
 
     Parameters
@@ -148,7 +243,6 @@ def calculate_transitions(*, atom_sites: np.ndarray) -> np.ndarray:
         Output array with transition events.
         Contains 5 columns: atom index, time start, time stop, site start, site stop
     """
-
     all_transitions = []
 
     for atom_index, atom_site in enumerate(atom_sites.T):
@@ -176,8 +270,8 @@ def calculate_transitions(*, atom_sites: np.ndarray) -> np.ndarray:
     return np.vstack(all_transitions)
 
 
-def calculate_transitions_matrix(all_transitions: np.ndarray,
-                                 n_diffusing: int) -> np.ndarray:
+def _calculate_transitions_matrix(all_transitions: np.ndarray,
+                                  n_diffusing: int) -> np.ndarray:
     """Convert list of transition events to dense transitions matrix.
 
     Parameters
@@ -204,9 +298,9 @@ def calculate_transitions_matrix(all_transitions: np.ndarray,
     return transitions
 
 
-def split_transitions_in_parts(all_transitions: np.ndarray,
-                               n_steps: int,
-                               n_parts=10) -> list[np.ndarray]:
+def _split_transitions_in_parts(all_transitions: np.ndarray,
+                                n_steps: int,
+                                n_parts=10) -> list[np.ndarray]:
     """Split list of transition events into equal parts in time.
 
     Parameters
@@ -236,7 +330,7 @@ def split_transitions_in_parts(all_transitions: np.ndarray,
     return np.split(sorted_transitions, splits)
 
 
-def calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
+def _calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
     """Calculate occupancy per site.
 
     Parameters

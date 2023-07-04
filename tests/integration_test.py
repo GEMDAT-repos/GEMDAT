@@ -54,17 +54,13 @@ def test_sites(sim_data):
     from gemdat.sites import SitesData
 
     n_parts = 10
-    sim_data.config['diffusing_element']
-    sim_data.config['equilibration_steps']
 
     structure = load_known_material('argyrodite')
 
     sites = SitesData(structure)
     sites.calculate_all(data=sim_data, n_parts=n_parts)
 
-    diff_coords = sim_data.extras['diff_coords']
-
-    assert diff_coords.shape == (73750, 48, 3)
+    assert sim_data.extras['diff_coords'].shape == (73750, 48, 3)
 
     assert sites.atom_sites.shape == (73750, 48)
     assert sites.atom_sites.sum() == 9228360
@@ -73,9 +69,9 @@ def test_sites(sim_data):
 
     assert sites.transitions.shape == (48, 48)
 
-    assert sites.success.shape == (n_parts, 48, 48)
-    assert np.sum(sites.success[0]) == 134
-    assert np.sum(sites.success[9]) == 142
+    assert sites.transitions_parts.shape == (n_parts, 48, 48)
+    assert np.sum(sites.transitions_parts[0]) == 134
+    assert np.sum(sites.transitions_parts[9]) == 142
 
     assert sites.occupancy[-1] == 3015185
     assert sites.occupancy[0] == 1706
