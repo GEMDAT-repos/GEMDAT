@@ -8,11 +8,13 @@ st.set_page_config(page_title='Gemdat gemdash dashboard', layout='wide')
 fig_tab, _ = st.tabs(['Figures', 'Other Tabs'])
 
 with st.sidebar:
-    data_location = st.text_input('Location of data', 'vasprun.xml')
-    cache_location = st.text_input('Location of cache', 'cache')
+    data_location = st.text_input('Choose location of vasprun.xml',
+                                  './vasprun.xml')
+if not Path(data_location).exists():
+    st.info('choose a Vasprun xml file to process')
+    st.stop()
 
-data = SimulationData.from_vasprun(Path(data_location),
-                                   cache=Path(cache_location))
+data = SimulationData.from_vasprun(data_location)
 
 with st.sidebar:
     # Get list of present elements as tuple of strings
@@ -33,10 +35,11 @@ with st.sidebar:
         max_value=len(data.trajectory_coords) - 1,
         value=1250,
         step=100)
-    number_of_cols = st.number_input('Number of figure columns',
-                                     min_value=1,
-                                     max_value=10,
-                                     value=3)
+    number_of_cols = int(
+        st.number_input('Number of figure columns',
+                        min_value=1,
+                        max_value=10,
+                        value=3))
 
 extra = data.calculate_all(equilibration_steps=equilibration_steps,
                            diffusing_element=diffusing_element)

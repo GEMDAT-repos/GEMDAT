@@ -81,7 +81,11 @@ class SimulationData:
         data : Data
             Dataclass with simulation data
         """
-        if cache and Path(cache).exists():
+
+        if not cache:
+            cache = Path(str(xml_file) + '.cache')
+
+        if Path(cache).exists():
             return cls.from_cache(cache)
 
         run = vasp.Vasprun(
