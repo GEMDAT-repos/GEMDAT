@@ -62,6 +62,7 @@ class SimulationData:
         equilibration_steps = kwargs.get('equilibration_steps')
         diffusing_element = kwargs.get('diffusing_element')
 
+        # generate these 'general purpose variables' somewhere more sensible
         self.extras['n_diffusing'] = sum(
             [e.name == diffusing_element for e in self.species])
         self.extras['n_steps'] = len(
