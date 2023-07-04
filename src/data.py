@@ -1,5 +1,5 @@
 import pickle
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -52,11 +52,24 @@ class SimulationData:
         cache : Path
             Name of cache file
         """
+        # convert to dict without object conversion
         with open(cache, 'wb') as f:
-            pickle.dump(asdict(self), f)
+            pickle.dump(self.dict, f)
+
+    @property
+    def dict(self) -> dict:
+        """Dict is an alternative for dataclasses.asdict.
+
+        dataclasses.asdict has a problem with pymatgenclasses, so we do
+        a more superficial conversion
+        """
+        return {
+            slotname: getattr(self, slotname)
+            for slotname in self.__slots__  # type: ignore
+        }
 
     def calculate_all(self, **kwargs):
-        """Calculate extra parameters and place them in `.extras` attribute."""
+        """Calculate extra parameters and place them in `.extras` attribute and return self.extras."""
         self.config = kwargs
 
         equilibration_steps = kwargs.get('equilibration_steps')
@@ -80,6 +93,7 @@ class SimulationData:
             Vibration.calculate_all(self, **self.extras, **self.config))
         self.extras.update(
             Tracer.calculate_all(self, **self.extras, **self.config))
+        return self.extras
 
     @classmethod
     def from_vasprun(cls,
@@ -99,8 +113,16 @@ class SimulationData:
         data : Data
             Dataclass with simulation data
         """
-        if cache and Path(cache).exists():
-            return cls.from_cache(cache)
+
+        if not cache:
+            cache = Path(str(xml_file) + '.cache')
+
+        if Path(cache).exists():
+            try:
+                return cls.from_cache(cache)
+            except Exception as e:
+                print(e)
+                print('Error reading from cache, reading full VaspRun')
 
         run = vasp.Vasprun(
             xml_file,

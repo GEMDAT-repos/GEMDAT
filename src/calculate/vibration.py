@@ -1,21 +1,12 @@
 import numpy as np
 from scipy import signal
 
-from .displacements import Displacements
-
 
 class Vibration():
 
     @staticmethod
     def calculate_all(data, diffusing_element: str, equilibration_steps: int,
-                      **kwargs) -> dict:
-        displacements = Displacements.displacements(data.trajectory_coords,
-                                                    data.lattice,
-                                                    equilibration_steps)
-        diff_displacements = Vibration.diff_displacements(
-            displacements=displacements,
-            species=data.species,
-            diffusing_element='Li')
+                      diff_displacements: np.ndarray, **kwargs) -> dict:
         speed, attempt_freq, attempt_freq_std = Vibration.attempt_frequency(
             diff_displacements, data.time_step)
         amplitudes, vibration_amplitude = Vibration.amplitude(speed)
@@ -63,11 +54,6 @@ class Vibration():
         mnfreq = np.dot(P, f.T) / pwr
 
         return mnfreq
-
-    @staticmethod
-    def diff_displacements(*, diffusing_element='Li', displacements, species):
-        idx = np.argwhere([e.name == diffusing_element for e in species])
-        return displacements[idx].squeeze()
 
     @staticmethod
     def attempt_frequency(displacements: np.ndarray, time_step: float = 1):

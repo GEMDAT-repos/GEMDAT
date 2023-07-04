@@ -8,8 +8,8 @@ from scipy import stats
 def plot_frequency_vs_occurence(*,
                                 speed: np.ndarray,
                                 fs: float,
-                                freq: Optional[float] = None,
-                                freq_std: Optional[float] = None,
+                                attempt_freq: Optional[float] = None,
+                                attempt_freq_std: Optional[float] = None,
                                 **kwargs):
     """Plot attempt frequency vs occurence.
 
@@ -43,14 +43,15 @@ def plot_frequency_vs_occurence(*,
 
     y_max = np.max(sum_freqs)
 
-    if freq:
-        ax.vlines([freq], 0, y_max, colors='red')
-    if freq and freq_std:
-        ax.vlines([freq + freq_std, freq - freq_std],
-                  0,
-                  y_max,
-                  colors='red',
-                  linestyles='dashed')
+    if attempt_freq:
+        ax.vlines([attempt_freq], 0, y_max, colors='red')
+    if attempt_freq and attempt_freq_std:
+        ax.vlines(
+            [attempt_freq + attempt_freq_std, attempt_freq - attempt_freq_std],
+            0,
+            y_max,
+            colors='red',
+            linestyles='dashed')
 
     ax.set(title='Frequency vs Occurence',
            xlabel='Frequency (Hz)',
@@ -59,7 +60,7 @@ def plot_frequency_vs_occurence(*,
     ax.set_ylim([0, y_max])
     ax.set_xlim([-0.1e13, 2.5e13])
 
-    plt.show()
+    return fig
 
 
 def plot_vibrational_amplitudes(*, amplitudes: np.ndarray,
@@ -85,4 +86,4 @@ def plot_vibrational_amplitudes(*, amplitudes: np.ndarray,
            xlabel='Amplitude (Angstrom)',
            ylabel='Occurrence (a.u.)')
 
-    plt.show()
+    return fig

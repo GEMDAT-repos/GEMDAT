@@ -16,6 +16,10 @@
           pythonpkgs.numpy
           pythonpkgs.matplotlib
           pythonpkgs.scipy
+          pythonpkgs.pandas
+          pythonpkgs.pyarrow
+          pythonpkgs.jupyterlab
+          pythonpkgs.mypy
         ];
         pythonWithPkgs = mypython.withPackages (pythonPkgs: with pythonPkgs; [
           # This list contains tools for Python development.
