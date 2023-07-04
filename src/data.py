@@ -24,6 +24,7 @@ class SimulationData:
     temperature: float
     parameters: dict[str, Any]
     extras: dict[str, Any] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_cache(cls, cache: str | Path):
@@ -56,11 +57,29 @@ class SimulationData:
 
     def calculate_all(self, **kwargs):
         """Calculate extra parameters and place them in `.extras` attribute."""
+        self.config = kwargs
+
+        equilibration_steps = kwargs.get('equilibration_steps')
+        diffusing_element = kwargs.get('diffusing_element')
+
+        # generate these 'general purpose variables' somewhere more sensible
+        self.extras['n_diffusing'] = sum(
+            [e.name == diffusing_element for e in self.species])
+        self.extras['n_steps'] = len(
+            self.trajectory_coords) - equilibration_steps
+
+        diffusing_idx = np.argwhere(
+            [e.name == diffusing_element for e in self.species]).flatten()
+
+        self.extras['diff_coords'] = self.trajectory_coords[
+            equilibration_steps:, diffusing_idx, :]
+
         self.extras.update(
-            Displacements.calculate_all(self, **kwargs, **self.extras))
+            Displacements.calculate_all(self, **self.extras, **self.config))
         self.extras.update(
-            Vibration.calculate_all(self, **kwargs, **self.extras))
-        self.extras.update(Tracer.calculate_all(self, **kwargs, **self.extras))
+            Vibration.calculate_all(self, **self.extras, **self.config))
+        self.extras.update(
+            Tracer.calculate_all(self, **self.extras, **self.config))
 
     @classmethod
     def from_vasprun(cls,
