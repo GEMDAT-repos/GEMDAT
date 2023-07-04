@@ -6,12 +6,24 @@ import streamlit.components.v1 as components
 import xarray as xr
 from gemdat import Data, plot_all
 
+st.set_page_config(page_title='Gemdat gemdash dashboard', layout='wide')
+
 data = Data.from_vasprun(Path('../example/vasprun.xml'), cache=Path('cache'))
 extra = data.calculate_all(equilibration_steps=1250, diffusing_element='Li')
 
-st.set_page_config(page_title='Gemdat gemdash dashboard', layout='wide')
-
 fig_tab, pyg_tab = st.tabs(['Figures', 'PyGWalker'])
+
+with st.sidebar:
+    # Get list of present elements as tuple of strings
+    elements = tuple(set([str(s) for s in data.species]))
+
+    # Set prefered element to lithium if available
+    try:
+        index = elements.index('Li')
+    except ValueError:
+        index = 0
+
+    option = st.selectbox('Diffusive Element', elements, index=index)
 
 with fig_tab:
     # Add Title
