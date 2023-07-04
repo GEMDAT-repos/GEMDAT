@@ -1,5 +1,5 @@
 import numpy as np
-from gemdat.sites import calculate_transitions_matrix
+from gemdat.sites import _calculate_transitions_matrix
 
 
 def test_transitions_matrix():
@@ -12,7 +12,7 @@ def test_transitions_matrix():
     ])
 
     n = 3
-    transitions = calculate_transitions_matrix(a, n_diffusing=n)
+    transitions = _calculate_transitions_matrix(a, n_diffusing=n)
 
     assert transitions.shape == (n, n)
     assert transitions.dtype == int
