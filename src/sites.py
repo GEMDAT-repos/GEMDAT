@@ -1,5 +1,92 @@
 import numpy as np
-from pymatgen.core import Lattice
+from pymatgen.core import Lattice, Structure
+
+
+class SitesData:
+
+    def __init__(self, structure: Structure):
+        self.structure = structure
+
+    @property
+    def site_coords(self):
+        return self.structure.frac_coords
+
+    def calculate_all(self, data, n_parts: int = 10):
+        self.dist_close = self.calculate_dist_close(data)
+        self.atom_sites = self.calculate_atom_sites(data)
+        self.all_transitions = self.calculate_transitions()
+        self.transitions = self.calculate_transitions_matrix(
+            n_diffusing=data.extras['n_diffusing'])
+        self.success = self.calculate_success(
+            n_steps=data.extras['n_steps'],
+            n_diffusing=data.extras['n_diffusing'],
+            n_parts=n_parts)
+        self.occupancy = self.calculate_occupancy()
+        self.occupancy_parts = self.calculate_occupancy_parts(n_parts=n_parts)
+
+    def calculate_dist_close(self, data):
+        dist_close = 2 * data.extras['vibration_amplitude']
+
+        pdist = data.lattice.get_all_distances(self.site_coords,
+                                               self.site_coords)
+        min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
+
+        if min_dist < 2 * dist_close:
+            # Crystallographic sites are overlapping with the chosen dist_close, making it smaller
+            dist_close = (0.5 * min_dist) - 0.005
+
+            # Two crystallographic sites are within half an Angstrom of each other
+            # This is NOT realistic, check/change the given crystallographic site
+            if dist_close * 2 < 0.5:
+                idx = np.argwhere(pdist == min_dist)
+
+                lines = []
+
+                for i, j in idx:
+                    self.structure.sites[i]
+                    site_j = self.structure.sites[j]
+                    lines.append('\nToo close:')
+                    lines.append(
+                        '{site_i.specie.name}({i}) {site_i.frac_coords} - ')
+                    lines.append(
+                        f'{site_j.specie.name}({j}) {site_j.frac_coords}')
+
+                msg = ''.join(lines)
+
+                raise ValueError(
+                    f'Crystallographic sites are too close together (expected: >{dist_close*2:.4f}, '
+                    f'got: {min_dist:.4f} for {msg}')
+
+        return dist_close
+
+    def calculate_atom_sites(self, data):
+        return calculate_atom_sites(coords=data.extras['diff_coords'],
+                                    site_coords=self.site_coords,
+                                    lattice=data.lattice,
+                                    dist_close=self.dist_close)
+
+    def calculate_occupancy(self):
+        return calculate_occupancy(self.atom_sites)
+
+    def calculate_occupancy_parts(self, n_parts: int):
+        split_atom_sites = np.split(self.atom_sites, n_parts)
+        return [calculate_occupancy(part) for part in split_atom_sites]
+
+    def calculate_transitions(self):
+        return calculate_transitions(atom_sites=self.atom_sites)
+
+    def calculate_transitions_matrix(self, n_diffusing: int):
+        return calculate_transitions_matrix(self.all_transitions,
+                                            n_diffusing=n_diffusing)
+
+    def calculate_success(self, *, n_steps: int, n_diffusing: int,
+                          n_parts: int):
+        split_transitions = split_transitions_in_parts(self.all_transitions,
+                                                       n_steps, n_parts)
+        return np.stack([
+            calculate_transitions_matrix(part, n_diffusing=n_diffusing)
+            for part in split_transitions
+        ])
 
 
 def calculate_atom_sites(*, coords, site_coords, lattice: Lattice,
