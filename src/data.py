@@ -55,12 +55,13 @@ class SimulationData:
             pickle.dump(asdict(self), f)
 
     def calculate_all(self, **kwargs):
-        """Calculate extra parameters and place them in `.extras` attribute."""
+        """Calculate extra parameters and place them in `.extras` attribute and return self.extras."""
         self.extras.update(
             Displacements.calculate_all(self, **kwargs, **self.extras))
         self.extras.update(
             Vibration.calculate_all(self, **kwargs, **self.extras))
         self.extras.update(Tracer.calculate_all(self, **kwargs, **self.extras))
+        return self.extras
 
     @classmethod
     def from_vasprun(cls,

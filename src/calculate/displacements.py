@@ -4,13 +4,22 @@ import numpy as np
 class Displacements():
 
     @staticmethod
-    def calculate_all(data, equilibration_steps: int, **kwargs) -> dict:
+    def calculate_all(data,
+                      equilibration_steps: int,
+                      diffusing_element: str = 'Li',
+                      **kwargs) -> dict:
+        cell_offsets = Displacements.cell_offsets(data.trajectory_coords),
+        displacements = Displacements.displacements(data.trajectory_coords,
+                                                    data.lattice,
+                                                    equilibration_steps)
+        diff_displacements = Displacements.diff_displacements(
+            displacements=displacements,
+            diffusing_element=diffusing_element,
+            species=data.species)
         return {
-            'cell_offsets':
-            Displacements.cell_offsets(data.trajectory_coords),
-            'displacements':
-            Displacements.displacements(data.trajectory_coords, data.lattice,
-                                        equilibration_steps),
+            'cell_offsets': cell_offsets,
+            'displacements': displacements,
+            'diff_displacements': diff_displacements,
         }
 
     @staticmethod
@@ -104,3 +113,8 @@ class Displacements():
         displacements = np.array(displacements)
 
         return displacements.T
+
+    @staticmethod
+    def diff_displacements(*, diffusing_element='Li', displacements, species):
+        idx = np.argwhere([e.name == diffusing_element for e in species])
+        return displacements[idx].squeeze()

@@ -57,16 +57,17 @@ def plot_displacement_per_element(structure: Structure,
     return fig
 
 
-def plot_displacement_histogram(displacements: np.ndarray, **kwargs):
-    """Plot histogram of total displacement at final timestep.
+def plot_displacement_histogram(diff_displacements: np.ndarray, **kwargs):
+    """Plot histogram of total displacement of diffusing element at final
+    timestep.
 
     Parameters
     ----------
-    displacements : np.ndarray
-        Numpy array with displacements
+    diff_displacements : np.ndarray
+        Numpy array with displacements of diffusing element
     """
     fig, ax = plt.subplots()
-    ax.hist(displacements[:, -1])
+    ax.hist(diff_displacements[:, -1])
     ax.set(title='Histogram of displacement of diffusing element',
            xlabel='Displacement (Angstrom)',
            ylabel='Nr. of atoms')

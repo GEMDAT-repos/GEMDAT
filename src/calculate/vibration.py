@@ -1,21 +1,12 @@
 import numpy as np
 from scipy import signal
 
-from .displacements import Displacements
-
 
 class Vibration():
 
     @staticmethod
     def calculate_all(data, diffusing_element: str, equilibration_steps: int,
-                      **kwargs) -> dict:
-        displacements = Displacements.displacements(data.trajectory_coords,
-                                                    data.lattice,
-                                                    equilibration_steps)
-        diff_displacements = Vibration.diff_displacements(
-            displacements=displacements,
-            species=data.species,
-            diffusing_element='Li')
+                      diff_displacements: np.ndarray, **kwargs) -> dict:
         speed, attempt_freq, attempt_freq_std = Vibration.attempt_frequency(
             diff_displacements, data.time_step)
         amplitudes, vibration_amplitude = Vibration.amplitude(speed)
@@ -65,11 +56,6 @@ class Vibration():
         return mnfreq
 
     @staticmethod
-    def diff_displacements(*, diffusing_element='Li', displacements, species):
-        idx = np.argwhere([e.name == diffusing_element for e in species])
-        return displacements[idx].squeeze()
-
-    @staticmethod
     def attempt_frequency(displacements: np.ndarray, time_step: float = 1):
         """Calculate attempt frequency.
 
@@ -98,8 +84,8 @@ class Vibration():
         attempt_freq = np.mean(freq_mean)
         attempt_freq_std = np.std(freq_mean)
 
-        print(f'{attempt_freq=:g}')
-        print(f'{attempt_freq_std=:g}')
+        #print(f'{attempt_freq=:g}')
+        #print(f'{attempt_freq_std=:g}')
 
         return speed, attempt_freq, attempt_freq_std
 
@@ -143,11 +129,11 @@ class Vibration():
 
             amplitudes.extend([np.sum(array) for array in subarrays])
 
-        mean_vib = np.mean(amplitudes)
+        np.mean(amplitudes)
         vibration_amp: float = np.std(amplitudes)
 
-        print(f'{mean_vib=:g}')
-        print(f'{vibration_amp=:g}')
+        #print(f'{mean_vib=:g}')
+        #print(f'{vibration_amp=:g}')
 
         return np.asarray(amplitudes), vibration_amp
 

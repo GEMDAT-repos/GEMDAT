@@ -1,17 +1,16 @@
 from pathlib import Path
 
-import pygwalker as pyg
 import streamlit as st
-import streamlit.components.v1 as components
-import xarray as xr
 from gemdat import Data, plot_all
+
+#import pygwalker as pyg
+#import streamlit.components.v1 as components
 
 st.set_page_config(page_title='Gemdat gemdash dashboard', layout='wide')
 
-data = Data.from_vasprun(Path('../example/vasprun.xml'), cache=Path('cache'))
-extra = data.calculate_all(equilibration_steps=1250, diffusing_element='Li')
-
 fig_tab, pyg_tab = st.tabs(['Figures', 'PyGWalker'])
+
+data = Data.from_vasprun(Path('../example/vasprun.xml'), cache=Path('cache'))
 
 with st.sidebar:
     # Get list of present elements as tuple of strings
@@ -23,32 +22,48 @@ with st.sidebar:
     except ValueError:
         index = 0
 
-    option = st.selectbox('Diffusive Element', elements, index=index)
+    diffusing_element = st.selectbox('Diffusive Element',
+                                     elements,
+                                     index=index)
+    equilibration_steps = st.number_input(
+        'Equilibration Steps',
+        min_value=0,
+        max_value=len(data.trajectory_coords) - 1,
+        value=1250,
+        step=100)
+    number_of_cols = st.number_input('Number of figure columns',
+                                     min_value=1,
+                                     max_value=10,
+                                     value=3)
 
 with fig_tab:
-    # Add Title
     st.title('GEMDAT pregenerated figures')
+
+    extra = data.calculate_all(equilibration_steps=equilibration_steps,
+                               diffusing_element=diffusing_element)
+
     figures = plot_all(data=data, **extra, show=False)
-    col1, col2 = st.columns(2)
-    with col1:
-        for figure in figures[::2]:
-            st.pyplot(figure)
-    with col2:
-        for figure in figures[1::2]:
-            st.pyplot(figure)
+
+    # automagically divide the plots over the number of columns
+    for num, col in enumerate(st.columns(number_of_cols)):
+        with col:
+            for figure in figures[num::number_of_cols]:
+                st.pyplot(figure)
 
 with pyg_tab:
-
-    # Add Title
-    st.title('Use Pygwalker for GEMDAT')
-
-    # Import your data
-    data_xr = xr.DataArray(extra['speed'],
-                           dims=['element', 'time']).isel(time=slice(0, 1000))
-    data_df = data_xr.to_dataframe(name='speed')
-
-    # Generate the HTML using Pygwalker
-    pyg_html = pyg.walk(data_df, return_html=True)
-
-    # Embed the HTML into the Streamlit app
-    components.html(pyg_html, height=1000, scrolling=True)
+    pass
+#    extra = data.calculate_all(equilibration_steps=1250, diffusing_element=diffusing_element)
+#
+#    # Add Title
+#    st.title('Use Pygwalker for GEMDAT')
+#
+#    # Import your data
+#    data_xr = xr.DataArray(extra['speed'],
+#                           dims=['element', 'time']).isel(time=slice(0, 1000))
+#    data_df = data_xr.to_dataframe(name='speed')
+#
+#    # Generate the HTML using Pygwalker
+#    pyg_html = pyg.walk(data_df, return_html=True)
+#
+#    # Embed the HTML into the Streamlit app
+#    components.html(pyg_html, height=1000, scrolling=True)
