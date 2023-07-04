@@ -1,12 +1,13 @@
+from dataclasses import asdict
 from typing import List, Optional, Union
 
 import gemdat.plots as available_plots
 
-from .data import Data
+from .data import SimulationData
 
 
 def plot(plots: Union[List[str], str],
-         data: Optional[Data] = None,
+         data: Optional[SimulationData] = None,
          **kwargs) -> None:
     """Main plotting function of gemdat. it takes two mandatory arguments:
 
@@ -15,7 +16,7 @@ def plot(plots: Union[List[str], str],
 
     Parameters
     ----------
-    data : Data
+    data : SimulationData
         data
     plots : Union[List[str],str]
         plots
@@ -33,7 +34,7 @@ def plot(plots: Union[List[str], str],
 
     # extract data if present, but prioritise kwargs
     if data:
-        kwargs = {**data.dict(), **kwargs}
+        kwargs = {**asdict(data), **kwargs}
 
     for plot in plots:
         plot_function = getattr(available_plots, plot)
@@ -46,7 +47,7 @@ def plot_all(**kwargs) -> None:
 
     Parameters
     ----------
-    data : Data
+    data : SimulationData
         data
     kwargs :
         kwargs
