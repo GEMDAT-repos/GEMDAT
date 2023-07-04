@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from typing import List, Optional, Union
 
 import gemdat.plots as available_plots
@@ -38,7 +37,7 @@ def plot(plots: Union[List[str], str],
 
     # extract data if present, but prioritise kwargs
     if data:
-        kwargs = {**asdict(data), **kwargs}
+        kwargs = {**data.dict, **kwargs}
 
     figures = []
 

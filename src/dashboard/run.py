@@ -14,7 +14,8 @@ if not Path(data_location).exists():
     st.info('choose a Vasprun xml file to process')
     st.stop()
 
-data = SimulationData.from_vasprun(data_location)
+with st.spinner('Loading your data, this might take a while'):
+    data = SimulationData.from_vasprun(data_location)
 
 with st.sidebar:
     # Get list of present elements as tuple of strings
