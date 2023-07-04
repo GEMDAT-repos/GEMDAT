@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import streamlit as st
-from gemdat import Data, plot_all
+from gemdat import SimulationData, plot_all
 
 #import pygwalker as pyg
 #import streamlit.components.v1 as components
@@ -14,7 +14,8 @@ with st.sidebar:
     data_location = st.text_input('Location of data', 'vasprun.xml')
     cache_location = st.text_input('Location of cache', 'cache')
 
-data = Data.from_vasprun(Path(data_location), cache=Path(cache_location))
+data = SimulationData.from_vasprun(Path(data_location),
+                                   cache=Path(cache_location))
 
 with st.sidebar:
     # Get list of present elements as tuple of strings
