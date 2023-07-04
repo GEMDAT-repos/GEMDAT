@@ -3,7 +3,7 @@ import numpy as np
 from pymatgen.core import Structure
 
 
-def plot_displacement_per_site(*, displacements: np.ndarray, **kwargs):
+def plot_displacement_per_site(*, diff_displacements: np.ndarray, **kwargs):
     """Plot displacement per site.
 
     Parameters
@@ -13,7 +13,7 @@ def plot_displacement_per_site(*, displacements: np.ndarray, **kwargs):
     """
     fig, ax = plt.subplots()
 
-    for site_displacement in displacements:
+    for site_displacement in diff_displacements:
         ax.plot(site_displacement, lw=0.3)
 
     ax.set(title='Displacement of diffusing element',
