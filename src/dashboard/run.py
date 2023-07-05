@@ -8,17 +8,15 @@ st.set_page_config(page_title='Gemdat gemdash dashboard', layout='wide')
 
 fig_tab, _ = st.tabs(['Figures', 'Other Tabs'])
 
-data_location = st.session_state.get('data_location')
+data_location = st.session_state.get('data_location', default='vasprun.xml')
 
 with st.sidebar:
-    simple = st.checkbox('Use textbox to select filepath')
-    if simple:
-        data_location = st.text_input('Location of vasprun.xml on the server',
-                                      './vasprun.xml')
-    elif st.button('Choose location of vasprun.xml'):
+    data_location = st.text_input('Location of vasprun.xml on the server',
+                                  data_location)
+    if st.button('Choose location of vasprun.xml'):
         data_location = filedialog.askopenfilename()
-
-st.session_state.data_location = data_location
+        st.session_state.data_location = data_location
+        st.experimental_rerun()
 
 if not data_location or not Path(data_location).exists():
     st.info('choose a Vasprun xml file to process')
