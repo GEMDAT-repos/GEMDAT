@@ -107,12 +107,10 @@ class SimulationData:
 
         self._add_shared_variables(extras)
 
-        for obj in (
-                Displacements,
-                Vibration,
-                Tracer,
-        ):
-            extras.__dict__.update(obj.calculate_all(self, extras=extras))
+        extras.__dict__.update(Displacements.calculate_all(self,
+                                                           extras=extras))
+        extras.__dict__.update(Vibration.calculate_all(self, extras=extras))
+        extras.__dict__.update(Tracer.calculate_all(self, extras=extras))
 
         return extras
 
