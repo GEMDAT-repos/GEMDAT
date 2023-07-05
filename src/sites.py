@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -23,29 +24,33 @@ class SitesData:
         """Alias for `self.transitions_parts`."""
         return self.transitions_parts
 
-    def calculate_all(self, data: SimulationData, n_parts: int = 10):
+    def calculate_all(self, data: SimulationData, extras: SimpleNamespace):
         """Calculate all parameters.
 
         Parameters
         ----------
         data : SimulationData
             Input simulation data
-        n_parts : int, optional
-            Number of parts to divide data into for statistics
+        extras : SimpleNamespace
+            Extra parameters
         """
-        self.dist_close = self.calculate_dist_close(data)
-        self.atom_sites = self.calculate_atom_sites(data)
+        self.dist_close = self.calculate_dist_close(
+            data, vibration_amplitude=extras.vibration_amplitude)
+        self.atom_sites = self.calculate_atom_sites(
+            data, diff_coords=extras.diff_coords)
         self.all_transitions = self.calculate_transitions()
         self.transitions = self.calculate_transitions_matrix(
-            n_diffusing=data.extras['n_diffusing'])
+            n_diffusing=extras.n_diffusing)
         self.transitions_parts = self.calculate_transitions_matrix_parts(
-            n_steps=data.extras['n_steps'],
-            n_diffusing=data.extras['n_diffusing'],
-            n_parts=n_parts)
+            n_steps=extras.n_steps,
+            n_diffusing=extras.n_diffusing,
+            n_parts=extras.n_parts)
         self.occupancy = self.calculate_occupancy()
-        self.occupancy_parts = self.calculate_occupancy_parts(n_parts=n_parts)
+        self.occupancy_parts = self.calculate_occupancy_parts(
+            n_parts=extras.n_parts)
 
-    def calculate_dist_close(self, data: SimulationData):
+    def calculate_dist_close(self, data: SimulationData,
+                             vibration_amplitude: float):
         """Calculate tolerance wihin which atoms are considered to be close to
         a site.
 
@@ -53,13 +58,15 @@ class SitesData:
         ----------
         data : SimulationData
             Simulation data
+        vibration_amplitude : float
+            Vibration amplitude
 
         Returns
         -------
         dist_close : float
             Atoms within this distance (in Angstrom) are considered to be close to a site
         """
-        dist_close = 2 * data.extras['vibration_amplitude']
+        dist_close = 2 * vibration_amplitude
 
         pdist = data.lattice.get_all_distances(self.site_coords,
                                                self.site_coords)
@@ -93,7 +100,8 @@ class SitesData:
 
         return dist_close
 
-    def calculate_atom_sites(self, data: SimulationData):
+    def calculate_atom_sites(self, data: SimulationData,
+                             diff_coords: np.ndarray):
         """Calculate nearest site for each atom coordinate.
 
         Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
@@ -104,6 +112,8 @@ class SitesData:
         ----------
         data : SimulationData
             Simulation data
+        diff_coords:
+            Input array with (diffusing) atom coordinates [time, atom, (x, y, z)]
 
         Returns
         -------
@@ -112,9 +122,7 @@ class SitesData:
             The value corresponds to the index in the `site_coords`.
             -1 indicates that atom is not at any site.
         """
-
-        # Input array with atom coordinates [time, atom, (x, y, z)]
-        coords = data.extras['diff_coords']
+        coords = diff_coords
 
         # Unit cell parameters
         lattice = data.lattice

@@ -1,21 +1,35 @@
 import numpy as np
 
 
-class Displacements():
+class Displacements:
 
     @staticmethod
-    def calculate_all(data,
-                      equilibration_steps: int,
-                      diffusing_element: str = 'Li',
-                      **kwargs) -> dict:
+    def calculate_all(data, extras) -> dict:
+        """Calculate displacement properties.
+
+        Parameters
+        ----------
+        data : SimulationData
+            Input simulation data
+        extras : SimpleNamespace
+            Extra variables
+
+        Returns
+        -------
+        extras : dict[str, float]
+            Dictionary with calculated parameters
+        """
         cell_offsets = Displacements.cell_offsets(data.trajectory_coords),
+
         displacements = Displacements.displacements(data.trajectory_coords,
                                                     data.lattice,
-                                                    equilibration_steps)
+                                                    extras.equilibration_steps)
+
         diff_displacements = Displacements.diff_displacements(
             displacements=displacements,
-            diffusing_element=diffusing_element,
+            diffusing_element=extras.diffusing_element,
             species=data.species)
+
         return {
             'cell_offsets': cell_offsets,
             'displacements': displacements,

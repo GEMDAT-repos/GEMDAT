@@ -2,13 +2,28 @@ import numpy as np
 from scipy import signal
 
 
-class Vibration():
+class Vibration:
 
     @staticmethod
-    def calculate_all(data, diffusing_element: str, equilibration_steps: int,
-                      diff_displacements: np.ndarray, **kwargs) -> dict:
+    def calculate_all(data, extras) -> dict:
+        """Calculate Vibration properties.
+
+        Parameters
+        ----------
+        data : SimulationData
+            Input simulation data
+        extras : SimpleNamespace
+            Extra variables
+
+        Returns
+        -------
+        extras : dict[str, float]
+            Dictionary with calculated parameters
+        """
+        fs = 1 / data.time_step
+
         speed, attempt_freq, attempt_freq_std = Vibration.attempt_frequency(
-            diff_displacements, data.time_step)
+            extras.diff_displacements, fs=fs)
         amplitudes, vibration_amplitude = Vibration.amplitude(speed)
 
         return {
@@ -17,7 +32,7 @@ class Vibration():
             'attempt_freq_std': attempt_freq_std,
             'amplitudes': amplitudes,
             'vibration_amplitude': vibration_amplitude,
-            'fs': 1 / data.time_step,
+            'fs': fs,
         }
 
     @staticmethod
@@ -56,7 +71,7 @@ class Vibration():
         return mnfreq
 
     @staticmethod
-    def attempt_frequency(displacements: np.ndarray, time_step: float = 1):
+    def attempt_frequency(displacements: np.ndarray, fs: float = 1):
         """Calculate attempt frequency.
 
         Parameters
@@ -75,8 +90,6 @@ class Vibration():
         attempt_freq_std : float
             Attempt frequency standard deviation
         """
-
-        fs = 1 / time_step
         speed = np.diff(displacements, prepend=0)
 
         freq_mean = Vibration.meanfreq(speed, fs=fs)
