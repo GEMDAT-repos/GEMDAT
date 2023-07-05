@@ -18,49 +18,49 @@ vaspxml_available = pytest.mark.skipif(
 
 
 @pytest.fixture
-def sim_data():
+def gemdat_results():
     equilibration_steps = 1250
     diffusing_element = 'Li'
-    dimensions = 3
+    diffusion_dimensions = 3
     z_ion = 1
 
     data = SimulationData.from_vasprun(VASP_XML, cache='vasprun.xml.cache')
 
-    data.calculate_all(
+    extras = data.calculate_all(
         equilibration_steps=equilibration_steps,
         diffusing_element=diffusing_element,
         z_ion=z_ion,
-        dimensions=dimensions,
+        diffusion_dimensions=diffusion_dimensions,
     )
 
-    return data
+    return (data, extras)
 
 
 @vaspxml_available
-def test_tracer(sim_data):
+def test_tracer(gemdat_results):
     from math import isclose
 
-    assert isclose(sim_data.extras['particle_density'],
-                   2.4557e28,
-                   rel_tol=1e-4)
-    assert isclose(sim_data.extras['mol_per_liter'], 40.777, rel_tol=1e-4)
-    assert isclose(sim_data.extras['tracer_diff'], 1.3524e-09, rel_tol=1e-4)
-    assert isclose(sim_data.extras['tracer_conduc'], 94.995, rel_tol=1e-4)
+    _, extras = gemdat_results
+
+    assert isclose(extras.particle_density, 2.4557e28, rel_tol=1e-4)
+    assert isclose(extras.mol_per_liter, 40.777, rel_tol=1e-4)
+    assert isclose(extras.tracer_diff, 1.3524e-09, rel_tol=1e-4)
+    assert isclose(extras.tracer_conduc, 94.995, rel_tol=1e-4)
 
 
 @vaspxml_available
-def test_sites(sim_data):
+def test_sites(gemdat_results):
     from gemdat.io import load_known_material
     from gemdat.sites import SitesData
 
-    n_parts = 10
+    data, extras = gemdat_results
 
     structure = load_known_material('argyrodite')
 
     sites = SitesData(structure)
-    sites.calculate_all(data=sim_data, n_parts=n_parts)
+    sites.calculate_all(data=data, extras=extras)
 
-    assert sim_data.extras['diff_coords'].shape == (73750, 48, 3)
+    assert extras.diff_coords.shape == (73750, 48, 3)
 
     assert sites.atom_sites.shape == (73750, 48)
     assert sites.atom_sites.sum() == 9228360
@@ -69,7 +69,7 @@ def test_sites(sim_data):
 
     assert sites.transitions.shape == (48, 48)
 
-    assert sites.transitions_parts.shape == (n_parts, 48, 48)
+    assert sites.transitions_parts.shape == (extras.n_parts, 48, 48)
     assert np.sum(sites.transitions_parts[0]) == 134
     assert np.sum(sites.transitions_parts[9]) == 142
 
@@ -77,7 +77,7 @@ def test_sites(sim_data):
     assert sites.occupancy[0] == 1706
     assert sites.occupancy[43] == 6350
 
-    assert len(sites.occupancy_parts) == n_parts
+    assert len(sites.occupancy_parts) == extras.n_parts
 
     assert sites.occupancy_parts[0][0] == 241
     assert sites.occupancy_parts[0][43] == 1231

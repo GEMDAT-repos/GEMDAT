@@ -1,6 +1,7 @@
 import pickle
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Optional
 
 import numpy as np
@@ -23,8 +24,6 @@ class SimulationData:
     time_step: float
     temperature: float
     parameters: dict[str, Any]
-    extras: dict[str, Any] = field(default_factory=dict)
-    config: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_cache(cls, cache: str | Path):
@@ -68,32 +67,68 @@ class SimulationData:
             for slotname in self.__slots__  # type: ignore
         }
 
-    def calculate_all(self, **kwargs):
-        """Calculate extra parameters and place them in `.extras` attribute and return self.extras."""
-        self.config = kwargs
+    def calculate_all(self,
+                      *,
+                      diffusing_element: str,
+                      known_structure: str | None = None,
+                      equilibration_steps: int = 1250,
+                      diffusion_dimensions: int = 3,
+                      z_ion: float = 1.0,
+                      n_parts: int = 10,
+                      dist_collective: float = 4.5):
+        """Calculate extra parameters and place them in `.extras` attribute and return self.extras.
 
-        equilibration_steps = kwargs.get('equilibration_steps')
-        diffusing_element = kwargs.get('diffusing_element')
+        Parameters
+        ----------
+        diffusing_element : str
+            Name of the diffusing element
+        structure : str | None
+            Path to cif file or name of known structure
+        equilibration_steps : int
+            Number of equilibration steps
+        diffusion_dimensions : int
+            Number of diffusion dimensions
+        z_ion : float
+            Ionic charge of the diffusing ion
+        n_parts : int
+            In how many parts to divide your simulation for statistics
+        dist_collective : float
+            Maximum distance for collective motions in Angstrom
+        """
+        extras = SimpleNamespace(
+            diffusing_element=diffusing_element,
+            known_structure=known_structure,
+            equilibration_steps=equilibration_steps,
+            diffusion_dimensions=diffusion_dimensions,
+            z_ion=z_ion,
+            n_parts=n_parts,
+            dist_collective=dist_collective,
+        )
 
-        # generate these 'general purpose variables' somewhere more sensible
-        self.extras['n_diffusing'] = sum(
-            [e.name == diffusing_element for e in self.species])
-        self.extras['n_steps'] = len(
-            self.trajectory_coords) - equilibration_steps
+        self._add_shared_variables(extras)
 
-        diffusing_idx = np.argwhere(
-            [e.name == diffusing_element for e in self.species]).flatten()
+        for obj in (
+                Displacements,
+                Vibration,
+                Tracer,
+        ):
+            extras.__dict__.update(obj.calculate_all(self, extras=extras))
 
-        self.extras['diff_coords'] = self.trajectory_coords[
-            equilibration_steps:, diffusing_idx, :]
+        return extras
 
-        self.extras.update(
-            Displacements.calculate_all(self, **self.extras, **self.config))
-        self.extras.update(
-            Vibration.calculate_all(self, **self.extras, **self.config))
-        self.extras.update(
-            Tracer.calculate_all(self, **self.extras, **self.config))
-        return self.extras
+    def _add_shared_variables(self, extras: SimpleNamespace):
+        """Add common shared variables to extras namespace."""
+        extras.n_diffusing = sum(
+            [e.name == extras.diffusing_element for e in self.species])
+        extras.n_steps = len(
+            self.trajectory_coords) - extras.equilibration_steps
+
+        diffusing_idx = np.argwhere([
+            e.name == extras.diffusing_element for e in self.species
+        ]).flatten()
+
+        extras.diff_coords = self.trajectory_coords[
+            extras.equilibration_steps:, diffusing_idx, :]
 
     @classmethod
     def from_vasprun(cls,

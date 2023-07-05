@@ -62,7 +62,7 @@ extra = data.calculate_all(equilibration_steps=equilibration_steps,
 with fig_tab:
     st.title('GEMDAT pregenerated figures')
 
-    figures = plot_all(data=data, **extra, show=False)
+    figures = plot_all(data=data, **vars(extra), show=False)
 
     # automagically divide the plots over the number of columns
     for num, col in enumerate(st.columns(number_of_cols)):
