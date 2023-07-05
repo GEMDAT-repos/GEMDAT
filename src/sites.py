@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from pymatgen.core import Structure
 
+from .utils import bfill, ffill
+
 if TYPE_CHECKING:
     from gemdat.data import SimulationData
 
@@ -38,7 +40,9 @@ class SitesData:
             data, vibration_amplitude=extras.vibration_amplitude)
         self.atom_sites = self.calculate_atom_sites(
             data, diff_coords=extras.diff_coords)
-        self.all_transitions = self.calculate_transitions()
+        self.atom_sites_to, self.atom_sites_from = self.calculate_atom_sites_transitions(
+        )
+        self.all_transitions = self.calculate_transition_events()
         self.transitions = self.calculate_transitions_matrix(
             n_diffusing=extras.n_diffusing)
         self.transitions_parts = self.calculate_transitions_matrix_parts(
@@ -48,6 +52,11 @@ class SitesData:
         self.occupancy = self.calculate_occupancy()
         self.occupancy_parts = self.calculate_occupancy_parts(
             n_parts=extras.n_parts)
+
+        self.sites_occupancy = None
+        self.sites_occupancy_parts = None
+        self.atom_locations = None
+        self.atom_locations_parts = None
 
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
@@ -145,12 +154,30 @@ class SitesData:
             is_at_site = np.take_along_axis(pdist, nearest,
                                             axis=1) < dist_close
 
-            # Site index when close, -1 when in transition
+            # Site index when close, np.nan when in transition
             atom_site = np.where(is_at_site, nearest, -1)
 
             atom_sites.append(atom_site)
 
         return np.hstack(atom_sites)
+
+    def calculate_atom_sites_transitions(
+            self) -> tuple[np.ndarray, np.ndarray]:
+        """Calculate atom transition states per time step by back/forward filling
+        `self.atom_sites`.
+
+        Returns
+        -------
+        atom_sites_from, atom_sites_to : tuple[np.ndarray, np.ndarray]
+            Output arrays with atom transition states. `atom_sites_from` contains
+            the index of the previous site for every atom, and `atom_sites_to` the
+            next site. If `atom_sites_from` and `atom_sites_to` are equal, the atom
+            is currently sitting at that site.
+        """
+        atom_sites_from = ffill(self.atom_sites, fill_val=-1, axis=0)
+        atom_sites_to = bfill(self.atom_sites, fill_val=-1, axis=0)
+
+        return atom_sites_from, atom_sites_to
 
     def calculate_occupancy(self):
         """Calculate occupancy per site.
@@ -179,7 +206,7 @@ class SitesData:
         split_atom_sites = np.split(self.atom_sites, n_parts)
         return [_calculate_occupancy(part) for part in split_atom_sites]
 
-    def calculate_transitions(self):
+    def calculate_transition_events(self):
         """Find transitions between sites.
 
         Returns
@@ -188,7 +215,7 @@ class SitesData:
             Output array with transition events.
             Contains 5 columns: atom index, time start, time stop, site start, site stop
         """
-        return _calculate_transitions(atom_sites=self.atom_sites)
+        return _calculate_transition_events(atom_sites=self.atom_sites)
 
     def calculate_transitions_matrix(self, n_diffusing: int):
         """Convert list of transition events to dense transitions matrix.
@@ -237,7 +264,7 @@ class SitesData:
         ])
 
 
-def _calculate_transitions(*, atom_sites: np.ndarray) -> np.ndarray:
+def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
     """Find transitions between sites.
 
     Parameters
