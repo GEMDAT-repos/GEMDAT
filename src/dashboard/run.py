@@ -1,4 +1,3 @@
-import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog
 
@@ -17,10 +16,7 @@ with st.sidebar:
         data_location = st.text_input('Location of vasprun.xml on the server',
                                       './vasprun.xml')
     elif st.button('Choose location of vasprun.xml'):
-        root = tk.Tk()
-        root.withdraw()
         data_location = filedialog.askopenfilename()
-        root.destroy()
 
 st.session_state.data_location = data_location
 
