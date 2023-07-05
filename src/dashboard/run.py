@@ -1,4 +1,6 @@
+import tkinter as tk
 from pathlib import Path
+from tkinter import filedialog
 
 import streamlit as st
 from gemdat import SimulationData, plot_all
@@ -7,10 +9,22 @@ st.set_page_config(page_title='Gemdat gemdash dashboard', layout='wide')
 
 fig_tab, _ = st.tabs(['Figures', 'Other Tabs'])
 
+data_location = st.session_state.get('data_location')
+
 with st.sidebar:
-    data_location = st.text_input('Choose location of vasprun.xml',
-                                  './vasprun.xml')
-if not Path(data_location).exists():
+    simple = st.checkbox('Use textbox to select filepath')
+    if simple:
+        data_location = st.text_input('Location of vasprun.xml on the server',
+                                      './vasprun.xml')
+    elif st.button('Choose location of vasprun.xml'):
+        root = tk.Tk()
+        root.withdraw()
+        data_location = filedialog.askopenfilename()
+        root.destroy()
+
+st.session_state.data_location = data_location
+
+if not data_location or not Path(data_location).exists():
     st.info('choose a Vasprun xml file to process')
     st.stop()
 
