@@ -64,6 +64,10 @@ def test_sites(gemdat_results):
 
     assert sites.atom_sites.shape == (73750, 48)
     assert sites.atom_sites.sum() == 9228360
+    assert sites.atom_sites_to.shape == (73750, 48)
+    assert sites.atom_sites_to.sum() == 84831031
+    assert sites.atom_sites_from.shape == (73750, 48)
+    assert sites.atom_sites_from.sum() == 85351052
 
     assert sites.all_transitions.shape == (1336, 5)
 
