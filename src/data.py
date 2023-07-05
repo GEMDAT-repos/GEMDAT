@@ -76,7 +76,7 @@ class SimulationData:
                       z_ion: float = 1.0,
                       n_parts: int = 10,
                       dist_collective: float = 4.5):
-        """Calculate extra parameters and place them in `.extras` attribute and return self.extras.
+        """Calculate extra parameters and return them as a simple namespace.
 
         Parameters
         ----------
