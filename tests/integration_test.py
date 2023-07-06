@@ -77,7 +77,6 @@ def test_sites(gemdat_results):
     assert np.sum(sites.transitions_parts[0]) == 134
     assert np.sum(sites.transitions_parts[9]) == 142
 
-    assert sites.occupancy[-1] == 3015185
     assert sites.occupancy[0] == 1706
     assert sites.occupancy[43] == 6350
 
@@ -87,3 +86,14 @@ def test_sites(gemdat_results):
     assert sites.occupancy_parts[0][43] == 1231
     assert sites.occupancy_parts[9][0] == 87
     assert sites.occupancy_parts[9][43] == 391
+
+    assert sites.sites_occupancy == {'Li48h': 0.14825282485875707}
+
+    assert len(sites.occupancy_parts) == extras.n_parts
+    assert sites.sites_occupancy_parts[0] == {'Li48h': 0.15155367231638417}
+    assert sites.sites_occupancy_parts[9] == {'Li48h': 0.14890395480225987}
+
+    # These appear to be the same in the matlab code
+    # https://github.com/GEMDAT-repos/GEMDAT/issues/35
+    assert sites.atom_locations == sites.sites_occupancy
+    assert sites.atom_locations_parts == sites.sites_occupancy_parts
