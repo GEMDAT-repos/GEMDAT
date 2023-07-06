@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
@@ -10,6 +11,8 @@ from .utils import bfill, ffill
 
 if TYPE_CHECKING:
     from gemdat.data import SimulationData
+
+NOSITE = -1
 
 
 class SitesData:
@@ -53,10 +56,13 @@ class SitesData:
         self.occupancy_parts = self.calculate_occupancy_parts(
             n_parts=extras.n_parts)
 
-        self.sites_occupancy = None
-        self.sites_occupancy_parts = None
-        self.atom_locations = None
-        self.atom_locations_parts = None
+        self.sites_occupancy = self.calculate_site_occupancy(
+            n_steps=extras.n_steps)
+        self.sites_occupancy_parts = self.calculate_site_occupancy_parts(
+            n_steps=extras.n_steps / extras.n_parts)
+
+        self.atom_locations = self.sites_occupancy  # Is this correct? TODO: check
+        self.atom_locations_parts = self.sites_occupancy_parts  # Is this correct? TODO: check
 
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
@@ -154,8 +160,8 @@ class SitesData:
             is_at_site = np.take_along_axis(pdist, nearest,
                                             axis=1) < dist_close
 
-            # Site index when close, np.nan when in transition
-            atom_site = np.where(is_at_site, nearest, -1)
+            # Site index when close, NOSITE when in transition
+            atom_site = np.where(is_at_site, nearest, NOSITE)
 
             atom_sites.append(atom_site)
 
@@ -174,8 +180,8 @@ class SitesData:
             next site. If `atom_sites_from` and `atom_sites_to` are equal, the atom
             is currently sitting at that site.
         """
-        atom_sites_from = ffill(self.atom_sites, fill_val=-1, axis=0)
-        atom_sites_to = bfill(self.atom_sites, fill_val=-1, axis=0)
+        atom_sites_from = ffill(self.atom_sites, fill_val=NOSITE, axis=0)
+        atom_sites_to = bfill(self.atom_sites, fill_val=NOSITE, axis=0)
 
         return atom_sites_from, atom_sites_to
 
@@ -205,6 +211,46 @@ class SitesData:
         """
         split_atom_sites = np.split(self.atom_sites, n_parts)
         return [_calculate_occupancy(part) for part in split_atom_sites]
+
+    def calculate_site_occupancy(self, *, n_steps: int) -> dict[str, float]:
+        """Calculate percentage occupancy per unique site.
+
+        Parameters
+        ----------
+        n_steps : int
+            Number of steps in time series
+
+        Returns
+        -------
+        site_occopancy : dict[str, float]
+            Percentage occupancy per unique site
+        """
+        labels = self.structure.site_properties['labels']
+        return _calculate_site_occupancy(occupancy=self.occupancy,
+                                         labels=labels,
+                                         n_steps=n_steps)
+
+    def calculate_site_occupancy_parts(self, *,
+                                       n_steps: int) -> list[dict[str, float]]:
+        """Calculate percentage occupancy per unique site per part.
+
+        Parameters
+        ----------
+        n_steps : int
+            Number of steps in time series
+
+        Returns
+        -------
+        site_occopancy : list[dict[str, float]]
+            Return a list of dicts, where each dict contains the percentage occupancy per unique site
+        """
+        labels = self.structure.site_properties['labels']
+        return [
+            _calculate_site_occupancy(occupancy=occupancy,
+                                      labels=labels,
+                                      n_steps=n_steps)
+            for occupancy in self.occupancy_parts
+        ]
 
     def calculate_transition_events(self):
         """Find transitions between sites.
@@ -375,8 +421,43 @@ def _calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
 
     Returns
     -------
-    dict[int, int]
+    occupancy : dict[int, int]
         For each site, count for how many time steps it is occupied by an atom
     """
     unq, counts = np.unique(atom_sites, return_counts=True)
-    return dict(zip(unq, counts))
+    occupancy = dict(zip(unq, counts))
+    occupancy.pop(NOSITE, None)
+    return occupancy
+
+
+def _calculate_site_occupancy(*, occupancy: dict[int, int], labels: list[str],
+                              n_steps: int) -> dict[str, float]:
+    """Calculate percentage occupancy per unique site.
+
+    Parameters
+    ----------
+    occupancy : dict[int, int]
+        Occupancy dict
+    labels : list[str]
+        Site labels
+    n_steps : int
+        Number of steps in time series
+
+    Returns
+    -------
+    dict[str, float]
+        Percentage occupancy per unique site
+    """
+    counts = defaultdict(list)
+
+    assert all(v >= 0 for v in occupancy)
+
+    for k, v in occupancy.items():
+        label = labels[k]
+        counts[label].append(v)
+
+    div = len(labels) * n_steps
+    site_occupancies = {k: sum(v) / div for k, v in counts.items()}
+    # site_occupancies['total'] = sum(chain(*counts.values())) / (len(occupancy) * n_steps)
+
+    return site_occupancies
