@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import warnings
 from collections import defaultdict
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import numpy as np
-from pymatgen.core import Structure
+from pymatgen.core import Lattice, Structure
 
 from .utils import bfill, ffill
 
@@ -13,6 +14,37 @@ if TYPE_CHECKING:
     from gemdat.data import SimulationData
 
 NOSITE = -1
+
+
+def lattice_is_similar(a: Lattice,
+                       b: Lattice,
+                       length_tol: float = 0.5,
+                       angle_tol: float = 0.5) -> bool:
+    """Return True if lattices are similar within given tolerance.
+
+    Parameters
+    ----------
+    a, b : Lattice
+        Input lattices
+    length_tol : float, optional
+        Length tolerance in Angstrom
+    angle_tol : float, optional
+        Angle tolerance in degrees
+
+    Returns
+    -------
+    bool
+        Return True if lattices are similar
+    """
+    for a_length, b_length in zip(a.lengths, b.lengths):
+        if abs(a_length - b_length) > length_tol:
+            return False
+
+    for a_angle, b_angle in zip(a.angles, b.angles):
+        if abs(a_angle - b_angle) > angle_tol:
+            return False
+
+    return True
 
 
 class SitesData:
@@ -29,6 +61,13 @@ class SitesData:
         """Alias for `self.transitions_parts`."""
         return self.transitions_parts
 
+    def warn_if_lattice_not_similar(self, other_lattice: Lattice):
+        this_lattice = self.structure.lattice
+
+        if not lattice_is_similar(other_lattice, this_lattice):
+            warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
+                          'vs. {other_lattice.parameters}')
+
     def calculate_all(self, data: SimulationData, extras: SimpleNamespace):
         """Calculate all parameters.
 
@@ -39,6 +78,8 @@ class SitesData:
         extras : SimpleNamespace
             Extra parameters
         """
+        self.warn_if_lattice_not_similar(data.structure.lattice)
+
         self.dist_close = self.calculate_dist_close(
             data, vibration_amplitude=extras.vibration_amplitude)
         self.atom_sites = self.calculate_atom_sites(
@@ -225,7 +266,7 @@ class SitesData:
         site_occopancy : dict[str, float]
             Percentage occupancy per unique site
         """
-        labels = self.structure.site_properties['labels']
+        labels = self.structure.site_properties['label']
         return _calculate_site_occupancy(occupancy=self.occupancy,
                                          labels=labels,
                                          n_steps=n_steps)
@@ -244,7 +285,7 @@ class SitesData:
         site_occopancy : list[dict[str, float]]
             Return a list of dicts, where each dict contains the percentage occupancy per unique site
         """
-        labels = self.structure.site_properties['labels']
+        labels = self.structure.site_properties['label']
         return [
             _calculate_site_occupancy(occupancy=occupancy,
                                       labels=labels,
