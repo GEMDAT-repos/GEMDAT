@@ -225,7 +225,7 @@ class SitesData:
         site_occopancy : dict[str, float]
             Percentage occupancy per unique site
         """
-        labels = self.structure.site_properties['labels']
+        labels = self.structure.site_properties['label']
         return _calculate_site_occupancy(occupancy=self.occupancy,
                                          labels=labels,
                                          n_steps=n_steps)
@@ -244,7 +244,7 @@ class SitesData:
         site_occopancy : list[dict[str, float]]
             Return a list of dicts, where each dict contains the percentage occupancy per unique site
         """
-        labels = self.structure.site_properties['labels']
+        labels = self.structure.site_properties['label']
         return [
             _calculate_site_occupancy(occupancy=occupancy,
                                       labels=labels,
