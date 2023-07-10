@@ -67,7 +67,6 @@ publishing = [
 
 gemdash = [
   'streamlit',
-  'xarray',
 ]
 
 [project.scripts]
