@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from collections import defaultdict
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
@@ -60,6 +61,13 @@ class SitesData:
         """Alias for `self.transitions_parts`."""
         return self.transitions_parts
 
+    def warn_if_lattice_not_similar(self, other_lattice: Lattice):
+        this_lattice = self.structure.lattice
+
+        if not lattice_is_similar(other_lattice, this_lattice):
+            warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
+                          'vs. {other_lattice.parameters}')
+
     def calculate_all(self, data: SimulationData, extras: SimpleNamespace):
         """Calculate all parameters.
 
@@ -70,10 +78,7 @@ class SitesData:
         extras : SimpleNamespace
             Extra parameters
         """
-        if lattice_is_similar(data.structure.lattice, self.structure.lattice):
-            raise ValueError(
-                f'Lattice mismatch: {data.structure.lattice.parameters} '
-                'vs. {self.structure.lattice.parameters}')
+        self.warn_if_lattice_not_similar(data.structure.lattice)
 
         self.dist_close = self.calculate_dist_close(
             data, vibration_amplitude=extras.vibration_amplitude)
