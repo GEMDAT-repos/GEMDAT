@@ -50,6 +50,9 @@ jobs:
     needs: fix_release_deps
     runs-on: ubuntu-latest
     environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
 
     steps:
     - uses: actions/checkout@v3
