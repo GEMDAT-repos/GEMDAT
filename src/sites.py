@@ -66,7 +66,7 @@ class SitesData:
 
         if not lattice_is_similar(other_lattice, this_lattice):
             warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
-                          'vs. {other_lattice.parameters}')
+                          f'vs. {other_lattice.parameters}')
 
     def calculate_all(self, data: SimulationData, extras: SimpleNamespace):
         """Calculate all parameters.
