@@ -1,5 +1,5 @@
 import numpy as np
-from gemdat.constants import avogadro, e_charge, k_boltzmann
+from gemdat.constants import angstrom_to_meter, avogadro, e_charge, k_boltzmann
 
 
 class Tracer:
@@ -20,8 +20,6 @@ class Tracer:
         extras : dict[str, float]
             Dictionary with calculated parameters
         """
-        angstrom_to_meter = 1e-10
-
         total_time = extras.total_time
 
         volume_ang = data.lattice.volume
