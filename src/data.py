@@ -121,6 +121,8 @@ class SimulationData:
         extras.n_steps = len(
             self.trajectory_coords) - extras.equilibration_steps
 
+        extras.total_time = extras.n_steps * self.time_step
+
         diffusing_idx = np.argwhere([
             e.name == extras.diffusing_element for e in self.species
         ]).flatten()
