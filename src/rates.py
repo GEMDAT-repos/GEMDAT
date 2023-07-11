@@ -9,16 +9,16 @@ def calc_rates(sites, *, n_parts, total_time, n_diffusing, n_steps):
     all_transitions_parts = _split_transitions_in_parts(
         sites.all_transitions, n_steps, n_parts)
 
-    counts_parts = defaultdict(list)
+    jumps_parts = defaultdict(list)
 
     for part in all_transitions_parts:
         c = Counter([(labels[i], labels[j]) for i, j in part[:, 1:3]])
         for k, v in c.items():
-            counts_parts[k].append(v)
+            jumps_parts[k].append(v)
 
     rates = {}
 
-    for k, v in counts_parts.items():
+    for k, v in jumps_parts.items():
         part_time = total_time / n_parts
         denom = n_diffusing * part_time
 
@@ -62,4 +62,51 @@ if __name__ == '__main__':
 
     assert isinstance(rates, dict)
     assert len(rates) == 1
-    assert rates[('Li48h', 'Li48h')] == (188700564971.7514, 16674910449.098799)
+    assert rates['Li48h', 'Li48h'] == (188700564971.7514, 16674910449.098799)
+
+    ###
+
+    import numpy as np
+    from gemdat.constants import e_charge, k_boltzmann
+
+    labels = sites.structure.site_properties['label']
+    n_steps = extras.n_steps
+    n_parts = extras.n_parts
+    n_diffusing = extras.n_diffusing
+    total_time = extras.total_time
+
+    all_transitions_parts = _split_transitions_in_parts(
+        sites.all_transitions, n_steps, n_parts)
+
+    jumps_parts = defaultdict(list)
+
+    for part in all_transitions_parts:
+        c = Counter([(labels[i], labels[j]) for i, j in part[:, 1:3]])
+        for k, v in c.items():
+            jumps_parts[k].append(v)
+
+    e_act = {}
+
+    for i, ((site_start, site_stop), v) in enumerate(jumps_parts.items()):
+        v = np.array(v)
+
+        part_time = total_time / n_parts
+
+        atom_percentage = sites.atom_locations_parts[i][site_start]
+
+        denom = atom_percentage * n_diffusing * part_time
+
+        eff_rate = v / denom
+
+        if site_start == site_stop:
+            eff_rate /= 2
+
+        e_act_arr = -np.log(eff_rate / extras.attempt_freq) * (
+            k_boltzmann * data.temperature) / e_charge
+
+        e_act[site_start, site_stop] = np.mean(e_act_arr), np.std(e_act_arr)
+
+    assert isinstance(e_act, dict)
+    assert len(e_act) == 1
+    assert e_act[('Li48h', 'Li48h')] == (0.14859184952052334,
+                                         0.004772810554203923)
