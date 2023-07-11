@@ -113,6 +113,8 @@ class SitesData:
         self.jumps_parts = self.calculate_jumps_parts(n_steps=extras.n_steps,
                                                       n_parts=extras.n_parts)
 
+        self.n_jumps = len(self.all_transitions)
+
         self.rates = self.calculate_rates(total_time=extras.total_time,
                                           n_parts=extras.n_parts,
                                           n_diffusing=extras.n_diffusing)

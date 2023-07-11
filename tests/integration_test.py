@@ -98,6 +98,8 @@ def test_sites(gemdat_results):
     assert sites.atom_locations == sites.sites_occupancy
     assert sites.atom_locations_parts == sites.sites_occupancy_parts
 
+    assert sites.n_jumps == 1336
+
     assert isinstance(sites.rates, dict)
     assert len(sites.rates) == 1
     assert sites.rates['Li48h',
