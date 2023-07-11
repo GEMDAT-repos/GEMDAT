@@ -22,7 +22,7 @@ class Tracer:
         """
         angstrom_to_meter = 1e-10
 
-        total_time = extras.n_steps * data.time_step
+        total_time = extras.total_time
 
         volume_ang = data.lattice.volume
         volume_m3 = volume_ang * angstrom_to_meter**3

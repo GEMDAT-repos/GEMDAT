@@ -97,3 +97,14 @@ def test_sites(gemdat_results):
     # https://github.com/GEMDAT-repos/GEMDAT/issues/35
     assert sites.atom_locations == sites.sites_occupancy
     assert sites.atom_locations_parts == sites.sites_occupancy_parts
+
+    assert isinstance(sites.rates, dict)
+    assert len(sites.rates) == 1
+    assert sites.rates['Li48h',
+                       'Li48h'] == (188700564971.7514, 16674910449.098799)
+
+    assert isinstance(sites.activation_energies, dict)
+    assert len(sites.activation_energies) == 1
+    assert sites.activation_energies[('Li48h',
+                                      'Li48h')] == (0.14859184952052334,
+                                                    0.005030984063924976)

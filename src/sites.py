@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import warnings
-from collections import defaultdict
+from collections import Counter, defaultdict
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import numpy as np
 from pymatgen.core import Lattice, Structure
 
+from .constants import e_charge, k_boltzmann
 from .utils import bfill, ffill
 
 if TYPE_CHECKING:
@@ -66,7 +67,7 @@ class SitesData:
 
         if not lattice_is_similar(other_lattice, this_lattice):
             warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
-                          'vs. {other_lattice.parameters}')
+                          f'vs. {other_lattice.parameters}')
 
     def calculate_all(self, data: SimulationData, extras: SimpleNamespace):
         """Calculate all parameters.
@@ -86,13 +87,16 @@ class SitesData:
             data, diff_coords=extras.diff_coords)
         self.atom_sites_to, self.atom_sites_from = self.calculate_atom_sites_transitions(
         )
+
         self.all_transitions = self.calculate_transition_events()
+
         self.transitions = self.calculate_transitions_matrix(
             n_diffusing=extras.n_diffusing)
         self.transitions_parts = self.calculate_transitions_matrix_parts(
             n_steps=extras.n_steps,
             n_diffusing=extras.n_diffusing,
             n_parts=extras.n_parts)
+
         self.occupancy = self.calculate_occupancy()
         self.occupancy_parts = self.calculate_occupancy_parts(
             n_parts=extras.n_parts)
@@ -104,6 +108,102 @@ class SitesData:
 
         self.atom_locations = self.sites_occupancy  # Is this correct? TODO: check
         self.atom_locations_parts = self.sites_occupancy_parts  # Is this correct? TODO: check
+
+        self.jumps = self.calculate_jumps()
+        self.jumps_parts = self.calculate_jumps_parts(n_steps=extras.n_steps,
+                                                      n_parts=extras.n_parts)
+
+        self.rates = self.calculate_rates(total_time=extras.total_time,
+                                          n_parts=extras.n_parts,
+                                          n_diffusing=extras.n_diffusing)
+        self.activation_energies = self.calculate_activation_energies(
+            total_time=extras.total_time,
+            n_parts=extras.n_parts,
+            n_diffusing=extras.n_diffusing,
+            attempt_freq=extras.attempt_freq,
+            temperature=data.temperature)
+
+    def calculate_rates(
+            self, *, total_time: int, n_parts: int,
+            n_diffusing: int) -> dict[tuple[str, str], tuple[float, float]]:
+        """Calculate jump rates (total jumps / second).
+
+        Parameters
+        ----------
+        total_time : int
+            Total time for the simulation
+        n_parts : int, optional
+            Number of parts to split into
+        n_diffusing : int
+            Number of diffusing atoms
+
+        Returns
+        -------
+        rates : dict[tuple[str, str], tuple[float, float]]
+            Dictionary with jump rates and standard deviations between site pairs
+        """
+        rates = {}
+
+        for site_pair, n_jumps in self.jumps_parts.items():
+            part_time = total_time / n_parts
+            denom = n_diffusing * part_time
+
+            jump_freq_mean = np.mean(n_jumps) / denom
+            jump_freq_std = np.std(n_jumps, ddof=1) / denom
+
+            rates[site_pair] = jump_freq_mean, jump_freq_std
+
+        return rates
+
+    def calculate_activation_energies(
+            self, *, total_time: int, n_parts: int, n_diffusing: int,
+            attempt_freq: float,
+            temperature: float) -> dict[tuple[str, str], tuple[float, float]]:
+        """Calculate activation energies for jumps (UNITS?).
+
+        Parameters
+        ----------
+        total_time : int
+            Total time for the simulation
+        n_parts : int
+            Number of parts to split into
+        n_diffusing : int
+            Number of diffusing atoms
+        attempt_freq : float
+            Jump attempt frequency
+        temperature : float
+            Temperature of the simulation
+
+        Returns
+        -------
+        e_act : dict[tuple[str, str], tuple[float, float]]
+            Dictionary with jump activation energies and standard deviations between site pairs.
+        """
+        e_act = {}
+
+        for i, ((site_start, site_stop),
+                n_jumps) in enumerate(self.jumps_parts.items()):
+            n_jumps_arr = np.array(n_jumps)
+
+            part_time = total_time / n_parts
+
+            atom_percentage = self.atom_locations_parts[i][site_start]
+
+            denom = atom_percentage * n_diffusing * part_time
+
+            eff_rate = n_jumps_arr / denom
+
+            # For A-A jumps divide by two for a fair comparison of A-A jumps vs. A-B and B-A
+            if site_start == site_stop:
+                eff_rate /= 2
+
+            e_act_arr = -np.log(eff_rate / attempt_freq) * (
+                k_boltzmann * temperature) / e_charge
+
+            e_act[site_start,
+                  site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
+
+        return e_act
 
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
@@ -157,7 +257,7 @@ class SitesData:
         return dist_close
 
     def calculate_atom_sites(self, data: SimulationData,
-                             diff_coords: np.ndarray):
+                             diff_coords: np.ndarray) -> np.ndarray:
         """Calculate nearest site for each atom coordinate.
 
         Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
@@ -349,6 +449,52 @@ class SitesData:
             _calculate_transitions_matrix(part, n_diffusing=n_diffusing)
             for part in split_transitions
         ])
+
+    def calculate_jumps(self) -> dict[tuple[str, str], int]:
+        """Calculate number of jumpst between sites.
+
+        Returns
+        -------
+        jumps : dict[tuple[str, str], int]
+            Dictionary with number of jumpst per sites combination
+        """
+        labels = self.structure.site_properties['label']
+        defaultdict(list)
+
+        jumps = Counter([(labels[i], labels[j])
+                         for i, j in self.all_transitions[:, 1:3]])
+
+        return jumps
+
+    def calculate_jumps_parts(
+            self, *, n_steps: int,
+            n_parts: int) -> dict[tuple[str, str], list[int]]:
+        """Calculate number of jumpst between sites divided in parts.
+
+        Parameters
+        ----------
+        n_steps : int
+            Number of steps
+        n_parts : int
+            Number of parts to divide the transitions events list into
+
+        Returns
+        -------
+        jumps : dict[tuple[str, str], list[int]]
+            Dictionary with number of jumpst per sites combination
+        """
+        labels = self.structure.site_properties['label']
+        all_transitions_parts = _split_transitions_in_parts(
+            self.all_transitions, n_steps, n_parts)
+
+        jumps_parts = defaultdict(list)
+
+        for part in all_transitions_parts:
+            c = Counter([(labels[i], labels[j]) for i, j in part[:, 1:3]])
+            for k, v in c.items():
+                jumps_parts[k].append(v)
+
+        return jumps_parts
 
 
 def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
