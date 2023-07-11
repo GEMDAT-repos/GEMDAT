@@ -1,0 +1,30 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: gemdat
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Victor
+    family-names: Azizi
+    affiliation: Netherlands eScience Center
+    orcid: 'https://orcid.org/0000-0003-3535-8320'
+  - given-names: Stef
+    family-names: Smeets
+    affiliation: Netherlands eScience Center
+    orcid: 'https://orcid.org/0000-0001-5107-3531'
+repository-code: 'https://github.com/GEMDAT-repos/GEMDAT'
+url: 'https://gemdat.readthedocs.io'
+abstract: >-
+  Python toolkit for molecular dynamics analysis  of plastic
+  crystals
+keywords:
+  - analysis
+  - plastic crystals
+  - molecular dynamics
+  - batteries
+license: Apache-2.0
+version: 0.0.0
