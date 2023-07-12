@@ -1,8 +1,22 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_data_location
-from gemdat import SimulationData, plot_all
+from gemdat import SimulationData, __version__, plot_all
 
-st.set_page_config(page_title='Gemdat dashboard', layout='wide')
+st.set_page_config(
+    page_title='Gemdat dashboard',
+    layout='wide',
+    page_icon='💎',
+    menu_items={
+        'Get Help':
+        'https://gemdat.readthedocs.io',
+        'Report a bug':
+        'https://github.com/gemdat-repos/gemdat/issues',
+        'About':
+        (f'GEMDASH: a dashboard for GEMDAT ({__version__}). '
+         '\n\nGEMDAT is Python toolkit for molecular dynamics analysis. '
+         '\n\nFor more information, see: https://github.com/GEMDAT-repos/GEMDAT'
+         )
+    })
 
 add_sidebar_logo()
 
