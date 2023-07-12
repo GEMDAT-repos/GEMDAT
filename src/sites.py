@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import numpy as np
+from MDAnalysis.lib.pkdtree import PeriodicKDTree
 from pymatgen.core import Lattice, Structure
 
 from .utils import bfill, ffill
@@ -186,23 +187,27 @@ class SitesData:
         # Atoms within this distance (in Angstrom) are considered to be close to a site
         dist_close = self.dist_close
 
+        # fractional coordinates
+
         # Input array with site coordinates [site, (x, y, z)]
-        site_coords = self.site_coords
+        site_cart_coords = np.dot(self.site_coords, lattice.matrix)
+        site_coords_tree: PeriodicKDTree = PeriodicKDTree(
+            box=np.array(lattice.parameters, dtype=np.float32))
+        site_coords_tree.set_coords(site_cart_coords, cutoff=dist_close)
 
         atom_sites = []
 
         for atom_index, atom_coords in enumerate(coords.swapaxes(0, 1)):
-            pdist = lattice.get_all_distances(atom_coords, site_coords)
 
-            # index of nearest site
-            nearest = pdist.argmin(axis=1, keepdims=True)
+            # index and distance of nearest site
+            atom_cart_coords = np.dot(atom_coords, lattice.matrix)
+            site_index = site_coords_tree.search_tree(atom_cart_coords,
+                                                      dist_close)
 
-            # True if atom is close enough to a site
-            is_at_site = np.take_along_axis(pdist, nearest,
-                                            axis=1) < dist_close
-
-            # Site index when close, NOSITE when in transition
-            atom_site = np.where(is_at_site, nearest, NOSITE)
+            # construct mapping
+            atom_site = np.full((atom_coords.shape[0], 1), NOSITE)
+            for index, site in site_index:
+                atom_site[index] = site
 
             atom_sites.append(atom_site)
 
