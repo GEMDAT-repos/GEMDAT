@@ -332,7 +332,7 @@ class SitesData:
         site_occopancy : dict[str, float]
             Percentage occupancy per unique site
         """
-        labels = self.structure.site_properties['label']
+        labels = self.structure.labels
         return _calculate_site_occupancy(occupancy=self.occupancy,
                                          labels=labels,
                                          n_steps=n_steps)
@@ -351,7 +351,7 @@ class SitesData:
         site_occopancy : list[dict[str, float]]
             Return a list of dicts, where each dict contains the percentage occupancy per unique site
         """
-        labels = self.structure.site_properties['label']
+        labels = self.structure.labels
         return [
             _calculate_site_occupancy(occupancy=occupancy,
                                       labels=labels,
@@ -424,7 +424,7 @@ class SitesData:
         jumps : dict[tuple[str, str], int]
             Dictionary with number of jumpst per sites combination
         """
-        labels = self.structure.site_properties['label']
+        labels = self.structure.labels
         defaultdict(list)
 
         jumps = Counter([(labels[i], labels[j])
@@ -449,7 +449,7 @@ class SitesData:
         jumps : dict[tuple[str, str], list[int]]
             Dictionary with number of jumpst per sites combination
         """
-        labels = self.structure.site_properties['label']
+        labels = self.structure.labels
         all_transitions_parts = _split_transitions_in_parts(
             self.all_transitions, n_steps, n_parts)
 
