@@ -97,8 +97,8 @@ class Vibration:
         attempt_freq = np.mean(freq_mean)
         attempt_freq_std = np.std(freq_mean)
 
-        print(f'{attempt_freq=:g}')
-        print(f'{attempt_freq_std=:g}')
+        print(f'{attempt_freq=:g} s^-1')
+        print(f'{attempt_freq_std=:g} s^-1')
 
         return speed, attempt_freq, attempt_freq_std
 
@@ -145,8 +145,8 @@ class Vibration:
         mean_vib = np.mean(amplitudes)
         vibration_amp: float = np.std(amplitudes)
 
-        print(f'{mean_vib=:g}')
-        print(f'{vibration_amp=:g}')
+        print(f'{mean_vib=:g} Å')
+        print(f'{vibration_amp=:g} Å')
 
         return np.asarray(amplitudes), vibration_amp
 
