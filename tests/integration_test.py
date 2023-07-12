@@ -63,13 +63,13 @@ def test_sites(gemdat_results):
     assert extras.diff_coords.shape == (73750, 48, 3)
 
     assert sites.atom_sites.shape == (73750, 48)
-    assert sites.atom_sites.sum() == 9228360
+    assert sites.atom_sites.sum() == 9085325
     assert sites.atom_sites_to.shape == (73750, 48)
-    assert sites.atom_sites_to.sum() == 84831031
+    assert sites.atom_sites_to.sum() == 84790940
     assert sites.atom_sites_from.shape == (73750, 48)
-    assert sites.atom_sites_from.sum() == 85351052
+    assert sites.atom_sites_from.sum() == 85358127
 
-    assert sites.all_transitions.shape == (1336, 5)
+    assert sites.all_transitions.shape == (1337, 5)
 
     assert sites.transitions.shape == (48, 48)
 
@@ -77,39 +77,40 @@ def test_sites(gemdat_results):
     assert np.sum(sites.transitions_parts[0]) == 134
     assert np.sum(sites.transitions_parts[9]) == 142
 
-    assert sites.occupancy[0] == 1706
+    assert sites.occupancy[0] == 1748
     assert sites.occupancy[43] == 6350
 
     assert len(sites.occupancy_parts) == extras.n_parts
 
-    assert sites.occupancy_parts[0][0] == 241
+    assert sites.occupancy_parts[0][0] == 244
     assert sites.occupancy_parts[0][43] == 1231
-    assert sites.occupancy_parts[9][0] == 87
+    assert sites.occupancy_parts[9][0] == 89
     assert sites.occupancy_parts[9][43] == 391
 
-    assert sites.sites_occupancy == {'Li48h': 0.14825282485875707}
+    assert sites.sites_occupancy == {'Li48h': 0.1477180790960452}
 
     assert len(sites.occupancy_parts) == extras.n_parts
-    assert sites.sites_occupancy_parts[0] == {'Li48h': 0.15155367231638417}
-    assert sites.sites_occupancy_parts[9] == {'Li48h': 0.14890395480225987}
+    assert sites.sites_occupancy_parts[0] == {'Li48h': 0.15146045197740113}
+    assert sites.sites_occupancy_parts[9] == {'Li48h': 0.14838418079096044}
 
     # These appear to be the same in the matlab code
     # https://github.com/GEMDAT-repos/GEMDAT/issues/35
     assert sites.atom_locations == sites.sites_occupancy
     assert sites.atom_locations_parts == sites.sites_occupancy_parts
 
-    assert sites.n_jumps == 1336
+    assert sites.n_jumps == 1337
 
     assert isinstance(sites.rates, dict)
     assert len(sites.rates) == 1
+
     assert sites.rates['Li48h',
-                       'Li48h'] == (188700564971.7514, 16674910449.098799)
+                       'Li48h'] == (188841807909.6045, 16686205789.490553)
 
     assert isinstance(sites.activation_energies, dict)
     assert len(sites.activation_energies) == 1
     assert sites.activation_energies[('Li48h',
-                                      'Li48h')] == (0.14859184952052334,
-                                                    0.005030984063924976)
+                                      'Li48h')] == (0.1485147872457603,
+                                                    0.005017914800280739)
 
-    assert sites.jump_diffusivity == 3.1198434217641486e-09
-    assert sites.correlation_factor == 0.4334844546091313
+    assert sites.jump_diffusivity == 3.113091008202005e-09
+    assert sites.correlation_factor == 0.4344246989844385
