@@ -1,26 +1,27 @@
-from pathlib import Path
-from tkinter import filedialog
-
 import streamlit as st
-from gemdat import SimulationData, plot_all
+from _shared import add_sidebar_logo, get_data_location
+from gemdat import SimulationData, __version__, plot_all
 
-st.set_page_config(page_title='Gemdat gemdash dashboard', layout='wide')
+st.set_page_config(
+    page_title='Gemdat dashboard',
+    layout='wide',
+    page_icon='💎',
+    menu_items={
+        'Get Help':
+        'https://gemdat.readthedocs.io',
+        'Report a bug':
+        'https://github.com/gemdat-repos/gemdat/issues',
+        'About':
+        (f'GEMDASH: a dashboard for GEMDAT ({__version__}). '
+         '\n\nGEMDAT is Python toolkit for molecular dynamics analysis. '
+         '\n\nFor more information, see: https://github.com/GEMDAT-repos/GEMDAT'
+         )
+    })
 
-fig_tab, _ = st.tabs(['Figures', 'Other Tabs'])
-
-data_location = st.session_state.get('data_location', default='vasprun.xml')
+add_sidebar_logo()
 
 with st.sidebar:
-    data_location = st.text_input('Location of vasprun.xml on the server',
-                                  data_location)
-    if st.button('Choose location of vasprun.xml'):
-        data_location = filedialog.askopenfilename()
-        st.session_state.data_location = data_location
-        st.experimental_rerun()
-
-if not data_location or not Path(data_location).exists():
-    st.info('choose a Vasprun xml file to process')
-    st.stop()
+    data_location = get_data_location(filename='vasprun.xml')
 
 with st.spinner('Loading your data, this might take a while'):
     data = SimulationData.from_vasprun(data_location)
@@ -53,12 +54,31 @@ with st.sidebar:
 extra = data.calculate_all(equilibration_steps=equilibration_steps,
                            diffusing_element=diffusing_element)
 
-with fig_tab:
-    st.title('GEMDAT pregenerated figures')
+col1, col2, col3 = st.columns(3)
 
-    figures = plot_all(data=data, **vars(extra), show=False)
+with col1:
+    import uncertainties as u
+    attempt_freq = u.ufloat(extra.attempt_freq, extra.attempt_freq_std)
+    st.metric('Attempt frequency ($\\mathrm{s^{-1}}$)',
+              value=f'{attempt_freq:g}')
+    st.metric('Vibration amplitude ($\\mathrm{Å}$)',
+              value=f'{extra.vibration_amplitude:g}')
+with col2:
+    st.metric('Particle density ($\\mathrm{m^{-3}}$)',
+              value=f'{extra.particle_density:g}')
+    st.metric('Mol per liter ($\\mathrm{mol/l}$)',
+              value=f'{extra.mol_per_liter:g}')
+with col3:
+    st.metric('Tracer diffusivity ($\\mathrm{m^2/s}$)',
+              value=f'{extra.tracer_diff:g}')
+    st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
+              value=f'{extra.tracer_conduc:g}')
 
-    # automagically divide the plots over the number of columns
-    for num, col in enumerate(st.columns(number_of_cols)):
-        for figure in figures[num::number_of_cols]:
-            col.pyplot(figure)
+st.title('GEMDAT pregenerated figures')
+
+figures = plot_all(data=data, **vars(extra), show=False)
+
+# automagically divide the plots over the number of columns
+for num, col in enumerate(st.columns(number_of_cols)):
+    for figure in figures[num::number_of_cols]:
+        col.pyplot(figure)
