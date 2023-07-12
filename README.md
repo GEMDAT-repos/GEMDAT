@@ -4,7 +4,7 @@
 <!-- [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/XXX)](https://pypi.org/project/XXX/) -->
 <!-- [![PyPI](https://img.shields.io/pypi/v/XXX.svg?style=flat)](https://pypi.org/project/XXX/) -->
 
-![GEMDAT banner](https://raw.githubusercontent.com/GEMDAT-repos/GEMDAT/main/docs/logo.png)
+![GEMDAT banner](https://raw.githubusercontent.com/GEMDAT-repos/GEMDAT/main/src/data/logo.png)
 
 # GEMDAT
 

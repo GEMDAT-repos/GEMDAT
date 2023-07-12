@@ -1,8 +1,10 @@
 import streamlit as st
+from _shared import add_sidebar_logo, get_data_location
 from gemdat import SimulationData, plot_all
-from shared import get_data_location
 
 st.set_page_config(page_title='Gemdat dashboard', layout='wide')
+
+add_sidebar_logo()
 
 with st.sidebar:
     data_location = get_data_location(filename='vasprun.xml')
@@ -43,7 +45,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
     import uncertainties as u
     attempt_freq = u.ufloat(extra.attempt_freq, extra.attempt_freq_std)
-    st.metric('Attempt frequency ($\\matrhm{s^{-1}}$)',
+    st.metric('Attempt frequency ($\\mathrm{s^{-1}}$)',
               value=f'{attempt_freq:g}')
     st.metric('Vibration amplitude ($\\mathrm{Å}$)',
               value=f'{extra.vibration_amplitude:g}')
