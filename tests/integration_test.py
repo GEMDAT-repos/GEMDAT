@@ -110,3 +110,6 @@ def test_sites(gemdat_results):
     assert sites.activation_energies[('Li48h',
                                       'Li48h')] == (0.14859184952052334,
                                                     0.005030984063924976)
+
+    assert sites.jump_diffusivity == 3.1198434217641486e-09
+    assert sites.correlation_factor == 0.4334844546091313

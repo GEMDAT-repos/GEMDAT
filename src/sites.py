@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from pymatgen.core import Lattice, Structure
 
-from .constants import e_charge, k_boltzmann
+from .constants import angstrom_to_meter, e_charge, k_boltzmann
 from .utils import bfill, ffill
 
 if TYPE_CHECKING:
@@ -125,87 +125,46 @@ class SitesData:
             attempt_freq=extras.attempt_freq,
             temperature=data.temperature)
 
-    def calculate_rates(
-            self, *, total_time: int, n_parts: int,
-            n_diffusing: int) -> dict[tuple[str, str], tuple[float, float]]:
-        """Calculate jump rates (total jumps / second).
+        self.jump_diffusivity = self.calculate_jump_diffusivity(
+            lattice=data.lattice,
+            n_diffusing=extras.n_diffusing,
+            total_time=extras.total_time,
+            dimensions=extras.diffusion_dimensions)
+        self.correlation_factor = extras.tracer_diff / self.jump_diffusivity
+
+    def calculate_jump_diffusivity(self, lattice: Lattice, n_diffusing: int,
+                                   total_time: float,
+                                   dimensions: int) -> float:
+        """Summary.
 
         Parameters
         ----------
-        total_time : int
-            Total time for the simulation
-        n_parts : int, optional
-            Number of parts to split into
+        lattice : Lattice
+            Lattice of the simulation data
         n_diffusing : int
-            Number of diffusing atoms
+            Number of diffusing elements
+        total_time : float
+            Total simulation time
+        dimensions : int
+            Number of diffusion dimensions
 
         Returns
         -------
-        rates : dict[tuple[str, str], tuple[float, float]]
-            Dictionary with jump rates and standard deviations between site pairs
+        jump_diff : float
+            Jump diffusivity in m^2/s
         """
-        rates = {}
+        structure = self.structure
 
-        for site_pair, n_jumps in self.jumps_parts.items():
-            part_time = total_time / n_parts
-            denom = n_diffusing * part_time
+        pdist = lattice.get_all_distances(structure.frac_coords,
+                                          structure.frac_coords)
 
-            jump_freq_mean = np.mean(n_jumps) / denom
-            jump_freq_std = np.std(n_jumps, ddof=1) / denom
+        jump_diff = np.sum(pdist**2 * self.transitions)
+        jump_diff *= angstrom_to_meter**2 / (2 * dimensions * n_diffusing *
+                                             total_time)
 
-            rates[site_pair] = jump_freq_mean, jump_freq_std
+        print(f'{jump_diff=} m^2/s')
 
-        return rates
-
-    def calculate_activation_energies(
-            self, *, total_time: int, n_parts: int, n_diffusing: int,
-            attempt_freq: float,
-            temperature: float) -> dict[tuple[str, str], tuple[float, float]]:
-        """Calculate activation energies for jumps (UNITS?).
-
-        Parameters
-        ----------
-        total_time : int
-            Total time for the simulation
-        n_parts : int
-            Number of parts to split into
-        n_diffusing : int
-            Number of diffusing atoms
-        attempt_freq : float
-            Jump attempt frequency
-        temperature : float
-            Temperature of the simulation
-
-        Returns
-        -------
-        e_act : dict[tuple[str, str], tuple[float, float]]
-            Dictionary with jump activation energies and standard deviations between site pairs.
-        """
-        e_act = {}
-
-        for i, ((site_start, site_stop),
-                n_jumps) in enumerate(self.jumps_parts.items()):
-            n_jumps_arr = np.array(n_jumps)
-
-            part_time = total_time / n_parts
-
-            atom_percentage = self.atom_locations_parts[i][site_start]
-
-            denom = atom_percentage * n_diffusing * part_time
-
-            eff_rate = n_jumps_arr / denom
-
-            # For A-A jumps divide by two for a fair comparison of A-A jumps vs. A-B and B-A
-            if site_start == site_stop:
-                eff_rate /= 2
-
-            e_act_arr = -np.log(eff_rate / attempt_freq) * (
-                k_boltzmann * temperature) / e_charge
-
-            e_act[site_start,
-                  site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
-
-        return e_act
+        return jump_diff
 
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
@@ -497,6 +456,88 @@ class SitesData:
                 jumps_parts[k].append(v)
 
         return jumps_parts
+
+    def calculate_rates(
+            self, *, total_time: int, n_parts: int,
+            n_diffusing: int) -> dict[tuple[str, str], tuple[float, float]]:
+        """Calculate jump rates (total jumps / second).
+
+        Parameters
+        ----------
+        total_time : int
+            Total time for the simulation
+        n_parts : int, optional
+            Number of parts to split into
+        n_diffusing : int
+            Number of diffusing atoms
+
+        Returns
+        -------
+        rates : dict[tuple[str, str], tuple[float, float]]
+            Dictionary with jump rates and standard deviations between site pairs
+        """
+        rates = {}
+
+        for site_pair, n_jumps in self.jumps_parts.items():
+            part_time = total_time / n_parts
+            denom = n_diffusing * part_time
+
+            jump_freq_mean = np.mean(n_jumps) / denom
+            jump_freq_std = np.std(n_jumps, ddof=1) / denom
+
+            rates[site_pair] = jump_freq_mean, jump_freq_std
+
+        return rates
+
+    def calculate_activation_energies(
+            self, *, total_time: int, n_parts: int, n_diffusing: int,
+            attempt_freq: float,
+            temperature: float) -> dict[tuple[str, str], tuple[float, float]]:
+        """Calculate activation energies for jumps (UNITS?).
+
+        Parameters
+        ----------
+        total_time : int
+            Total time for the simulation
+        n_parts : int
+            Number of parts to split into
+        n_diffusing : int
+            Number of diffusing atoms
+        attempt_freq : float
+            Jump attempt frequency
+        temperature : float
+            Temperature of the simulation
+
+        Returns
+        -------
+        e_act : dict[tuple[str, str], tuple[float, float]]
+            Dictionary with jump activation energies and standard deviations between site pairs.
+        """
+        e_act = {}
+
+        for i, ((site_start, site_stop),
+                n_jumps) in enumerate(self.jumps_parts.items()):
+            n_jumps_arr = np.array(n_jumps)
+
+            part_time = total_time / n_parts
+
+            atom_percentage = self.atom_locations_parts[i][site_start]
+
+            denom = atom_percentage * n_diffusing * part_time
+
+            eff_rate = n_jumps_arr / denom
+
+            # For A-A jumps divide by two for a fair comparison of A-A jumps vs. A-B and B-A
+            if site_start == site_stop:
+                eff_rate /= 2
+
+            e_act_arr = -np.log(eff_rate / attempt_freq) * (
+                k_boltzmann * temperature) / e_charge
+
+            e_act[site_start,
+                  site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
+
+        return e_act
 
 
 def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
