@@ -36,6 +36,7 @@ dependencies = [
   'numpy',
   'scipy',
   'matplotlib',
+  'MDAnalysis',
 ]
 
 [project.urls]
