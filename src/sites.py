@@ -632,7 +632,7 @@ class SitesData:
 
         Returns
         -------
-        np.ndarray
+        coll_matrix : np.ndarray
             Matrix where all types of jumps combinations are counted
         """
         labels = self.structure.labels
@@ -654,14 +654,14 @@ class SitesData:
 
         return coll_matrix
 
-    def calculate_multiple_collective(self):
+    def calculate_multiple_collective(self) -> np.ndarray:
         """Find jumps that occur collectively multiple times.
 
         Only returns non-unique jumps
 
         Returns
         -------
-        multi_coll
+        multi_coll : np.ndarray
             Dictionary with indices of sites between which jumps happen and their counts.
         """
         coll_sorted = np.sort(np.array(self.collective).flatten())
