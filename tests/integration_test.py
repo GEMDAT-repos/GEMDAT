@@ -127,3 +127,8 @@ def test_sites(gemdat_results):
     assert len(sites.coll_jumps) == 437
     assert sites.coll_jumps[0] == ((14, 42), (29, 1))
     assert sites.coll_jumps[-1] == ((26, 38), (46, 10))
+
+    assert sites.coll_matrix.shape == (1, 1)
+    assert sites.coll_matrix[0, 0] == 437
+
+    assert sites.multi_coll.sum() == 174380

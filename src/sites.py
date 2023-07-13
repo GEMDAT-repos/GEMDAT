@@ -141,6 +141,9 @@ class SitesData:
         self.solo_frac = self.n_solo_jumps / len(self.all_transitions)
         self.coll_count = len(self.collective)
 
+        self.coll_matrix = self.calculate_collective_matrix()
+        self.multi_coll = self.calculate_multiple_collective()
+
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
         """Calculate tolerance wihin which atoms are considered to be close to
@@ -623,6 +626,49 @@ class SitesData:
                     n_solo_jumps += 1
 
         return collective, coll_jumps, n_solo_jumps
+
+    def calculate_collective_matrix(self) -> np.ndarray:
+        """Calculate collective jumps matrix.
+
+        Returns
+        -------
+        np.ndarray
+            Matrix where all types of jumps combinations are counted
+        """
+        labels = self.structure.labels
+
+        rates = list(self.rates)
+
+        coll_matrix = np.zeros((len(rates), len(rates)), dtype=int)
+
+        for ((start_i, stop_i), (start_j, stop_j)) in self.coll_jumps:
+            name_start_i = labels[start_i]
+            name_stop_i = labels[stop_i]
+            name_start_j = labels[start_j]
+            name_stop_j = labels[stop_j]
+
+            i = rates.index((name_start_i, name_stop_i))
+            j = rates.index((name_start_j, name_stop_j))
+
+            coll_matrix[i, j] += 1
+
+        return coll_matrix
+
+    def calculate_multiple_collective(self):
+        """Find jumps that occur collectively multiple times.
+
+        Only returns non-unique jumps
+
+        Returns
+        -------
+        multi_coll
+            Dictionary with indices of sites between which jumps happen and their counts.
+        """
+        coll_sorted = np.sort(np.array(self.collective).flatten())
+        difference = np.diff(coll_sorted, prepend=0)
+        multi_coll = coll_sorted[difference == 0]
+
+        return multi_coll
 
 
 def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
