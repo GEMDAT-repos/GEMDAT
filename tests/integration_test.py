@@ -5,6 +5,7 @@ VASP_XML=/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml pytest
 """
 
 import os
+from math import isclose
 
 import numpy as np
 import pytest
@@ -38,8 +39,6 @@ def gemdat_results():
 
 @vaspxml_available
 def test_tracer(gemdat_results):
-    from math import isclose
-
     _, extras = gemdat_results
 
     assert isclose(extras.particle_density, 2.4557e28, rel_tol=1e-4)
@@ -103,14 +102,16 @@ def test_sites(gemdat_results):
     assert isinstance(sites.rates, dict)
     assert len(sites.rates) == 1
 
-    assert sites.rates['Li48h',
-                       'Li48h'] == (188841807909.6045, 16686205789.490553)
+    rates, rates_std = sites.rates[('Li48h', 'Li48h')]
+    assert isclose(rates, 188841807909.6045)
+    assert isclose(rates_std, 16686205789.490553)
 
     assert isinstance(sites.activation_energies, dict)
     assert len(sites.activation_energies) == 1
-    assert sites.activation_energies[('Li48h',
-                                      'Li48h')] == (0.1485147872457603,
-                                                    0.005017914800280739)
 
-    assert sites.jump_diffusivity == 3.113091008202005e-09
-    assert sites.correlation_factor == 0.4344246989844385
+    e_act, e_act_std = sites.activation_energies[('Li48h', 'Li48h')]
+    assert isclose(e_act, 0.1485147872457603, rel_tol=1e-6)
+    assert isclose(e_act_std, 0.005017914800280739, rel_tol=1e-6)
+
+    assert isclose(sites.jump_diffusivity, 3.113091008202005e-09, rel_tol=1e-6)
+    assert isclose(sites.correlation_factor, 0.4344246989844385, rel_tol=1e-6)
