@@ -1,4 +1,5 @@
 import numpy as np
+from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 
 
@@ -29,13 +30,16 @@ class Tracer:
 
         mol_per_liter = (particle_density * 1e-3) / Avogadro
 
-        print(f'{particle_density=:g} m^-3')
-        print(f'{mol_per_liter=:g} mol/l')
+        particle_density = FloatWithUnit(particle_density, 'm^-3')
+        mol_per_liter = FloatWithUnit(mol_per_liter, 'mol l^-1')
+
+        print(f'{particle_density=:g} {particle_density.unit}')
+        print(f'{mol_per_liter=:g} {mol_per_liter.unit}')
 
         # Matlab code contains a bug here so I'm not entirely sure what is the definition
         # Matlab code takes the first column, which is equal to 0
         # Do they mean the total displacement (i.e. last column)?
-        msd = np.mean(extras.diff_displacements[:, -1]**2)  # Angstron^2
+        msd = np.mean(extras.diff_displacements[:, -1]**2)  # Angstrom^2
 
         temperature = data.temperature
 
@@ -47,8 +51,11 @@ class Tracer:
                          (extras.z_ion**2) * tracer_diff *
                          particle_density) / (Boltzmann * temperature)
 
-        print(f'{tracer_diff=:g} m^2/s')
-        print(f'{tracer_conduc=:g} S/m')
+        tracer_diff = FloatWithUnit(tracer_diff, 'm^2 s^-1')
+        tracer_conduc = FloatWithUnit(tracer_conduc, 'S m^-1')
+
+        print(f'{tracer_diff=:g} {tracer_diff.unit}')
+        print(f'{tracer_conduc=:g} {tracer_conduc.unit}')
 
         return {
             'particle_density': particle_density,
