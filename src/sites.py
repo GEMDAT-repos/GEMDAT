@@ -134,40 +134,15 @@ class SitesData:
             dimensions=extras.diffusion_dimensions)
         self.correlation_factor = extras.tracer_diff / self.jump_diffusivity
 
-    def calculate_jump_diffusivity(self, lattice: Lattice, n_diffusing: int,
-                                   total_time: float,
-                                   dimensions: int) -> float:
-        """Summary.
+        self.collective, self.coll_jumps, self.n_solo_jumps = self.calculate_collective(
+            lattice=data.lattice,
+            attempt_freq=extras.attempt_freq,
+            time_step=data.time_step)
+        self.solo_frac = self.n_solo_jumps / len(self.all_transitions)
+        self.coll_count = len(self.collective)
 
-        Parameters
-        ----------
-        lattice : Lattice
-            Lattice of the simulation data
-        n_diffusing : int
-            Number of diffusing elements
-        total_time : float
-            Total simulation time
-        dimensions : int
-            Number of diffusion dimensions
-
-        Returns
-        -------
-        jump_diff : float
-            Jump diffusivity in m^2/s
-        """
-        structure = self.structure
-
-        pdist = lattice.get_all_distances(structure.frac_coords,
-                                          structure.frac_coords)
-
-        jump_diff = np.sum(pdist**2 * self.transitions)
-        jump_diff *= angstrom**2 / (2 * dimensions * n_diffusing * total_time)
-
-        jump_diff = FloatWithUnit(jump_diff, 'm^2 s^-1')
-
-        print(f'{jump_diff=} {jump_diff.unit}')
-
-        return jump_diff
+        self.coll_matrix = self.calculate_collective_matrix()
+        self.multi_coll = self.calculate_multiple_collective()
 
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
@@ -545,6 +520,155 @@ class SitesData:
                   site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
 
         return e_act
+
+    def calculate_jump_diffusivity(self, lattice: Lattice, n_diffusing: int,
+                                   total_time: float,
+                                   dimensions: int) -> float:
+        """Calculate jump diffusivity.
+
+        Parameters
+        ----------
+        lattice : Lattice
+            Lattice of the simulation data
+        n_diffusing : int
+            Number of diffusing elements
+        total_time : float
+            Total simulation time
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        jump_diff : float
+            Jump diffusivity in m^2/s
+        """
+        structure = self.structure
+
+        pdist = lattice.get_all_distances(structure.frac_coords,
+                                          structure.frac_coords)
+
+        jump_diff = np.sum(pdist**2 * self.transitions)
+        jump_diff *= angstrom**2 / (2 * dimensions * n_diffusing * total_time)
+
+        jump_diff = FloatWithUnit(jump_diff, 'm^2 s^-1')
+
+        print(f'{jump_diff=} {jump_diff.unit}')
+
+        return jump_diff
+
+    def calculate_collective(
+            self,
+            lattice: Lattice,
+            attempt_freq: float,
+            time_step: float,
+            dist_collective: float = 4.5) -> tuple[list, list, int]:
+        """Calculate collective jumps.
+
+        Parameters
+        ----------
+        lattice : Lattice
+            Lattice for distance calculations
+        attempt_freq : float
+            Attempt frequency in ...
+        time_step : float
+            Time step in seconds
+        dist_collective : float, optional
+            Maximum distance for collective motions in Angstrom
+
+        Returns
+        -------
+        tuple[list, list, int]
+            collective, list of indices to collective jump events
+            coll_jumps, list with start/stop site indices involved in collective jumps
+            n_solo_jumps, number of solo jumps
+        """
+        from math import ceil
+        coll_steps = ceil(1.0 / (attempt_freq * time_step))
+
+        time_col = 4
+        events = self.all_transitions
+        event_order = events[:, time_col].argsort()
+
+        coll_jumps = []
+        collective = []
+
+        n_solo_jumps = 0
+
+        structure = self.structure
+
+        for i, event_i in enumerate(event_order[:-1]):
+
+            for j, event_j in enumerate(event_order[i + 1:], start=1):
+
+                atom_i, start_site_i, stop_site_i, _, stop_time_i = events[
+                    event_i]
+                atom_j, start_site_j, stop_site_j, _, stop_time_j = events[
+                    event_j]
+
+                if stop_time_j - stop_time_i > coll_steps:
+                    break
+
+                if atom_i == atom_j:
+                    n_solo_jumps += 1
+                    continue
+
+                a = structure.frac_coords[[start_site_i, stop_site_i]]
+                b = structure.frac_coords[[start_site_j, stop_site_j]]
+
+                dists = lattice.get_all_distances(a, b)
+
+                if np.any(dists < dist_collective):
+                    collective.append((event_i, event_j))
+                    coll_jumps.append(((start_site_i, stop_site_i),
+                                       (start_site_j, stop_site_j)))
+
+                else:
+                    n_solo_jumps += 1
+
+        return collective, coll_jumps, n_solo_jumps
+
+    def calculate_collective_matrix(self) -> np.ndarray:
+        """Calculate collective jumps matrix.
+
+        Returns
+        -------
+        coll_matrix : np.ndarray
+            Matrix where all types of jumps combinations are counted
+        """
+        labels = self.structure.labels
+
+        rates = list(self.rates)
+
+        coll_matrix = np.zeros((len(rates), len(rates)), dtype=int)
+
+        for ((start_i, stop_i), (start_j, stop_j)) in self.coll_jumps:
+            name_start_i = labels[start_i]
+            name_stop_i = labels[stop_i]
+            name_start_j = labels[start_j]
+            name_stop_j = labels[stop_j]
+
+            i = rates.index((name_start_i, name_stop_i))
+            j = rates.index((name_start_j, name_stop_j))
+
+            coll_matrix[i, j] += 1
+
+        return coll_matrix
+
+    def calculate_multiple_collective(self) -> np.ndarray:
+        """Find jumps that occur collectively multiple times.
+
+        Only returns non-unique jumps
+
+        Returns
+        -------
+        multi_coll : np.ndarray
+            Dictionary with indices of sites between which jumps happen and their counts.
+        """
+        coll_sorted = np.sort(np.array(self.collective).flatten())
+        difference = np.diff(coll_sorted, prepend=0)
+        multi_coll = coll_sorted[difference == 0]
+
+        return multi_coll
 
 
 def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:

@@ -115,3 +115,20 @@ def test_sites(gemdat_results):
 
     assert isclose(sites.jump_diffusivity, 3.113091008202005e-09, rel_tol=1e-6)
     assert isclose(sites.correlation_factor, 0.4344246989844385, rel_tol=1e-6)
+
+    assert sites.n_solo_jumps == 987
+    assert sites.coll_count == 437
+    assert isclose(sites.solo_frac, 0.7382198952879581, rel_tol=1e-4)
+
+    assert len(sites.collective) == 437
+    assert sites.collective[0] == (130, 331)
+    assert sites.collective[-1] == (1305, 498)
+
+    assert len(sites.coll_jumps) == 437
+    assert sites.coll_jumps[0] == ((14, 42), (29, 1))
+    assert sites.coll_jumps[-1] == ((26, 38), (46, 10))
+
+    assert sites.coll_matrix.shape == (1, 1)
+    assert sites.coll_matrix[0, 0] == 437
+
+    assert sites.multi_coll.sum() == 174380
