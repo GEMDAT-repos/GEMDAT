@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 from MDAnalysis.lib.pkdtree import PeriodicKDTree
 from pymatgen.core import Lattice, Structure
+from pymatgen.core.units import FloatWithUnit
+from scipy.constants import Boltzmann, angstrom, elementary_charge
 
-from .constants import angstrom_to_meter, e_charge, k_boltzmann
 from .utils import bfill, ffill
 
 if TYPE_CHECKING:
@@ -160,10 +161,11 @@ class SitesData:
                                           structure.frac_coords)
 
         jump_diff = np.sum(pdist**2 * self.transitions)
-        jump_diff *= angstrom_to_meter**2 / (2 * dimensions * n_diffusing *
-                                             total_time)
+        jump_diff *= angstrom**2 / (2 * dimensions * n_diffusing * total_time)
 
-        print(f'{jump_diff=} m^2/s')
+        jump_diff = FloatWithUnit(jump_diff, 'm^2 s^-1')
+
+        print(f'{jump_diff=} {jump_diff.unit}')
 
         return jump_diff
 
@@ -537,7 +539,7 @@ class SitesData:
                 eff_rate /= 2
 
             e_act_arr = -np.log(eff_rate / attempt_freq) * (
-                k_boltzmann * temperature) / e_charge
+                Boltzmann * temperature) / elementary_charge
 
             e_act[site_start,
                   site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
