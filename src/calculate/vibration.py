@@ -3,6 +3,41 @@ from pymatgen.core.units import FloatWithUnit
 from scipy import signal
 
 
+def meanfreq(x: np.ndarray, fs: float = 1.0):
+    """Estimates the mean frequency in terms of the sample rate, fs.
+
+    Vectorized version of https://stackoverflow.com/a/56487241
+
+    Parameters
+    ----------
+    x : np.ndarray[i, j]
+        Time series of measurement values. The mean frequency is computed
+        along the last axis (-1).
+    fs : float, optional
+        Sampling frequency of the `x` time series. Defaults to 1.0.
+
+    Returns
+    -------
+    mnfreq : np.ndarray
+        Array of mean frequencies.
+    """
+    if x.ndim == 1:
+        x = x.reshape(1, -1)
+
+    assert x.ndim == 2
+
+    f, Pxx_den = signal.periodogram(x, fs, axis=-1)
+    width = np.tile(f[1] - f[0], Pxx_den.shape)
+    P = Pxx_den * width
+    pwr = np.sum(P, axis=1).reshape(-1, 1)
+
+    f = f.reshape(1, -1)
+
+    mnfreq = np.dot(P, f.T) / pwr
+
+    return mnfreq
+
+
 class Vibration:
 
     @staticmethod
@@ -23,9 +58,12 @@ class Vibration:
         """
         fs = 1 / data.time_step
 
-        speed, attempt_freq, attempt_freq_std = Vibration.attempt_frequency(
-            extras.diff_displacements, fs=fs)
-        amplitudes, vibration_amplitude = Vibration.amplitude(speed)
+        speed = Vibration.speed(extras.diff_displacements)
+        attempt_freq, attempt_freq_std = Vibration.attempt_frequency(speed,
+                                                                     fs=fs)
+
+        amplitudes = Vibration.amplitudes(speed)
+        vibration_amplitude = Vibration.vibration_amplitude(amplitudes)
 
         return {
             'speed': speed,
@@ -37,63 +75,41 @@ class Vibration:
         }
 
     @staticmethod
-    def meanfreq(x: np.ndarray, fs: float = 1.0):
-        """Estimates the mean frequency in terms of the sample rate, fs.
-
-        Vectorized version of https://stackoverflow.com/a/56487241
-
-        Parameters
-        ----------
-        x : np.ndarray[i, j]
-            Time series of measurement values. The mean frequency is computed
-            along the last axis (-1).
-        fs : float, optional
-            Sampling frequency of the `x` time series. Defaults to 1.0.
-
-        Returns
-        -------
-        mnfreq : np.ndarray
-            Array of mean frequencies.
-        """
-        if x.ndim == 1:
-            x = x.reshape(1, -1)
-
-        assert x.ndim == 2
-
-        f, Pxx_den = signal.periodogram(x, fs, axis=-1)
-        width = np.tile(f[1] - f[0], Pxx_den.shape)
-        P = Pxx_den * width
-        pwr = np.sum(P, axis=1).reshape(-1, 1)
-
-        f = f.reshape(1, -1)
-
-        mnfreq = np.dot(P, f.T) / pwr
-
-        return mnfreq
-
-    @staticmethod
-    def attempt_frequency(displacements: np.ndarray, fs: float = 1):
+    def speed(displacements: np.ndarray) -> np.ndarray:
         """Calculate attempt frequency.
 
         Parameters
         ----------
         displacements : np.ndarray
             Input array with displacements
-        fs : float, optional
-            Sampling frequency
 
         Returns
         -------
         speed : np.ndarray
             Output array with speeds
+        """
+        return np.diff(displacements, prepend=0)
+
+    @staticmethod
+    def attempt_frequency(speed: np.ndarray,
+                          fs: float = 1) -> tuple[float, float]:
+        """Calculate attempt frequency.
+
+        Parameters
+        ----------
+        speed : np.ndarray
+            Input array with displacement speeds
+        fs : float, optional
+            Sampling frequency
+
+        Returns
+        -------
         attempt_freq : float
             Attempt frequency
         attempt_freq_std : float
             Attempt frequency standard deviation
         """
-        speed = np.diff(displacements, prepend=0)
-
-        freq_mean = Vibration.meanfreq(speed, fs=fs)
+        freq_mean = meanfreq(speed, fs=fs)
 
         attempt_freq = np.mean(freq_mean)
         attempt_freq_std = np.std(freq_mean)
@@ -104,22 +120,10 @@ class Vibration:
         print(f'{attempt_freq=:g} {attempt_freq.unit}')
         print(f'{attempt_freq_std=:g} {attempt_freq_std.unit}')
 
-        return speed, attempt_freq, attempt_freq_std
+        return attempt_freq, attempt_freq_std
 
     @staticmethod
-    def speed(displacements: np.ndarray, fs: float = 1):
-        return Vibration.attempt_frequency(displacements, fs)[0]
-
-    @staticmethod
-    def attempt_freq(displacements: np.ndarray, fs: float = 1):
-        return Vibration.attempt_frequency(displacements, fs)[1]
-
-    @staticmethod
-    def attempt_freq_std(displacements: np.ndarray, fs: float = 1):
-        return Vibration.attempt_frequency(displacements, fs)[2]
-
-    @staticmethod
-    def amplitude(speed: np.ndarray) -> tuple[np.ndarray, float]:
+    def amplitudes(speed: np.ndarray) -> tuple[np.ndarray, float]:
         """Calculate vibration amplitude.
 
         Parameters
@@ -146,6 +150,10 @@ class Vibration:
 
             amplitudes.extend([np.sum(array) for array in subarrays])
 
+        return np.asarray(amplitudes)
+
+    @staticmethod
+    def vibration_amplitude(amplitudes: np.ndarray) -> float:
         mean_vib = np.mean(amplitudes)
         vibration_amp: float = np.std(amplitudes)
 
@@ -155,12 +163,4 @@ class Vibration:
         print(f'{mean_vib=:g} {mean_vib.unit}')
         print(f'{vibration_amp=:g} {vibration_amp.unit}')
 
-        return np.asarray(amplitudes), vibration_amp
-
-    @staticmethod
-    def amplitudes(speed):
-        return Vibration.amplitude(speed)[0]
-
-    @staticmethod
-    def vibration_amplitude(speed):
-        return Vibration.amplitude(speed)[1]
+        return vibration_amp
