@@ -1,5 +1,5 @@
 import numpy as np
-from gemdat.constants import angstrom_to_meter, avogadro, e_charge, k_boltzmann
+from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 
 
 class Tracer:
@@ -23,11 +23,11 @@ class Tracer:
         total_time = extras.total_time
 
         volume_ang = data.lattice.volume
-        volume_m3 = volume_ang * angstrom_to_meter**3
+        volume_m3 = volume_ang * angstrom**3
 
         particle_density = extras.n_diffusing / volume_m3
 
-        mol_per_liter = (particle_density * 1e-3) / avogadro
+        mol_per_liter = (particle_density * 1e-3) / Avogadro
 
         print(f'{particle_density=:g} m^-3')
         print(f'{mol_per_liter=:g} mol/l')
@@ -40,11 +40,12 @@ class Tracer:
         temperature = data.temperature
 
         # Diffusivity = MSD/(2*dimensions*time)
-        tracer_diff = (msd * angstrom_to_meter**2) / (
-            2 * extras.diffusion_dimensions * total_time)
+        tracer_diff = (msd * angstrom**2) / (2 * extras.diffusion_dimensions *
+                                             total_time)
         # Conductivity = elementary_charge^2 * charge_ion^2 * diffusivity * particle_density / (k_B * T)
-        tracer_conduc = ((e_charge**2) * (extras.z_ion**2) * tracer_diff *
-                         particle_density) / (k_boltzmann * temperature)
+        tracer_conduc = ((elementary_charge**2) *
+                         (extras.z_ion**2) * tracer_diff *
+                         particle_density) / (Boltzmann * temperature)
 
         print(f'{tracer_diff=:g} m^2/s')
         print(f'{tracer_conduc=:g} S/m')
