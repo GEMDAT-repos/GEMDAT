@@ -141,41 +141,6 @@ class SitesData:
         self.solo_frac = self.n_solo_jumps / len(self.all_transitions)
         self.coll_count = len(self.collective)
 
-    def calculate_jump_diffusivity(self, lattice: Lattice, n_diffusing: int,
-                                   total_time: float,
-                                   dimensions: int) -> float:
-        """Summary.
-
-        Parameters
-        ----------
-        lattice : Lattice
-            Lattice of the simulation data
-        n_diffusing : int
-            Number of diffusing elements
-        total_time : float
-            Total simulation time
-        dimensions : int
-            Number of diffusion dimensions
-
-        Returns
-        -------
-        jump_diff : float
-            Jump diffusivity in m^2/s
-        """
-        structure = self.structure
-
-        pdist = lattice.get_all_distances(structure.frac_coords,
-                                          structure.frac_coords)
-
-        jump_diff = np.sum(pdist**2 * self.transitions)
-        jump_diff *= angstrom**2 / (2 * dimensions * n_diffusing * total_time)
-
-        jump_diff = FloatWithUnit(jump_diff, 'm^2 s^-1')
-
-        print(f'{jump_diff=} {jump_diff.unit}')
-
-        return jump_diff
-
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
         """Calculate tolerance wihin which atoms are considered to be close to
@@ -552,6 +517,41 @@ class SitesData:
                   site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
 
         return e_act
+
+    def calculate_jump_diffusivity(self, lattice: Lattice, n_diffusing: int,
+                                   total_time: float,
+                                   dimensions: int) -> float:
+        """Calculate jump diffusivity.
+
+        Parameters
+        ----------
+        lattice : Lattice
+            Lattice of the simulation data
+        n_diffusing : int
+            Number of diffusing elements
+        total_time : float
+            Total simulation time
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        jump_diff : float
+            Jump diffusivity in m^2/s
+        """
+        structure = self.structure
+
+        pdist = lattice.get_all_distances(structure.frac_coords,
+                                          structure.frac_coords)
+
+        jump_diff = np.sum(pdist**2 * self.transitions)
+        jump_diff *= angstrom**2 / (2 * dimensions * n_diffusing * total_time)
+
+        jump_diff = FloatWithUnit(jump_diff, 'm^2 s^-1')
+
+        print(f'{jump_diff=} {jump_diff.unit}')
+
+        return jump_diff
 
     def calculate_collective(
             self,
