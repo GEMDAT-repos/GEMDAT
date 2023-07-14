@@ -123,7 +123,7 @@ class Vibration:
         return attempt_freq, attempt_freq_std
 
     @staticmethod
-    def amplitudes(speed: np.ndarray) -> tuple[np.ndarray, float]:
+    def amplitudes(speed: np.ndarray) -> np.ndarray:
         """Calculate vibration amplitude.
 
         Parameters

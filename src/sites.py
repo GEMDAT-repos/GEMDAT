@@ -458,7 +458,7 @@ class SitesData:
         rates : dict[tuple[str, str], tuple[float, float]]
             Dictionary with jump rates and standard deviations between site pairs
         """
-        rates = {}
+        rates: dict[tuple[str, str], tuple[float, float]] = {}
 
         for site_pair, n_jumps in self.jumps_parts.items():
             part_time = total_time / n_parts
@@ -467,7 +467,7 @@ class SitesData:
             jump_freq_mean = np.mean(n_jumps) / denom
             jump_freq_std = np.std(n_jumps, ddof=1) / denom
 
-            rates[site_pair] = jump_freq_mean, jump_freq_std
+            rates[site_pair] = float(jump_freq_mean), float(jump_freq_std)
 
         return rates
 
