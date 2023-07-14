@@ -43,7 +43,7 @@ def plot(plots: Union[List[str], str],
 
     for plot in plots:
         plot_function = getattr(available_plots, plot)
-        figure = plot_function(**kwargs)
+        figure = plot_function(data=data, **kwargs)
         figures.append(figure)
 
     if show:

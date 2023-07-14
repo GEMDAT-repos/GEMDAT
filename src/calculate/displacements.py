@@ -19,12 +19,11 @@ class Displacements:
         extras : dict[str, float]
             Dictionary with calculated parameters
         """
-        cell_offsets = Displacements.cell_offsets(data.trajectory_coords),
+        cell_offsets = Displacements.cell_offsets(data.trajectory_coords)
 
         displacements = Displacements.displacements(data.trajectory_coords,
                                                     data.lattice,
                                                     extras.equilibration_steps)
-
         diff_displacements = Displacements.diff_displacements(
             displacements=displacements,
             diffusing_element=extras.diffusing_element,
@@ -56,7 +55,7 @@ class Displacements:
         first = coords[0, np.newaxis]
         diff = np.diff(coords, axis=0, prepend=first)
 
-        digits = np.digitize(diff, bins=[0.5, -0.5]) - 1
+        digits = np.digitize(diff, bins=[0.5, -0.4999999]) - 1
 
         offsets = np.cumsum(digits, axis=0)
         return offsets

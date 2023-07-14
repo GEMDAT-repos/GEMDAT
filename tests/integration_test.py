@@ -25,7 +25,7 @@ def gemdat_results():
     diffusion_dimensions = 3
     z_ion = 1
 
-    data = SimulationData.from_vasprun(VASP_XML, cache='vasprun.xml.cache')
+    data = SimulationData.from_vasprun(VASP_XML)
 
     extras = data.calculate_all(
         equilibration_steps=equilibration_steps,
