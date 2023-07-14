@@ -31,3 +31,7 @@ def test_displacement_calculate_all():
     assert (np.allclose(
         ret['displacements'],
         np.array([[0., 0.73654599, 0.10440307, 0.70356236, 0.17204651]])))
+
+    assert (np.allclose(
+        ret['diff_displacements'],
+        np.array([[0., 0.73654599, 0.10440307, 0.70356236, 0.17204651]])))
