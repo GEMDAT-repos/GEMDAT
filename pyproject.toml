@@ -32,7 +32,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  'pymatgen',
+  'pymatgen >= 2023.7.14',
   'numpy',
   'scipy',
   'matplotlib',
