@@ -76,7 +76,6 @@ def plot_jumps_vs_time(*,
     -------
     plt.Figure
     """
-
     bins = np.arange(0, n_steps + binsize, binsize)
 
     fig, ax = plt.subplots()
@@ -86,5 +85,36 @@ def plot_jumps_vs_time(*,
     ax.set(title='Jumps vs. time',
            xlabel='Time (steps)',
            ylabel='Number of jumps')
+
+    return fig
+
+
+def plot_collective_jumps(*, data: SimulationData, sites: SitesData,
+                          **kwargs) -> plt.Figure:
+    """Plot collective jumps per jump-type combination.
+
+    Parameters
+    ----------
+    data : SimulationData
+        Input simulation data
+    sites : SitesData
+        Input sites data
+
+    Returns
+    -------
+    plt.Figure
+    """
+    fig, ax = plt.subplots()
+
+    mat = ax.imshow(sites.coll_matrix)
+
+    ticks = range(len(sites.jump_names))
+
+    ax.set_xticks(ticks, labels=sites.jump_names, rotation=90)
+    ax.set_yticks(ticks, labels=sites.jump_names)
+
+    fig.colorbar(mat, ax=ax)
+
+    ax.set(title='Cooperative jumps per jump-type combination')
 
     return fig

@@ -144,6 +144,14 @@ class SitesData:
         self.coll_matrix = self.calculate_collective_matrix()
         self.multi_coll = self.calculate_multiple_collective()
 
+    @property
+    def jump_names(self) -> list[str]:
+        """Return list of jump names.
+
+        These correspond to the axes in `.coll_matrix`.
+        """
+        return ['->'.join(key) for key in self.rates]
+
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
         """Calculate tolerance wihin which atoms are considered to be close to
