@@ -402,7 +402,6 @@ class SitesData:
             Dictionary with number of jumpst per sites combination
         """
         labels = self.structure.labels
-        defaultdict(list)
 
         jumps = Counter([(labels[i], labels[j])
                          for i, j in self.all_transitions[:, 1:3]])

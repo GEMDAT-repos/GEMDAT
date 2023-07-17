@@ -50,3 +50,41 @@ def plot_jumps_vs_distance(*,
            ylabel='Occurrence (a.u.)')
 
     return fig
+
+
+def plot_jumps_vs_time(*,
+                       data: SimulationData,
+                       sites: SitesData,
+                       n_steps: int,
+                       binsize: int = 500,
+                       **kwargs) -> plt.Figure:
+    """Plot jumps vs. distance histogram.
+
+    Parameters
+    ----------
+    data : SimulationData
+        Input simulation data
+    sites : SitesData
+        Input sites data
+    n_steps : int
+        Total number of time steps
+    binsize : int, optional
+        Width of each bin in number of time steps
+
+
+    Returns
+    -------
+    plt.Figure
+    """
+
+    bins = np.arange(0, n_steps + binsize, binsize)
+
+    fig, ax = plt.subplots()
+
+    ax.hist(sites.all_transitions[:, 4], bins=bins, width=0.8 * binsize)
+
+    ax.set(title='Jumps vs. time',
+           xlabel='Time (steps)',
+           ylabel='Number of jumps')
+
+    return fig
