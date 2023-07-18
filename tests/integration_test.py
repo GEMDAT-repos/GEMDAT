@@ -10,6 +10,7 @@ from math import isclose
 import numpy as np
 import pytest
 from gemdat import SimulationData
+from gemdat.volume import trajectory_to_volume
 
 VASP_XML = os.environ.get('VASP_XML')
 
@@ -35,6 +36,33 @@ def gemdat_results():
     )
 
     return (data, extras)
+
+
+@vaspxml_available
+def test_volume(gemdat_results):
+    data, extras = gemdat_results
+
+    vol = trajectory_to_volume(lattice=data.lattice,
+                               coords=extras.diff_coords,
+                               resolution=0.2)
+
+    assert isinstance(vol, np.ndarray)
+    assert vol.shape == (101, 51, 51)
+    assert vol.sum() == 3540000
+
+
+@vaspxml_available
+def test_volume_cartesian(gemdat_results):
+    data, extras = gemdat_results
+
+    vol = trajectory_to_volume(lattice=data.lattice,
+                               coords=extras.diff_coords,
+                               resolution=0.2,
+                               cartesian=True)
+
+    assert isinstance(vol, np.ndarray)
+    assert vol.shape == (101, 51, 52)
+    assert vol.sum() == 3540000
 
 
 @vaspxml_available
