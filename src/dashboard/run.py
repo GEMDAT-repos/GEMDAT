@@ -1,6 +1,7 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_data_location
-from gemdat import SimulationData, __version__, plot_all
+from gemdat import SimulationData, SitesData, __version__, plot_all
+from gemdat.io import load_known_material
 
 st.set_page_config(
     page_title='Gemdat dashboard',
@@ -17,6 +18,15 @@ st.set_page_config(
          '\n\nFor more information, see: https://github.com/GEMDAT-repos/GEMDAT'
          )
     })
+
+# Remove step up down (+/-) from number inputs as we dont use them
+st.markdown("""
+<style>
+    button.step-up {display: none;}
+    button.step-down {display: none;}
+    div[data-baseweb] {border-radius: 4px;}
+</style>""",
+            unsafe_allow_html=True)
 
 add_sidebar_logo()
 
@@ -43,16 +53,32 @@ with st.sidebar:
         'Equilibration Steps',
         min_value=0,
         max_value=len(data.trajectory_coords) - 1,
-        value=1250,
-        step=100)
-    number_of_cols = int(
-        st.number_input('Number of figure columns',
-                        min_value=1,
-                        max_value=10,
-                        value=3))
+        value=1250)
+
+    structure = st.selectbox('Structure', ('argyrodite', ))
+
+    st.text('Supercell (x,y,z)')
+    col1, col2, col3 = st.columns(3)
+    supercell = (col1.number_input('supercell x',
+                                   min_value=1,
+                                   value=1,
+                                   label_visibility='collapsed',
+                                   help=None),
+                 col2.number_input('supercell y',
+                                   min_value=1,
+                                   value=1,
+                                   label_visibility='collapsed'),
+                 col3.number_input('supercell z',
+                                   min_value=1,
+                                   value=1,
+                                   label_visibility='collapsed'))
+
+number_of_cols = 3  # Number of figure columns
 
 extra = data.calculate_all(equilibration_steps=equilibration_steps,
                            diffusing_element=diffusing_element)
+sd = SitesData(load_known_material(structure, supercell=supercell))
+sd.calculate_all(data=data, extras=extra)
 
 col1, col2, col3 = st.columns(3)
 
@@ -76,7 +102,7 @@ with col3:
 
 st.title('GEMDAT pregenerated figures')
 
-figures = plot_all(data=data, **vars(extra), show=False)
+figures = plot_all(data=data, sites=sd, **vars(extra), show=False)
 
 # automagically divide the plots over the number of columns
 for num, col in enumerate(st.columns(number_of_cols)):
