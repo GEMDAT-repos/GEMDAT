@@ -77,9 +77,6 @@ number_of_cols = 3  # Number of figure columns
 
 extra = data.calculate_all(equilibration_steps=equilibration_steps,
                            diffusing_element=diffusing_element)
-sd = SitesData(load_known_material(structure, supercell=supercell))
-sd.calculate_all(data=data, extras=extra)
-
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -101,6 +98,9 @@ with col3:
               value=f'{extra.tracer_conduc:g}')
 
 st.title('GEMDAT pregenerated figures')
+
+sd = SitesData(load_known_material(structure, supercell=supercell))
+sd.calculate_all(data=data, extras=extra)
 
 figures = plot_all(data=data, sites=sd, **vars(extra), show=False)
 
