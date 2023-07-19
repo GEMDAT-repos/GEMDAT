@@ -34,6 +34,7 @@ classifiers = [
 dependencies = [
   'pymatgen >= 2023.7.14',
   'numpy',
+  'rich',
   'scipy',
   'matplotlib >= 3.6.0', # Axes3D.set_aspect('equal') introduced here
   'MDAnalysis',
