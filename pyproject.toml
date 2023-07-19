@@ -34,6 +34,7 @@ classifiers = [
 dependencies = [
   'pymatgen >= 2023.7.14',
   'numpy',
+  'rich',
   'scipy',
   'matplotlib',
   'MDAnalysis',
