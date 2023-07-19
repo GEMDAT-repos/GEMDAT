@@ -2,10 +2,12 @@ from collections import defaultdict
 
 import numpy as np
 from gemdat import SimulationData, SitesData
+from pymatgen.core import Structure
 from rich.progress import track
 
 
-def uniqify_labels(arr, labels):
+def _uniqify_labels(arr, labels: list[str]) -> np.ndarray:
+    """Helper function to uniqify labels."""
     unique_labels = list(set(labels))
     mapping = np.array([-1] + [unique_labels.index(label) for label in labels])
 
@@ -15,9 +17,8 @@ def uniqify_labels(arr, labels):
     return mapping[index]
 
 
-def get_states(sites):
-    labels = sites.structure.labels
-
+def _get_states(labels: list[str]) -> dict[int, str]:
+    """Helper function to generate a list of states from the labels."""
     unique_labels = list(set(labels))
 
     states = {}
@@ -39,12 +40,11 @@ def get_states(sites):
     return states
 
 
-def get_states_array(sites):
-    labels = sites.structure.labels
-
-    atom_sites = uniqify_labels(sites.atom_sites, labels)
-    atom_sites_from = uniqify_labels(sites.atom_sites_from, labels)
-    atom_sites_to = uniqify_labels(sites.atom_sites_to, labels)
+def _get_states_array(sites: SimulationData, labels: list[str]) -> np.ndarray:
+    """Helper function to generate integer array of transition states."""
+    atom_sites = _uniqify_labels(sites.atom_sites, labels)
+    atom_sites_from = _uniqify_labels(sites.atom_sites_from, labels)
+    atom_sites_to = _uniqify_labels(sites.atom_sites_to, labels)
 
     states_array = (atom_sites * 1e6 + atom_sites_from * 1e3 +
                     atom_sites_to).astype(int)
@@ -52,7 +52,8 @@ def get_states_array(sites):
     return states_array
 
 
-def get_symbol_indices(structure):
+def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
+    """Helper function to generate symbol indices."""
     symbols = structure.symbol_set
     return {
         symbol:
@@ -94,16 +95,13 @@ def calculate_rdfs(
         Dictionary with rdf arrays per symbol
     """
     structure = data.structure
+    lattice = structure.lattice
 
     coords = data.trajectory_coords[equilibration_steps:]
 
-    lattice = structure.lattice
-
-    states2str = get_states(sites)
-
-    states_array = get_states_array(sites)
-
-    symbol_indices = get_symbol_indices(data.structure)
+    states2str = _get_states(sites.structure.labels)
+    states_array = _get_states_array(sites, sites.structure.labels)
+    symbol_indices = _get_symbol_indices(structure)
 
     bins = np.arange(0, max_dist + resolution, resolution)
     length = len(bins) + 1
