@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 from gemdat import SimulationData, SitesData
+from rich.progress import track
 
 
 def uniqify_labels(arr, labels):
@@ -14,7 +15,9 @@ def uniqify_labels(arr, labels):
     return mapping[index]
 
 
-def get_states(labels):
+def get_states(sites):
+    labels = sites.structure.labels
+
     unique_labels = list(set(labels))
 
     states = {}
@@ -34,6 +37,28 @@ def get_states(labels):
                 states[int(i * 1e6 + j * 1e3 + k)] = state
 
     return states
+
+
+def get_states_array(sites):
+    labels = sites.structure.labels
+
+    atom_sites = uniqify_labels(sites.atom_sites, labels)
+    atom_sites_from = uniqify_labels(sites.atom_sites_from, labels)
+    atom_sites_to = uniqify_labels(sites.atom_sites_to, labels)
+
+    states_array = (atom_sites * 1e6 + atom_sites_from * 1e3 +
+                    atom_sites_to).astype(int)
+
+    return states_array
+
+
+def get_symbol_indices(structure):
+    symbols = structure.symbol_set
+    return {
+        symbol:
+        np.argwhere([e.name == symbol for e in structure.species]).flatten()
+        for symbol in symbols
+    }
 
 
 def calculate_rdfs(
@@ -68,28 +93,17 @@ def calculate_rdfs(
     rdfs : dict[str, np.ndarray]
         Dictionary with rdf arrays per symbol
     """
-    labels = data.structure.labels
+    structure = data.structure
 
-    states2str = get_states(labels)
+    coords = data.trajectory_coords[equilibration_steps:]
 
-    atom_sites = uniqify_labels(sites.atom_sites, labels)
-    atom_sites_from = uniqify_labels(sites.atom_sites_from, labels)
-    atom_sites_to = uniqify_labels(sites.atom_sites_to, labels)
+    lattice = structure.lattice
 
-    states_array = (atom_sites * 1e6 + atom_sites_from * 1e3 +
-                    atom_sites_to).astype(int)
+    states2str = get_states(sites)
 
-    lattice = data.lattice
+    states_array = get_states_array(sites)
 
-    symbols = data.structure.symbol_set
-
-    symbol_indices = [
-        np.argwhere([e.name == symbol
-                     for e in data.structure.species]).flatten()
-        for symbol in symbols
-    ]
-
-    n_symbols = len(symbols)
+    symbol_indices = get_symbol_indices(data.structure)
 
     bins = np.arange(0, max_dist + resolution, resolution)
     length = len(bins) + 1
@@ -97,29 +111,26 @@ def calculate_rdfs(
     rdfs: dict[tuple[str, str],
                np.ndarray] = defaultdict(lambda: np.zeros(length, dtype=int))
 
-    for i in range(n_steps):
-        if i % 1000 == 0:
-            print(i)
+    for i in track(range(n_steps), transient=True):
 
-        all_coords = data.trajectory_coords[equilibration_steps + i]
-        diff_coords = diff_coords[i]
+        t_coords = coords[i]
+        t_diff_coords = diff_coords[i]
 
-        rdf = lattice.get_all_distances(diff_coords, all_coords)
+        dists = lattice.get_all_distances(t_diff_coords, t_coords)
 
-        rdf = np.digitize(rdf, bins, right=True)
+        rdf = np.digitize(dists, bins, right=True)
 
         states = np.unique(states_array[i], axis=0)
 
-        for j in range(n_symbols):
-            for state in states:
-                k_idx = np.argwhere(states_array[i] == state)
+        t_states = states_array[i]
 
-                symbol = symbols[j]
-                state_str = states2str[state]
+        for state in states:
+            k_idx = np.argwhere(t_states == state)
+            state_str = states2str[state]
 
-                rdf_s = rdf[k_idx, symbol_indices[j]]
-
-                rdfs[state_str, symbol] += np.bincount(rdf_s.flatten(),
+            for symbol, symbol_idx in symbol_indices.items():
+                rdf_state = rdf[k_idx, symbol_idx].flatten()
+                rdfs[state_str, symbol] += np.bincount(rdf_state,
                                                        minlength=length)
 
     new_rdf: dict[str, dict[str, np.ndarray]] = defaultdict(dict)
