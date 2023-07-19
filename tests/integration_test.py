@@ -185,6 +185,7 @@ def test_sites(gemdat_results, structure):
     assert sites.multi_coll.sum() == 174380
 
 
+@vaspxml_available
 def test_rdf(gemdat_results_subset, structure):
     data, extras = gemdat_results_subset
 
