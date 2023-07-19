@@ -1,7 +1,7 @@
 """
 Run integration test with:
 
-VASP_XML=/run/media/stef/Scratch/md-analysis-matlab-example/vasprun.xml pytest
+VASP_XML=/home/stef/md-analysis-matlab-example/vasprun.xml pytest
 """
 
 import os
@@ -9,14 +9,17 @@ from math import isclose
 
 import numpy as np
 import pytest
-from gemdat import SimulationData
+from gemdat import SimulationData, SitesData
+from gemdat.io import load_known_material
+from gemdat.rdf import calculate_rdfs
 from gemdat.volume import trajectory_to_volume
 
 VASP_XML = os.environ.get('VASP_XML')
 
 vaspxml_available = pytest.mark.skipif(
     VASP_XML is None,
-    reason='vasprun.xml test sim_data is required for this test.')
+    reason='Simulation data from vasprun.xml example is required for this test.'
+)
 
 
 @pytest.fixture
@@ -36,6 +39,31 @@ def gemdat_results():
     )
 
     return (data, extras)
+
+
+@pytest.fixture
+def gemdat_results_subset():
+    # Reduced number of time steps for slow calculations
+    equilibration_steps = 74000
+    diffusing_element = 'Li'
+    diffusion_dimensions = 3
+    z_ion = 1
+
+    data = SimulationData.from_vasprun(VASP_XML)
+
+    extras = data.calculate_all(
+        equilibration_steps=equilibration_steps,
+        diffusing_element=diffusing_element,
+        z_ion=z_ion,
+        diffusion_dimensions=diffusion_dimensions,
+    )
+
+    return (data, extras)
+
+
+@pytest.fixture
+def structure():
+    return load_known_material('argyrodite')
 
 
 @vaspxml_available
@@ -76,13 +104,8 @@ def test_tracer(gemdat_results):
 
 
 @vaspxml_available
-def test_sites(gemdat_results):
-    from gemdat.io import load_known_material
-    from gemdat.sites import SitesData
-
+def test_sites(gemdat_results, structure):
     data, extras = gemdat_results
-
-    structure = load_known_material('argyrodite')
 
     sites = SitesData(structure)
     sites.calculate_all(data=data, extras=extras)
@@ -160,3 +183,31 @@ def test_sites(gemdat_results):
     assert sites.coll_matrix[0, 0] == 437
 
     assert sites.multi_coll.sum() == 174380
+
+
+def test_rdf(gemdat_results_subset, structure):
+    data, extras = gemdat_results_subset
+
+    structure = load_known_material('argyrodite')
+
+    sites = SitesData(structure)
+    sites.calculate_all(data=data, extras=extras)
+
+    rdfs = calculate_rdfs(
+        data=data,
+        sites=sites,
+        diff_coords=extras.diff_coords,
+        n_steps=extras.n_steps,
+        equilibration_steps=extras.equilibration_steps,
+        max_dist=5,
+    )
+
+    expected_states = {'~>Li48h', '@Li48h', 'Li48h->Li48h'}
+    expected_symbols = set(data.structure.symbol_set)
+
+    assert isinstance(rdfs, dict)
+
+    for state, rdf in rdfs.items():
+        assert state in expected_states
+        assert set(rdf.keys()) == expected_symbols
+        assert all(len(arr) == 51 for arr in rdf.values())
