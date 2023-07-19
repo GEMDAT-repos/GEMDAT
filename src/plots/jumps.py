@@ -199,6 +199,6 @@ def plot_jumps_3d(*, data: SimulationData, sites: SitesData,
         zlabel="z' (ang)",
     )
 
-    ax.set_aspect('equal')
+    ax.set_aspect('equal')  # only auto is supported
 
     return fig

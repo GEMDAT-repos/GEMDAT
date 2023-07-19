@@ -57,20 +57,23 @@ with st.sidebar:
 
     structure = st.selectbox('Structure', ('argyrodite', ))
 
-    st.text('Supercell (x,y,z)')
+    st.text('Supercell (x,y,z)\ndisabled, needs fix in pymatgen')
     col1, col2, col3 = st.columns(3)
     supercell = (col1.number_input('supercell x',
                                    min_value=1,
                                    value=1,
+                                   disabled=True,
                                    label_visibility='collapsed',
                                    help=None),
                  col2.number_input('supercell y',
                                    min_value=1,
                                    value=1,
+                                   disabled=True,
                                    label_visibility='collapsed'),
                  col3.number_input('supercell z',
                                    min_value=1,
                                    value=1,
+                                   disabled=True,
                                    label_visibility='collapsed'))
 
 number_of_cols = 3  # Number of figure columns
@@ -99,7 +102,8 @@ with col3:
 
 st.title('GEMDAT pregenerated figures')
 
-sd = SitesData(load_known_material(structure, supercell=supercell))
+# sd = SitesData(load_known_material(structure, supercell=supercell)) # needs fixing in pymatgen
+sd = SitesData(load_known_material(structure))
 sd.calculate_all(data=data, extras=extra)
 
 figures = plot_all(data=data, sites=sd, **vars(extra), show=False)
