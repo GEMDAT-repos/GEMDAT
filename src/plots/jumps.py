@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import colormaps
 from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
@@ -202,3 +204,144 @@ def plot_jumps_3d(*, data: SimulationData, sites: SitesData,
     ax.set_aspect('equal')  # only auto is supported
 
     return fig
+
+
+def plot_jumps_3d_animation(*,
+                            data: SimulationData,
+                            sites: SitesData,
+                            t_start: int,
+                            t_stop: int,
+                            decay: float = 0.05,
+                            skip: int = 5,
+                            interval: int = 20,
+                            **kwargs):
+    """Plot jumps in 3D as an animation over time.
+
+    # TODO
+    # - Refactor using init func
+    # - Refactor shared code with `plot_jumps_3d`
+    # - Save/export animation somehow
+    # - Probably cleaner to combine these functions as a class
+
+    Parameters
+    ----------
+    data : SimulationData
+        Input simulation data
+    sites : SitesData
+        Input sites data
+    t_start : int
+        Time step to start animation (relative to equilibration time)
+    t_stop : int
+        Time step to stop animation (relative to equilibration time)
+    decay : float, optional
+        Controls the decay of the line width (higher = faster decay)
+    skip : float, optional
+        Skip frames (increase for faster, but less accurate rendering)
+    interval : int, optional
+        Delay between frames in milliseconds.
+
+    Returns
+    -------
+    plt.Figure
+    """
+    minwidth = 0.2
+    maxwidth = 5.0
+
+    class LabelItems:
+
+        def __init__(self, labels, coords):
+            self.labels = labels
+            self.coords = coords
+
+        def items(self):
+            yield from zip(self.labels, self.coords)
+
+    coords = sites.structure.frac_coords
+    lattice = data.structure.lattice
+
+    color_from = colormaps['Set1'].colors
+    color_to = colormaps['Pastel1'].colors
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+
+    LabelItems(sites.structure.labels, coords)
+
+    xyz_labels = LabelItems('OABC', [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1],
+                                     [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]])
+
+    plotter.plot_lattice_vectors(lattice, ax=ax, linewidth=1)
+
+    plotter.plot_labels(xyz_labels,
+                        lattice=lattice,
+                        ax=ax,
+                        color='green',
+                        size=12)
+
+    assert len(ax.collections) == 0
+    plotter.plot_points(coords,
+                        lattice=lattice,
+                        ax=ax,
+                        s=50,
+                        color='white',
+                        edgecolor='black')
+    points = ax.collections
+
+    time_col = 4
+    event_order = sites.all_transitions[:, time_col].argsort()
+
+    events = sites.all_transitions[event_order]
+
+    for _, site_i, site_j, *_ in events:
+
+        coord_i = coords[site_i]
+        coord_j = coords[site_j]
+
+        lw = 0
+
+        _, image = lattice.get_distance_and_image(coord_i, coord_j)
+
+        line = [coord_i, coord_j + image]
+
+        plotter.plot_path(line,
+                          lattice=lattice,
+                          ax=ax,
+                          color='red',
+                          linewidth=lw)
+
+    lines = ax.lines[3:]
+
+    ax.set(
+        title='Jumps between sites',
+        xlabel="x' (ang)",
+        ylabel="y' (ang)",
+        zlabel="z' (ang)",
+    )
+
+    ax.set_aspect('equal')  # only auto is supported
+
+    def update(frame_no):
+        t_frame = t_start + (frame_no * skip)
+
+        for i, (atom, frm, to, _, t_jump) in enumerate(events):
+            if t_jump > t_frame:
+                break
+
+            lw = max(maxwidth - decay * (t_frame - t_jump), minwidth)
+
+            line = lines[i]
+            line.set_color('red')
+            line.set_linewidth(lw)
+
+            points[frm].set_facecolor(color_from[atom % len(color_from)])
+            points[to].set_facecolor(color_to[atom % len(color_to)])
+
+        ax.set_title(f'T: {t_frame} | Next jump: {t_jump}')
+
+    n_frames = int((t_stop - t_start) / skip)
+
+    return animation.FuncAnimation(fig=fig,
+                                   func=update,
+                                   frames=n_frames,
+                                   interval=interval,
+                                   repeat=False)
