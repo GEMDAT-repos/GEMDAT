@@ -137,11 +137,11 @@ def test_sites(gemdat_results, structure):
     assert sites.occupancy_parts[9][0] == 89
     assert sites.occupancy_parts[9][43] == 391
 
-    assert sites.sites_occupancy == {'Li48h': 0.1477180790960452}
+    assert sites.sites_occupancy == {'48h': 0.1477180790960452}
 
     assert len(sites.occupancy_parts) == extras.n_parts
-    assert sites.sites_occupancy_parts[0] == {'Li48h': 0.15146045197740113}
-    assert sites.sites_occupancy_parts[9] == {'Li48h': 0.14838418079096044}
+    assert sites.sites_occupancy_parts[0] == {'48h': 0.15146045197740113}
+    assert sites.sites_occupancy_parts[9] == {'48h': 0.14838418079096044}
 
     # These appear to be the same in the matlab code
     # https://github.com/GEMDAT-repos/GEMDAT/issues/35
@@ -153,14 +153,14 @@ def test_sites(gemdat_results, structure):
     assert isinstance(sites.rates, dict)
     assert len(sites.rates) == 1
 
-    rates, rates_std = sites.rates[('Li48h', 'Li48h')]
+    rates, rates_std = sites.rates[('48h', '48h')]
     assert isclose(rates, 188841807909.6045)
     assert isclose(rates_std, 16686205789.490553)
 
     assert isinstance(sites.activation_energies, dict)
     assert len(sites.activation_energies) == 1
 
-    e_act, e_act_std = sites.activation_energies[('Li48h', 'Li48h')]
+    e_act, e_act_std = sites.activation_energies[('48h', '48h')]
     assert isclose(e_act, 0.1485147872457603, rel_tol=1e-6)
     assert isclose(e_act_std, 0.005017914800280739, rel_tol=1e-6)
 
@@ -203,7 +203,7 @@ def test_rdf(gemdat_results_subset, structure):
         max_dist=5,
     )
 
-    expected_states = {'~>Li48h', '@Li48h', 'Li48h->Li48h'}
+    expected_states = {'~>48h', '@48h', '48h->48h'}
     expected_symbols = set(data.structure.symbol_set)
 
     assert isinstance(rdfs, dict)
