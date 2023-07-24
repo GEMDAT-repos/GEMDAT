@@ -1,0 +1,2 @@
+tests/data/short_simulation/vasprun.xml filter=lfs diff=lfs merge=lfs -text
+tests/data/short_simulation/OUTCAR filter=lfs diff=lfs merge=lfs -text
