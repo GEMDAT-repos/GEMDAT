@@ -65,3 +65,14 @@ def load_known_material(name: str,
         structure.make_supercell(supercell)
 
     return structure
+
+
+def get_list_of_known_materials() -> list[str]:
+    """Return list of known materials.
+
+    Returns
+    -------
+    list[str]
+        List with names of known materials
+    """
+    return [fn.stem for fn in DATA.glob('*.cif')]
