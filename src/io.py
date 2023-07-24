@@ -6,6 +6,16 @@ from pymatgen.io import cif
 
 DATA = Path(files('gemdat') / 'data')  # type: ignore
 
+SUPERCELL = {
+    'argyrodite': (1, 1, 1),
+    'lagp': (1, 2, 2),
+    'latp': (1, 1, 1),
+    'na3ps4': (2, 2, 2),
+    'mno2_lambda': (1, 1, 1),
+    'lisnps': (1, 1, 1),
+    'li3ps4_beta': (1, 1, 2),
+}
+
 
 def load_cif(filename: Path | str) -> Structure:
     """Load cif file and return first item as pymatgen structure.
