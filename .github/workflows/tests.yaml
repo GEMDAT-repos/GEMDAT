@@ -25,6 +25,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      - name: Checkout lfs objects
+        run: git lfs checkout
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -43,7 +48,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          coverage run -p -m pytest
+          VASP_XML=./tests/data/short_simulation/vasprun.xml coverage run -p -m pytest
 
       - name: Combine
         run: |
