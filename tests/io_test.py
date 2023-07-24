@@ -1,11 +1,12 @@
-from gemdat.io import load_known_material
+import pytest
+from gemdat.io import get_list_of_known_materials, load_known_material
 from pymatgen.core import Structure
 
 
 def test_load_known_material():
     structure = load_known_material('argyrodite')
-
     assert isinstance(structure, Structure)
+    assert all(label == '48h' for label in structure.labels)
 
 
 def test_load_known_material_supercell():
@@ -17,3 +18,22 @@ def test_load_known_material_supercell():
     assert structure.lattice.a == 3 * length
     assert structure.lattice.b == 2 * length
     assert structure.lattice.c == 1 * length
+
+
+@pytest.mark.xfail(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/69')
+def test_labels_supercell():
+    structure = load_known_material('argyrodite', supercell=(1, 1, 2))
+    assert isinstance(structure, Structure)
+    assert all(label == '48h' for label in structure.labels)
+
+
+@pytest.mark.xfail(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/75')
+def test_labels_multiple_species():
+    structure = load_known_material('lisnps')
+    assert isinstance(structure, Structure)
+    assert set(structure.labels) == {'Li1', 'Li2', 'Li3', 'Li4'}
+
+
+def test_get_list_of_known_materials():
+    known_materials = get_list_of_known_materials()
+    assert not any(name.endswith('.cif') for name in known_materials)

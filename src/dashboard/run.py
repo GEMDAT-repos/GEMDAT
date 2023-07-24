@@ -1,7 +1,7 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_data_location
 from gemdat import SimulationData, SitesData, __version__, plot_all
-from gemdat.io import load_known_material
+from gemdat.io import get_list_of_known_materials, load_known_material
 
 st.set_page_config(
     page_title='Gemdat dashboard',
@@ -30,6 +30,8 @@ st.markdown("""
 
 add_sidebar_logo()
 
+KNOWN_MATERIALS = get_list_of_known_materials()
+
 with st.sidebar:
     data_location = get_data_location(filename='vasprun.xml')
 
@@ -55,7 +57,7 @@ with st.sidebar:
         max_value=len(data.trajectory_coords) - 1,
         value=1250)
 
-    structure = st.selectbox('Structure', ('argyrodite', ))
+    structure = st.selectbox('Structure', KNOWN_MATERIALS)
 
     st.text('Supercell (x,y,z)\ndisabled, needs fix in pymatgen')
     col1, col2, col3 = st.columns(3)

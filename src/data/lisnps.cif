@@ -1,0 +1,43 @@
+data_lisnps
+# http://www.crystallography.net/cod/4120994.cif
+_symmetry_space_group_name_H-M   'P 42/n m c :2'
+_cell_length_a                   8.7057(4)
+_cell_length_b                   8.7057(4)
+_cell_length_c                   12.7389(9)
+_cell_angle_alpha                90
+_cell_angle_beta                 90
+_cell_angle_gamma                90
+_symmetry_Int_Tables_number   137
+_cell_volume                     965.47(9)
+
+loop_
+_symmetry_equiv_pos_as_xyz
+   'x, y, z'
+   '-x+1/2, -y+1/2, z'
+   '-y+1/2, x, z+1/2'
+   'y, -x+1/2, z+1/2'
+   '-x, y+1/2, -z'
+   'x+1/2, -y, -z'
+   'y+1/2, x+1/2, -z+1/2'
+   '-y, -x, -z+1/2'
+   '-x, -y, -z'
+   'x-1/2, y-1/2, -z'
+   'y-1/2, -x, -z-1/2'
+   '-y, x-1/2, -z-1/2'
+   'x, -y-1/2, z'
+   '-x-1/2, y, z'
+   '-y-1/2, -x-1/2, z-1/2'
+   'y, x, z-1/2'
+
+loop_
+ _atom_site_type_symbol
+ _atom_site_label
+ _atom_site_symmetry_multiplicity
+ _atom_site_fract_x
+ _atom_site_fract_y
+ _atom_site_fract_z
+ _atom_site_occupancy
+   Li  Li1  16  0.514   0.490   0.9280  1
+   Li  Li2  16  0.473   0.493   0.785   1
+   Li  Li3   4  0.2500  0.2500  0.8063  1
+   Li  Li4   4  0.2500  0.7500  1.0042  1
