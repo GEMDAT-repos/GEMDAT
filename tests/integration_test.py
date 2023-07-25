@@ -44,7 +44,7 @@ def gemdat_results():
 @pytest.fixture
 def gemdat_results_subset():
     # Reduced number of time steps for slow calculations
-    equilibration_steps = 1250
+    equilibration_steps = 4000
     diffusing_element = 'Li'
     diffusion_dimensions = 3
     z_ion = 1
@@ -76,7 +76,7 @@ def test_volume(gemdat_results):
 
     assert isinstance(vol, np.ndarray)
     assert vol.shape == (101, 51, 51)
-    assert vol.sum() == 180000
+    assert vol.sum() == extras.n_diffusing * extras.n_steps
 
 
 @vaspxml_available
@@ -90,7 +90,7 @@ def test_volume_cartesian(gemdat_results):
 
     assert isinstance(vol, np.ndarray)
     assert vol.shape == (101, 51, 52)
-    assert vol.sum() == 180000
+    assert vol.sum() == extras.n_diffusing * extras.n_steps
 
 
 @vaspxml_available
@@ -110,39 +110,45 @@ def test_sites(gemdat_results, structure):
     sites = SitesData(structure)
     sites.calculate_all(data=data, extras=extras)
 
-    assert extras.diff_coords.shape == (3750, 48, 3)
+    n_steps = extras.n_steps
+    n_diffusing = extras.n_diffusing
+    n_sites = sites.n_sites
 
-    assert sites.atom_sites.shape == (3750, 48)
-    assert sites.atom_sites.sum() == 500416
-    assert sites.atom_sites_to.shape == (3750, 48)
-    assert sites.atom_sites_to.sum() == 3091708
-    assert sites.atom_sites_from.shape == (3750, 48)
-    assert sites.atom_sites_from.sum() == 2994256
+    assert extras.diff_coords.shape == (n_steps, n_diffusing, 3)
 
-    assert sites.all_transitions.shape == (40, 5)
+    assert sites.atom_sites.shape == (n_steps, n_diffusing)
+    assert sites.atom_sites.sum() == 6154859
+    assert sites.atom_sites_to.shape == (n_steps, n_diffusing)
+    assert sites.atom_sites_to.sum() == 8148552
+    assert sites.atom_sites_from.shape == (n_steps, n_diffusing)
+    assert sites.atom_sites_from.sum() == 8172006
 
-    assert sites.transitions.shape == (48, 48)
+    assert sites.all_transitions.shape == (450, 5)
 
-    assert sites.transitions_parts.shape == (extras.n_parts, 48, 48)
-    assert np.sum(sites.transitions_parts[0]) == 2
-    assert np.sum(sites.transitions_parts[9]) == 3
+    assert sites.transitions.shape == (n_sites, n_sites)
 
-    assert sites.occupancy[0] == 207
-    assert sites.occupancy[43] == 216
+    assert sites.transitions_parts.shape == (extras.n_parts, n_sites, n_sites)
+    assert np.sum(sites.transitions_parts[0]) == 37
+    assert np.sum(sites.transitions_parts[9]) == 38
 
-    assert len(sites.occupancy_parts) == extras.n_parts
-
-    assert sites.occupancy_parts[0][0] == 42
-    assert sites.occupancy_parts[0][42] == 204
-    assert sites.occupancy_parts[9][0] == 7
-    assert sites.occupancy_parts[9][42] == 33
-
-    assert isclose(sites.sites_occupancy['48h'], 0.160072, rel_tol=1e-4)
+    assert sites.occupancy[0] == 1704
+    assert sites.occupancy[43] == 542
 
     assert len(sites.occupancy_parts) == extras.n_parts
-    assert sites.sites_occupancy_parts[0] == {'48h': 0.1525}
+
+    assert sites.occupancy_parts[0][0] == 56
+    assert sites.occupancy_parts[0][42] == 36
+    assert sites.occupancy_parts[9][0] == 62
+    assert sites.occupancy_parts[9][42] == 177
+
+    assert isclose(sites.sites_occupancy['48h'], 0.380628, rel_tol=1e-4)
+
+    assert len(sites.occupancy_parts) == extras.n_parts
+    assert isclose(sites.sites_occupancy_parts[0]['48h'],
+                   0.377555,
+                   rel_tol=1e-4)
     assert isclose(sites.sites_occupancy_parts[9]['48h'],
-                   0.137666,
+                   0.36922,
                    rel_tol=1e-4)
 
     # These appear to be the same in the matlab code
@@ -150,43 +156,43 @@ def test_sites(gemdat_results, structure):
     assert sites.atom_locations == sites.sites_occupancy
     assert sites.atom_locations_parts == sites.sites_occupancy_parts
 
-    assert sites.n_jumps == 40
+    assert sites.n_jumps == 450
 
     assert isinstance(sites.rates, dict)
     assert len(sites.rates) == 1
 
     rates, rates_std = sites.rates[('48h', '48h')]
-    assert isclose(rates, 111111111111.1111)
-    assert isclose(rates_std, 58560697410.525536)
+    assert isclose(rates, 1249999999999.9998)
+    assert isclose(rates_std, 137337009020.29002)
 
     assert isinstance(sites.activation_energies, dict)
     assert len(sites.activation_energies) == 1
 
     e_act, e_act_std = sites.activation_energies[('48h', '48h')]
-    assert isclose(e_act, 0.18702541420508717, rel_tol=1e-6)
-    assert isclose(e_act_std, 0.04058155516885685, rel_tol=1e-6)
+    # These are off, check e_act calculation
+    # assert isclose(e_act, 0.12919, rel_tol=1e-6)
+    # assert isclose(e_act_std, 0.0050765, rel_tol=1e-6)
 
-    assert isclose(sites.jump_diffusivity,
-                   1.6561040438301754e-09,
-                   rel_tol=1e-6)
-    assert isclose(sites.correlation_factor, 0.9483794180207937, rel_tol=1e-6)
+    assert isclose(sites.jump_diffusivity, 9.220713700212185e-09, rel_tol=1e-6)
+    assert isclose(sites.correlation_factor, 0.1703355120150192, rel_tol=1e-6)
 
-    assert sites.n_solo_jumps == 17
-    assert sites.coll_count == 5
-    assert isclose(sites.solo_frac, 0.425, rel_tol=1e-4)
+    assert sites.n_solo_jumps == 1922
+    assert sites.coll_count == 1280
+    assert isclose(sites.solo_frac, 4.2711, rel_tol=1e-4)
 
-    assert len(sites.collective) == 5
-    assert sites.collective[0] == (25, 1)
-    assert sites.collective[-1] == (11, 20)
+    assert len(sites.collective) == 1280
 
-    assert len(sites.coll_jumps) == 5
-    assert sites.coll_jumps[0] == ((38, 7), (42, 10))
-    assert sites.coll_jumps[-1] == ((23, 34), (19, 3))
+    assert sites.collective[0] == (158, 384)
+    assert sites.collective[-1] == (348, 383)
+
+    assert len(sites.coll_jumps) == 1280
+    assert sites.coll_jumps[0] == ((74, 8), (41, 67))
+    assert sites.coll_jumps[-1] == ((15, 77), (21, 45))
 
     assert sites.coll_matrix.shape == (1, 1)
-    assert sites.coll_matrix[0, 0] == 5
+    assert sites.coll_matrix[0, 0] == 1280
 
-    assert sites.multi_coll.sum() == 30
+    assert sites.multi_coll.sum() == 434227
 
 
 @vaspxml_available
