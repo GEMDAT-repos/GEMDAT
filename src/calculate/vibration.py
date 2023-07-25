@@ -117,9 +117,6 @@ class Vibration:
         attempt_freq = FloatWithUnit(attempt_freq, 'hz')
         attempt_freq_std = FloatWithUnit(attempt_freq_std, 'hz')
 
-        print(f'{attempt_freq=:g} {attempt_freq.unit}')
-        print(f'{attempt_freq_std=:g} {attempt_freq_std.unit}')
-
         return attempt_freq, attempt_freq_std
 
     @staticmethod
@@ -159,8 +156,5 @@ class Vibration:
 
         mean_vib = FloatWithUnit(mean_vib, 'ang')
         vibration_amp = FloatWithUnit(vibration_amp, 'ang')
-
-        print(f'{mean_vib=:g} {mean_vib.unit}')
-        print(f'{vibration_amp=:g} {vibration_amp.unit}')
 
         return vibration_amp

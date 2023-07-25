@@ -559,8 +559,6 @@ class SitesData:
 
         jump_diff = FloatWithUnit(jump_diff, 'm^2 s^-1')
 
-        print(f'{jump_diff=} {jump_diff.unit}')
-
         return jump_diff
 
     def calculate_collective(
