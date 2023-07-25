@@ -33,6 +33,11 @@ class SitesData:
         """Alias for `self.transitions_parts`."""
         return self.transitions_parts
 
+    @property
+    def n_sites(self):
+        """Return number of sites."""
+        return len(self.structure)
+
     def warn_if_lattice_not_similar(self, other_lattice: Lattice):
         this_lattice = self.structure.lattice
 
@@ -61,12 +66,9 @@ class SitesData:
 
         self.all_transitions = self.calculate_transition_events()
 
-        self.transitions = self.calculate_transitions_matrix(
-            n_diffusing=extras.n_diffusing)
+        self.transitions = self.calculate_transitions_matrix()
         self.transitions_parts = self.calculate_transitions_matrix_parts(
-            n_steps=extras.n_steps,
-            n_diffusing=extras.n_diffusing,
-            n_parts=extras.n_parts)
+            n_steps=extras.n_steps, n_parts=extras.n_parts)
 
         self.occupancy = self.calculate_occupancy()
         self.occupancy_parts = self.calculate_occupancy_parts(
@@ -324,13 +326,8 @@ class SitesData:
         """
         return _calculate_transition_events(atom_sites=self.atom_sites)
 
-    def calculate_transitions_matrix(self, n_diffusing: int):
+    def calculate_transitions_matrix(self):
         """Convert list of transition events to dense transitions matrix.
-
-        Parameters
-        ----------
-        n_diffusing : int
-            Number of diffusing elements. This defines the shape of the output matrix.
 
         Returns
         -------
@@ -338,10 +335,9 @@ class SitesData:
             Square matrix with number of each transitions
         """
         return _calculate_transitions_matrix(self.all_transitions,
-                                             n_diffusing=n_diffusing)
+                                             n_sites=self.n_sites)
 
     def calculate_transitions_matrix_parts(self, *, n_steps: int,
-                                           n_diffusing: int,
                                            n_parts: int) -> np.ndarray:
         """Divide list of transition events in equal parts and convert to dense
         transition matrices.
@@ -352,8 +348,6 @@ class SitesData:
         ----------
         n_steps : int
             Number of steps
-        n_diffusing : int
-            Number of diffusing elements. This defines the shape of the output matrix.
         n_parts : int
             Number of parts to divide the transitions events list into
 
@@ -366,7 +360,7 @@ class SitesData:
         split_transitions = _split_transitions_in_parts(
             self.all_transitions, n_steps, n_parts)
         return np.stack([
-            _calculate_transitions_matrix(part, n_diffusing=n_diffusing)
+            _calculate_transitions_matrix(part, n_sites=self.n_sites)
             for part in split_transitions
         ])
 
@@ -687,15 +681,15 @@ def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
 
 
 def _calculate_transitions_matrix(all_transitions: np.ndarray,
-                                  n_diffusing: int) -> np.ndarray:
+                                  n_sites: int) -> np.ndarray:
     """Convert list of transition events to dense transitions matrix.
 
     Parameters
     ----------
     all_transitions : np.ndarray
         Input array with transition events
-    n_diffusing : int
-        Number of diffusing elements. This defines the shape of the output matrix.
+    n_sites : int
+        Number of jump sites for diffusing element. This defines the shape of the output matrix.
 
     Returns
     -------
@@ -705,7 +699,7 @@ def _calculate_transitions_matrix(all_transitions: np.ndarray,
     start_col = 1  # transition starts
     stop_col = 2  # transition stop
 
-    transitions = np.zeros((n_diffusing, n_diffusing), dtype=int)
+    transitions = np.zeros((n_sites, n_sites), dtype=int)
     idx, counts = np.unique(all_transitions[:, [start_col, stop_col]],
                             return_counts=True,
                             axis=0)
