@@ -11,43 +11,12 @@ from pymatgen.core import Lattice, Structure
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Boltzmann, angstrom, elementary_charge
 
-from .utils import bfill, ffill
+from .utils import bfill, ffill, is_lattice_similar
 
 if TYPE_CHECKING:
     from gemdat.data import SimulationData
 
 NOSITE = -1
-
-
-def lattice_is_similar(a: Lattice,
-                       b: Lattice,
-                       length_tol: float = 0.5,
-                       angle_tol: float = 0.5) -> bool:
-    """Return True if lattices are similar within given tolerance.
-
-    Parameters
-    ----------
-    a, b : Lattice
-        Input lattices
-    length_tol : float, optional
-        Length tolerance in Angstrom
-    angle_tol : float, optional
-        Angle tolerance in degrees
-
-    Returns
-    -------
-    bool
-        Return True if lattices are similar
-    """
-    for a_length, b_length in zip(a.lengths, b.lengths):
-        if abs(a_length - b_length) > length_tol:
-            return False
-
-    for a_angle, b_angle in zip(a.angles, b.angles):
-        if abs(a_angle - b_angle) > angle_tol:
-            return False
-
-    return True
 
 
 class SitesData:
@@ -67,7 +36,7 @@ class SitesData:
     def warn_if_lattice_not_similar(self, other_lattice: Lattice):
         this_lattice = self.structure.lattice
 
-        if not lattice_is_similar(other_lattice, this_lattice):
+        if not is_lattice_similar(other_lattice, this_lattice):
             warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
                           f'vs. {other_lattice.parameters}')
 
