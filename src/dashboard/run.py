@@ -1,7 +1,8 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_data_location
 from gemdat import SimulationData, SitesData, __version__, plot_all
-from gemdat.io import load_known_material
+from gemdat.io import get_list_of_known_materials, load_known_material
+from gemdat.utils import is_lattice_similar
 
 st.set_page_config(
     page_title='Gemdat dashboard',
@@ -19,22 +20,21 @@ st.set_page_config(
          )
     })
 
-# Remove step up down (+/-) from number inputs as we dont use them
-st.markdown("""
-<style>
-    button.step-up {display: none;}
-    button.step-down {display: none;}
-    div[data-baseweb] {border-radius: 4px;}
-</style>""",
-            unsafe_allow_html=True)
-
 add_sidebar_logo()
 
+KNOWN_MATERIALS = get_list_of_known_materials()
+
 with st.sidebar:
-    data_location = get_data_location(filename='vasprun.xml')
+    data_location = get_data_location()
+
+
+@st.cache_data
+def _load_data(data_location):
+    return SimulationData.from_vasprun(data_location)
+
 
 with st.spinner('Loading your data, this might take a while'):
-    data = SimulationData.from_vasprun(data_location)
+    data = _load_data(data_location)
 
 with st.sidebar:
     # Get list of present elements as tuple of strings
@@ -55,31 +55,31 @@ with st.sidebar:
         max_value=len(data.trajectory_coords) - 1,
         value=1250)
 
-    structure = st.selectbox('Structure', ('argyrodite', ))
+    sites_filename = st.selectbox('Load sites from known material',
+                                  KNOWN_MATERIALS)
 
-    st.text('Supercell (x,y,z)\ndisabled, needs fix in pymatgen')
+    st.markdown('Supercell (x,y,z)')
     col1, col2, col3 = st.columns(3)
     supercell = (col1.number_input('supercell x',
                                    min_value=1,
                                    value=1,
-                                   disabled=True,
                                    label_visibility='collapsed',
                                    help=None),
                  col2.number_input('supercell y',
                                    min_value=1,
                                    value=1,
-                                   disabled=True,
                                    label_visibility='collapsed'),
                  col3.number_input('supercell z',
                                    min_value=1,
                                    value=1,
-                                   disabled=True,
                                    label_visibility='collapsed'))
 
 number_of_cols = 3  # Number of figure columns
 
-extra = data.calculate_all(equilibration_steps=equilibration_steps,
-                           diffusing_element=diffusing_element)
+with st.spinner('Processing simulation data...'):
+    extra = data.calculate_all(equilibration_steps=equilibration_steps,
+                               diffusing_element=diffusing_element)
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -102,11 +102,19 @@ with col3:
 
 st.title('GEMDAT pregenerated figures')
 
-# sd = SitesData(load_known_material(structure, supercell=supercell)) # needs fixing in pymatgen
-sd = SitesData(load_known_material(structure))
-sd.calculate_all(data=data, extras=extra)
+sites_structure = load_known_material(sites_filename, supercell=supercell)
 
-figures = plot_all(data=data, sites=sd, **vars(extra), show=False)
+if not is_lattice_similar(data.structure, sites_structure):
+    st.error('Lattices are not similar!')
+    st.text(f'{sites_filename}: {sites_structure.lattice.parameters}')
+    st.text(f'{data_location.name}: {data.structure.lattice.parameters}')
+    st.stop()
+
+with st.spinner('Calculating jumps...'):
+    sites = SitesData(sites_structure)
+    sites.calculate_all(data=data, extras=extra)
+
+figures = plot_all(data=data, sites=sites, **vars(extra), show=False)
 
 # automagically divide the plots over the number of columns
 for num, col in enumerate(st.columns(number_of_cols)):

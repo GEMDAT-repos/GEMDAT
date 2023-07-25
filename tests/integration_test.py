@@ -137,11 +137,11 @@ def test_sites(gemdat_results, structure):
     assert sites.occupancy_parts[9][0] == 7
     assert sites.occupancy_parts[9][42] == 33
 
-    assert isclose(sites.sites_occupancy['Li48h'], 0.160072, rel_tol=1e-4)
+    assert isclose(sites.sites_occupancy['48h'], 0.160072, rel_tol=1e-4)
 
     assert len(sites.occupancy_parts) == extras.n_parts
-    assert sites.sites_occupancy_parts[0] == {'Li48h': 0.1525}
-    assert isclose(sites.sites_occupancy_parts[9]['Li48h'],
+    assert sites.sites_occupancy_parts[0] == {'48h': 0.1525}
+    assert isclose(sites.sites_occupancy_parts[9]['48h'],
                    0.137666,
                    rel_tol=1e-4)
 
@@ -155,14 +155,14 @@ def test_sites(gemdat_results, structure):
     assert isinstance(sites.rates, dict)
     assert len(sites.rates) == 1
 
-    rates, rates_std = sites.rates[('Li48h', 'Li48h')]
+    rates, rates_std = sites.rates[('48h', '48h')]
     assert isclose(rates, 111111111111.1111)
     assert isclose(rates_std, 58560697410.525536)
 
     assert isinstance(sites.activation_energies, dict)
     assert len(sites.activation_energies) == 1
 
-    e_act, e_act_std = sites.activation_energies[('Li48h', 'Li48h')]
+    e_act, e_act_std = sites.activation_energies[('48h', '48h')]
     assert isclose(e_act, 0.18702541420508717, rel_tol=1e-6)
     assert isclose(e_act_std, 0.04058155516885685, rel_tol=1e-6)
 
@@ -207,7 +207,7 @@ def test_rdf(gemdat_results_subset, structure):
         max_dist=5,
     )
 
-    expected_states = {'~>Li48h', '@Li48h', 'Li48h->Li48h'}
+    expected_states = {'~>48h', '@48h', '48h->48h'}
     expected_symbols = set(data.structure.symbol_set)
 
     assert isinstance(rdfs, dict)

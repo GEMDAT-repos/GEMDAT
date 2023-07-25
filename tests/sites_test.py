@@ -12,7 +12,7 @@ def test_transitions_matrix():
     ])
 
     n = 3
-    transitions = _calculate_transitions_matrix(a, n_diffusing=n)
+    transitions = _calculate_transitions_matrix(a, n_sites=n)
 
     assert transitions.shape == (n, n)
     assert transitions.dtype == int

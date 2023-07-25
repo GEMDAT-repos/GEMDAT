@@ -116,4 +116,4 @@ loop_
  _atom_site_fract_y
  _atom_site_fract_z
  _atom_site_occupancy
-  Li  Li48h  48  0.183  0.183  0.024  1
+  Li  48h  48  0.183  0.183  0.024  1
