@@ -33,6 +33,7 @@ jobs:
 
       - name: Extract Test Data to Repository
         run: |
+          mkdir -p tests/data/short_simulation
           mv test_data/tests/data/short_simulation/vasprun.xml.bz2 tests/data/short_simulation/
           tar -C tests/data/short_simulation -xjf tests/data/short_simulation/vasprun.xml.bz2
 
