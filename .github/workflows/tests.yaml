@@ -49,7 +49,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          VASP_XML=./tests/data/short_simulation/vasprun.xml coverage run -p -m pytest
+          coverage run -p -m pytest
 
       - name: Combine
         run: |

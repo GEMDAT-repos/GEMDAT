@@ -6,6 +6,8 @@ VASP_XML=/home/stef/md-analysis-matlab-example/vasprun.xml pytest
 
 import os
 from math import isclose
+from pathlib import Path
+from typing import Union
 
 import numpy as np
 import pytest
@@ -14,12 +16,17 @@ from gemdat.io import load_known_material
 from gemdat.rdf import calculate_rdfs
 from gemdat.volume import trajectory_to_volume
 
-VASP_XML = os.environ.get('VASP_XML')
+VASP_XML: Union[Path, str, None] = os.environ.get('VASP_XML')
+if not VASP_XML:
+    if not (VASP_XML :=
+            Path('tests.data.short_simulation.vasprun.xml')).exists():
+        VASP_XML = None
 
 vaspxml_available = pytest.mark.skipif(
     VASP_XML is None,
-    reason='Simulation data from vasprun.xml example is required for this test.'
-)
+    reason='Simulation data from vasprun.xml example is required for this test. \
+    This data can be obtained by running git submodule init/update, and extracting the vasprun.xml \
+    in tests/data/short_simulation/')
 
 
 @pytest.fixture
