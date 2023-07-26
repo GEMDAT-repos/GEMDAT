@@ -79,8 +79,10 @@ class SitesData:
         self.sites_occupancy_parts = self.calculate_site_occupancy_parts(
             n_steps=extras.n_steps / extras.n_parts)
 
-        self.atom_locations = self.sites_occupancy  # Is this correct? TODO: check
-        self.atom_locations_parts = self.sites_occupancy_parts  # Is this correct? TODO: check
+        self.atom_locations = self.calculate_atom_locations(
+            n_diffusing=extras.n_diffusing)
+        self.atom_locations_parts = self.calculate_atom_locations_parts(
+            n_diffusing=extras.n_diffusing)
 
         self.jumps = self.calculate_jumps()
         self.jumps_parts = self.calculate_jumps_parts(n_steps=extras.n_steps,
@@ -314,6 +316,42 @@ class SitesData:
                                       n_steps=n_steps)
             for occupancy in self.occupancy_parts
         ]
+
+    def calculate_atom_locations(self, n_diffusing: int) -> dict[str, float]:
+        """Calculate fraction of time atoms spent at a type of site.
+
+        Parameters
+        ----------
+        n_diffusing : int
+            Number of diffusing atoms
+
+        Returns
+        -------
+        dict[str, float]
+            Return dict with the fraction of time atoms spent at a site
+        """
+        multiplier = self.n_sites / n_diffusing
+        return {k: v * multiplier for k, v in self.sites_occupancy.items()}
+
+    def calculate_atom_locations_parts(
+            self, n_diffusing: int) -> list[dict[str, float]]:
+        """Calculate fraction of time atoms spent at a type of site per part.
+
+        Parameters
+        ----------
+        n_diffusing : int
+            Number of diffusing atoms
+
+        Returns
+        -------
+        list[dict[str, float]]
+            Return list of dicts, where each dict contains the fraction of time atoms spent at a site
+        """
+        multiplier = self.n_sites / n_diffusing
+        return [{
+            k: v * multiplier
+            for k, v in sites_occupancy.items()
+        } for sites_occupancy in self.sites_occupancy_parts]
 
     def calculate_transition_events(self):
         """Find transitions between sites.
