@@ -25,11 +25,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          lfs: true
-
-      - name: Checkout lfs objects
-        run: git lfs checkout
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
