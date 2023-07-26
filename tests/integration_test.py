@@ -4,10 +4,8 @@ Run integration test with:
 VASP_XML=/home/stef/md-analysis-matlab-example/vasprun.xml pytest
 """
 
-import os
 from math import isclose
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 import pytest
@@ -16,17 +14,15 @@ from gemdat.io import load_known_material
 from gemdat.rdf import calculate_rdfs
 from gemdat.volume import trajectory_to_volume
 
-VASP_XML: Union[Path, str, None] = os.environ.get('VASP_XML')
-if not VASP_XML:
-    if not (VASP_XML :=
-            Path('tests.data.short_simulation.vasprun.xml')).exists():
-        VASP_XML = None
+DATA_DIR = Path(__file__).parent / 'data'
+VASP_XML = DATA_DIR / 'short_simulation' / 'vasprun.xml'
 
 vaspxml_available = pytest.mark.skipif(
-    VASP_XML is None,
-    reason='Simulation data from vasprun.xml example is required for this test. \
-    This data can be obtained by running git submodule init/update, and extracting the vasprun.xml \
-    in tests/data/short_simulation/')
+    not VASP_XML.exists(),
+    reason=
+    ('Simulation data from vasprun.xml example is required for this test. '
+     'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
+     '-xjf tests/data/short_simulation/vasprun.xml.bz2`'))
 
 
 @pytest.fixture
@@ -70,7 +66,7 @@ def gemdat_results_subset():
 
 @pytest.fixture
 def structure():
-    return load_known_material('argyrodite')
+    return load_known_material('argyrodite', supercell=(2, 1, 1))
 
 
 @vaspxml_available
@@ -150,7 +146,7 @@ def test_sites(gemdat_results, structure):
 
     assert isclose(sites.sites_occupancy['48h'], 0.380628, rel_tol=1e-4)
 
-    assert len(sites.occupancy_parts) == extras.n_parts
+    assert len(sites.sites_occupancy_parts) == extras.n_parts
     assert isclose(sites.sites_occupancy_parts[0]['48h'],
                    0.377555,
                    rel_tol=1e-4)
@@ -158,10 +154,15 @@ def test_sites(gemdat_results, structure):
                    0.36922,
                    rel_tol=1e-4)
 
-    # These appear to be the same in the matlab code
-    # https://github.com/GEMDAT-repos/GEMDAT/issues/35
-    assert sites.atom_locations == sites.sites_occupancy
-    assert sites.atom_locations_parts == sites.sites_occupancy_parts
+    assert isclose(sites.atom_locations['48h'], 0.761255, rel_tol=1e-4)
+
+    assert len(sites.atom_locations_parts) == extras.n_parts
+    assert isclose(sites.atom_locations_parts[0]['48h'],
+                   0.755111,
+                   rel_tol=1e-4)
+    assert isclose(sites.atom_locations_parts[9]['48h'],
+                   0.738444,
+                   rel_tol=1e-4)
 
     assert sites.n_jumps == 450
 
@@ -176,9 +177,8 @@ def test_sites(gemdat_results, structure):
     assert len(sites.activation_energies) == 1
 
     e_act, e_act_std = sites.activation_energies[('48h', '48h')]
-    # These are off, check e_act calculation
-    # assert isclose(e_act, 0.12919, rel_tol=1e-6)
-    # assert isclose(e_act_std, 0.0050765, rel_tol=1e-6)
+    assert isclose(e_act, 0.130754, rel_tol=1e-6)
+    assert isclose(e_act_std, 0.0063201, rel_tol=1e-6)
 
     assert isclose(sites.jump_diffusivity, 9.220713700212185e-09, rel_tol=1e-6)
     assert isclose(sites.correlation_factor, 0.1703355120150192, rel_tol=1e-6)
