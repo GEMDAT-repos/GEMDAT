@@ -25,16 +25,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - uses: actions/checkout@v3
         with:
-          ref: test_data
-          path: test_data
+          submodules: 'true'
 
-      - name: Extract Test Data to Repository
+      - name: Extract Test Data
         run: |
-          mkdir -p tests/data/short_simulation
-          mv test_data/tests/data/short_simulation/vasprun.xml.bz2 tests/data/short_simulation/
           tar -C tests/data/short_simulation -xjf tests/data/short_simulation/vasprun.xml.bz2
 
       - name: Set up Python ${{ matrix.python-version }}
