@@ -132,6 +132,13 @@ with tab2:
         'Enable RDF plots (This might increase the page load time significantly)'
     )
     if do_rdf:
+        with st.sidebar:
+            st.markdown('RDF specific parameters')
+            max_dist_rdf = st.number_input(
+                'Maximum Distance for RDF calculation', value=10.0)
+            resolution_rdf = st.number_input(
+                'Resolution for RDF calculation (width of bins)', value=0.1)
+
         with st.spinner('Calculating RDFs...'):
             rdfs = calculate_rdfs(
                 data=data,
@@ -139,8 +146,8 @@ with tab2:
                 diff_coords=extra.diff_coords,
                 n_steps=extra.n_steps,
                 equilibration_steps=extra.equilibration_steps,
-                max_dist=10,
-                resolution=0.1,
+                max_dist=max_dist_rdf,
+                resolution=resolution_rdf,
             )
         figures = [plot_rdf(rdf, name=state) for state, rdf in rdfs.items()]
 
