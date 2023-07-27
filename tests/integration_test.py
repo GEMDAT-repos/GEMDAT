@@ -59,6 +59,7 @@ def gemdat_results_subset():
         diffusing_element=diffusing_element,
         z_ion=z_ion,
         diffusion_dimensions=diffusion_dimensions,
+        n_parts=1,
     )
 
     return (data, extras)
