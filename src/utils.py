@@ -1,4 +1,5 @@
 import numpy as np
+from pymatgen.core import Lattice, Structure
 
 
 def ffill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
@@ -41,3 +42,39 @@ def bfill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
         raise ValueError
 
     return np.fliplr(ffill(np.fliplr(arr), fill_val=fill_val))
+
+
+def is_lattice_similar(a: Lattice | Structure,
+                       b: Lattice | Structure,
+                       length_tol: float = 0.5,
+                       angle_tol: float = 1.0) -> bool:
+    """Return True if lattices are similar within given tolerance.
+
+    Parameters
+    ----------
+    a, b : Lattice | Structure
+        Input lattices or structures
+    length_tol : float, optional
+        Length tolerance in Angstrom
+    angle_tol : float, optional
+        Angle tolerance in degrees
+
+    Returns
+    -------
+    bool
+        Return True if lattices are similar
+    """
+    if isinstance(a, Structure):
+        a = a.lattice
+    if isinstance(b, Structure):
+        b = b.lattice
+
+    for a_length, b_length in zip(a.lengths, b.lengths):
+        if abs(a_length - b_length) > length_tol:
+            return False
+
+    for a_angle, b_angle in zip(a.angles, b.angles):
+        if abs(a_angle - b_angle) > angle_tol:
+            return False
+
+    return True

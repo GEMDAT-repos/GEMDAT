@@ -25,6 +25,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: 'true'
+
+      - name: Extract Test Data
+        run: |
+          tar -C tests/data/short_simulation -xjf tests/data/short_simulation/vasprun.xml.bz2
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -32,8 +38,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - uses: actions/cache@v3
+        id: cache-virtualenv
         with:
-          path: $${{ env.pythonLocation }}
+          path: ${{ env.pythonLocation }}
           key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Install dependencies

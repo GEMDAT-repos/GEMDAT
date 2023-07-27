@@ -33,9 +33,6 @@ class Tracer:
         particle_density = FloatWithUnit(particle_density, 'm^-3')
         mol_per_liter = FloatWithUnit(mol_per_liter, 'mol l^-1')
 
-        print(f'{particle_density=:g} {particle_density.unit}')
-        print(f'{mol_per_liter=:g} {mol_per_liter.unit}')
-
         # Matlab code contains a bug here so I'm not entirely sure what is the definition
         # Matlab code takes the first column, which is equal to 0
         # Do they mean the total displacement (i.e. last column)?
@@ -53,9 +50,6 @@ class Tracer:
 
         tracer_diff = FloatWithUnit(tracer_diff, 'm^2 s^-1')
         tracer_conduc = FloatWithUnit(tracer_conduc, 'S m^-1')
-
-        print(f'{tracer_diff=:g} {tracer_diff.unit}')
-        print(f'{tracer_conduc=:g} {tracer_conduc.unit}')
 
         return {
             'particle_density': particle_density,

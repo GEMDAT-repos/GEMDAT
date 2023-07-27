@@ -32,7 +32,8 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  'pymatgen >= 2023.7.14',
+  # 'pymatgen >= 2023.7.14',
+  'pymatgen @ git+https://github.com/stefsmeets/pymatgen@label-update',
   'numpy',
   'rich',
   'scipy',
