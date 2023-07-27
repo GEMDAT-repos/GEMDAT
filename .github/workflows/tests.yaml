@@ -38,8 +38,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - uses: actions/cache@v3
+        id: cache-virtualenv
         with:
-          path: $${{ env.pythonLocation }}
+          path: ${{ env.pythonLocation }}
           key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Install dependencies
