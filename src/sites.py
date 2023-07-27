@@ -45,7 +45,8 @@ class SitesData:
             warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
                           f'vs. {other_lattice.parameters}')
 
-    def calculate_all(self, data: SimulationData, extras: SimpleNamespace):
+    def calculate_all(self, data: SimulationData, extras: SimpleNamespace,
+                      **kwargs):
         """Calculate all parameters.
 
         Parameters
@@ -110,7 +111,8 @@ class SitesData:
         self.collective, self.coll_jumps, self.n_solo_jumps = self.calculate_collective(
             lattice=data.lattice,
             attempt_freq=extras.attempt_freq,
-            time_step=data.time_step)
+            time_step=data.time_step,
+            **kwargs)
         self.solo_frac = self.n_solo_jumps / len(self.all_transitions)
         self.coll_count = len(self.collective)
 
