@@ -99,7 +99,7 @@ class SitesData:
 
         # calculate some statistics
         if extras.n_parts > 1:
-            self.split(n_parts=extras.n_parts, extras=extras)
+            self.parts = self.split(n_parts=extras.n_parts, extras=extras)
 
             self.rates = self.calculate_rates(total_time=extras.total_time,
                                               n_diffusing=extras.n_diffusing)
@@ -279,7 +279,7 @@ class SitesData:
 
             part.jumps = part.calculate_jumps()
 
-        self.parts = parts
+        return parts
 
     @property
     def transitions_parts(self):
