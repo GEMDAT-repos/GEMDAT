@@ -19,24 +19,7 @@
     "root": {
       "inputs": {
         "nixpkgs": "nixpkgs",
-        "ruff_270": "ruff_270",
         "ruff_274": "ruff_274"
-      }
-    },
-    "ruff_270": {
-      "locked": {
-        "lastModified": 1684957848,
-        "narHash": "sha256-uf8CEL81TRnc14m9ekPPGHsJBtHEZh/Qh7JhNHcTXJA=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "7913a0c185438e52c04b2ffff539f9fdb6b89e05",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "7913a0c185438e52c04b2ffff539f9fdb6b89e05",
-        "type": "github"
       }
     },
     "ruff_274": {

@@ -1,6 +1,5 @@
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
-  inputs.ruff_270.url = "github:nixos/nixpkgs/7913a0c185438e52c04b2ffff539f9fdb6b89e05";
   inputs.ruff_274.url = "github:nixos/nixpkgs/1bc7f069be719c24fef65e01383ca48bf3088027";
 
   outputs = { self, nixpkgs, ruff_274, ... }:
