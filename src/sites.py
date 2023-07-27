@@ -253,7 +253,21 @@ class SitesData:
         """
         return _calculate_occupancy(self.atom_sites)
 
-    def split(self, n_parts: int, extras: SimpleNamespace):
+    def split(self, n_parts: int, extras: SimpleNamespace) -> list[SitesData]:
+        """Split data into equal parts in time for internal statistics.
+
+        Parameters
+        ----------
+        n_parts : int
+            Number of parts to split the data into
+        extras : SimpleNamespace
+            Extra parameters
+
+        Returns
+        -------
+        parts : list[SitesData]
+            List with `SitesData` object for each part
+        """
         split_atom_sites = np.split(self.atom_sites, n_parts)
         split_transitions = _split_transitions_in_parts(
             self.all_transitions, extras.n_steps, n_parts)
