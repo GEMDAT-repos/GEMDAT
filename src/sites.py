@@ -116,7 +116,7 @@ class SitesData:
 
         These correspond to the axes in `.coll_matrix`.
         """
-        return ['->'.join(key) for key in self.rates]
+        return ['->'.join(key) for key in self.jumps]
 
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
