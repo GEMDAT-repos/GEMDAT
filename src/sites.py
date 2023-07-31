@@ -67,38 +67,17 @@ class SitesData:
         self.all_transitions = self.calculate_transition_events()
 
         self.transitions = self.calculate_transitions_matrix()
-        self.transitions_parts = self.calculate_transitions_matrix_parts(
-            n_steps=extras.n_steps, n_parts=extras.n_parts)
 
         self.occupancy = self.calculate_occupancy()
-        self.occupancy_parts = self.calculate_occupancy_parts(
-            n_parts=extras.n_parts)
 
         self.sites_occupancy = self.calculate_site_occupancy(
             n_steps=extras.n_steps)
-        self.sites_occupancy_parts = self.calculate_site_occupancy_parts(
-            n_steps=extras.n_steps / extras.n_parts)
 
         self.atom_locations = self.calculate_atom_locations(
             n_diffusing=extras.n_diffusing)
-        self.atom_locations_parts = self.calculate_atom_locations_parts(
-            n_diffusing=extras.n_diffusing)
 
         self.jumps = self.calculate_jumps()
-        self.jumps_parts = self.calculate_jumps_parts(n_steps=extras.n_steps,
-                                                      n_parts=extras.n_parts)
-
         self.n_jumps = len(self.all_transitions)
-
-        self.rates = self.calculate_rates(total_time=extras.total_time,
-                                          n_parts=extras.n_parts,
-                                          n_diffusing=extras.n_diffusing)
-        self.activation_energies = self.calculate_activation_energies(
-            total_time=extras.total_time,
-            n_parts=extras.n_parts,
-            n_diffusing=extras.n_diffusing,
-            attempt_freq=extras.attempt_freq,
-            temperature=data.temperature)
 
         self.jump_diffusivity = self.calculate_jump_diffusivity(
             lattice=data.lattice,
@@ -111,11 +90,25 @@ class SitesData:
             lattice=data.lattice,
             attempt_freq=extras.attempt_freq,
             time_step=data.time_step)
+
         self.solo_frac = self.n_solo_jumps / len(self.all_transitions)
         self.coll_count = len(self.collective)
 
         self.coll_matrix = self.calculate_collective_matrix()
         self.multi_coll = self.calculate_multiple_collective()
+
+        # calculate some statistics
+        if extras.n_parts > 1:
+            self.parts = self.split(n_parts=extras.n_parts, extras=extras)
+
+            self.rates = self.calculate_rates(total_time=extras.total_time,
+                                              n_diffusing=extras.n_diffusing)
+
+            self.activation_energies = self.calculate_activation_energies(
+                total_time=extras.total_time,
+                n_diffusing=extras.n_diffusing,
+                attempt_freq=extras.attempt_freq,
+                temperature=data.temperature)
 
     @property
     def jump_names(self) -> list[str]:
@@ -123,7 +116,7 @@ class SitesData:
 
         These correspond to the axes in `.coll_matrix`.
         """
-        return ['->'.join(key) for key in self.rates]
+        return ['->'.join(key) for key in self.jumps]
 
     def calculate_dist_close(self, data: SimulationData,
                              vibration_amplitude: float):
@@ -260,22 +253,67 @@ class SitesData:
         """
         return _calculate_occupancy(self.atom_sites)
 
-    def calculate_occupancy_parts(self, n_parts: int) -> list[dict[int, int]]:
-        """Calculate occupancy per site, divided in parts.
+    def split(self, n_parts: int, extras: SimpleNamespace) -> list[SitesData]:
+        """Split data into equal parts in time for internal statistics.
 
         Parameters
         ----------
-        n_parts : int, optional
-            Number of parts to split into
+        n_parts : int
+            Number of parts to split the data into
+        extras : SimpleNamespace
+            Extra parameters
 
         Returns
         -------
-        occupancy_parts: list[dict[int, int]]
-            Returns a list of dicts, where each dict corresponds to a part of the data.
-            Eech dict counts the number of time steps a site is occupied by an atom
+        parts : list[SitesData]
+            List with `SitesData` object for each part
         """
         split_atom_sites = np.split(self.atom_sites, n_parts)
-        return [_calculate_occupancy(part) for part in split_atom_sites]
+        split_transitions = _split_transitions_in_parts(
+            self.all_transitions, extras.n_steps, n_parts)
+
+        parts = [SitesData(self.structure) for _ in range(n_parts)]
+
+        for i, part in enumerate(parts):
+            part.dist_close = self.dist_close
+            part.atom_sites = split_atom_sites[i]
+            part.calculate_atom_sites_transitions()
+
+            part.all_transitions = split_transitions[i]
+
+            part.transitions = part.calculate_transitions_matrix()
+
+            part.occupancy = part.calculate_occupancy()
+
+            part.sites_occupancy = part.calculate_site_occupancy(
+                n_steps=extras.n_steps / n_parts)
+
+            part.atom_locations = part.calculate_atom_locations(
+                n_diffusing=extras.n_diffusing)
+
+            part.jumps = part.calculate_jumps()
+
+        return parts
+
+    @property
+    def transitions_parts(self):
+        return np.stack([part.transitions for part in self.parts])
+
+    @property
+    def occupancy_parts(self):
+        return [part.occupancy for part in self.parts]
+
+    @property
+    def sites_occupancy_parts(self):
+        return [part.sites_occupancy for part in self.parts]
+
+    @property
+    def atom_locations_parts(self):
+        return [part.atom_locations for part in self.parts]
+
+    @property
+    def jumps_parts(self):
+        return [part.jumps for part in self.parts]
 
     def calculate_site_occupancy(self, *, n_steps: int) -> dict[str, float]:
         """Calculate percentage occupancy per unique site.
@@ -295,28 +333,6 @@ class SitesData:
                                          labels=labels,
                                          n_steps=n_steps)
 
-    def calculate_site_occupancy_parts(self, *,
-                                       n_steps: int) -> list[dict[str, float]]:
-        """Calculate percentage occupancy per unique site per part.
-
-        Parameters
-        ----------
-        n_steps : int
-            Number of steps in time series
-
-        Returns
-        -------
-        site_occopancy : list[dict[str, float]]
-            Return a list of dicts, where each dict contains the percentage occupancy per unique site
-        """
-        labels = self.structure.labels
-        return [
-            _calculate_site_occupancy(occupancy=occupancy,
-                                      labels=labels,
-                                      n_steps=n_steps)
-            for occupancy in self.occupancy_parts
-        ]
-
     def calculate_atom_locations(self, n_diffusing: int) -> dict[str, float]:
         """Calculate fraction of time atoms spent at a type of site.
 
@@ -332,26 +348,6 @@ class SitesData:
         """
         multiplier = self.n_sites / n_diffusing
         return {k: v * multiplier for k, v in self.sites_occupancy.items()}
-
-    def calculate_atom_locations_parts(
-            self, n_diffusing: int) -> list[dict[str, float]]:
-        """Calculate fraction of time atoms spent at a type of site per part.
-
-        Parameters
-        ----------
-        n_diffusing : int
-            Number of diffusing atoms
-
-        Returns
-        -------
-        list[dict[str, float]]
-            Return list of dicts, where each dict contains the fraction of time atoms spent at a site
-        """
-        multiplier = self.n_sites / n_diffusing
-        return [{
-            k: v * multiplier
-            for k, v in sites_occupancy.items()
-        } for sites_occupancy in self.sites_occupancy_parts]
 
     def calculate_transition_events(self):
         """Find transitions between sites.
@@ -375,33 +371,6 @@ class SitesData:
         return _calculate_transitions_matrix(self.all_transitions,
                                              n_sites=self.n_sites)
 
-    def calculate_transitions_matrix_parts(self, *, n_steps: int,
-                                           n_parts: int) -> np.ndarray:
-        """Divide list of transition events in equal parts and convert to dense
-        transition matrices.
-
-        Note: equivalent to `sites.succes` in the matlab code.
-
-        Parameters
-        ----------
-        n_steps : int
-            Number of steps
-        n_parts : int
-            Number of parts to divide the transitions events list into
-
-        Returns
-        -------
-        transitions_matrix_parts : np.ndarray
-            Stacked square matrices with number of each transitions.
-            The number of stacked matrices is equal to the number of parts specified.
-        """
-        split_transitions = _split_transitions_in_parts(
-            self.all_transitions, n_steps, n_parts)
-        return np.stack([
-            _calculate_transitions_matrix(part, n_sites=self.n_sites)
-            for part in split_transitions
-        ])
-
     def calculate_jumps(self) -> dict[tuple[str, str], int]:
         """Calculate number of jumpst between sites.
 
@@ -417,38 +386,8 @@ class SitesData:
 
         return jumps
 
-    def calculate_jumps_parts(
-            self, *, n_steps: int,
-            n_parts: int) -> dict[tuple[str, str], list[int]]:
-        """Calculate number of jumpst between sites divided in parts.
-
-        Parameters
-        ----------
-        n_steps : int
-            Number of steps
-        n_parts : int
-            Number of parts to divide the transitions events list into
-
-        Returns
-        -------
-        jumps : dict[tuple[str, str], list[int]]
-            Dictionary with number of jumpst per sites combination
-        """
-        labels = self.structure.labels
-        all_transitions_parts = _split_transitions_in_parts(
-            self.all_transitions, n_steps, n_parts)
-
-        jumps_parts = defaultdict(list)
-
-        for part in all_transitions_parts:
-            c = Counter([(labels[i], labels[j]) for i, j in part[:, 1:3]])
-            for k, v in c.items():
-                jumps_parts[k].append(v)
-
-        return jumps_parts
-
     def calculate_rates(
-            self, *, total_time: int, n_parts: int,
+            self, *, total_time: int,
             n_diffusing: int) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate jump rates (total jumps / second).
 
@@ -456,8 +395,6 @@ class SitesData:
         ----------
         total_time : int
             Total time for the simulation
-        n_parts : int, optional
-            Number of parts to split into
         n_diffusing : int
             Number of diffusing atoms
 
@@ -468,7 +405,11 @@ class SitesData:
         """
         rates: dict[tuple[str, str], tuple[float, float]] = {}
 
-        for site_pair, n_jumps in self.jumps_parts.items():
+        n_parts = len(self.parts)
+
+        for site_pair in self.jumps:
+            n_jumps = [part[site_pair] for part in self.jumps_parts]
+
             part_time = total_time / n_parts
             denom = n_diffusing * part_time
 
@@ -480,8 +421,7 @@ class SitesData:
         return rates
 
     def calculate_activation_energies(
-            self, *, total_time: int, n_parts: int, n_diffusing: int,
-            attempt_freq: float,
+            self, *, total_time: int, n_diffusing: int, attempt_freq: float,
             temperature: float) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate activation energies for jumps (UNITS?).
 
@@ -489,8 +429,6 @@ class SitesData:
         ----------
         total_time : int
             Total time for the simulation
-        n_parts : int
-            Number of parts to split into
         n_diffusing : int
             Number of diffusing atoms
         attempt_freq : float
@@ -505,9 +443,12 @@ class SitesData:
         """
         e_act = {}
 
-        for i, ((site_start, site_stop),
-                n_jumps) in enumerate(self.jumps_parts.items()):
-            n_jumps_arr = np.array(n_jumps)
+        n_parts = len(self.parts)
+
+        for i, site_pair in enumerate(self.jumps):
+            site_start, site_stop = site_pair
+
+            n_jumps = np.array([part[site_pair] for part in self.jumps_parts])
 
             part_time = total_time / n_parts
 
@@ -515,7 +456,7 @@ class SitesData:
 
             denom = atom_percentage * n_diffusing * part_time
 
-            eff_rate = n_jumps_arr / denom
+            eff_rate = n_jumps / denom
 
             # For A-A jumps divide by two for a fair comparison of A-A jumps vs. A-B and B-A
             if site_start == site_stop:
@@ -643,9 +584,9 @@ class SitesData:
         """
         labels = self.structure.labels
 
-        rates = list(self.rates)
+        jump_names = list(self.jumps)
 
-        coll_matrix = np.zeros((len(rates), len(rates)), dtype=int)
+        coll_matrix = np.zeros((len(jump_names), len(jump_names)), dtype=int)
 
         for ((start_i, stop_i), (start_j, stop_j)) in self.coll_jumps:
             name_start_i = labels[start_i]
@@ -653,8 +594,8 @@ class SitesData:
             name_start_j = labels[start_j]
             name_stop_j = labels[stop_j]
 
-            i = rates.index((name_start_i, name_stop_i))
-            j = rates.index((name_start_j, name_stop_j))
+            i = jump_names.index((name_start_i, name_stop_i))
+            j = jump_names.index((name_start_j, name_stop_j))
 
             coll_matrix[i, j] += 1
 
@@ -775,7 +716,13 @@ def _split_transitions_in_parts(all_transitions: np.ndarray,
 
     sorted_transitions = all_transitions[all_transitions[:, col].argsort()]
 
-    return np.split(sorted_transitions, splits)
+    parts = np.split(sorted_transitions, splits)
+
+    if len(parts) < n_parts:
+        raise ValueError(
+            f'Not enough transitions per part to split into {n_parts}')
+
+    return parts
 
 
 def _calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
