@@ -19,6 +19,7 @@ def analyse_md(
     dist_collective: float = 4.5,
     density_resolution: float = 0.2,
     jump_res: float = 0.1,
+    rdfs: bool = False,
     rdf_res: float = 0.1,
     rdf_max_dist: int = 10,
     start_end: tuple[int, int] = (5000, 7500),
@@ -44,12 +45,14 @@ def analyse_md(
         Ionic charge of diffusing ion
     nr_parts : int, optional
         In how many parts to divide your simulation for statistics
-        dist_collective : float, optional
-                Maximum distance for collective motions in Angstrom
+    dist_collective : float, optional
+        Maximum distance for collective motions in Angstrom
     density_resolution : float, optional
         Resolution for the diffusing atom density plot in Angstrom
-    jump_res: float
+    jump_res: float, optional
         Resolution for the number of jumps vs distance plot in Angstrom
+    rdfs : bool, optional
+        Calculate and show radial distribution functions
     rdf_res : float, optional
         Resolution of the rdf bins in Angstrom
     rdf_max_dist : int, optional
@@ -87,16 +90,6 @@ def analyse_md(
              show=False,
              jump_res=jump_res)
 
-    rdfs = calculate_rdfs(
-        data=data,
-        sites=sites,
-        diff_coords=extras.diff_coords,
-        n_steps=extras.n_steps,
-        equilibration_steps=extras.equilibration_steps,
-        max_dist=rdf_max_dist,
-        resolution=rdf_res,
-    )
-
     plot_jumps_3d_animation(
         data=data,
         sites=sites,
@@ -107,14 +100,24 @@ def analyse_md(
         interval=20,
     )
 
-    for name, rdf in rdfs.items():
-        plot_rdf(rdf, name=name)
-
     filename = 'volume.vasp'
     print(f'Writing trajectory as a volume to `{filename}')
     trajectory_to_vasp_volume(coords=data.trajectory_coords,
                               structure=data.structure,
                               resolution=density_resolution,
                               filename=filename)
+
+    if rdfs:
+        rdf_data = calculate_rdfs(
+            data=data,
+            sites=sites,
+            diff_coords=extras.diff_coords,
+            n_steps=extras.n_steps,
+            equilibration_steps=extras.equilibration_steps,
+            max_dist=rdf_max_dist,
+            resolution=rdf_res,
+        )
+        for name, rdf in rdf_data.items():
+            plot_rdf(rdf, name=name)
 
     return data, sites, extras
