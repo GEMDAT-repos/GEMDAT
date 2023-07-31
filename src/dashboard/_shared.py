@@ -16,12 +16,17 @@ def get_data_location(filename='vasprun.xml'):
 
     data_location = st.session_state.get('data_location', default=filename)
 
-    data_location = st.text_input(f'Select input `{filename}`', data_location)
-
-    if st.button('Browse...'):
-        data_location = filedialog.askopenfilename()
-        st.session_state.data_location = data_location
-        st.experimental_rerun()
+    st.markdown(f'Select input `{filename}`')
+    col1, col2 = st.columns([0.7, 0.3])
+    with col1:
+        data_location = st.text_input('filename',
+                                      data_location,
+                                      label_visibility='collapsed')
+    with col2:
+        if st.button('Browse'):
+            data_location = filedialog.askopenfilename()
+            st.session_state.data_location = data_location
+            st.experimental_rerun()
 
     if not data_location:
         st.info(f'Select `{filename}` to continue')

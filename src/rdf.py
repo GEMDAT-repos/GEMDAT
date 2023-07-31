@@ -161,3 +161,4 @@ def plot_rdf(rdfs: dict[str, np.ndarray], name: str | None = None):
     ax.set(title=f'Radial distribution function{suffix}',
            xlabel='Distance (Ang)',
            ylabel='Counts')
+    return fig

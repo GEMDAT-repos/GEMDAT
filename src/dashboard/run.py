@@ -2,6 +2,7 @@ import streamlit as st
 from _shared import add_sidebar_logo, get_data_location
 from gemdat import SimulationData, SitesData, __version__, plot_all
 from gemdat.io import get_list_of_known_materials, load_known_material
+from gemdat.rdf import calculate_rdfs, plot_rdf
 from gemdat.utils import is_lattice_similar
 
 st.set_page_config(
@@ -100,23 +101,57 @@ with col3:
     st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
               value=f'{extra.tracer_conduc:g}')
 
-st.title('GEMDAT pregenerated figures')
+tab1, tab2 = st.tabs(['Default plots', 'RDF plots'])
 
 sites_structure = load_known_material(sites_filename, supercell=supercell)
 
-if not is_lattice_similar(data.structure, sites_structure):
-    st.error('Lattices are not similar!')
-    st.text(f'{sites_filename}: {sites_structure.lattice.parameters}')
-    st.text(f'{data_location.name}: {data.structure.lattice.parameters}')
-    st.stop()
+with tab1:
+    st.title('GEMDAT pregenerated figures')
 
-with st.spinner('Calculating jumps...'):
-    sites = SitesData(sites_structure)
-    sites.calculate_all(data=data, extras=extra)
+    if not is_lattice_similar(data.structure, sites_structure):
+        st.error('Lattices are not similar!')
+        st.text(f'{sites_filename}: {sites_structure.lattice.parameters}')
+        st.text(f'{data_location.name}: {data.structure.lattice.parameters}')
+        st.stop()
 
-figures = plot_all(data=data, sites=sites, **vars(extra), show=False)
+    with st.spinner('Calculating jumps...'):
+        sites = SitesData(sites_structure)
+        sites.calculate_all(data=data, extras=extra)
 
-# automagically divide the plots over the number of columns
-for num, col in enumerate(st.columns(number_of_cols)):
-    for figure in figures[num::number_of_cols]:
-        col.pyplot(figure)
+    figures = plot_all(data=data, sites=sites, **vars(extra), show=False)
+
+    # automagically divide the plots over the number of columns
+    for num, col in enumerate(st.columns(number_of_cols)):
+        for figure in figures[num::number_of_cols]:
+            col.pyplot(figure)
+
+with tab2:
+    st.title('GEMDAT RDF plots')
+
+    do_rdf = st.checkbox(
+        'Enable RDF plots (This might increase the page load time significantly)'
+    )
+    if do_rdf:
+        with st.sidebar:
+            st.markdown('RDF specific parameters')
+            max_dist_rdf = st.number_input(
+                'Maximum Distance for RDF calculation', value=10.0)
+            resolution_rdf = st.number_input(
+                'Resolution for RDF calculation (width of bins)', value=0.1)
+
+        with st.spinner('Calculating RDFs...'):
+            rdfs = calculate_rdfs(
+                data=data,
+                sites=sites,
+                diff_coords=extra.diff_coords,
+                n_steps=extra.n_steps,
+                equilibration_steps=extra.equilibration_steps,
+                max_dist=max_dist_rdf,
+                resolution=resolution_rdf,
+            )
+        figures = [plot_rdf(rdf, name=state) for state, rdf in rdfs.items()]
+
+        # automagically divide the plots over the number of columns
+        for num, col in enumerate(st.columns(number_of_cols)):
+            for figure in figures[num::number_of_cols]:
+                col.pyplot(figure)
