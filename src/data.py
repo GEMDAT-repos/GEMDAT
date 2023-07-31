@@ -2,28 +2,22 @@ import pickle
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
-from pymatgen.core import Lattice, Species, Structure
 from pymatgen.io import vasp
 
 from .calculate.displacements import Displacements
 from .calculate.tracer import Tracer
 from .calculate.vibration import Vibration
+from .trajectory import GemdatTrajectory
 
 
 @dataclass(slots=True)
 class SimulationData:
     """Dataclass to store simulation data."""
 
-    structure: Structure
-    trajectory_coords: np.ndarray
-    species: Species
-    lattice: Lattice
-    time_step: float
-    temperature: float
-    parameters: dict[str, Any]
+    trajectory: GemdatTrajectory
 
     @classmethod
     def from_cache(cls, cache: str | Path):
@@ -167,24 +161,15 @@ class SimulationData:
             parse_potcar_file=False,
         )
 
-        structure = run.structures[0]
-        trajectory = run.get_trajectory()
+        trajectory = GemdatTrajectory.from_structures(
+            run.structures,
+            constant_lattice=False,
+            time_step=run.parameters['POTIM'] * 1e-15,
+        )
         trajectory.to_positions()
+        trajectory.temperature = run.parameters['TEBEG']
 
-        data = {
-            'structure': structure,
-            'trajectory_coords': trajectory.coords,
-            'species': structure.species,
-            'lattice': structure.lattice,
-            # size of the time step (*1e-15 = in femtoseconds)
-            'time_step': run.parameters['POTIM'] * 1e-15,
-            # temperature of the MD simulation
-            'temperature': run.parameters['TEBEG'],
-            'parameters': run.parameters,
-        }
-
-        # first create object to check pydantic before caching
-        ret = cls(**data)
+        ret = cls(trajectory=trajectory)
 
         if cache:
             ret.to_cache(cache)
