@@ -3,10 +3,12 @@ from types import SimpleNamespace
 from gemdat import SimulationData, SitesData, load_known_material, plot_all
 from gemdat.plots.jumps import plot_jumps_3d_animation
 from gemdat.rdf import calculate_rdfs, plot_rdf
+from gemdat.volume import trajectory_to_vasp_volume
 
 
 def analyse_md(
     vasp_xml: str,
+    *,
     diff_elem: str,
     material: str,
     supercell: tuple[int, int, int] | None = None,
@@ -108,9 +110,11 @@ def analyse_md(
     for name, rdf in rdfs.items():
         plot_rdf(rdf, name=name)
 
-    # trajectory_to_vasp_volume(coords=data.trajectory_coords,
-    # structure=data.structure,
-    # resolution=density_resolution,
-    # filename='volume.vasp')
+    filename = 'volume.vasp'
+    print(f'Writing trajectory as a volume to `{filename}')
+    trajectory_to_vasp_volume(coords=data.trajectory_coords,
+                              structure=data.structure,
+                              resolution=density_resolution,
+                              filename=filename)
 
     return data, sites, extras
