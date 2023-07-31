@@ -69,8 +69,10 @@ def analyse_md(
     """
     data = SimulationData.from_vasprun(vasp_xml)
 
+    equilibration_steps = round(equil_time / data.time_step)
+
     extras = data.calculate_all(
-        equilibration_steps=1250,
+        equilibration_steps=equilibration_steps,
         diffusing_element=diff_elem,
         z_ion=z_ion,
         diffusion_dimensions=diffusion_dimensions,
