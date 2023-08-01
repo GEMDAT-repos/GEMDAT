@@ -15,10 +15,12 @@ def plot(plots: Union[List[str], str],
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
     plots : Union[List[str],str]
         List of plot names, or just a plot name for the plot you want.
+    trajectory : Optional[Trajectory]
+        Input trajectory
+    show : bool
+        Show plots if True
     kwargs : dict
         Optional arguments which are passed down to the plotting functions.
 
@@ -27,8 +29,6 @@ def plot(plots: Union[List[str], str],
     Figure:
         A list of matplotlib figures
     """
-
-    # Convert plots to list, if it is not already a list
     if not isinstance(plots, list):
         plots = [plots]
 
@@ -45,20 +45,17 @@ def plot(plots: Union[List[str], str],
     return figures
 
 
-def plot_all(**kwargs) -> List[Figure]:
-    """The Plot All function finds out which plots are available for plotting,
-    and plots those.
+def plot_all(**kwargs) -> list[Figure]:
+    """Display all available plots.
 
     Parameters
     ----------
-    data : Trajectory
-        data
-    kwargs :
-        kwargs
+    kwargs : dict
+        Keyword arguments passed down to plotting functions
 
     Returns
     -------
-    Figure:
+    list[Figure]:
         A list of matplotlib figures
     """
     return plot(plots=available_plots.__all__, **kwargs)
