@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import typing
 import warnings
 from collections import Counter, defaultdict
-from types import SimpleNamespace
-from typing import TYPE_CHECKING
 
 import numpy as np
 from MDAnalysis.lib.pkdtree import PeriodicKDTree
@@ -13,8 +12,10 @@ from scipy.constants import Boltzmann, angstrom, elementary_charge
 
 from .utils import bfill, ffill, is_lattice_similar
 
-if TYPE_CHECKING:
-    from gemdat.data import SimulationData
+if typing.TYPE_CHECKING:
+    from types import SimpleNamespace
+
+    from gemdat.trajectory import Trajectory
 
 NOSITE = -1
 
@@ -45,23 +46,25 @@ class SitesData:
             warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
                           f'vs. {other_lattice.parameters}')
 
-    def calculate_all(self, data: SimulationData, extras: SimpleNamespace,
+    def calculate_all(self, trajectory: Trajectory, extras: SimpleNamespace,
                       **kwargs):
         """Calculate all parameters.
 
         Parameters
         ----------
-        data : SimulationData
-            Input simulation data
+        trajectory : Trajectory
+            Input trajectory
         extras : SimpleNamespace
             Extra parameters
         """
-        self.warn_if_lattice_not_similar(data.structure.lattice)
+        lattice = trajectory.get_lattice()
+
+        self.warn_if_lattice_not_similar(lattice)
 
         self.dist_close = self.calculate_dist_close(
-            data, vibration_amplitude=extras.vibration_amplitude)
+            trajectory, vibration_amplitude=extras.vibration_amplitude)
         self.atom_sites = self.calculate_atom_sites(
-            data, diff_coords=extras.diff_coords)
+            trajectory, diff_coords=extras.diff_coords)
         self.atom_sites_to, self.atom_sites_from = self.calculate_atom_sites_transitions(
         )
 
@@ -81,16 +84,16 @@ class SitesData:
         self.n_jumps = len(self.all_transitions)
 
         self.jump_diffusivity = self.calculate_jump_diffusivity(
-            lattice=data.lattice,
+            lattice=lattice,
             n_diffusing=extras.n_diffusing,
             total_time=extras.total_time,
             dimensions=extras.diffusion_dimensions)
         self.correlation_factor = extras.tracer_diff / self.jump_diffusivity
 
         self.collective, self.coll_jumps, self.n_solo_jumps = self.calculate_collective(
-            lattice=data.lattice,
+            lattice=lattice,
             attempt_freq=extras.attempt_freq,
-            time_step=data.time_step,
+            time_step=trajectory.time_step,
             **kwargs)
 
         self.solo_frac = self.n_solo_jumps / len(self.all_transitions)
@@ -110,7 +113,7 @@ class SitesData:
                 total_time=extras.total_time,
                 n_diffusing=extras.n_diffusing,
                 attempt_freq=extras.attempt_freq,
-                temperature=data.temperature)
+                temperature=trajectory.temperature)
 
     @property
     def jump_names(self) -> list[str]:
@@ -120,15 +123,15 @@ class SitesData:
         """
         return ['->'.join(key) for key in self.jumps]
 
-    def calculate_dist_close(self, data: SimulationData,
+    def calculate_dist_close(self, trajectory: Trajectory,
                              vibration_amplitude: float):
         """Calculate tolerance wihin which atoms are considered to be close to
         a site.
 
         Parameters
         ----------
-        data : SimulationData
-            Simulation data
+        trajectory : Trajectory
+            Input trajectory
         vibration_amplitude : float
             Vibration amplitude
 
@@ -137,10 +140,10 @@ class SitesData:
         dist_close : float
             Atoms within this distance (in Angstrom) are considered to be close to a site
         """
+        lattice = trajectory.get_lattice()
         dist_close = 2 * vibration_amplitude
 
-        pdist = data.lattice.get_all_distances(self.site_coords,
-                                               self.site_coords)
+        pdist = lattice.get_all_distances(self.site_coords, self.site_coords)
         min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
 
         if min_dist < 2 * dist_close:
@@ -171,7 +174,7 @@ class SitesData:
 
         return dist_close
 
-    def calculate_atom_sites(self, data: SimulationData,
+    def calculate_atom_sites(self, trajectory: Trajectory,
                              diff_coords: np.ndarray) -> np.ndarray:
         """Calculate nearest site for each atom coordinate.
 
@@ -181,8 +184,8 @@ class SitesData:
 
         Parameters
         ----------
-        data : SimulationData
-            Simulation data
+        trajectory : Trajectory
+            Input trajectory
         diff_coords:
             Input array with (diffusing) atom coordinates [time, atom, (x, y, z)]
 
@@ -196,7 +199,7 @@ class SitesData:
         coords = diff_coords
 
         # Unit cell parameters
-        lattice = data.lattice
+        lattice = trajectory.get_lattice()
 
         # Atoms within this distance (in Angstrom) are considered to be close to a site
         dist_close = self.dist_close

@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+import typing
+
 import numpy as np
-from pymatgen.core import Lattice, Structure
 from pymatgen.io.vasp import VolumetricData
+
+if typing.TYPE_CHECKING:
+    from pymatgen.core import Lattice, Structure
 
 
 def trajectory_to_volume(coords: np.ndarray,

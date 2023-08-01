@@ -1,9 +1,15 @@
+from __future__ import annotations
+
+import typing
 from collections import defaultdict
 
 import numpy as np
-from gemdat import SimulationData, SitesData
+from gemdat import SitesData
 from pymatgen.core import Structure
 from rich.progress import track
+
+if typing.TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def _uniqify_labels(arr, labels: list[str]) -> np.ndarray:
@@ -40,7 +46,7 @@ def _get_states(labels: list[str]) -> dict[int, str]:
     return states
 
 
-def _get_states_array(sites: SimulationData, labels: list[str]) -> np.ndarray:
+def _get_states_array(sites: SitesData, labels: list[str]) -> np.ndarray:
     """Helper function to generate integer array of transition states."""
     atom_sites = _uniqify_labels(sites.atom_sites, labels)
     atom_sites_from = _uniqify_labels(sites.atom_sites_from, labels)
@@ -64,26 +70,23 @@ def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
 
 def calculate_rdfs(
         *,
-        data: SimulationData,
+        trajectory: Trajectory,
         sites: SitesData,
         diff_coords: np.ndarray,
         n_steps: int,
-        equilibration_steps: int,
         max_dist: float = 5.0,
         resolution: float = 0.1) -> dict[str, dict[str, np.ndarray]]:
     """
     Parameters
     ----------
-    data : SimulationData
-        Input simulation data
+    trajectory : Trajectory
+        Input trajectory
     sites : SitesData
         Input sites data
     diff_coords : np.ndarray
         Input coordinates for diffusing element (extras)
     n_steps : int
         Total number of simulation steps (extras)
-    equilibration_steps : int
-        Number of equilibration steps (extras)
     max_dist : float, optional
         Max distance for rdf calculation
     resolution : float, optional
@@ -94,10 +97,10 @@ def calculate_rdfs(
     rdfs : dict[str, np.ndarray]
         Dictionary with rdf arrays per symbol
     """
-    structure = data.structure
-    lattice = structure.lattice
+    structure = trajectory.get_structure(0)
+    lattice = trajectory.get_lattice()
 
-    coords = data.trajectory_coords[equilibration_steps:]
+    coords = trajectory.coords
 
     states2str = _get_states(sites.structure.labels)
     states_array = _get_states_array(sites, sites.structure.labels)

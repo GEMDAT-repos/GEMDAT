@@ -9,11 +9,12 @@ from matplotlib import colormaps
 from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
-    from gemdat import SimulationData, SitesData
+    from gemdat import SitesData
+    from gemdat.trajectory import Trajectory
 
 
 def plot_jumps_vs_distance(*,
-                           data: SimulationData,
+                           trajectory: Trajectory,
                            sites: SitesData,
                            jump_res: float = 0.1,
                            **kwargs) -> plt.Figure:
@@ -21,6 +22,8 @@ def plot_jumps_vs_distance(*,
 
     Parameters
     ----------
+    trajectory : Trajectory
+        Input trajectory
     sites : SitesData
         Input sites data
     jump_res : float, optional
@@ -30,7 +33,7 @@ def plot_jumps_vs_distance(*,
     -------
     plt.Figure
     """
-    lattice = data.lattice
+    lattice = trajectory.get_lattice()
     structure = sites.structure
     pdist = lattice.get_all_distances(structure.frac_coords,
                                       structure.frac_coords)
@@ -56,21 +59,18 @@ def plot_jumps_vs_distance(*,
 
 
 def plot_jumps_vs_time(*,
-                       data: SimulationData,
+                       trajectory: Trajectory,
                        sites: SitesData,
-                       n_steps: int,
                        binsize: int = 500,
                        **kwargs) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
     ----------
-    data : SimulationData
-        Input simulation data
+    trajectory : Trajectory
+        Input trajectory
     sites : SitesData
         Input sites data
-    n_steps : int
-        Total number of time steps
     binsize : int, optional
         Width of each bin in number of time steps
 
@@ -79,6 +79,7 @@ def plot_jumps_vs_time(*,
     -------
     plt.Figure
     """
+    n_steps = len(trajectory)
     bins = np.arange(0, n_steps + binsize, binsize)
 
     fig, ax = plt.subplots()
@@ -92,14 +93,14 @@ def plot_jumps_vs_time(*,
     return fig
 
 
-def plot_collective_jumps(*, data: SimulationData, sites: SitesData,
+def plot_collective_jumps(*, trajectory: Trajectory, sites: SitesData,
                           **kwargs) -> plt.Figure:
     """Plot collective jumps per jump-type combination.
 
     Parameters
     ----------
-    data : SimulationData
-        Input simulation data
+    trajectory : Trajectory
+        Input trajectory
     sites : SitesData
         Input sites data
 
@@ -123,14 +124,14 @@ def plot_collective_jumps(*, data: SimulationData, sites: SitesData,
     return fig
 
 
-def plot_jumps_3d(*, data: SimulationData, sites: SitesData,
+def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData,
                   **kwargs) -> plt.Figure:
     """Plot jumps in 3D.
 
     Parameters
     ----------
-    data : SimulationData
-        Input simulation data
+    trajectory : Trajectory
+        Input trajectory
     sites : SitesData
         Input sites data
 
@@ -149,7 +150,7 @@ def plot_jumps_3d(*, data: SimulationData, sites: SitesData,
             yield from zip(self.labels, self.coords)
 
     coords = sites.structure.frac_coords
-    lattice = data.structure.lattice
+    lattice = trajectory.get_lattice()
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -207,7 +208,7 @@ def plot_jumps_3d(*, data: SimulationData, sites: SitesData,
 
 
 def plot_jumps_3d_animation(*,
-                            data: SimulationData,
+                            trajectory: Trajectory,
                             sites: SitesData,
                             t_start: int,
                             t_stop: int,
@@ -225,8 +226,8 @@ def plot_jumps_3d_animation(*,
 
     Parameters
     ----------
-    data : SimulationData
-        Input simulation data
+    trajectory : Trajectory
+        Input trajectory
     sites : SitesData
         Input sites data
     t_start : int
@@ -257,7 +258,7 @@ def plot_jumps_3d_animation(*,
             yield from zip(self.labels, self.coords)
 
     coords = sites.structure.frac_coords
-    lattice = data.structure.lattice
+    lattice = trajectory.get_lattice()
 
     color_from = colormaps['Set1'].colors
     color_to = colormaps['Pastel1'].colors

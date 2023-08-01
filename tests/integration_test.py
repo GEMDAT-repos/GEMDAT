@@ -9,9 +9,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from gemdat import SimulationData, SitesData
+from gemdat import SitesData
+from gemdat.calculate import calculate_all
 from gemdat.io import load_known_material
 from gemdat.rdf import calculate_rdfs
+from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume
 
 DATA_DIR = Path(__file__).parent / 'data'
@@ -32,16 +34,17 @@ def gemdat_results():
     diffusion_dimensions = 3
     z_ion = 1
 
-    data = SimulationData.from_vasprun(VASP_XML)
+    trajectory = Trajectory.from_vasprun(VASP_XML)
+    trajectory = trajectory[equilibration_steps:]
 
-    extras = data.calculate_all(
-        equilibration_steps=equilibration_steps,
+    extras = calculate_all(
+        trajectory,
         diffusing_element=diffusing_element,
         z_ion=z_ion,
         diffusion_dimensions=diffusion_dimensions,
     )
 
-    return (data, extras)
+    return (trajectory, extras)
 
 
 @pytest.fixture
@@ -52,17 +55,18 @@ def gemdat_results_subset():
     diffusion_dimensions = 3
     z_ion = 1
 
-    data = SimulationData.from_vasprun(VASP_XML)
+    trajectory = Trajectory.from_vasprun(VASP_XML)
+    trajectory = trajectory[equilibration_steps:]
 
-    extras = data.calculate_all(
-        equilibration_steps=equilibration_steps,
+    extras = calculate_all(
+        trajectory,
         diffusing_element=diffusing_element,
         z_ion=z_ion,
         diffusion_dimensions=diffusion_dimensions,
         n_parts=1,
     )
 
-    return (data, extras)
+    return (trajectory, extras)
 
 
 @pytest.fixture
@@ -72,9 +76,9 @@ def structure():
 
 @vaspxml_available
 def test_volume(gemdat_results):
-    data, extras = gemdat_results
+    trajectory, extras = gemdat_results
 
-    vol = trajectory_to_volume(lattice=data.lattice,
+    vol = trajectory_to_volume(lattice=trajectory.get_lattice(),
                                coords=extras.diff_coords,
                                resolution=0.2)
 
@@ -85,9 +89,9 @@ def test_volume(gemdat_results):
 
 @vaspxml_available
 def test_volume_cartesian(gemdat_results):
-    data, extras = gemdat_results
+    trajectory, extras = gemdat_results
 
-    vol = trajectory_to_volume(lattice=data.lattice,
+    vol = trajectory_to_volume(lattice=trajectory.get_lattice(),
                                coords=extras.diff_coords,
                                resolution=0.2,
                                cartesian=True)
@@ -109,10 +113,10 @@ def test_tracer(gemdat_results):
 
 @vaspxml_available
 def test_sites(gemdat_results, structure):
-    data, extras = gemdat_results
+    trajectory, extras = gemdat_results
 
     sites = SitesData(structure)
-    sites.calculate_all(data=data, extras=extras)
+    sites.calculate_all(trajectory=trajectory, extras=extras)
 
     n_steps = extras.n_steps
     n_diffusing = extras.n_diffusing
@@ -205,24 +209,23 @@ def test_sites(gemdat_results, structure):
 
 @vaspxml_available
 def test_rdf(gemdat_results_subset, structure):
-    data, extras = gemdat_results_subset
+    trajectory, extras = gemdat_results_subset
 
     structure = load_known_material('argyrodite')
 
     sites = SitesData(structure)
-    sites.calculate_all(data=data, extras=extras)
+    sites.calculate_all(trajectory=trajectory, extras=extras)
 
     rdfs = calculate_rdfs(
-        data=data,
+        trajectory=trajectory,
         sites=sites,
         diff_coords=extras.diff_coords,
         n_steps=extras.n_steps,
-        equilibration_steps=extras.equilibration_steps,
         max_dist=5,
     )
 
     expected_states = {'~>48h', '@48h', '48h->48h'}
-    expected_symbols = set(data.structure.symbol_set)
+    expected_symbols = set(trajectory.get_structure(0).symbol_set)
 
     assert isinstance(rdfs, dict)
 

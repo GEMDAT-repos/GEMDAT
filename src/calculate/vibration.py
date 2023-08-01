@@ -1,6 +1,15 @@
+from __future__ import annotations
+
+import typing
+
 import numpy as np
 from pymatgen.core.units import FloatWithUnit
 from scipy import signal
+
+if typing.TYPE_CHECKING:
+    from types import SimpleNamespace
+
+    from gemdat.trajectory import Trajectory
 
 
 def meanfreq(x: np.ndarray, fs: float = 1.0):
@@ -41,13 +50,13 @@ def meanfreq(x: np.ndarray, fs: float = 1.0):
 class Vibration:
 
     @staticmethod
-    def calculate_all(data, extras) -> dict:
+    def calculate_all(trajectory: Trajectory, extras: SimpleNamespace) -> dict:
         """Calculate Vibration properties.
 
         Parameters
         ----------
-        data : SimulationData
-            Input simulation data
+        trajectory : Trajectory
+            Input trajectory
         extras : SimpleNamespace
             Extra variables
 
@@ -56,7 +65,7 @@ class Vibration:
         extras : dict[str, float]
             Dictionary with calculated parameters
         """
-        fs = 1 / data.time_step
+        fs = 1 / trajectory.time_step
 
         speed = Vibration.speed(extras.diff_displacements)
         attempt_freq, attempt_freq_std = Vibration.attempt_frequency(speed,
