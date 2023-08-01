@@ -2,6 +2,7 @@ import pickle
 from pathlib import Path
 from typing import Optional
 
+from pymatgen.core import Lattice
 from pymatgen.core.trajectory import Trajectory
 from pymatgen.io import vasp
 
@@ -70,7 +71,7 @@ class GemdatTrajectory(Trajectory):
 
         obj = cls.from_structures(
             run.structures,
-            constant_lattice=False,
+            constant_lattice=True,
             time_step=run.parameters['POTIM'] * 1e-15,
         )
         obj.to_positions()
@@ -80,3 +81,28 @@ class GemdatTrajectory(Trajectory):
             obj.to_cache(cache)
 
         return obj
+
+    def get_lattice(self, idx: int | None = None) -> Lattice:
+        """Get lattice.
+
+        Parameters
+        ----------
+        idx : int | None, optional
+            Optionally, get lattice at specified index if the lattice is not constant
+
+        Returns
+        -------
+        lattice : Lattice
+            Pymatgen Lattice object
+        """
+        if self.constant_lattice:
+            return Lattice(self.lattice)
+
+        latt = self.lattices[idx]
+        return Lattice(latt)
+
+    def __getitem__(self, frames):
+        new = super().__getitem__(frames)
+        new.__class__ = self.__class__
+        new.temperature = self.temperature
+        return new

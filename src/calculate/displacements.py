@@ -1,15 +1,25 @@
+from __future__ import annotations
+
+import typing
+
 import numpy as np
+
+if typing.TYPE_CHECKING:
+    from types import SimpleNamespace
+
+    from gemdat.trajectory import GemdatTrajectory
 
 
 class Displacements:
 
     @staticmethod
-    def calculate_all(data, extras) -> dict:
+    def calculate_all(trajectory: GemdatTrajectory,
+                      extras: SimpleNamespace) -> dict:
         """Calculate displacement properties.
 
         Parameters
         ----------
-        data : SimulationData
+        trajectory : GemdatTrajectory
             Input simulation data
         extras : SimpleNamespace
             Extra variables
@@ -19,15 +29,14 @@ class Displacements:
         extras : dict[str, float]
             Dictionary with calculated parameters
         """
-        cell_offsets = Displacements.cell_offsets(data.trajectory_coords)
+        cell_offsets = Displacements.cell_offsets(trajectory)
 
-        displacements = Displacements.displacements(data.trajectory_coords,
-                                                    data.lattice,
-                                                    extras.equilibration_steps)
+        displacements = Displacements.displacements(trajectory)
+
         diff_displacements = Displacements.diff_displacements(
             displacements=displacements,
             diffusing_element=extras.diffusing_element,
-            species=data.species)
+            species=trajectory.species)
 
         return {
             'cell_offsets': cell_offsets,
@@ -36,22 +45,24 @@ class Displacements:
         }
 
     @staticmethod
-    def cell_offsets_from_coords(coords: np.ndarray) -> np.ndarray:
-        """Calculate cell offsets from starting position.
+    def cell_offsets(trajectory: GemdatTrajectory) -> np.ndarray:
+        """Calculate cell offsets from trajectory starting position.
 
         For example, if a site is at [0, 0, 0.9] -> [0, 0, 0.1]
         assume it has jumped to the next cell: [0, 0, 1.1]
 
         Parameters
         ----------
-        coords : np.ndarray[i, j, k]
-            3-dimensional numpy array with dimensions i: time_steps, j: sites, k: coordinates
+        trajectory : GemdatTrajectory
+            Input trajectory
 
         Returns
         -------
         offsets : np.ndarray[i, j, k]
             Integer array with unit cell offset vectors.
         """
+        coords = trajectory.coords
+
         first = coords[0, np.newaxis]
         diff = np.diff(coords, axis=0, prepend=first)
 
@@ -59,12 +70,6 @@ class Displacements:
 
         offsets = np.cumsum(digits, axis=0)
         return offsets
-
-    @staticmethod
-    def cell_offsets(trajectory_coords) -> np.ndarray:
-        """Calculate cell offsets from trajectory."""
-        coords = trajectory_coords
-        return Displacements.cell_offsets_from_coords(coords)
 
     @staticmethod
     def lengths(vectors: np.ndarray, metric_tensor: np.ndarray) -> np.ndarray:
@@ -90,34 +95,32 @@ class Displacements:
         return np.sqrt(total_displacement)
 
     @staticmethod
-    def displacements(trajectory_coords,
-                      lattice,
-                      equilibration_steps=1250) -> np.ndarray:
+    def displacements(trajectory: GemdatTrajectory) -> np.ndarray:
         """Calculate displacements from first set of positions.
 
         Corrects for elements jumping to the next unit cell.
 
         Parameters
         ----------
-        trajectory_coords : np.array[i, j, k]
-            3-dimensional numpy array with dimensions i: time_steps, j: sites, k: coordinates
-        lattice:
-
+        trajectory : GemdatTrajectory
+            Input trajectory
 
         Returns
         -------
         displacements : np.ndarray[i, j]
             Displacementss from first set of positions.
         """
-        offsets = Displacements.cell_offsets_from_coords(trajectory_coords)
+        lattice = trajectory.get_lattice()
 
-        corrected_coords = trajectory_coords + offsets
+        offsets = Displacements.cell_offsets(trajectory)
+
+        corrected_coords = trajectory.coords + offsets
 
         displacements = []
 
-        first = corrected_coords[equilibration_steps]
+        first = corrected_coords[0]
 
-        for disp in corrected_coords[equilibration_steps:]:
+        for disp in corrected_coords:
             diff_vectors = disp - first
             lengths = Displacements.lengths(
                 diff_vectors, metric_tensor=lattice.metric_tensor)

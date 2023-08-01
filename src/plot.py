@@ -4,11 +4,11 @@ import gemdat.plots as available_plots
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from .data import SimulationData
+from .trajectory import GemdatTrajectory
 
 
 def plot(plots: Union[List[str], str],
-         data: Optional[SimulationData] = None,
+         data: Optional[GemdatTrajectory] = None,
          show: bool = True,
          **kwargs) -> List[Figure]:
     """Main plotting function of gemdat. it takes two mandatory arguments:
@@ -18,7 +18,7 @@ def plot(plots: Union[List[str], str],
 
     Parameters
     ----------
-    data : SimulationData
+    data : GemdatTrajectory
         data
     plots : Union[List[str],str]
         plots
@@ -58,7 +58,7 @@ def plot_all(**kwargs) -> List[Figure]:
 
     Parameters
     ----------
-    data : SimulationData
+    data : GemdatTrajectory
         data
     kwargs :
         kwargs

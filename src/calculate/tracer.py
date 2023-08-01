@@ -1,18 +1,28 @@
+from __future__ import annotations
+
+import typing
+
 import numpy as np
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
+
+if typing.TYPE_CHECKING:
+    from types import SimpleNamespace
+
+    from gemdat.trajectory import GemdatTrajectory
 
 
 class Tracer:
 
     @staticmethod
-    def calculate_all(data, extras) -> dict[str, float]:
+    def calculate_all(trajectory: GemdatTrajectory,
+                      extras: SimpleNamespace) -> dict[str, float]:
         """Calculate tracer properties.
 
         Parameters
         ----------
-        data : SimulationData
-            Input simulation data
+        trajectory : GemdatTrajectory
+            Input trajectory
         extras : SimpleNamespace
             Extra variables
 
@@ -21,9 +31,11 @@ class Tracer:
         extras : dict[str, float]
             Dictionary with calculated parameters
         """
+        lattice = trajectory.get_lattice()
+
         total_time = extras.total_time
 
-        volume_ang = data.lattice.volume
+        volume_ang = lattice.volume
         volume_m3 = volume_ang * angstrom**3
 
         particle_density = extras.n_diffusing / volume_m3
@@ -38,7 +50,7 @@ class Tracer:
         # Do they mean the total displacement (i.e. last column)?
         msd = np.mean(extras.diff_displacements[:, -1]**2)  # Angstrom^2
 
-        temperature = data.temperature
+        temperature = trajectory.temperature
 
         # Diffusivity = MSD/(2*dimensions*time)
         tracer_diff = (msd * angstrom**2) / (2 * extras.diffusion_dimensions *
