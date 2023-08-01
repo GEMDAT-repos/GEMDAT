@@ -1,11 +1,16 @@
+from __future__ import annotations
+
+import typing
 from types import SimpleNamespace
 
 import numpy as np
 
-from .calculate.displacements import Displacements
-from .calculate.tracer import Tracer
-from .calculate.vibration import Vibration
-from .trajectory import Trajectory
+from .displacements import Displacements
+from .tracer import Tracer
+from .vibration import Vibration
+
+if typing.TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def calculate_all(trajectory: Trajectory,

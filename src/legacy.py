@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from gemdat import SitesData, load_known_material, plot_all
-from gemdat.data import calculate_all
+from gemdat.calculate import calculate_all
 from gemdat.plots.jumps import plot_jumps_3d_animation
 from gemdat.rdf import calculate_rdfs, plot_rdf
 from gemdat.trajectory import Trajectory

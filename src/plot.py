@@ -1,10 +1,13 @@
-from typing import List, Optional, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import gemdat.plots as available_plots
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from .trajectory import Trajectory
+if TYPE_CHECKING:
+    from .trajectory import Trajectory
 
 
 def plot(plots: Union[List[str], str],

@@ -1,7 +1,7 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
 from gemdat import SitesData, __version__, plot_all
-from gemdat.data import calculate_all
+from gemdat.calculate import calculate_all
 from gemdat.io import get_list_of_known_materials, load_known_material
 from gemdat.rdf import calculate_rdfs, plot_rdf
 from gemdat.trajectory import Trajectory
