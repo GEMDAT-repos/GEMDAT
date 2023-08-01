@@ -1,25 +1,16 @@
 from types import SimpleNamespace
 
 import numpy as np
-from gemdat import SimulationData
 from gemdat.calculate import Vibration
 from gemdat.calculate.vibration import meanfreq
 
-data = SimulationData(
-    time_step=1,
-    trajectory_coords=None,
-    lattice=None,
-    species=None,
-    temperature=None,
-    parameters=None,
-    structure=None,
-)
+mock_trajectory = SimpleNamespace(time_step=1)
 extras = SimpleNamespace(diff_displacements=np.array(
     [[0., 0.73654599, 0.10440307, 0.70356236, 0.17204651]]), )
 
 
 def test_vibration_calculate_all():
-    ret = Vibration.calculate_all(data, extras)
+    ret = Vibration.calculate_all(mock_trajectory, extras)
     assert (np.allclose(
         ret['speed'],
         np.array([[0., 0.73654599, -0.63214292, 0.59915929, -0.53151585]])))

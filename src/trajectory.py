@@ -103,6 +103,7 @@ class GemdatTrajectory(Trajectory):
 
     def __getitem__(self, frames):
         new = super().__getitem__(frames)
-        new.__class__ = self.__class__
-        new.temperature = self.temperature
+        if isinstance(new, Trajectory):
+            new.__class__ = self.__class__
+            new.temperature = self.temperature
         return new
