@@ -12,7 +12,6 @@ def calculate_all(trajectory: Trajectory,
                   *,
                   diffusing_element: str,
                   known_structure: str | None = None,
-                  equilibration_steps: int = 1250,
                   diffusion_dimensions: int = 3,
                   z_ion: float = 1.0,
                   n_parts: int = 10,
@@ -27,8 +26,6 @@ def calculate_all(trajectory: Trajectory,
         Name of the diffusing element
     structure : str | None
         Path to cif file or name of known structure
-    equilibration_steps : int
-        Number of equilibration steps
     diffusion_dimensions : int
         Number of diffusion dimensions
     z_ion : float
@@ -41,14 +38,11 @@ def calculate_all(trajectory: Trajectory,
     extras = SimpleNamespace(
         diffusing_element=diffusing_element,
         known_structure=known_structure,
-        equilibration_steps=equilibration_steps,
         diffusion_dimensions=diffusion_dimensions,
         z_ion=z_ion,
         n_parts=n_parts,
         dist_collective=dist_collective,
     )
-    trajectory = trajectory[equilibration_steps:]
-
     _add_shared_variables(trajectory, extras)
 
     extras.__dict__.update(

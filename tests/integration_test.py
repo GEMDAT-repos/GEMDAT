@@ -35,10 +35,10 @@ def gemdat_results():
     z_ion = 1
 
     trajectory = Trajectory.from_vasprun(VASP_XML)
+    trajectory = trajectory[equilibration_steps:]
 
     extras = calculate_all(
         trajectory,
-        equilibration_steps=equilibration_steps,
         diffusing_element=diffusing_element,
         z_ion=z_ion,
         diffusion_dimensions=diffusion_dimensions,
@@ -56,10 +56,10 @@ def gemdat_results_subset():
     z_ion = 1
 
     trajectory = Trajectory.from_vasprun(VASP_XML)
+    trajectory = trajectory[equilibration_steps:]
 
     extras = calculate_all(
         trajectory,
-        equilibration_steps=equilibration_steps,
         diffusing_element=diffusing_element,
         z_ion=z_ion,
         diffusion_dimensions=diffusion_dimensions,

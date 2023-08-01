@@ -79,9 +79,8 @@ with st.sidebar:
 number_of_cols = 3  # Number of figure columns
 
 with st.spinner('Processing trajectory...'):
-    extra = calculate_all(trajectory,
-                          equilibration_steps=equilibration_steps,
-                          diffusing_element=diffusing_element)
+    trajectory = trajectory[equilibration_steps:]
+    extra = calculate_all(trajectory, diffusing_element=diffusing_element)
 
 col1, col2, col3 = st.columns(3)
 

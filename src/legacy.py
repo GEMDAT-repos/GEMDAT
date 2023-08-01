@@ -73,9 +73,10 @@ def analyse_md(
 
     equilibration_steps = round(equil_time / trajectory.time_step)
 
+    trajectory = trajectory[equilibration_steps:]
+
     extras = calculate_all(
         trajectory,
-        equilibration_steps=equilibration_steps,
         diffusing_element=diff_elem,
         z_ion=z_ion,
         diffusion_dimensions=diffusion_dimensions,
