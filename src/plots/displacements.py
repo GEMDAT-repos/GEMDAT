@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from pymatgen.core import Structure
+from gemdat.trajectory import GemdatTrajectory
 
 
 def plot_displacement_per_site(*, diff_displacements: np.ndarray, **kwargs):
@@ -23,9 +23,8 @@ def plot_displacement_per_site(*, diff_displacements: np.ndarray, **kwargs):
     return fig
 
 
-def plot_displacement_per_element(structure: Structure,
-                                  displacements: np.ndarray, species,
-                                  **kwargs):
+def plot_displacement_per_element(*, displacements: np.ndarray,
+                                  trajectory: GemdatTrajectory, **kwargs):
     """Plot displacement per element.
 
     Parameters
@@ -39,6 +38,9 @@ def plot_displacement_per_element(structure: Structure,
     from collections import defaultdict
 
     grouped = defaultdict(list)
+
+    trajectory.get_structure(0)
+    species = trajectory.species
 
     for specie, displacement in zip(species, displacements):
         grouped[specie.name].append(displacement)
