@@ -9,38 +9,39 @@ import streamlit as st
 data_directory = Path(files('gemdat') / 'data')  # type: ignore
 
 
-def get_data_location(filename='vasprun.xml'):
-    if data_location := os.environ.get('VASP_XML'):
-        st.info(f'Got `{data_location}` via environment variable.')
-        return Path(data_location)
+def get_trajectory_location(filename='vasprun.xml'):
+    if trajectory_location := os.environ.get('VASP_XML'):
+        st.info(f'Got `{trajectory_location}` via environment variable.')
+        return Path(trajectory_location)
 
-    data_location = st.session_state.get('data_location', default=filename)
+    trajectory_location = st.session_state.get('trajectory_location',
+                                               default=filename)
 
-    st.markdown(f'Select input `{filename}`')
+    st.markdown('Select input trajectory')
     col1, col2 = st.columns([0.7, 0.3])
     with col1:
-        data_location = st.text_input('filename',
-                                      data_location,
-                                      label_visibility='collapsed')
+        trajectory_location = st.text_input('filename',
+                                            trajectory_location,
+                                            label_visibility='collapsed')
     with col2:
         if st.button('Browse'):
-            data_location = filedialog.askopenfilename()
-            st.session_state.data_location = data_location
+            trajectory_location = filedialog.askopenfilename()
+            st.session_state.trajectory_location = trajectory_location
             st.experimental_rerun()
 
-    if not data_location:
+    if not trajectory_location:
         st.info(f'Select `{filename}` to continue')
         st.stop()
 
-    data_location = Path(data_location).expanduser()
+    trajectory_location = Path(trajectory_location).expanduser()
 
-    if not data_location.exists():
+    if not trajectory_location.exists():
         st.info(
-            f'Could not find `{data_location}`, select `{filename}` to continue'
+            f'Could not find `{trajectory_location}`, select `{filename}` to continue'
         )
         st.stop()
 
-    return data_location
+    return trajectory_location
 
 
 @st.cache_data
