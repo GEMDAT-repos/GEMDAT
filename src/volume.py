@@ -6,18 +6,21 @@ import numpy as np
 from pymatgen.io.vasp import VolumetricData
 
 if typing.TYPE_CHECKING:
-    from gemdat.trajectory import Trajectory
+    from pymatgen.core import Lattice, Structure
 
 
-def trajectory_to_volume(trajectory: Trajectory,
+def trajectory_to_volume(coords: np.ndarray,
+                         lattice: Lattice,
                          resolution: float = 0.2,
                          cartesian: bool = False) -> np.ndarray:
     """Calculate density volume from list of coordinates.
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
+    coords : np.ndarray
+        Trajectory coordinates
+    lattice : Lattice
+        Lattice coordinates
     resolution : float, optional
         Minimum resolution for the voxels in Angstrom
     cartesian : bool, optional
@@ -29,8 +32,7 @@ def trajectory_to_volume(trajectory: Trajectory,
     vol : np.ndarray
         3D numpy volume array
     """
-    lattice = trajectory.get_lattice()
-    coords = trajectory.coords.reshape(-1, 3)
+    coords = coords.reshape(-1, 3)
 
     if cartesian:
         coords = lattice.get_cartesian_coords(coords)
@@ -68,15 +70,18 @@ def trajectory_to_volume(trajectory: Trajectory,
     return vol
 
 
-def trajectory_to_vasp_volume(trajectory: Trajectory,
+def trajectory_to_vasp_volume(coords: np.ndarray,
+                              structure: Structure,
                               resolution: float = 0.2,
                               filename: str | None = None) -> VolumetricData:
     """Calculate density volume as from list of coordinates.
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
+    coords : np.ndarray
+        Trajectory coordinates
+    structure : Structure
+        Input structure
     resolution : float, optional
         Minimum resolution for the voxels in Angstrom
     filename : str | None, optional
@@ -87,10 +92,11 @@ def trajectory_to_vasp_volume(trajectory: Trajectory,
     vol : VolumetricData
         Output volumetric data object
     """
-    vol = trajectory_to_volume(trajectory=trajectory, resolution=resolution)
+    vol = trajectory_to_volume(coords=coords,
+                               lattice=structure.lattice,
+                               resolution=resolution)
 
-    vasp_vol = VolumetricData(structure=trajectory.get_structure(0),
-                              data={'total': vol})
+    vasp_vol = VolumetricData(structure=structure, data={'total': vol})
 
     if filename:
         vasp_vol.write_file(filename)

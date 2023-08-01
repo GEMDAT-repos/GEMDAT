@@ -108,7 +108,9 @@ def analyse_md(
 
     filename = 'volume.vasp'
     print(f'Writing trajectory as a volume to `{filename}')
-    trajectory_to_vasp_volume(trajectory=trajectory,
+
+    trajectory_to_vasp_volume(coords=extras.diff_coords,
+                              structure=trajectory.get_structure(0),
                               resolution=density_resolution,
                               filename=filename)
 
