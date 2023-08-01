@@ -2,10 +2,10 @@ from types import SimpleNamespace
 
 import numpy as np
 from gemdat.calculate import Displacements
-from gemdat.trajectory import GemdatTrajectory
+from gemdat.trajectory import Trajectory
 from pymatgen.core import Species
 
-trajectory = GemdatTrajectory(
+trajectory = Trajectory(
     coords=np.array([
         [[0.5, .45, .9]],
         [[0, .9, .2]],

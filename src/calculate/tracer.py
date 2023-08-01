@@ -9,19 +9,19 @@ from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 if typing.TYPE_CHECKING:
     from types import SimpleNamespace
 
-    from gemdat.trajectory import GemdatTrajectory
+    from gemdat.trajectory import Trajectory
 
 
 class Tracer:
 
     @staticmethod
-    def calculate_all(trajectory: GemdatTrajectory,
+    def calculate_all(trajectory: Trajectory,
                       extras: SimpleNamespace) -> dict[str, float]:
         """Calculate tracer properties.
 
         Parameters
         ----------
-        trajectory : GemdatTrajectory
+        trajectory : Trajectory
             Input trajectory
         extras : SimpleNamespace
             Extra variables

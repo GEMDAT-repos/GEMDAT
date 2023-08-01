@@ -9,7 +9,7 @@ from scipy import signal
 if typing.TYPE_CHECKING:
     from types import SimpleNamespace
 
-    from gemdat.trajectory import GemdatTrajectory
+    from gemdat.trajectory import Trajectory
 
 
 def meanfreq(x: np.ndarray, fs: float = 1.0):
@@ -50,13 +50,12 @@ def meanfreq(x: np.ndarray, fs: float = 1.0):
 class Vibration:
 
     @staticmethod
-    def calculate_all(trajectory: GemdatTrajectory,
-                      extras: SimpleNamespace) -> dict:
+    def calculate_all(trajectory: Trajectory, extras: SimpleNamespace) -> dict:
         """Calculate Vibration properties.
 
         Parameters
         ----------
-        trajectory : GemdatTrajectory
+        trajectory : Trajectory
             Input trajectory
         extras : SimpleNamespace
             Extra variables

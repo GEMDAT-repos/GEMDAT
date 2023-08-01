@@ -4,7 +4,7 @@ from gemdat import SitesData, load_known_material, plot_all
 from gemdat.data import calculate_all
 from gemdat.plots.jumps import plot_jumps_3d_animation
 from gemdat.rdf import calculate_rdfs, plot_rdf
-from gemdat.trajectory import GemdatTrajectory
+from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_vasp_volume
 
 
@@ -26,7 +26,7 @@ def analyse_md(
     rdf_max_dist: int = 10,
     start_end: tuple[int, int] = (5000, 7500),
     nr_steps_frame: int = 5,
-) -> tuple[GemdatTrajectory, SitesData, SimpleNamespace]:
+) -> tuple[Trajectory, SitesData, SimpleNamespace]:
     """Analyse md data.
 
     Parameters
@@ -69,7 +69,7 @@ def analyse_md(
     tuple[SimulationData, SitesData, SimpleNamespace]
         Output data
     """
-    trajectory = GemdatTrajectory.from_vasprun(vasp_xml)
+    trajectory = Trajectory.from_vasprun(vasp_xml)
 
     equilibration_steps = round(equil_time / trajectory.time_step)
 

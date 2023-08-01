@@ -9,7 +9,7 @@ from pymatgen.core import Structure
 from rich.progress import track
 
 if typing.TYPE_CHECKING:
-    from gemdat.trajectory import GemdatTrajectory
+    from gemdat.trajectory import Trajectory
 
 
 def _uniqify_labels(arr, labels: list[str]) -> np.ndarray:
@@ -70,7 +70,7 @@ def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
 
 def calculate_rdfs(
         *,
-        trajectory: GemdatTrajectory,
+        trajectory: Trajectory,
         sites: SitesData,
         diff_coords: np.ndarray,
         n_steps: int,
@@ -79,7 +79,7 @@ def calculate_rdfs(
     """
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     sites : SitesData
         Input sites data

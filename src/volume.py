@@ -6,17 +6,17 @@ import numpy as np
 from pymatgen.io.vasp import VolumetricData
 
 if typing.TYPE_CHECKING:
-    from gemdat.trajectory import GemdatTrajectory
+    from gemdat.trajectory import Trajectory
 
 
-def trajectory_to_volume(trajectory: GemdatTrajectory,
+def trajectory_to_volume(trajectory: Trajectory,
                          resolution: float = 0.2,
                          cartesian: bool = False) -> np.ndarray:
     """Calculate density volume from list of coordinates.
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     resolution : float, optional
         Minimum resolution for the voxels in Angstrom
@@ -68,14 +68,14 @@ def trajectory_to_volume(trajectory: GemdatTrajectory,
     return vol
 
 
-def trajectory_to_vasp_volume(trajectory: GemdatTrajectory,
+def trajectory_to_vasp_volume(trajectory: Trajectory,
                               resolution: float = 0.2,
                               filename: str | None = None) -> VolumetricData:
     """Calculate density volume as from list of coordinates.
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     resolution : float, optional
         Minimum resolution for the voxels in Angstrom

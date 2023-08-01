@@ -4,7 +4,7 @@ from gemdat import SitesData, __version__, plot_all
 from gemdat.data import calculate_all
 from gemdat.io import get_list_of_known_materials, load_known_material
 from gemdat.rdf import calculate_rdfs, plot_rdf
-from gemdat.trajectory import GemdatTrajectory
+from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
 
 st.set_page_config(
@@ -33,7 +33,7 @@ with st.sidebar:
 
 @st.cache_data
 def _load_trajectory(trajectory_location):
-    return GemdatTrajectory.from_vasprun(trajectory_location)
+    return Trajectory.from_vasprun(trajectory_location)
 
 
 with st.spinner('Loading your trajectory data, this might take a while'):

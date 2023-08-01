@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Optional
 
 from pymatgen.core import Lattice
-from pymatgen.core.trajectory import Trajectory
+from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
 
-class GemdatTrajectory(Trajectory):
+class Trajectory(PymatgenTrajectory):
 
     @classmethod
     def from_cache(cls, cache: str | Path):
@@ -102,8 +102,9 @@ class GemdatTrajectory(Trajectory):
         return Lattice(latt)
 
     def __getitem__(self, frames):
+        """Hack around pymatgen Trajectory limitations."""
         new = super().__getitem__(frames)
-        if isinstance(new, Trajectory):
+        if isinstance(new, PymatgenTrajectory):
             new.__class__ = self.__class__
             new.temperature = self.temperature
         return new

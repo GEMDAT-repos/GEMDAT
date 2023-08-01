@@ -4,18 +4,18 @@ import gemdat.plots as available_plots
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from .trajectory import GemdatTrajectory
+from .trajectory import Trajectory
 
 
 def plot(plots: Union[List[str], str],
-         trajectory: Optional[GemdatTrajectory] = None,
+         trajectory: Optional[Trajectory] = None,
          show: bool = True,
          **kwargs) -> List[Figure]:
     """Display all or a selection of plots.
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     plots : Union[List[str],str]
         List of plot names, or just a plot name for the plot you want.
@@ -51,7 +51,7 @@ def plot_all(**kwargs) -> List[Figure]:
 
     Parameters
     ----------
-    data : GemdatTrajectory
+    data : Trajectory
         data
     kwargs :
         kwargs

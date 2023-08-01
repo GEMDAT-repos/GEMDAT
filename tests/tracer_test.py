@@ -2,9 +2,9 @@ from types import SimpleNamespace
 
 import numpy as np
 from gemdat.calculate.tracer import Tracer
-from gemdat.trajectory import GemdatTrajectory
+from gemdat.trajectory import Trajectory
 
-trajectory = GemdatTrajectory(
+trajectory = Trajectory(
     coords=[[0, 0, 0], [0, 0, 0]],
     species=['Li'],
     time_step=1,

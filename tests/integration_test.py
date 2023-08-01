@@ -13,7 +13,7 @@ from gemdat import SitesData
 from gemdat.data import calculate_all
 from gemdat.io import load_known_material
 from gemdat.rdf import calculate_rdfs
-from gemdat.trajectory import GemdatTrajectory
+from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume
 
 DATA_DIR = Path(__file__).parent / 'data'
@@ -34,7 +34,7 @@ def gemdat_results():
     diffusion_dimensions = 3
     z_ion = 1
 
-    trajectory = GemdatTrajectory.from_vasprun(VASP_XML)
+    trajectory = Trajectory.from_vasprun(VASP_XML)
 
     extras = calculate_all(
         trajectory,
@@ -55,7 +55,7 @@ def gemdat_results_subset():
     diffusion_dimensions = 3
     z_ion = 1
 
-    trajectory = GemdatTrajectory.from_vasprun(VASP_XML)
+    trajectory = Trajectory.from_vasprun(VASP_XML)
 
     extras = calculate_all(
         trajectory,

@@ -15,7 +15,7 @@ from .utils import bfill, ffill, is_lattice_similar
 if typing.TYPE_CHECKING:
     from types import SimpleNamespace
 
-    from gemdat.trajectory import GemdatTrajectory
+    from gemdat.trajectory import Trajectory
 
 NOSITE = -1
 
@@ -46,13 +46,13 @@ class SitesData:
             warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
                           f'vs. {other_lattice.parameters}')
 
-    def calculate_all(self, trajectory: GemdatTrajectory,
-                      extras: SimpleNamespace, **kwargs):
+    def calculate_all(self, trajectory: Trajectory, extras: SimpleNamespace,
+                      **kwargs):
         """Calculate all parameters.
 
         Parameters
         ----------
-        trajectory : GemdatTrajectory
+        trajectory : Trajectory
             Input trajectory
         extras : SimpleNamespace
             Extra parameters
@@ -123,14 +123,14 @@ class SitesData:
         """
         return ['->'.join(key) for key in self.jumps]
 
-    def calculate_dist_close(self, trajectory: GemdatTrajectory,
+    def calculate_dist_close(self, trajectory: Trajectory,
                              vibration_amplitude: float):
         """Calculate tolerance wihin which atoms are considered to be close to
         a site.
 
         Parameters
         ----------
-        trajectory : GemdatTrajectory
+        trajectory : Trajectory
             Input trajectory
         vibration_amplitude : float
             Vibration amplitude
@@ -174,7 +174,7 @@ class SitesData:
 
         return dist_close
 
-    def calculate_atom_sites(self, trajectory: GemdatTrajectory,
+    def calculate_atom_sites(self, trajectory: Trajectory,
                              diff_coords: np.ndarray) -> np.ndarray:
         """Calculate nearest site for each atom coordinate.
 
@@ -184,7 +184,7 @@ class SitesData:
 
         Parameters
         ----------
-        trajectory : GemdatTrajectory
+        trajectory : Trajectory
             Input trajectory
         diff_coords:
             Input array with (diffusing) atom coordinates [time, atom, (x, y, z)]

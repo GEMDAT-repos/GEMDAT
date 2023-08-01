@@ -7,19 +7,18 @@ import numpy as np
 if typing.TYPE_CHECKING:
     from types import SimpleNamespace
 
-    from gemdat.trajectory import GemdatTrajectory
+    from gemdat.trajectory import Trajectory
 
 
 class Displacements:
 
     @staticmethod
-    def calculate_all(trajectory: GemdatTrajectory,
-                      extras: SimpleNamespace) -> dict:
+    def calculate_all(trajectory: Trajectory, extras: SimpleNamespace) -> dict:
         """Calculate displacement properties.
 
         Parameters
         ----------
-        trajectory : GemdatTrajectory
+        trajectory : Trajectory
             Input simulation data
         extras : SimpleNamespace
             Extra variables
@@ -45,7 +44,7 @@ class Displacements:
         }
 
     @staticmethod
-    def cell_offsets(trajectory: GemdatTrajectory) -> np.ndarray:
+    def cell_offsets(trajectory: Trajectory) -> np.ndarray:
         """Calculate cell offsets from trajectory starting position.
 
         For example, if a site is at [0, 0, 0.9] -> [0, 0, 0.1]
@@ -53,7 +52,7 @@ class Displacements:
 
         Parameters
         ----------
-        trajectory : GemdatTrajectory
+        trajectory : Trajectory
             Input trajectory
 
         Returns
@@ -95,14 +94,14 @@ class Displacements:
         return np.sqrt(total_displacement)
 
     @staticmethod
-    def displacements(trajectory: GemdatTrajectory) -> np.ndarray:
+    def displacements(trajectory: Trajectory) -> np.ndarray:
         """Calculate displacements from first set of positions.
 
         Corrects for elements jumping to the next unit cell.
 
         Parameters
         ----------
-        trajectory : GemdatTrajectory
+        trajectory : Trajectory
             Input trajectory
 
         Returns

@@ -5,10 +5,10 @@ import numpy as np
 from .calculate.displacements import Displacements
 from .calculate.tracer import Tracer
 from .calculate.vibration import Vibration
-from .trajectory import GemdatTrajectory
+from .trajectory import Trajectory
 
 
-def calculate_all(trajectory: GemdatTrajectory,
+def calculate_all(trajectory: Trajectory,
                   *,
                   diffusing_element: str,
                   known_structure: str | None = None,
@@ -21,7 +21,7 @@ def calculate_all(trajectory: GemdatTrajectory,
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory coordinates
     diffusing_element : str
         Name of the diffusing element
@@ -59,8 +59,7 @@ def calculate_all(trajectory: GemdatTrajectory,
     return extras
 
 
-def _add_shared_variables(trajectory: GemdatTrajectory,
-                          extras: SimpleNamespace):
+def _add_shared_variables(trajectory: Trajectory, extras: SimpleNamespace):
     """Add common shared variables to extras namespace."""
     extras.n_diffusing = sum(
         [e.name == extras.diffusing_element for e in trajectory.species])

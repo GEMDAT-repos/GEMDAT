@@ -10,11 +10,11 @@ from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
     from gemdat import SitesData
-    from gemdat.trajectory import GemdatTrajectory
+    from gemdat.trajectory import Trajectory
 
 
 def plot_jumps_vs_distance(*,
-                           trajectory: GemdatTrajectory,
+                           trajectory: Trajectory,
                            sites: SitesData,
                            jump_res: float = 0.1,
                            **kwargs) -> plt.Figure:
@@ -22,7 +22,7 @@ def plot_jumps_vs_distance(*,
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     sites : SitesData
         Input sites data
@@ -59,7 +59,7 @@ def plot_jumps_vs_distance(*,
 
 
 def plot_jumps_vs_time(*,
-                       trajectory: GemdatTrajectory,
+                       trajectory: Trajectory,
                        sites: SitesData,
                        binsize: int = 500,
                        **kwargs) -> plt.Figure:
@@ -67,7 +67,7 @@ def plot_jumps_vs_time(*,
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     sites : SitesData
         Input sites data
@@ -93,13 +93,13 @@ def plot_jumps_vs_time(*,
     return fig
 
 
-def plot_collective_jumps(*, trajectory: GemdatTrajectory, sites: SitesData,
+def plot_collective_jumps(*, trajectory: Trajectory, sites: SitesData,
                           **kwargs) -> plt.Figure:
     """Plot collective jumps per jump-type combination.
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     sites : SitesData
         Input sites data
@@ -124,13 +124,13 @@ def plot_collective_jumps(*, trajectory: GemdatTrajectory, sites: SitesData,
     return fig
 
 
-def plot_jumps_3d(*, trajectory: GemdatTrajectory, sites: SitesData,
+def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData,
                   **kwargs) -> plt.Figure:
     """Plot jumps in 3D.
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     sites : SitesData
         Input sites data
@@ -208,7 +208,7 @@ def plot_jumps_3d(*, trajectory: GemdatTrajectory, sites: SitesData,
 
 
 def plot_jumps_3d_animation(*,
-                            trajectory: GemdatTrajectory,
+                            trajectory: Trajectory,
                             sites: SitesData,
                             t_start: int,
                             t_stop: int,
@@ -226,7 +226,7 @@ def plot_jumps_3d_animation(*,
 
     Parameters
     ----------
-    trajectory : GemdatTrajectory
+    trajectory : Trajectory
         Input trajectory
     sites : SitesData
         Input sites data

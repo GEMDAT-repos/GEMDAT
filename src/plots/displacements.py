@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from gemdat.trajectory import GemdatTrajectory
+from gemdat.trajectory import Trajectory
 
 
 def plot_displacement_per_site(*, diff_displacements: np.ndarray, **kwargs):
@@ -24,7 +24,7 @@ def plot_displacement_per_site(*, diff_displacements: np.ndarray, **kwargs):
 
 
 def plot_displacement_per_element(*, displacements: np.ndarray,
-                                  trajectory: GemdatTrajectory, **kwargs):
+                                  trajectory: Trajectory, **kwargs):
     """Plot displacement per element.
 
     Parameters
