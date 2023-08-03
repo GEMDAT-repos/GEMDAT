@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from functools import lru_cache
 
 import numpy as np
 from pymatgen.core.units import FloatWithUnit
@@ -12,53 +13,60 @@ if typing.TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
 
-def meanfreq(x: np.ndarray, fs: float = 1.0):
-    """Estimates the mean frequency in terms of the sample rate, fs.
-
-    Vectorized version of https://stackoverflow.com/a/56487241
-
-    Parameters
-    ----------
-    x : np.ndarray[i, j]
-        Time series of measurement values. The mean frequency is computed
-        along the last axis (-1).
-    fs : float, optional
-        Sampling frequency of the `x` time series. Defaults to 1.0.
-
-    Returns
-    -------
-    mnfreq : np.ndarray
-        Array of mean frequencies.
-    """
-    if x.ndim == 1:
-        x = x.reshape(1, -1)
-
-    assert x.ndim == 2
-
-    f, Pxx_den = signal.periodogram(x, fs, axis=-1)
-    width = np.tile(f[1] - f[0], Pxx_den.shape)
-    P = Pxx_den * width
-    pwr = np.sum(P, axis=1).reshape(-1, 1)
-
-    f = f.reshape(1, -1)
-
-    mnfreq = np.dot(P, f.T) / pwr
-
-    return mnfreq
-
-
 class Vibration:
 
-    @staticmethod
-    def calculate_all(trajectory: Trajectory, extras: SimpleNamespace) -> dict:
+    def __init__(self, trajectory: Trajectory, fs: float = 1.0):
         """Calculate Vibration properties.
 
         Parameters
         ----------
         trajectory : Trajectory
             Input trajectory
-        extras : SimpleNamespace
-            Extra variables
+        fs : float, optional
+            Sampling frequency
+        """
+
+        self.trajectory = trajectory
+        self.fs = 1 / trajectory.time_step
+
+    @staticmethod
+    def meanfreq(x: np.ndarray, fs):
+        """Estimates the mean frequency in terms of the sample rate, fs.
+
+        Vectorized version of https://stackoverflow.com/a/56487241
+
+        Parameters
+        ----------
+        x : np.ndarray[i, j]
+            Time series of measurement values. The mean frequency is computed
+            along the last axis (-1).
+        fs : float, optional
+            Sampling frequency of the `x` time series. Defaults to 1.0.
+
+        Returns
+        -------
+        mnfreq : np.ndarray
+            Array of mean frequencies.
+        """
+        if x.ndim == 1:
+            x = x.reshape(1, -1)
+
+        assert x.ndim == 2
+
+        f, Pxx_den = signal.periodogram(x, fs, axis=-1)
+        width = np.tile(f[1] - f[0], Pxx_den.shape)
+        P = Pxx_den * width
+        pwr = np.sum(P, axis=1).reshape(-1, 1)
+
+        f = f.reshape(1, -1)
+
+        mnfreq = np.dot(P, f.T) / pwr
+
+        return mnfreq
+
+    @staticmethod
+    def calculate_all(trajectory: Trajectory, extras: SimpleNamespace) -> dict:
+        """Extras : SimpleNamespace Extra variables.
 
         Returns
         -------
@@ -83,8 +91,8 @@ class Vibration:
             'fs': fs,
         }
 
-    @staticmethod
-    def speed(displacements: np.ndarray) -> np.ndarray:
+    @lru_cache
+    def speed(self) -> np.ndarray:
         """Calculate attempt frequency.
 
         Parameters
@@ -97,19 +105,16 @@ class Vibration:
         speed : np.ndarray
             Output array with speeds
         """
-        return np.diff(displacements, prepend=0)
+        return np.diff(self.trajectory.displacements(), prepend=0)
 
-    @staticmethod
-    def attempt_frequency(speed: np.ndarray,
-                          fs: float = 1) -> tuple[float, float]:
+    @lru_cache
+    def attempt_frequency(self) -> tuple[float, float]:
         """Calculate attempt frequency.
 
         Parameters
         ----------
         speed : np.ndarray
             Input array with displacement speeds
-        fs : float, optional
-            Sampling frequency
 
         Returns
         -------
@@ -118,7 +123,7 @@ class Vibration:
         attempt_freq_std : float
             Attempt frequency standard deviation
         """
-        freq_mean = meanfreq(speed, fs=fs)
+        freq_mean = self.meanfreq(self.speed(), fs=self.fs)
 
         attempt_freq = np.mean(freq_mean)
         attempt_freq_std = np.std(freq_mean)
@@ -128,8 +133,8 @@ class Vibration:
 
         return attempt_freq, attempt_freq_std
 
-    @staticmethod
-    def amplitudes(speed: np.ndarray) -> np.ndarray:
+    @lru_cache
+    def amplitudes(self) -> np.ndarray:
         """Calculate vibration amplitude.
 
         Parameters
@@ -146,7 +151,7 @@ class Vibration:
         """
         amplitudes = []
 
-        for i, speed_range in enumerate(speed):
+        for i, speed_range in enumerate(self.speed()):
             signs = np.sign(speed_range)
 
             # get indices where sign flips
@@ -158,10 +163,9 @@ class Vibration:
 
         return np.asarray(amplitudes)
 
-    @staticmethod
-    def vibration_amplitude(amplitudes: np.ndarray) -> float:
-        mean_vib = np.mean(amplitudes)
-        vibration_amp: float = np.std(amplitudes)
+    def vibration_amplitude(self) -> float:
+        mean_vib = np.mean(self.amplitudes())
+        vibration_amp: float = np.std(self.amplitudes())
 
         mean_vib = FloatWithUnit(mean_vib, 'ang')
         vibration_amp = FloatWithUnit(vibration_amp, 'ang')

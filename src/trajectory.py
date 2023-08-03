@@ -15,10 +15,6 @@ from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 
 class Trajectory(PymatgenTrajectory):
 
-    def __init__(self, diffusing_element=None, **kwargs):
-        super().__init__(**kwargs)
-        self.diffusing_element = diffusing_element
-
     @classmethod
     def from_cache(cls, cache: str | Path):
         """Load data from cache using pickle.
