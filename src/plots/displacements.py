@@ -3,17 +3,17 @@ import numpy as np
 from gemdat.trajectory import Trajectory
 
 
-def plot_displacement_per_site(*, diff_displacements: np.ndarray, **kwargs):
+def displacement_per_site(*, trajectory: Trajectory, **kwargs):
     """Plot displacement per site.
 
     Parameters
     ----------
-    displacements : np.ndarray
-        Numpy array with displacements
+    trajectory : Trajectory
+    trajectory class containing trajectories, displacements
     """
     fig, ax = plt.subplots()
 
-    for site_displacement in diff_displacements:
+    for site_displacement in trajectory.displacements():
         ax.plot(site_displacement, lw=0.3)
 
     ax.set(title='Displacement of diffusing element',
@@ -23,8 +23,7 @@ def plot_displacement_per_site(*, diff_displacements: np.ndarray, **kwargs):
     return fig
 
 
-def plot_displacement_per_element(*, displacements: np.ndarray,
-                                  trajectory: Trajectory, **kwargs):
+def displacement_per_element(*, trajectory: Trajectory, **kwargs):
     """Plot displacement per element.
 
     Parameters
@@ -41,6 +40,7 @@ def plot_displacement_per_element(*, displacements: np.ndarray,
 
     trajectory.get_structure(0)
     species = trajectory.species
+    displacements = trajectory.displacements()
 
     for specie, displacement in zip(species, displacements):
         grouped[specie.name].append(displacement)
@@ -59,17 +59,16 @@ def plot_displacement_per_element(*, displacements: np.ndarray,
     return fig
 
 
-def plot_displacement_histogram(diff_displacements: np.ndarray, **kwargs):
-    """Plot histogram of total displacement of diffusing element at final
-    timestep.
+def displacement_histogram(*, trajectory: Trajectory, **kwargs):
+    """Plot histogram of total displacement at final timestep.
 
     Parameters
     ----------
-    diff_displacements : np.ndarray
-        Numpy array with displacements of diffusing element
+    trajectory : Trajectory
+        trajectories of elements for which to plot displacement
     """
     fig, ax = plt.subplots()
-    ax.hist(diff_displacements[:, -1])
+    ax.hist(trajectory.displacements()[:, -1])
     ax.set(title='Histogram of displacement of diffusing element',
            xlabel='Displacement (Angstrom)',
            ylabel='Nr. of atoms')
