@@ -1,11 +1,11 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
 from gemdat import SitesData, __version__, plot_all
-from gemdat.calculate import calculate_all
 from gemdat.io import get_list_of_known_materials, load_known_material
 from gemdat.rdf import calculate_rdfs, plot_rdf
 from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
+from gemdat.vibration import Vibration
 
 st.set_page_config(
     page_title='Gemdat dashboard',
@@ -81,27 +81,29 @@ number_of_cols = 3  # Number of figure columns
 
 with st.spinner('Processing trajectory...'):
     trajectory = trajectory[equilibration_steps:]
-    extra = calculate_all(trajectory, diffusing_element=diffusing_element)
+    trajectory_diff = trajectory.filter(diffusing_element)
+    trajectory_diff.precompute()
+    vibration = Vibration(trajectory_diff, fs=1.0)
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     import uncertainties as u
-    attempt_freq = u.ufloat(extra.attempt_freq, extra.attempt_freq_std)
+    attempt_freq = u.ufloat(vibration.attempt_frequency())
     st.metric('Attempt frequency ($\\mathrm{s^{-1}}$)',
               value=f'{attempt_freq:g}')
     st.metric('Vibration amplitude ($\\mathrm{Å}$)',
-              value=f'{extra.vibration_amplitude:g}')
+              value=f'{vibration.vibration_amplitude():g}')
 with col2:
     st.metric('Particle density ($\\mathrm{m^{-3}}$)',
-              value=f'{extra.particle_density:g}')
+              value=f'{trajectory.particle_density():g}')
     st.metric('Mol per liter ($\\mathrm{mol/l}$)',
-              value=f'{extra.mol_per_liter:g}')
+              value=f'{trajectory.mol_per_liter:g}')
 with col3:
     st.metric('Tracer diffusivity ($\\mathrm{m^2/s}$)',
-              value=f'{extra.tracer_diff:g}')
+              value=f'{trajectory.tracer_diffusivity():g}')
     st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
-              value=f'{extra.tracer_conduc:g}')
+              value=f'{trajectory.tracer_conductivity():g}')
 
 tab1, tab2 = st.tabs(['Default plots', 'RDF plots'])
 
@@ -119,12 +121,12 @@ with tab1:
         st.stop()
 
     with st.spinner('Calculating jumps...'):
-        sites = SitesData(sites_structure)
-        sites.calculate_all(trajectory=trajectory, extras=extra)
+        sites = SitesData(sites_structure, trajectory_diff, vibration)
+        sites.precompute()
 
-    figures = plot_all(trajectory=trajectory,
+    figures = plot_all(trajectory=trajectory_diff,
                        sites=sites,
-                       **vars(extra),
+                       vibration=vibration,
                        show=False)
 
     # automagically divide the plots over the number of columns
@@ -150,8 +152,6 @@ with tab2:
             rdfs = calculate_rdfs(
                 trajectory=trajectory,
                 sites=sites,
-                diff_coords=extra.diff_coords,
-                n_steps=extra.n_steps,
                 max_dist=max_dist_rdf,
                 resolution=resolution_rdf,
             )

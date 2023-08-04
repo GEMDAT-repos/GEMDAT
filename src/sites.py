@@ -31,6 +31,9 @@ class SitesData:
         lattice = self.trajectory.get_lattice()
         self.warn_if_lattice_not_similar(lattice)
 
+    def precompute(self):
+        pass
+
     @property
     def site_coords(self):
         return self.structure.frac_coords

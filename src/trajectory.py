@@ -91,6 +91,9 @@ class Trajectory(PymatgenTrajectory):
 
         return obj
 
+    def precompute(self):
+        pass
+
     def parts(self, n_parts: int) -> List[Self]:
         """Split the trajectory into n_part trajectories .
 
@@ -213,7 +216,7 @@ class Trajectory(PymatgenTrajectory):
 
     @property
     def total_time(self):
-        return len(self.trajectory) * self.time_step
+        return len(self) * self.time_step
 
     @lru_cache
     def particle_density(self) -> FloatWithUnit:
@@ -227,7 +230,7 @@ class Trajectory(PymatgenTrajectory):
 
         n_diffusing = len(self.species)
 
-        volume_ang = self.lattice.volume  # type: ignore
+        volume_ang = self.get_lattice().volume  # type: ignore
 
         volume_m3 = volume_ang * angstrom**3
         return FloatWithUnit(n_diffusing / volume_m3, 'm^-3')
