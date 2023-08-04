@@ -1,7 +1,4 @@
-from types import SimpleNamespace
-
 import numpy as np
-from gemdat.calculate import Displacements
 from gemdat.trajectory import Trajectory
 from pymatgen.core import Species
 
@@ -16,13 +13,11 @@ trajectory = Trajectory(
     lattice=np.eye(3),
     species=[Species('Li')],
 )
-extras = SimpleNamespace(diffusing_element='Li', )
 
 
-def test_displacement_calculate_all():
-    ret = Displacements.calculate_all(trajectory, extras)
+def test_cell_offsets():
     assert np.array_equal(
-        ret['cell_offsets'],
+        trajectory._cell_offsets(),
         np.array([
             [[0, 0, 0]],
             [[1, 0, 1]],
@@ -30,10 +25,16 @@ def test_displacement_calculate_all():
             [[1, 0, 1]],
             [[0, 0, 1]],
         ]))
+
+
+def test_displacements():
     assert np.allclose(
-        ret['displacements'],
+        trajectory.displacements(),
         np.array([[0., 0.73654599, 0.10440307, 0.70356236, 0.17204651]]))
 
+
+def test_filter():
+    li_trajectory = trajectory.filter(diffusing_element='Li')
     assert np.allclose(
-        ret['diff_displacements'],
+        li_trajectory.displacements(),
         np.array([[0., 0.73654599, 0.10440307, 0.70356236, 0.17204651]]))

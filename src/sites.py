@@ -62,10 +62,10 @@ class SitesData:
 
     def correlation_factor(self):
         """Correlation factor."""
-        return self.trajectory.tracer_diffusivity / self.jump_diffusivity()
+        return self.trajectory.tracer_diffusivity() / self.jump_diffusivity()
 
     def solo_frac(self):
-        return self.n_solo_jumps / len(self.all_transitions())
+        return self.collective()[2] / len(self.all_transitions())
 
     def warn_if_lattice_not_similar(self, other_lattice: Lattice):
         this_lattice = self.structure.lattice
@@ -233,25 +233,20 @@ class SitesData:
 
         return parts
 
-    @property
-    def transitions_parts(self):
-        return np.stack([part.transitions for part in self.parts()])
+    def transitions_parts(self, n_parts: int):
+        return np.stack([part.transitions() for part in self.parts(n_parts)])
 
-    @property
-    def occupancy_parts(self):
-        return [part.occupancy for part in self.parts()]
+    def occupancy_parts(self, n_parts: int):
+        return [part.occupancy() for part in self.parts(n_parts)]
 
-    @property
-    def site_occupancy_parts(self):
-        return [part.site_occupancy for part in self.parts()]
+    def site_occupancy_parts(self, n_parts: int):
+        return [part.site_occupancy() for part in self.parts(n_parts)]
 
-    @property
-    def atom_locations_parts(self):
-        return [part.atom_locations for part in self.parts()]
+    def atom_locations_parts(self, n_parts: int):
+        return [part.atom_locations() for part in self.parts(n_parts)]
 
-    @property
-    def jumps_parts(self):
-        return [part.jumps for part in self.parts()]
+    def jumps_parts(self, n_parts: int):
+        return [part.jumps() for part in self.parts(n_parts)]
 
     def atom_locations(self) -> dict[str, float]:
         """Calculate fraction of time atoms spent at a type of site.
@@ -284,13 +279,15 @@ class SitesData:
 
         return jumps
 
-    def rates(self) -> dict[tuple[str, str], tuple[float, float]]:
+    def rates(self, n_parts) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate jump rates (total jumps / second).
 
         Parameters
         ----------
         total_time : int
             Total time for the simulation
+        n_parts : int
+            total number of parts
 
         Returns
         -------
@@ -299,10 +296,8 @@ class SitesData:
         """
         rates: dict[tuple[str, str], tuple[float, float]] = {}
 
-        n_parts = len(self.parts())
-
         for site_pair in self.jumps():
-            n_jumps = [part[site_pair] for part in self.jumps_parts()]
+            n_jumps = [part[site_pair] for part in self.jumps_parts(n_parts)]
 
             part_time = self.trajectory.total_time / n_parts
             denom = len(self.trajectory.species) * part_time
@@ -314,8 +309,8 @@ class SitesData:
 
         return rates
 
-    def calculate_activation_energies(
-            self) -> dict[tuple[str, str], tuple[float, float]]:
+    def activation_energies(
+            self, n_parts: int) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate activation energies for jumps (UNITS?).
 
         Parameters
@@ -325,19 +320,20 @@ class SitesData:
         -------
         e_act : dict[tuple[str, str], tuple[float, float]]
             Dictionary with jump activation energies and standard deviations between site pairs.
+        n_parts : int
+            total number of parts
         """
         e_act = {}
-
-        n_parts = len(self.parts())
 
         for i, site_pair in enumerate(self.jumps()):
             site_start, site_stop = site_pair
 
-            n_jumps = np.array([part[site_pair] for part in self.jumps_parts])
+            n_jumps = np.array(
+                [part[site_pair] for part in self.jumps_parts(n_parts)])
 
             part_time = self.trajectory.total_time / n_parts
 
-            atom_percentage = self.atom_locations_parts[i][site_start]
+            atom_percentage = self.atom_locations_parts(n_parts)[i][site_start]
 
             denom = atom_percentage * len(self.trajectory.species) * part_time
 
@@ -348,7 +344,7 @@ class SitesData:
                 eff_rate /= 2
 
             e_act_arr = -np.log(
-                eff_rate / self.vibration.attempt_frequency) * (
+                eff_rate / self.vibration.attempt_frequency()[0]) * (
                     Boltzmann *
                     self.trajectory.temperature) / elementary_charge
 
@@ -373,7 +369,7 @@ class SitesData:
         """
         structure = self.structure
 
-        pdist = structure.get_lattice().get_all_distances(
+        pdist = self.trajectory.get_lattice().get_all_distances(
             structure.frac_coords, structure.frac_coords)
 
         jump_diff = np.sum(pdist**2 * self.transitions())
@@ -496,7 +492,7 @@ class SitesData:
         multi_coll : np.ndarray
             Dictionary with indices of sites between which jumps happen and their counts.
         """
-        coll_sorted = np.sort(np.array(self.collective).flatten())
+        coll_sorted = np.sort(np.array(self.collective()[0]).flatten())
         difference = np.diff(coll_sorted, prepend=0)
         multi_coll = coll_sorted[difference == 0]
 
@@ -617,7 +613,7 @@ class SitesData:
             label = labels[k]
             counts[label].append(v)
 
-        div = len(labels) * self.trajectory.n_steps
+        div = len(labels) * len(self.trajectory)
         site_occupancies = {k: sum(v) / div for k, v in counts.items()}
         # site_occupancies['total'] = sum(chain(*counts.values())) / (len(occupancy) * n_steps)
 

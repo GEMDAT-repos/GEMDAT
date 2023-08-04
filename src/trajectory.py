@@ -107,7 +107,7 @@ class Trajectory(PymatgenTrajectory):
         List[Trajectory]
         """
 
-        bins = np.linspace(0, self.n_steps + 1, n_parts + 1, dtype=int)
+        bins = np.linspace(0, len(self) + 1, n_parts + 1, dtype=int)
 
         return [self[bins[i - 1]:bins[i]] for i in range(1, len(bins))]
 
@@ -317,11 +317,11 @@ class Trajectory(PymatgenTrajectory):
         """
         new = copy.deepcopy(self)
 
-        idx = np.argwhere([
+        idx = [
             e == diffusing_element
             if isinstance(e, str) else e.name == diffusing_element
             for e in self.species
-        ])
-        new.coords = self.coords[:, idx].squeeze()
+        ]
+        new.coords = self.coords[:, idx]
         new.species = list(compress(self.species, idx))
         return new

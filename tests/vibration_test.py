@@ -1,30 +1,36 @@
-from types import SimpleNamespace
-
 import numpy as np
-from gemdat.calculate import Vibration
-from gemdat.calculate.vibration import meanfreq
+from gemdat import Trajectory, Vibration
+from pymatgen.core import Species
 
-mock_trajectory = SimpleNamespace(time_step=1)
-extras = SimpleNamespace(diff_displacements=np.array(
-    [[0., 0.73654599, 0.10440307, 0.70356236, 0.17204651]]), )
+trajectory = Trajectory(
+    coords=np.array([
+        [[0., .0, .1]],
+        [[0., .0, .2]],
+        [[0., .0, .1]],
+        [[0., .0, .175]],
+        [[0., .0, .125]],
+        [[0., .0, .175]],
+    ]),
+    lattice=np.eye(3),
+    species=[Species('Li')],
+    time_step=1,
+)
 
 
 def test_vibration_calculate_all():
-    ret = Vibration.calculate_all(mock_trajectory, extras)
-    assert (np.allclose(
-        ret['speed'],
-        np.array([[0., 0.73654599, -0.63214292, 0.59915929, -0.53151585]])))
-    assert (np.isclose(ret['attempt_freq'], 0.38779581521997086))
-    assert (np.isclose(ret['attempt_freq_std'], 0.))
-    assert (np.allclose(
-        ret['amplitudes'],
-        np.array([0.73654599, -0.63214292, 0.59915929, -0.53151585])))
-    assert (np.isclose(ret['vibration_amplitude'], 0.6277351391878859))
+    ret = Vibration(trajectory, fs=1.0)
+    assert (np.allclose(ret.speed(),
+                        np.array([[0., 0.1, -0.1, 0.075, -0.05, 0.05]])))
+    assert (np.isclose(ret.attempt_frequency()[0], 0.4543859649122808))  # freq
+    assert (np.isclose(ret.attempt_frequency()[1], 0.))  # std deviation
+    assert (np.allclose(ret.amplitudes(),
+                        np.array([0.1, -0.1, 0.075, -0.05, 0.05])))
+    assert (np.isclose(ret.vibration_amplitude(), 0.07681145747868609))
 
 
 def test_meanfreq_single_timestep():
     x = np.sin(np.linspace(0, 1, 6))
-    ret = meanfreq(x)
+    ret = Vibration.meanfreq(x, fs=1.0)
 
     expected = np.array([[0.2303359]])
 
@@ -37,7 +43,7 @@ def test_meanfreq():
         np.sin(np.linspace(0, 2, 6)),
         np.sin(np.linspace(0, 3, 6)),
     ])
-    ret = meanfreq(x)
+    ret = Vibration.meanfreq(x, fs=1.0)
 
     expected = np.array([[0.2303359], [0.21308077], [0.17074241]])
 
