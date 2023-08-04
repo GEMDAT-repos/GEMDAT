@@ -3,7 +3,7 @@ import pickle
 from functools import lru_cache
 from itertools import compress
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 from pymatgen.core import Lattice
@@ -11,6 +11,7 @@ from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.core.units import FloatWithUnit
 from pymatgen.io import vasp
 from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
+from typing_extensions import Self
 
 
 class Trajectory(PymatgenTrajectory):
@@ -89,6 +90,23 @@ class Trajectory(PymatgenTrajectory):
             obj.to_cache(cache)
 
         return obj
+
+    def parts(self, n_parts: int) -> List[Self]:
+        """Split the trajectory into n_part trajectories .
+
+        Parameters
+        ----------
+        n_parts : int
+            number of parts to split into
+
+        Returns
+        -------
+        List[Trajectory]
+        """
+
+        bins = np.linspace(0, self.n_steps + 1, n_parts + 1, dtype=int)
+
+        return [self[bins[i - 1]:bins[i]] for i in range(1, len(bins))]
 
     def get_lattice(self, idx: int | None = None) -> Lattice:
         """Get lattice.

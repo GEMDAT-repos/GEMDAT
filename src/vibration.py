@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
 
 class Vibration:
 
-    def __init__(self, trajectory: Trajectory, fs: float = 1.0):
+    def __init__(self, trajectory: Trajectory, fs: float):
         """Calculate Vibration properties.
 
         Parameters

@@ -13,11 +13,11 @@ if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
 
-def plot_jumps_vs_distance(*,
-                           trajectory: Trajectory,
-                           sites: SitesData,
-                           jump_res: float = 0.1,
-                           **kwargs) -> plt.Figure:
+def jumps_vs_distance(*,
+                      trajectory: Trajectory,
+                      sites: SitesData,
+                      jump_res: float = 0.1,
+                      **kwargs) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -44,25 +44,25 @@ def plot_jumps_vs_distance(*,
     counts = np.zeros_like(x)
 
     bin_idx = np.digitize(pdist, bins=x)
-    for idx, n in zip(bin_idx.flatten(), sites.transitions.flatten()):
+    for idx, n in zip(bin_idx.flatten(), sites.transitions().flatten()):
         counts[idx] += n
 
     fig, ax = plt.subplots()
 
     ax.bar(x, counts, width=(jump_res * 0.8))
 
-    ax.set(title='Frequency vs Occurence',
+    ax.set(title='Jumps vs Distance',
            xlabel='Frequency (Hz)',
            ylabel='Occurrence (a.u.)')
 
     return fig
 
 
-def plot_jumps_vs_time(*,
-                       trajectory: Trajectory,
-                       sites: SitesData,
-                       binsize: int = 500,
-                       **kwargs) -> plt.Figure:
+def jumps_vs_time(*,
+                  trajectory: Trajectory,
+                  sites: SitesData,
+                  binsize: int = 500,
+                  **kwargs) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -84,7 +84,7 @@ def plot_jumps_vs_time(*,
 
     fig, ax = plt.subplots()
 
-    ax.hist(sites.all_transitions[:, 4], bins=bins, width=0.8 * binsize)
+    ax.hist(sites.all_transitions()[:, 4], bins=bins, width=0.8 * binsize)
 
     ax.set(title='Jumps vs. time',
            xlabel='Time (steps)',
@@ -93,8 +93,8 @@ def plot_jumps_vs_time(*,
     return fig
 
 
-def plot_collective_jumps(*, trajectory: Trajectory, sites: SitesData,
-                          **kwargs) -> plt.Figure:
+def collective_jumps(*, trajectory: Trajectory, sites: SitesData,
+                     **kwargs) -> plt.Figure:
     """Plot collective jumps per jump-type combination.
 
     Parameters
@@ -110,7 +110,7 @@ def plot_collective_jumps(*, trajectory: Trajectory, sites: SitesData,
     """
     fig, ax = plt.subplots()
 
-    mat = ax.imshow(sites.coll_matrix)
+    mat = ax.imshow(sites.collective_matrix())
 
     ticks = range(len(sites.jump_names))
 
@@ -124,8 +124,8 @@ def plot_collective_jumps(*, trajectory: Trajectory, sites: SitesData,
     return fig
 
 
-def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData,
-                  **kwargs) -> plt.Figure:
+def jumps_3d(*, trajectory: Trajectory, sites: SitesData,
+             **kwargs) -> plt.Figure:
     """Plot jumps in 3D.
 
     Parameters
@@ -167,9 +167,10 @@ def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData,
                         color='green',
                         size=12)
     plotter.plot_points(coords, lattice=lattice, ax=ax)
+    transitions = sites.transitions()
 
     for i, j in zip(*np.triu_indices(len(coords), k=1)):
-        count = sites.transitions[i, j] + sites.transitions[j, i]
+        count = transitions[i, j] + transitions[j, i]
         if count == 0:
             continue
 
@@ -207,15 +208,15 @@ def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData,
     return fig
 
 
-def plot_jumps_3d_animation(*,
-                            trajectory: Trajectory,
-                            sites: SitesData,
-                            t_start: int,
-                            t_stop: int,
-                            decay: float = 0.05,
-                            skip: int = 5,
-                            interval: int = 20,
-                            **kwargs):
+def jumps_3d_animation(*,
+                       trajectory: Trajectory,
+                       sites: SitesData,
+                       t_start: int,
+                       t_stop: int,
+                       decay: float = 0.05,
+                       skip: int = 5,
+                       interval: int = 20,
+                       **kwargs):
     """Plot jumps in 3D as an animation over time.
 
     # TODO
