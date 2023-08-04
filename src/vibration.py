@@ -8,7 +8,6 @@ from pymatgen.core.units import FloatWithUnit
 from scipy import signal
 
 if typing.TYPE_CHECKING:
-    from types import SimpleNamespace
 
     from gemdat.trajectory import Trajectory
 
@@ -64,23 +63,17 @@ class Vibration:
 
         return mnfreq
 
-    @staticmethod
-    def calculate_all(trajectory: Trajectory, extras: SimpleNamespace) -> dict:
-        """Extras : SimpleNamespace Extra variables.
-
+    def calculate_all(self) -> dict:
+        """
         Returns
         -------
         extras : dict[str, float]
             Dictionary with calculated parameters
         """
-        fs = 1 / trajectory.time_step
-
-        speed = Vibration.speed(extras.diff_displacements)
-        attempt_freq, attempt_freq_std = Vibration.attempt_frequency(speed,
-                                                                     fs=fs)
-
-        amplitudes = Vibration.amplitudes(speed)
-        vibration_amplitude = Vibration.vibration_amplitude(amplitudes)
+        speed = Vibration.speed()
+        attempt_freq, attempt_freq_std = self.attempt_frequency()
+        amplitudes = self.amplitudes()
+        vibration_amplitude = self.vibration_amplitude()
 
         return {
             'speed': speed,
@@ -88,7 +81,7 @@ class Vibration:
             'attempt_freq_std': attempt_freq_std,
             'amplitudes': amplitudes,
             'vibration_amplitude': vibration_amplitude,
-            'fs': fs,
+            'fs': self.fs,
         }
 
     @lru_cache

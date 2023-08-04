@@ -52,10 +52,11 @@ with st.sidebar:
     diffusing_element = st.selectbox('Diffusive Element',
                                      elements,
                                      index=index)
-    equilibration_steps = st.number_input('Equilibration Steps',
-                                          min_value=0,
-                                          max_value=len(trajectory) - 1,
-                                          value=1250)
+    equilibration_steps: int = int(
+        st.number_input('Equilibration Steps',
+                        min_value=0,
+                        max_value=len(trajectory) - 1,
+                        value=1250))
 
     sites_filename = st.selectbox('Load sites from known material',
                                   KNOWN_MATERIALS)
