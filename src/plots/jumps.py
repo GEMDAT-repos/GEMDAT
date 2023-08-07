@@ -51,9 +51,9 @@ def plot_jumps_vs_distance(*,
 
     ax.bar(x, counts, width=(jump_res * 0.8))
 
-    ax.set(title='Frequency vs Occurence',
-           xlabel='Frequency (Hz)',
-           ylabel='Occurrence (a.u.)')
+    ax.set(title='Jumps vs. Distance',
+           xlabel='Distance (Angstrom)',
+           ylabel='Number of jumps')
 
     return fig
 
