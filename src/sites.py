@@ -65,8 +65,8 @@ class SitesData:
             trajectory, vibration_amplitude=extras.vibration_amplitude)
         self.atom_sites = self.calculate_atom_sites(
             trajectory, diff_coords=extras.diff_coords)
-        self.atom_sites_to, self.atom_sites_from = self.calculate_atom_sites_transitions(
-        )
+        self.atom_sites_from = self.calculate_atom_sites_from()
+        self.atom_sites_to = self.calculate_atom_sites_to()
 
         self.all_transitions = self.calculate_transition_events()
 
@@ -230,23 +230,29 @@ class SitesData:
 
         return np.hstack(atom_sites)
 
-    def calculate_atom_sites_transitions(
-            self) -> tuple[np.ndarray, np.ndarray]:
-        """Calculate atom transition states per time step by back/forward filling
+    def calculate_atom_sites_from(self) -> np.ndarray:
+        """Calculate atom transition states per time step by forward filling
         `self.atom_sites`.
 
         Returns
         -------
-        atom_sites_from, atom_sites_to : tuple[np.ndarray, np.ndarray]
+        atom_sites_from : np.ndarray
             Output arrays with atom transition states. `atom_sites_from` contains
-            the index of the previous site for every atom, and `atom_sites_to` the
-            next site. If `atom_sites_from` and `atom_sites_to` are equal, the atom
-            is currently sitting at that site.
+            the index of the previous site for every atom.
         """
-        atom_sites_from = ffill(self.atom_sites, fill_val=NOSITE, axis=0)
-        atom_sites_to = bfill(self.atom_sites, fill_val=NOSITE, axis=0)
+        return ffill(self.atom_sites, fill_val=NOSITE, axis=0)
 
-        return atom_sites_from, atom_sites_to
+    def calculate_atom_sites_to(self) -> np.ndarray:
+        """Calculate atom transition states per time step by backward filling
+        `self.atom_sites`.
+
+        Returns
+        -------
+        atom_sites_from, atom_sites_to : np.ndarray
+            Output arrays with atom transition states. `atom_sites_to` contains
+            the index of the next site for every atom.
+        """
+        return bfill(self.atom_sites, fill_val=NOSITE, axis=0)
 
     def calculate_occupancy(self):
         """Calculate occupancy per site.
@@ -282,7 +288,8 @@ class SitesData:
         for i, part in enumerate(parts):
             part.dist_close = self.dist_close
             part.atom_sites = split_atom_sites[i]
-            part.calculate_atom_sites_transitions()
+            part.atom_sites_to = part.calculate_atom_sites_to()
+            part.atom_sites_from = part.calculate_atom_sites_from()
 
             part.all_transitions = split_transitions[i]
 

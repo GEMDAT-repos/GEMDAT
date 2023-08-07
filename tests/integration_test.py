@@ -127,9 +127,9 @@ def test_sites(gemdat_results, structure):
     assert sites.atom_sites.shape == (n_steps, n_diffusing)
     assert sites.atom_sites.sum() == 6154859
     assert sites.atom_sites_to.shape == (n_steps, n_diffusing)
-    assert sites.atom_sites_to.sum() == 8148552
+    assert sites.atom_sites_to.sum() == 8172006
     assert sites.atom_sites_from.shape == (n_steps, n_diffusing)
-    assert sites.atom_sites_from.sum() == 8172006
+    assert sites.atom_sites_from.sum() == 8148552
 
     assert sites.all_transitions.shape == (450, 5)
 
