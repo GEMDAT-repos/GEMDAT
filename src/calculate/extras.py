@@ -3,8 +3,6 @@ from __future__ import annotations
 import typing
 from types import SimpleNamespace
 
-import numpy as np
-
 from .displacements import Displacements
 from .tracer import Tracer
 from .vibration import Vibration
@@ -65,9 +63,3 @@ def _add_shared_variables(trajectory: Trajectory, extras: SimpleNamespace):
     extras.n_steps = len(trajectory)
 
     extras.total_time = extras.n_steps * trajectory.time_step
-
-    diffusing_idx = np.argwhere([
-        e.name == extras.diffusing_element for e in trajectory.species
-    ]).flatten()
-
-    extras.diff_coords = trajectory.coords[:, diffusing_idx, :]

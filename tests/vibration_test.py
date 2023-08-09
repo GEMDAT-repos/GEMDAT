@@ -4,22 +4,18 @@ import numpy as np
 from gemdat.calculate import Vibration
 from gemdat.calculate.vibration import meanfreq
 
-mock_trajectory = SimpleNamespace(time_step=1)
-extras = SimpleNamespace(diff_displacements=np.array(
-    [[0., 0.73654599, 0.10440307, 0.70356236, 0.17204651]]), )
 
+def test_vibration_calculate_all(trajectory):
+    extras = SimpleNamespace(diff_displacements=np.array(
+        [[0., 0.1, 0.2, 0.3, 0.4]]), )
 
-def test_vibration_calculate_all():
-    ret = Vibration.calculate_all(mock_trajectory, extras)
-    assert (np.allclose(
-        ret['speed'],
-        np.array([[0., 0.73654599, -0.63214292, 0.59915929, -0.53151585]])))
-    assert (np.isclose(ret['attempt_freq'], 0.38779581521997086))
-    assert (np.isclose(ret['attempt_freq_std'], 0.))
-    assert (np.allclose(
-        ret['amplitudes'],
-        np.array([0.73654599, -0.63214292, 0.59915929, -0.53151585])))
-    assert (np.isclose(ret['vibration_amplitude'], 0.6277351391878859))
+    ret = Vibration.calculate_all(trajectory, extras)
+
+    assert (np.allclose(ret['speed'], np.array([[0., 0.1, 0.1, 0.1, 0.1]])))
+    assert (np.isclose(ret['attempt_freq'], 0.3))
+    assert (np.isclose(ret['attempt_freq_std'], 0.0))
+    assert (np.allclose(ret['amplitudes'], np.array([0.4])))
+    assert (np.isclose(ret['vibration_amplitude'], 0.0))
 
 
 def test_meanfreq_single_timestep():

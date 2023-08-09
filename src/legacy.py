@@ -109,7 +109,7 @@ def analyse_md(
     filename = 'volume.vasp'
     print(f'Writing trajectory as a volume to `{filename}')
 
-    trajectory_to_vasp_volume(coords=extras.diff_coords,
+    trajectory_to_vasp_volume(trajectory=trajectory.filter(diff_elem),
                               structure=trajectory.get_structure(0),
                               resolution=density_resolution,
                               filename=filename)
@@ -118,8 +118,7 @@ def analyse_md(
         rdf_data = calculate_rdfs(
             trajectory=trajectory,
             sites=sites,
-            diff_coords=extras.diff_coords,
-            n_steps=extras.n_steps,
+            species=diff_elem,
             max_dist=rdf_max_dist,
             resolution=rdf_res,
         )

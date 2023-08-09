@@ -27,21 +27,37 @@ Suggestions, improvements, and edits are most welcome.
 
 ## Usage
 
-The following snippet can be used to test the code (provided that you have some VASP data or intermediate `.mat` files.
+The following snippet can be used to test the code using VASP data.
 
 ```python
-from gemdat import SimulationData, plot_all, plot
+from gemdat import Trajectory, plot_all, plot
+from gemdat.calculate.extras import calculate_all
 
-data = SimulationData.from_vasprun(Path('../example/vasprun.xml'), cache=Path('cache'))
-extra = data.calculate_all(equilibration_steps=1250, diffusing_element='Li')
+trajectory = Trajectory.from_vasprun(Path('../example/vasprun.xml'))
+extras = calculate_all(diffusing_element='Li')
 
-plot_all(data = data, **extra)
+structure = load_known_material('argyrodite', supercell=(2, 1, 1))
+
+sites = SitesData(structure)
+sites.calculate_all(trajectory=trajectory,
+                    extras=extras)
+
+plot_all(trajectory=trajectory,
+         sites=sites,
+         **vars(extras),
 ```
 
-**not yet available:**
+Or, one function to do everything:
+
 ```python
-import gemdat
-gemdat.analyse_md('<path to data>', 'Li', 'argyrodite')
+from gemdat.legacy import analyse_md
+
+trajectory, sites, extras = analyse_md(
+   '/data/vasprun.xml',
+   diff_elem='Li',
+   supercell=(2, 1, 1),
+   material='argyrodite',
+)
 ```
 
 ## Development
