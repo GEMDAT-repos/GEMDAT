@@ -10,6 +10,10 @@ from pymatgen.io import vasp
 
 class Trajectory(PymatgenTrajectory):
 
+    def __init__(self, *, metadata: dict | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.metadata = metadata if metadata else None
+
     @classmethod
     def from_cache(cls, cache: str | Path):
         """Load data from cache using pickle.
@@ -70,13 +74,15 @@ class Trajectory(PymatgenTrajectory):
             parse_potcar_file=False,
         )
 
+        metadata = {'temperature': run.parameters['TEBEG']}
+
         obj = cls.from_structures(
             run.structures,
             constant_lattice=True,
             time_step=run.parameters['POTIM'] * 1e-15,
+            metadata=metadata,
         )
         obj.to_positions()
-        obj.temperature = run.parameters['TEBEG']
 
         if cache:
             obj.to_cache(cache)
@@ -107,7 +113,7 @@ class Trajectory(PymatgenTrajectory):
         new = super().__getitem__(frames)
         if isinstance(new, PymatgenTrajectory):
             new.__class__ = self.__class__
-            new.temperature = self.temperature
+            new.metadata = self.metadata
         return new
 
     def filter(self, species: str | Sequence[str]):

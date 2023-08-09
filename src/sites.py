@@ -114,7 +114,7 @@ class SitesData:
                 total_time=extras.total_time,
                 n_diffusing=extras.n_diffusing,
                 attempt_freq=extras.attempt_freq,
-                temperature=trajectory.temperature)
+                temperature=trajectory.metadata['temperature'])
 
     @property
     def jump_names(self) -> list[str]:

@@ -4,13 +4,11 @@ import numpy as np
 from gemdat.calculate.tracer import Tracer
 from gemdat.trajectory import Trajectory
 
-trajectory = Trajectory(
-    coords=[[0, 0, 0], [0, 0, 0]],
-    species=['Li'],
-    time_step=1,
-    lattice=np.eye(3) * 10e10,
-)
-trajectory.temperature = 1
+trajectory = Trajectory(coords=[[0, 0, 0], [0, 0, 0]],
+                        species=['Li'],
+                        time_step=1,
+                        lattice=np.eye(3) * 10e10,
+                        metadata={'temperature': 1})
 extras = SimpleNamespace(
     diff_displacements=np.array(
         [[0., 0.73654599, 0.10440307, 0.70356236, 0.17204651]]),

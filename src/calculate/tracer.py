@@ -50,7 +50,7 @@ class Tracer:
         # Do they mean the total displacement (i.e. last column)?
         msd = np.mean(extras.diff_displacements[:, -1]**2)  # Angstrom^2
 
-        temperature = trajectory.temperature
+        temperature = trajectory.metadata['temperature']
 
         # Diffusivity = MSD/(2*dimensions*time)
         tracer_diff = (msd * angstrom**2) / (2 * extras.diffusion_dimensions *
