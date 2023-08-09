@@ -1,23 +1,6 @@
 import numpy as np
-import pytest
 from gemdat.trajectory import Trajectory
 from pymatgen.core import Lattice, Species
-
-
-@pytest.fixture
-def trajectory():
-    coords = np.array([
-        [[.0, .0, .0], [.0, .0, .5]],
-        [[.2, .0, .0], [.0, .0, .5]],
-        [[.4, .0, .0], [.0, .0, .5]],
-        [[.6, .0, .0], [.0, .0, .5]],
-        [[.8, .0, .0], [.0, .0, .5]],
-    ])
-
-    return Trajectory(species=[Species('B'), Species('C')],
-                      coords=coords,
-                      lattice=np.eye(3),
-                      metadata={'temperature': 123})
 
 
 def test_trajectory(trajectory):
@@ -60,6 +43,7 @@ def test_caching(trajectory, tmpdir):
 
     assert trajectory.species == t2.species
     assert trajectory.metadata == t2.metadata
+    assert trajectory.time_step == t2.time_step
 
     np.testing.assert_array_equal(trajectory.lattice, t2.lattice)
     np.testing.assert_array_equal(trajectory.base_positions, t2.base_positions)
