@@ -1,26 +1,24 @@
 from __future__ import annotations
 
-import typing
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 from pymatgen.io.vasp import VolumetricData
 
-if typing.TYPE_CHECKING:
-    from pymatgen.core import Lattice, Structure
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
+    from pymatgen.core import Structure
 
 
-def trajectory_to_volume(coords: np.ndarray,
-                         lattice: Lattice,
+def trajectory_to_volume(trajectory: Trajectory,
                          resolution: float = 0.2,
                          cartesian: bool = False) -> np.ndarray:
     """Calculate density volume from list of coordinates.
 
     Parameters
     ----------
-    coords : np.ndarray
-        Trajectory coordinates
-    lattice : Lattice
-        Lattice coordinates
+    trajectory : Trajectory
+        Input trajectory
     resolution : float, optional
         Minimum resolution for the voxels in Angstrom
     cartesian : bool, optional
@@ -32,7 +30,9 @@ def trajectory_to_volume(coords: np.ndarray,
     vol : np.ndarray
         3D numpy volume array
     """
-    coords = coords.reshape(-1, 3)
+    lattice = trajectory.get_lattice()
+
+    coords = trajectory.coords.reshape(-1, 3)
 
     if cartesian:
         coords = lattice.get_cartesian_coords(coords)
@@ -70,18 +70,21 @@ def trajectory_to_volume(coords: np.ndarray,
     return vol
 
 
-def trajectory_to_vasp_volume(coords: np.ndarray,
-                              structure: Structure,
+def trajectory_to_vasp_volume(trajectory: Trajectory,
+                              structure: Optional[Structure] = None,
                               resolution: float = 0.2,
                               filename: str | None = None) -> VolumetricData:
     """Calculate density volume as from list of coordinates.
 
     Parameters
     ----------
-    coords : np.ndarray
-        Trajectory coordinates
-    structure : Structure
-        Input structure
+    trajectory : np.ndarray
+        Input trajectory
+    structure : Optional[Structure]
+        Input structure, defaults to trajectory structure. Useful
+        if you want to output the density for a select number of species,
+        and show the host material. Defaults to first structure in
+        trajectory (base coordinates).
     resolution : float, optional
         Minimum resolution for the voxels in Angstrom
     filename : str | None, optional
@@ -92,9 +95,9 @@ def trajectory_to_vasp_volume(coords: np.ndarray,
     vol : VolumetricData
         Output volumetric data object
     """
-    vol = trajectory_to_volume(coords=coords,
-                               lattice=structure.lattice,
-                               resolution=resolution)
+    vol = trajectory_to_volume(trajectory=trajectory, resolution=resolution)
+
+    structure = structure if structure else trajectory.get_structure(0)
 
     vasp_vol = VolumetricData(structure=structure, data={'total': vol})
 

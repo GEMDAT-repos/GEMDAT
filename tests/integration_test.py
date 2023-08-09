@@ -78,27 +78,28 @@ def structure():
 def test_volume(gemdat_results):
     trajectory, extras = gemdat_results
 
-    vol = trajectory_to_volume(lattice=trajectory.get_lattice(),
-                               coords=extras.diff_coords,
-                               resolution=0.2)
+    diff_trajectory = trajectory.filter(extras.diffusing_element)
+
+    vol = trajectory_to_volume(trajectory=diff_trajectory, resolution=0.2)
 
     assert isinstance(vol, np.ndarray)
     assert vol.shape == (101, 51, 51)
-    assert vol.sum() == extras.n_diffusing * extras.n_steps
+    assert vol.sum() == extras.n_diffusing * len(trajectory)
 
 
 @vaspxml_available
 def test_volume_cartesian(gemdat_results):
     trajectory, extras = gemdat_results
 
-    vol = trajectory_to_volume(lattice=trajectory.get_lattice(),
-                               coords=extras.diff_coords,
+    diff_trajectory = trajectory.filter(extras.diffusing_element)
+
+    vol = trajectory_to_volume(trajectory=diff_trajectory,
                                resolution=0.2,
                                cartesian=True)
 
     assert isinstance(vol, np.ndarray)
     assert vol.shape == (101, 51, 52)
-    assert vol.sum() == extras.n_diffusing * extras.n_steps
+    assert vol.sum() == extras.n_diffusing * len(trajectory)
 
 
 @vaspxml_available
@@ -121,8 +122,6 @@ def test_sites(gemdat_results, structure):
     n_steps = extras.n_steps
     n_diffusing = extras.n_diffusing
     n_sites = sites.n_sites
-
-    assert extras.diff_coords.shape == (n_steps, n_diffusing, 3)
 
     assert sites.atom_sites.shape == (n_steps, n_diffusing)
     assert sites.atom_sites.sum() == 6154859
@@ -219,8 +218,7 @@ def test_rdf(gemdat_results_subset, structure):
     rdfs = calculate_rdfs(
         trajectory=trajectory,
         sites=sites,
-        diff_coords=extras.diff_coords,
-        n_steps=extras.n_steps,
+        species=extras.diffusing_element,
         max_dist=5,
     )
 

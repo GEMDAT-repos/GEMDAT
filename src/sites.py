@@ -63,8 +63,9 @@ class SitesData:
 
         self.dist_close = self.calculate_dist_close(
             trajectory, vibration_amplitude=extras.vibration_amplitude)
-        self.atom_sites = self.calculate_atom_sites(
-            trajectory, diff_coords=extras.diff_coords)
+
+        diff_trajectory = trajectory.filter(extras.diffusing_element)
+        self.atom_sites = self.calculate_atom_sites(diff_trajectory)
         self.atom_sites_from = self.calculate_atom_sites_from()
         self.atom_sites_to = self.calculate_atom_sites_to()
 
@@ -174,9 +175,8 @@ class SitesData:
 
         return dist_close
 
-    def calculate_atom_sites(self, trajectory: Trajectory,
-                             diff_coords: np.ndarray) -> np.ndarray:
-        """Calculate nearest site for each atom coordinate.
+    def calculate_atom_sites(self, trajectory: Trajectory) -> np.ndarray:
+        """Calculate nearest site for each atom coordinate in the trajectory.
 
         Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
         all `site_coords` has to be generated. This includes lattice translations. The nearest site
@@ -185,9 +185,7 @@ class SitesData:
         Parameters
         ----------
         trajectory : Trajectory
-            Input trajectory
-        diff_coords:
-            Input array with (diffusing) atom coordinates [time, atom, (x, y, z)]
+            Input trajectory (e.g. for diffusing species)
 
         Returns
         -------
@@ -196,15 +194,11 @@ class SitesData:
             The value corresponds to the index in the `site_coords`.
             -1 indicates that atom is not at any site.
         """
-        coords = diff_coords
-
         # Unit cell parameters
         lattice = trajectory.get_lattice()
 
         # Atoms within this distance (in Angstrom) are considered to be close to a site
         dist_close = self.dist_close
-
-        # fractional coordinates
 
         # Input array with site coordinates [site, (x, y, z)]
         site_cart_coords = np.dot(self.site_coords, lattice.matrix)
@@ -214,7 +208,8 @@ class SitesData:
 
         atom_sites = []
 
-        for atom_index, atom_coords in enumerate(coords.swapaxes(0, 1)):
+        for atom_index, atom_coords in enumerate(
+                trajectory.coords.swapaxes(0, 1)):
 
             # index and distance of nearest site
             atom_cart_coords = np.dot(atom_coords, lattice.matrix)

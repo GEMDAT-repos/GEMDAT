@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import typing
 from collections import defaultdict
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 from gemdat import SitesData
 from pymatgen.core import Structure
 from rich.progress import track
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
 
@@ -72,21 +72,19 @@ def calculate_rdfs(
         *,
         trajectory: Trajectory,
         sites: SitesData,
-        diff_coords: np.ndarray,
-        n_steps: int,
+        species: str | Sequence[str],
         max_dist: float = 5.0,
         resolution: float = 0.1) -> dict[str, dict[str, np.ndarray]]:
-    """
+    """Calculate and sum RDFs from the given species coordinates.
+
     Parameters
     ----------
     trajectory : Trajectory
         Input trajectory
     sites : SitesData
         Input sites data
-    diff_coords : np.ndarray
-        Input coordinates for diffusing element (extras)
-    n_steps : int
-        Total number of simulation steps (extras)
+    species : str | Sequence[str]
+        Species to calculate distances from
     max_dist : float, optional
         Max distance for rdf calculation
     resolution : float, optional
@@ -101,6 +99,7 @@ def calculate_rdfs(
     lattice = trajectory.get_lattice()
 
     coords = trajectory.coords
+    sp_coords = trajectory.filter(species).coords
 
     states2str = _get_states(sites.structure.labels)
     states_array = _get_states_array(sites, sites.structure.labels)
@@ -112,12 +111,14 @@ def calculate_rdfs(
     rdfs: dict[tuple[str, str],
                np.ndarray] = defaultdict(lambda: np.zeros(length, dtype=int))
 
+    n_steps = len(trajectory)
+
     for i in track(range(n_steps), transient=True):
 
         t_coords = coords[i]
-        t_diff_coords = diff_coords[i]
+        t_sp_coords = sp_coords[i]
 
-        dists = lattice.get_all_distances(t_diff_coords, t_coords)
+        dists = lattice.get_all_distances(t_sp_coords, t_coords)
 
         rdf = np.digitize(dists, bins, right=True)
 

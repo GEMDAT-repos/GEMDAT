@@ -1,6 +1,7 @@
 import pickle
+from itertools import compress
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 from pymatgen.core import Lattice
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
@@ -108,3 +109,24 @@ class Trajectory(PymatgenTrajectory):
             new.__class__ = self.__class__
             new.temperature = self.temperature
         return new
+
+    def filter(self, species: str | Sequence[str]):
+        """Return trajectory with coordinates for specified species only.
+
+        Parameters
+        ----------
+        speces : str | Sequence[str]
+            Species to select, i.e. 'Li'
+
+        Returns
+        -------
+        trajectory : Trajectory
+            Output trajectory with coordinates for selected species only
+        """
+        idx = [sp.name in species for sp in self.species]
+        new_coords = self.coords[:, idx]
+        new_species = list(compress(self.species, idx))
+
+        return self.__class__(species=new_species,
+                              coords=new_coords,
+                              lattice=self.get_lattice())

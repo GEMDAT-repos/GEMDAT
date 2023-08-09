@@ -80,27 +80,27 @@ number_of_cols = 3  # Number of figure columns
 
 with st.spinner('Processing trajectory...'):
     trajectory = trajectory[equilibration_steps:]
-    extra = calculate_all(trajectory, diffusing_element=diffusing_element)
+    extras = calculate_all(trajectory, diffusing_element=diffusing_element)
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     import uncertainties as u
-    attempt_freq = u.ufloat(extra.attempt_freq, extra.attempt_freq_std)
+    attempt_freq = u.ufloat(extras.attempt_freq, extras.attempt_freq_std)
     st.metric('Attempt frequency ($\\mathrm{s^{-1}}$)',
               value=f'{attempt_freq:g}')
     st.metric('Vibration amplitude ($\\mathrm{Å}$)',
-              value=f'{extra.vibration_amplitude:g}')
+              value=f'{extras.vibration_amplitude:g}')
 with col2:
     st.metric('Particle density ($\\mathrm{m^{-3}}$)',
-              value=f'{extra.particle_density:g}')
+              value=f'{extras.particle_density:g}')
     st.metric('Mol per liter ($\\mathrm{mol/l}$)',
-              value=f'{extra.mol_per_liter:g}')
+              value=f'{extras.mol_per_liter:g}')
 with col3:
     st.metric('Tracer diffusivity ($\\mathrm{m^2/s}$)',
-              value=f'{extra.tracer_diff:g}')
+              value=f'{extras.tracer_diff:g}')
     st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
-              value=f'{extra.tracer_conduc:g}')
+              value=f'{extras.tracer_conduc:g}')
 
 tab1, tab2 = st.tabs(['Default plots', 'RDF plots'])
 
@@ -119,11 +119,11 @@ with tab1:
 
     with st.spinner('Calculating jumps...'):
         sites = SitesData(sites_structure)
-        sites.calculate_all(trajectory=trajectory, extras=extra)
+        sites.calculate_all(trajectory=trajectory, extras=extras)
 
     figures = plot_all(trajectory=trajectory,
                        sites=sites,
-                       **vars(extra),
+                       **vars(extras),
                        show=False)
 
     # automagically divide the plots over the number of columns
@@ -149,8 +149,7 @@ with tab2:
             rdfs = calculate_rdfs(
                 trajectory=trajectory,
                 sites=sites,
-                diff_coords=extra.diff_coords,
-                n_steps=extra.n_steps,
+                species=extras.diffusing_element,
                 max_dist=max_dist_rdf,
                 resolution=resolution_rdf,
             )
