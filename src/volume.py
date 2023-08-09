@@ -81,10 +81,10 @@ def trajectory_to_vasp_volume(trajectory: Trajectory,
     trajectory : np.ndarray
         Input trajectory
     structure : Optional[Structure]
-        Input structure, defaults to trajectory structure. Useful
-        if you want to output the density for a select number of species,
-        and show the host material. Defaults to first structure in
-        trajectory (base coordinates).
+        structure to include in the vasp file, defaults to trajectory structure.
+        Useful if you want to output the density for a select number of species,
+        and show the host structure. Defaults to first structure in
+        given trajectory (base coordinates).
     resolution : float, optional
         Minimum resolution for the voxels in Angstrom
     filename : str | None, optional
