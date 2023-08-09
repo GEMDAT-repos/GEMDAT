@@ -117,7 +117,7 @@ class Trajectory(PymatgenTrajectory):
         return new
 
     def filter(self, species: str | Sequence[str]):
-        """Return trajectory with coordinates for specified species only.
+        """Return trajectory with coordinates for given species only.
 
         Parameters
         ----------
