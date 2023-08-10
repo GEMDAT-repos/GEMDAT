@@ -3,7 +3,6 @@ from __future__ import annotations
 import typing
 from types import SimpleNamespace
 
-from .displacements import Displacements
 from .tracer import Tracer
 from .vibration import Vibration
 
@@ -48,8 +47,11 @@ def calculate_all(trajectory: Trajectory,
     )
     _add_shared_variables(trajectory, extras)
 
-    extras.__dict__.update(
-        Displacements.calculate_all(trajectory, extras=extras))
+    extras.displacements = trajectory.total_distances()
+
+    diff_trajectory = trajectory.filter(extras.diffusing_element)
+    extras.diff_displacements = diff_trajectory.total_distances()
+
     extras.__dict__.update(Vibration.calculate_all(trajectory, extras=extras))
     extras.__dict__.update(Tracer.calculate_all(trajectory, extras=extras))
 

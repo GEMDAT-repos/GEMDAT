@@ -146,6 +146,82 @@ class Trajectory(PymatgenTrajectory):
             new.metadata = self.metadata
         return new
 
+    @staticmethod
+    def lengths(vectors: np.ndarray, metric_tensor: np.ndarray) -> np.ndarray:
+        """Calculate vector lengths using the metric tensor (Dunitz 1078,
+        p227).
+
+        Parameters
+        ----------
+        vectors : np.ndarray[i, j, k]
+            Vectors as in fractional coordinates
+        metric_tensor : np.ndarray
+            Metric tensor for the lattice
+
+        Returns
+        -------
+        lengths : np.ndarray
+            Vector lengths
+        """
+        tmp = np.dot(vectors, metric_tensor)
+        total_displacement = np.einsum('ij,ji->i', tmp, vectors.T)
+        assert total_displacement.shape[0] == vectors.shape[0]
+        assert total_displacement.ndim == 1
+        return np.sqrt(total_displacement)
+
+    def _cell_offsets(self) -> np.ndarray:
+        """Calculate cell offsets from trajectory starting position.
+
+        For example, if a site is at [0, 0, 0.9] -> [0, 0, 0.1]
+        assume it has jumped to the next cell: [0, 0, 1.1]
+
+        Parameters
+        ----------
+        trajectory : Trajectory
+            Input trajectory
+
+        Returns
+        -------
+        offsets : np.ndarray[i, j, k]
+            Integer array with unit cell offset vectors.
+        """
+        positions = self.positions
+
+        # base_positions = self.base_positions[None]
+        base_positions = positions[0, np.newaxis]
+        displacements = np.diff(positions, axis=0, prepend=base_positions)
+
+        digits = np.digitize(displacements, bins=[0.5, -0.5]) - 1
+
+        offsets = np.cumsum(digits, axis=0)
+        return offsets
+
+    def total_distances(self):
+        """Return total displacement vectors from base position.
+
+        This differs from `.displacements` in that it ignores the periodic boundary
+        conditions. Instead, it tracks the lattice translation vector (jimage).
+        """
+        lattice = self.get_lattice()
+
+        jimage = self._cell_offsets()
+
+        corrected_coords = self.positions + jimage
+
+        displacements = []
+
+        first = corrected_coords[0]
+
+        for disp in corrected_coords:
+            diff_vectors = disp - first
+            lengths = Trajectory.lengths(diff_vectors,
+                                         metric_tensor=lattice.metric_tensor)
+            displacements.append(lengths)
+
+        displacements = np.array(displacements)
+
+        return displacements.T
+
     def drift(
         self,
         *,
