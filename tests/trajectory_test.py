@@ -1,12 +1,13 @@
 import numpy as np
 from gemdat.trajectory import Trajectory
+from numpy.testing import assert_allclose
 from pymatgen.core import Lattice, Species
 
 
 def test_trajectory(trajectory):
     assert isinstance(trajectory, Trajectory)
     assert trajectory.species == [Species('B'), Species('C')]
-    assert trajectory.coords.shape == (5, 2, 3)
+    assert trajectory.positions.shape == (5, 2, 3)
     assert trajectory.metadata == {'temperature': 123}
 
 
@@ -15,14 +16,14 @@ def test_slice(trajectory):
 
     assert isinstance(sliced, Trajectory)
     assert sliced.species == trajectory.species
-    assert sliced.coords.shape == (3, 2, 3)
+    assert sliced.positions.shape == (3, 2, 3)
     assert sliced.metadata == trajectory.metadata
 
 
 def test_filter(trajectory):
     t = trajectory.filter('C')
     assert t.species == [Species('C')]
-    assert np.all(t.coords == [.0, .0, .5])
+    assert np.all(t.positions == [.0, .0, .5])
 
 
 def test_get_lattice(trajectory):
@@ -45,6 +46,47 @@ def test_caching(trajectory, tmpdir):
     assert trajectory.metadata == t2.metadata
     assert trajectory.time_step == t2.time_step
 
-    np.testing.assert_array_equal(trajectory.lattice, t2.lattice)
-    np.testing.assert_array_equal(trajectory.base_positions, t2.base_positions)
-    np.testing.assert_array_equal(trajectory.coords, t2.coords)
+    assert_allclose(trajectory.lattice, t2.lattice)
+    assert_allclose(trajectory.base_positions, t2.base_positions)
+    assert_allclose(trajectory.positions, t2.positions)
+
+
+def test_displacements_property(trajectory):
+    trajectory.to_positions()
+
+    assert_allclose(trajectory.displacements, [
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.3, 0.0, 0.0], [0.0, 0.0, 0.0]],
+    ])
+
+    assert trajectory.coords_are_displacement
+
+
+def test_positions_property(trajectory):
+    trajectory.to_displacements()
+
+    assert_allclose(trajectory.positions, [
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[0.4, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[0.6, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[0.8, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[1.1, 0.0, 0.0], [0.0, 0.0, 0.5]],
+    ])
+
+    assert not trajectory.coords_are_displacement
+
+
+def test_drift_correction(trajectory):
+    drift = trajectory.drift(fixed_species='B')
+    assert drift.shape == (5, 1, 3)
+    global_drift = np.mean(drift, axis=0)
+    assert_allclose(global_drift, [[0.18, 0.0, 0.0]])
+
+    t2 = trajectory.apply_drift_correction(fixed_species='B')
+    global_drift2 = np.mean(t2.drift(fixed_species='B'), axis=0)
+
+    # drift must now be effectively removed
+    assert_allclose(global_drift2, [[0.0, 0.0, 0.0]])

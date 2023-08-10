@@ -209,7 +209,7 @@ class SitesData:
         atom_sites = []
 
         for atom_index, atom_coords in enumerate(
-                trajectory.coords.swapaxes(0, 1)):
+                trajectory.positions.swapaxes(0, 1)):
 
             # index and distance of nearest site
             atom_cart_coords = np.dot(atom_coords, lattice.matrix)

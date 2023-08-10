@@ -60,7 +60,7 @@ class Displacements:
         offsets : np.ndarray[i, j, k]
             Integer array with unit cell offset vectors.
         """
-        coords = trajectory.coords
+        coords = trajectory.positions
 
         first = coords[0, np.newaxis]
         diff = np.diff(coords, axis=0, prepend=first)
@@ -113,7 +113,7 @@ class Displacements:
 
         offsets = Displacements.cell_offsets(trajectory)
 
-        corrected_coords = trajectory.coords + offsets
+        corrected_coords = trajectory.positions + offsets
 
         displacements = []
 
@@ -131,5 +131,5 @@ class Displacements:
 
     @staticmethod
     def diff_displacements(*, diffusing_element='Li', displacements, species):
-        idx = np.argwhere([e.name == diffusing_element for e in species])
+        idx = np.argwhere([sp.symbol == diffusing_element for sp in species])
         return displacements[idx].squeeze()
