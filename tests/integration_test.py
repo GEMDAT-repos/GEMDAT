@@ -29,19 +29,14 @@ vaspxml_available = pytest.mark.skipif(
 
 @pytest.fixture
 def gemdat_results():
-    equilibration_steps = 1250
-    diffusing_element = 'Li'
-    diffusion_dimensions = 3
-    z_ion = 1
-
     trajectory = Trajectory.from_vasprun(VASP_XML)
-    trajectory = trajectory[equilibration_steps:]
+    trajectory = trajectory[1250:]
 
     extras = calculate_all(
         trajectory,
-        diffusing_element=diffusing_element,
-        z_ion=z_ion,
-        diffusion_dimensions=diffusion_dimensions,
+        diffusing_element='Li',
+        z_ion=1,
+        diffusion_dimensions=3,
     )
 
     return (trajectory, extras)
@@ -49,20 +44,15 @@ def gemdat_results():
 
 @pytest.fixture
 def gemdat_results_subset():
-    # Reduced number of time steps for slow calculations
-    equilibration_steps = 4000
-    diffusing_element = 'Li'
-    diffusion_dimensions = 3
-    z_ion = 1
-
     trajectory = Trajectory.from_vasprun(VASP_XML)
-    trajectory = trajectory[equilibration_steps:]
+    # Reduced number of time steps for slow calculations
+    trajectory = trajectory[4000:]
 
     extras = calculate_all(
         trajectory,
-        diffusing_element=diffusing_element,
-        z_ion=z_ion,
-        diffusion_dimensions=diffusion_dimensions,
+        diffusing_element='Li',
+        z_ion=1,
+        diffusion_dimensions=3,
         n_parts=1,
     )
 
@@ -84,7 +74,7 @@ def test_volume(gemdat_results):
 
     assert isinstance(vol, np.ndarray)
     assert vol.shape == (101, 51, 51)
-    assert vol.sum() == extras.n_diffusing * len(trajectory)
+    assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
 
 
 @vaspxml_available
@@ -99,7 +89,7 @@ def test_volume_cartesian(gemdat_results):
 
     assert isinstance(vol, np.ndarray)
     # assert vol.shape == (101, 51, 52)
-    assert vol.sum() == extras.n_diffusing * len(trajectory)
+    assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
 
 
 @vaspxml_available
@@ -120,7 +110,8 @@ def test_sites(gemdat_results, structure):
     sites.calculate_all(trajectory=trajectory, extras=extras)
 
     n_steps = extras.n_steps
-    n_diffusing = extras.n_diffusing
+    n_diffusing = sum(
+        [sp.symbol == extras.diffusing_element for sp in trajectory.species])
     n_sites = sites.n_sites
 
     assert sites.atom_sites.shape == (n_steps, n_diffusing)

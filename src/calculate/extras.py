@@ -37,6 +37,12 @@ def calculate_all(trajectory: Trajectory,
     dist_collective : float
         Maximum distance for collective motions in Angstrom
     """
+    _ = trajectory.to_displacements()
+
+    diff_trajectory = trajectory.filter(diffusing_element)
+
+    len(diff_trajectory.species)
+
     extras = SimpleNamespace(
         diffusing_element=diffusing_element,
         known_structure=known_structure,
@@ -44,18 +50,12 @@ def calculate_all(trajectory: Trajectory,
         z_ion=z_ion,
         n_parts=n_parts,
         dist_collective=dist_collective,
+        n_steps=len(trajectory),
+        total_time=len(trajectory) * trajectory.time_step,
     )
-    extras.n_steps = len(trajectory)
-    extras.total_time = extras.n_steps * trajectory.time_step
-
-    _ = trajectory.to_displacements()
-
-    diff_trajectory = trajectory.filter(extras.diffusing_element)
-
-    extras.diff_displacements = diff_trajectory.total_distances()
-    extras.n_diffusing = len(diff_trajectory.species)
 
     extras.__dict__.update(Vibration.calculate_all(diff_trajectory))
-    extras.__dict__.update(Tracer.calculate_all(trajectory, extras=extras))
+    extras.__dict__.update(Tracer.calculate_all(diff_trajectory,
+                                                extras=extras))
 
     return extras
