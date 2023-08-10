@@ -45,6 +45,34 @@ def test_caching(trajectory, tmpdir):
     assert trajectory.metadata == t2.metadata
     assert trajectory.time_step == t2.time_step
 
-    np.testing.assert_array_equal(trajectory.lattice, t2.lattice)
-    np.testing.assert_array_equal(trajectory.base_positions, t2.base_positions)
-    np.testing.assert_array_equal(trajectory.coords, t2.coords)
+    np.testing.assert_allclose(trajectory.lattice, t2.lattice)
+    np.testing.assert_allclose(trajectory.base_positions, t2.base_positions)
+    np.testing.assert_allclose(trajectory.coords, t2.coords)
+
+
+def test_displacements_property(trajectory):
+    trajectory.to_positions()
+
+    np.testing.assert_allclose(trajectory.displacements, [
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.3, 0.0, 0.0], [0.0, 0.0, 0.0]],
+    ])
+
+    assert trajectory.coords_are_displacement
+
+
+def test_positions_property(trajectory):
+    trajectory.to_displacements()
+
+    np.testing.assert_allclose(trajectory.positions, [
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[0.4, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[0.6, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[0.8, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[1.1, 0.0, 0.0], [0.0, 0.0, 0.5]],
+    ])
+
+    assert not trajectory.coords_are_displacement
