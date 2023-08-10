@@ -42,14 +42,14 @@ def plot_displacement_per_element(*, displacements: np.ndarray,
     trajectory.get_structure(0)
     species = trajectory.species
 
-    for specie, displacement in zip(species, displacements):
-        grouped[specie.name].append(displacement)
+    for sp, displacement in zip(species, displacements):
+        grouped[sp.symbol].append(displacement)
 
     fig, ax = plt.subplots()
 
-    for specie, displacement in grouped.items():
+    for symbol, displacement in grouped.items():
         mean_disp = np.mean(displacement, axis=0)
-        ax.plot(mean_disp, lw=0.3, label=specie)
+        ax.plot(mean_disp, lw=0.3, label=symbol)
 
     ax.legend()
     ax.set(title='Displacement per element',

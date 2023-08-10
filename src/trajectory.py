@@ -173,7 +173,7 @@ class Trajectory(PymatgenTrajectory):
         if fixed_species:
             displacements = self.filter(species=fixed_species).displacements
         elif floating_species:
-            species: set[str] = {
+            species = {
                 sp.symbol
                 for sp in self.species if sp.symbol not in floating_species
             }

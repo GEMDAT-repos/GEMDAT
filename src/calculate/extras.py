@@ -59,7 +59,7 @@ def calculate_all(trajectory: Trajectory,
 def _add_shared_variables(trajectory: Trajectory, extras: SimpleNamespace):
     """Add common shared variables to extras namespace."""
     extras.n_diffusing = sum(
-        [e.name == extras.diffusing_element for e in trajectory.species])
+        [sp.symbol == extras.diffusing_element for sp in trajectory.species])
     extras.n_steps = len(trajectory)
 
     extras.total_time = extras.n_steps * trajectory.time_step

@@ -63,7 +63,8 @@ def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
     symbols = structure.symbol_set
     return {
         symbol:
-        np.argwhere([e.name == symbol for e in structure.species]).flatten()
+        np.argwhere([sp.symbol == symbol
+                     for sp in structure.species]).flatten()
         for symbol in symbols
     }
 

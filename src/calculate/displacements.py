@@ -131,5 +131,5 @@ class Displacements:
 
     @staticmethod
     def diff_displacements(*, diffusing_element='Li', displacements, species):
-        idx = np.argwhere([e.name == diffusing_element for e in species])
+        idx = np.argwhere([sp.symbol == diffusing_element for sp in species])
         return displacements[idx].squeeze()
