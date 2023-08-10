@@ -9,6 +9,29 @@ from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
 
+def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
+    """Calculate vector lengths using the metric tensor (Dunitz 1078, p227).
+
+    Parameters
+    ----------
+    vectors : np.ndarray[i, j, k]
+        Vectors in fractional coordinates
+    metric_tensor : np.ndarray
+        Metric tensor for the lattice
+
+    Returns
+    -------
+    lengths : np.ndarray
+        Vector lengths
+    """
+    metric_tensor = lattice.metric_tensor
+    tmp = np.dot(vectors, metric_tensor)
+    lengths_sq = np.einsum('ij,ji->i', tmp, vectors.T)
+    assert lengths_sq.shape[0] == vectors.shape[0]
+    assert lengths_sq.ndim == 1
+    return np.sqrt(lengths_sq)
+
+
 class Trajectory(PymatgenTrajectory):
 
     def __init__(self, *, metadata: dict | None = None, **kwargs):
@@ -142,29 +165,6 @@ class Trajectory(PymatgenTrajectory):
             new.metadata = self.metadata
         return new
 
-    @staticmethod
-    def lengths(vectors: np.ndarray, metric_tensor: np.ndarray) -> np.ndarray:
-        """Calculate vector lengths using the metric tensor (Dunitz 1078,
-        p227).
-
-        Parameters
-        ----------
-        vectors : np.ndarray[i, j, k]
-            Vectors as in fractional coordinates
-        metric_tensor : np.ndarray
-            Metric tensor for the lattice
-
-        Returns
-        -------
-        lengths : np.ndarray
-            Vector lengths
-        """
-        tmp = np.dot(vectors, metric_tensor)
-        total_displacement = np.einsum('ij,ji->i', tmp, vectors.T)
-        assert total_displacement.shape[0] == vectors.shape[0]
-        assert total_displacement.ndim == 1
-        return np.sqrt(total_displacement)
-
     @property
     def total_displacements(self) -> np.ndarray:
         """Return total displacement vectors from base position.
@@ -181,8 +181,7 @@ class Trajectory(PymatgenTrajectory):
         all_distances = []
 
         for diff_vectors in self.total_displacements:
-            distances = Trajectory.lengths(diff_vectors,
-                                           metric_tensor=lattice.metric_tensor)
+            distances = _lengths(diff_vectors, lattice=lattice)
             all_distances.append(distances)
 
         all_distances = np.array(all_distances).T
@@ -259,7 +258,8 @@ class Trajectory(PymatgenTrajectory):
                               lattice=self.get_lattice(),
                               metadata=self.metadata,
                               coords_are_displacement=True,
-                              base_positions=self.base_positions)
+                              base_positions=self.base_positions,
+                              time_step=self.time_step)
 
     def filter(self, species: str | Collection[str]):
         """Return trajectory with coordinates for given species only.
@@ -281,4 +281,5 @@ class Trajectory(PymatgenTrajectory):
         return self.__class__(species=new_species,
                               coords=new_coords,
                               lattice=self.get_lattice(),
-                              metadata=self.metadata)
+                              metadata=self.metadata,
+                              time_step=self.time_step)

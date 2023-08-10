@@ -45,23 +45,17 @@ def calculate_all(trajectory: Trajectory,
         n_parts=n_parts,
         dist_collective=dist_collective,
     )
-    _add_shared_variables(trajectory, extras)
+    extras.n_steps = len(trajectory)
+    extras.total_time = extras.n_steps * trajectory.time_step
 
-    extras.displacements = trajectory.total_distances()
+    _ = trajectory.to_displacements()
 
     diff_trajectory = trajectory.filter(extras.diffusing_element)
-    extras.diff_displacements = diff_trajectory.total_distances()
 
-    extras.__dict__.update(Vibration.calculate_all(trajectory, extras=extras))
+    extras.diff_displacements = diff_trajectory.total_distances()
+    extras.n_diffusing = len(diff_trajectory.species)
+
+    extras.__dict__.update(Vibration.calculate_all(diff_trajectory))
     extras.__dict__.update(Tracer.calculate_all(trajectory, extras=extras))
 
     return extras
-
-
-def _add_shared_variables(trajectory: Trajectory, extras: SimpleNamespace):
-    """Add common shared variables to extras namespace."""
-    extras.n_diffusing = sum(
-        [sp.symbol == extras.diffusing_element for sp in trajectory.species])
-    extras.n_steps = len(trajectory)
-
-    extras.total_time = extras.n_steps * trajectory.time_step
