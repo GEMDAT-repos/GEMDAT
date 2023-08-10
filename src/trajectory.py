@@ -160,7 +160,7 @@ class Trajectory(PymatgenTrajectory):
             Output trajectory with coordinates for selected species only
         """
         idx = [sp.name in species for sp in self.species]
-        new_coords = self.coords[:, idx]
+        new_coords = self.positions[:, idx]
         new_species = list(compress(self.species, idx))
 
         return self.__class__(species=new_species,

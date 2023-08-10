@@ -113,7 +113,7 @@ class Displacements:
 
         offsets = Displacements.cell_offsets(trajectory)
 
-        corrected_coords = trajectory.coords + offsets
+        corrected_coords = trajectory.positions + offsets
 
         displacements = []
 

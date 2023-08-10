@@ -6,7 +6,7 @@ from pymatgen.core import Lattice, Species
 def test_trajectory(trajectory):
     assert isinstance(trajectory, Trajectory)
     assert trajectory.species == [Species('B'), Species('C')]
-    assert trajectory.coords.shape == (5, 2, 3)
+    assert trajectory.positions.shape == (5, 2, 3)
     assert trajectory.metadata == {'temperature': 123}
 
 
@@ -15,14 +15,14 @@ def test_slice(trajectory):
 
     assert isinstance(sliced, Trajectory)
     assert sliced.species == trajectory.species
-    assert sliced.coords.shape == (3, 2, 3)
+    assert sliced.positions.shape == (3, 2, 3)
     assert sliced.metadata == trajectory.metadata
 
 
 def test_filter(trajectory):
     t = trajectory.filter('C')
     assert t.species == [Species('C')]
-    assert np.all(t.coords == [.0, .0, .5])
+    assert np.all(t.positions == [.0, .0, .5])
 
 
 def test_get_lattice(trajectory):
@@ -47,7 +47,7 @@ def test_caching(trajectory, tmpdir):
 
     np.testing.assert_allclose(trajectory.lattice, t2.lattice)
     np.testing.assert_allclose(trajectory.base_positions, t2.base_positions)
-    np.testing.assert_allclose(trajectory.coords, t2.coords)
+    np.testing.assert_allclose(trajectory.positions, t2.positions)
 
 
 def test_displacements_property(trajectory):
