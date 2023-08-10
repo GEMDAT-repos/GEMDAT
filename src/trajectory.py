@@ -148,8 +148,9 @@ class Trajectory(PymatgenTrajectory):
 
     def drift(
         self,
-        fixed_species: None | str | Collection[str],
-        floating_species: None | str | Collection[str],
+        *,
+        fixed_species: None | str | Collection[str] = None,
+        floating_species: None | str | Collection[str] = None,
     ):
         """Compute drift by averaging the displacement from the base positions
         per frame.
@@ -186,8 +187,8 @@ class Trajectory(PymatgenTrajectory):
     def apply_drift_correction(
         self,
         *,
-        fixed_species: None | str | Collection[str],
-        floating_species: None | str | Collection[str],
+        fixed_species: None | str | Collection[str] = None,
+        floating_species: None | str | Collection[str] = None,
     ):
         """Apply drift correction to trajectory. For details see `Trajectory.drift`.
 
@@ -211,9 +212,11 @@ class Trajectory(PymatgenTrajectory):
                            floating_species=floating_species)
 
         return self.__class__(species=self.species,
-                              coords=self.positions - drift,
+                              coords=self.displacements - drift,
                               lattice=self.get_lattice(),
-                              metadata=self.metadata)
+                              metadata=self.metadata,
+                              coords_are_displacement=True,
+                              base_positions=self.base_positions)
 
     def filter(self, species: str | Collection[str]):
         """Return trajectory with coordinates for given species only.
