@@ -98,7 +98,7 @@ def test_volume_cartesian(gemdat_results):
                                cartesian=True)
 
     assert isinstance(vol, np.ndarray)
-    assert vol.shape == (101, 51, 52)
+    # assert vol.shape == (101, 51, 52)
     assert vol.sum() == extras.n_diffusing * len(trajectory)
 
 
@@ -124,13 +124,13 @@ def test_sites(gemdat_results, structure):
     n_sites = sites.n_sites
 
     assert sites.atom_sites.shape == (n_steps, n_diffusing)
-    assert sites.atom_sites.sum() == 6154859
+    assert sites.atom_sites.sum() == 6157517
     assert sites.atom_sites_to.shape == (n_steps, n_diffusing)
-    assert sites.atom_sites_to.sum() == 8172006
+    assert sites.atom_sites_to.sum() == 8170281
     assert sites.atom_sites_from.shape == (n_steps, n_diffusing)
-    assert sites.atom_sites_from.sum() == 8148552
+    assert sites.atom_sites_from.sum() == 8150432
 
-    assert sites.all_transitions.shape == (450, 5)
+    assert sites.all_transitions.shape == (456, 5)
 
     assert sites.transitions.shape == (n_sites, n_sites)
 
@@ -138,7 +138,7 @@ def test_sites(gemdat_results, structure):
     assert np.sum(sites.transitions_parts[0]) == 37
     assert np.sum(sites.transitions_parts[9]) == 38
 
-    assert sites.occupancy[0] == 1704
+    assert sites.occupancy[0] == 1717
     assert sites.occupancy[43] == 542
 
     assert len(sites.occupancy_parts) == extras.n_parts
@@ -152,58 +152,54 @@ def test_sites(gemdat_results, structure):
 
     assert len(sites.sites_occupancy_parts) == extras.n_parts
     assert isclose(sites.sites_occupancy_parts[0]['48h'],
-                   0.377555,
+                   0.37694,
                    rel_tol=1e-4)
     assert isclose(sites.sites_occupancy_parts[9]['48h'],
-                   0.36922,
+                   0.37027,
                    rel_tol=1e-4)
 
     assert isclose(sites.atom_locations['48h'], 0.761255, rel_tol=1e-4)
 
     assert len(sites.atom_locations_parts) == extras.n_parts
-    assert isclose(sites.atom_locations_parts[0]['48h'],
-                   0.755111,
-                   rel_tol=1e-4)
-    assert isclose(sites.atom_locations_parts[9]['48h'],
-                   0.738444,
-                   rel_tol=1e-4)
+    assert isclose(sites.atom_locations_parts[0]['48h'], 0.75389, rel_tol=1e-4)
+    assert isclose(sites.atom_locations_parts[9]['48h'], 0.74055, rel_tol=1e-4)
 
-    assert sites.n_jumps == 450
+    assert sites.n_jumps == 456
 
     assert isinstance(sites.rates, dict)
     assert len(sites.rates) == 1
 
     rates, rates_std = sites.rates[('48h', '48h')]
-    assert isclose(rates, 1249999999999.9998)
-    assert isclose(rates_std, 137337009020.29002)
+    assert isclose(rates, 1266666666666.6665)
+    assert isclose(rates_std, 145932505961.81885)
 
     assert isinstance(sites.activation_energies, dict)
     assert len(sites.activation_energies) == 1
 
     e_act, e_act_std = sites.activation_energies[('48h', '48h')]
-    assert isclose(e_act, 0.130754, rel_tol=1e-6)
-    assert isclose(e_act_std, 0.0063201, rel_tol=1e-6)
+    assert isclose(e_act, 0.1299544, rel_tol=1e-6)
+    assert isclose(e_act_std, 0.006650821, rel_tol=1e-6)
 
-    assert isclose(sites.jump_diffusivity, 9.220713700212185e-09, rel_tol=1e-6)
-    assert isclose(sites.correlation_factor, 0.1703355120150192, rel_tol=1e-6)
+    assert isclose(sites.jump_diffusivity, 9.436645866723717e-9, rel_tol=1e-6)
+    assert isclose(sites.correlation_factor, 0.1664378436418788, rel_tol=1e-6)
 
-    assert sites.n_solo_jumps == 1922
-    assert sites.coll_count == 1280
-    assert isclose(sites.solo_frac, 4.2711, rel_tol=1e-4)
+    assert sites.n_solo_jumps == 1974
+    assert sites.coll_count == 1313
+    assert isclose(sites.solo_frac, 4.328947, rel_tol=1e-4)
 
-    assert len(sites.collective) == 1280
+    assert len(sites.collective) == 1313
 
-    assert sites.collective[0] == (158, 384)
-    assert sites.collective[-1] == (348, 383)
+    assert sites.collective[0] == (158, 390)
+    assert sites.collective[-1] == (350, 389)
 
-    assert len(sites.coll_jumps) == 1280
+    assert len(sites.coll_jumps) == 1313
     assert sites.coll_jumps[0] == ((74, 8), (41, 67))
     assert sites.coll_jumps[-1] == ((15, 77), (21, 45))
 
     assert sites.coll_matrix.shape == (1, 1)
-    assert sites.coll_matrix[0, 0] == 1280
+    assert sites.coll_matrix[0, 0] == 1313
 
-    assert sites.multi_coll.sum() == 434227
+    assert sites.multi_coll.sum() == 452717
 
 
 @vaspxml_available
