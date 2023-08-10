@@ -24,9 +24,7 @@ class Trajectory(PymatgenTrajectory):
         positions : np.ndarray
             Output array with positions
         """
-        if self.coords_are_displacement:
-            self.to_positions()
-            return self.coords
+        self.to_positions()
         return self.coords
 
     @property
@@ -39,8 +37,6 @@ class Trajectory(PymatgenTrajectory):
         displacements : np.ndarray
             Output array with displacements
         """
-        if self.coords_are_displacement:
-            return self.coords
         self.to_displacements()
         return self.coords
 
@@ -169,58 +165,29 @@ class Trajectory(PymatgenTrajectory):
         assert total_displacement.ndim == 1
         return np.sqrt(total_displacement)
 
-    def _cell_offsets(self) -> np.ndarray:
-        """Calculate cell offsets from trajectory starting position.
-
-        For example, if a site is at [0, 0, 0.9] -> [0, 0, 0.1]
-        assume it has jumped to the next cell: [0, 0, 1.1]
-
-        Parameters
-        ----------
-        trajectory : Trajectory
-            Input trajectory
-
-        Returns
-        -------
-        offsets : np.ndarray[i, j, k]
-            Integer array with unit cell offset vectors.
-        """
-        positions = self.positions
-
-        # base_positions = self.base_positions[None]
-        base_positions = positions[0, np.newaxis]
-        displacements = np.diff(positions, axis=0, prepend=base_positions)
-
-        digits = np.digitize(displacements, bins=[0.5, -0.5]) - 1
-
-        offsets = np.cumsum(digits, axis=0)
-        return offsets
-
-    def total_distances(self):
+    @property
+    def total_displacements(self) -> np.ndarray:
         """Return total displacement vectors from base position.
 
         This differs from `.displacements` in that it ignores the periodic boundary
-        conditions. Instead, it tracks the lattice translation vector (jimage).
+        conditions. Instead, it cumulatively tracks the lattice translation vector (jimage).
         """
+        return np.cumsum(self.displacements, axis=0)
+
+    def total_distances(self) -> np.ndarray:
+        """Return total distance from base position."""
         lattice = self.get_lattice()
 
-        jimage = self._cell_offsets()
+        all_distances = []
 
-        corrected_coords = self.positions + jimage
+        for diff_vectors in self.total_displacements:
+            distances = Trajectory.lengths(diff_vectors,
+                                           metric_tensor=lattice.metric_tensor)
+            all_distances.append(distances)
 
-        displacements = []
+        all_distances = np.array(all_distances).T
 
-        first = corrected_coords[0]
-
-        for disp in corrected_coords:
-            diff_vectors = disp - first
-            lengths = Trajectory.lengths(diff_vectors,
-                                         metric_tensor=lattice.metric_tensor)
-            displacements.append(lengths)
-
-        displacements = np.array(displacements)
-
-        return displacements.T
+        return all_distances
 
     def drift(
         self,

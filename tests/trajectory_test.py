@@ -90,3 +90,11 @@ def test_drift_correction(trajectory):
 
     # drift must now be effectively removed
     assert_allclose(global_drift2, [[0.0, 0.0, 0.0]])
+
+
+def test_total_distances(trajectory):
+    pass
+
+
+def test_total_displacements(trajectory):
+    pass
