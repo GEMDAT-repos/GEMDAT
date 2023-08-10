@@ -1,7 +1,7 @@
 import pickle
 from itertools import compress
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Collection, Optional
 
 import numpy as np
 from pymatgen.core import Lattice
@@ -146,12 +146,81 @@ class Trajectory(PymatgenTrajectory):
             new.metadata = self.metadata
         return new
 
-    def filter(self, species: str | Sequence[str]):
+    def drift(
+        self,
+        fixed_species: None | str | Collection[str],
+        floating_species: None | str | Collection[str],
+    ):
+        """Compute drift by averaging the displacement from the base positions
+        per frame.
+
+        If no species are specified, use all species to calculate drift.
+
+        Only one of `fixed_species` and `floating_species` should be specified.
+
+        Parameters
+        ----------
+        fixed_species : None | str | Collection[str]
+            These species are assumed fixed, and are used to calculate drift (e.g. framework species).
+        floating_species : None | str | Collection[str]
+            These species are assumed floating, and is used to determine the fixed species.
+
+        Returns
+        -------
+        drift : np.array
+            Output array with average drift per frame.
+        """
+        if fixed_species:
+            displacements = self.filter(species=fixed_species).displacements
+        elif floating_species:
+            species: set[str] = {
+                sp.symbol
+                for sp in self.species if sp.symbol not in floating_species
+            }
+            displacements = self.filter(species=species).displacements
+        else:
+            displacements = self.displacements
+
+        return np.mean(displacements, axis=1)[:, None, :]
+
+    def apply_drift_correction(
+        self,
+        *,
+        fixed_species: None | str | Collection[str],
+        floating_species: None | str | Collection[str],
+    ):
+        """Apply drift correction to trajectory. For details see `Trajectory.drift`.
+
+        If no species are specified, use all species to calculate drift.
+
+        Only one of `fixed_species` and `floating_species` should be specified.
+
+        Parameters
+        ----------
+        fixed_species : None | str | Collection[str]
+            These species are assumed fixed, and are used to calculate drift (e.g. framework species).
+        floating_species : None | str | Collection[str]
+            These species are assumed floating, and is used to determine the fixed species.
+
+        Returns
+        -------
+        trajectory : Trajectory
+            Ouput trajectory with positions corrected for drift
+        """
+        drift = self.drift(fixed_species=fixed_species,
+                           floating_species=floating_species)
+
+        return self.__class__(species=self.species,
+                              coords=self.positions - drift,
+                              lattice=self.get_lattice(),
+                              metadata=self.metadata)
+
+    def filter(self, species: str | Collection[str]):
         """Return trajectory with coordinates for given species only.
 
         Parameters
         ----------
-        speces : str | Sequence[str]
+        species : str | Collection[str]
             Species to select, i.e. 'Li'
 
         Returns
@@ -159,10 +228,11 @@ class Trajectory(PymatgenTrajectory):
         trajectory : Trajectory
             Output trajectory with coordinates for selected species only
         """
-        idx = [sp.name in species for sp in self.species]
+        idx = [sp.symbol in species for sp in self.species]
         new_coords = self.positions[:, idx]
         new_species = list(compress(self.species, idx))
 
         return self.__class__(species=new_species,
                               coords=new_coords,
-                              lattice=self.get_lattice())
+                              lattice=self.get_lattice(),
+                              metadata=self.metadata)
