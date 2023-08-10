@@ -98,8 +98,8 @@ def calculate_rdfs(
     structure = trajectory.get_structure(0)
     lattice = trajectory.get_lattice()
 
-    coords = trajectory.coords
-    sp_coords = trajectory.filter(species).coords
+    coords = trajectory.positions
+    sp_coords = trajectory.filter(species).positions
 
     states2str = _get_states(sites.structure.labels)
     states_array = _get_states_array(sites, sites.structure.labels)

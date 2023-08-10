@@ -60,7 +60,7 @@ class Displacements:
         offsets : np.ndarray[i, j, k]
             Integer array with unit cell offset vectors.
         """
-        coords = trajectory.coords
+        coords = trajectory.positions
 
         first = coords[0, np.newaxis]
         diff = np.diff(coords, axis=0, prepend=first)

@@ -32,7 +32,7 @@ def trajectory_to_volume(trajectory: Trajectory,
     """
     lattice = trajectory.get_lattice()
 
-    coords = trajectory.coords.reshape(-1, 3)
+    coords = trajectory.positions.reshape(-1, 3)
 
     if cartesian:
         coords = lattice.get_cartesian_coords(coords)

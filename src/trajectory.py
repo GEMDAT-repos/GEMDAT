@@ -3,6 +3,7 @@ from itertools import compress
 from pathlib import Path
 from typing import Optional, Sequence
 
+import numpy as np
 from pymatgen.core import Lattice
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
@@ -13,6 +14,35 @@ class Trajectory(PymatgenTrajectory):
     def __init__(self, *, metadata: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.metadata = metadata if metadata else None
+
+    @property
+    def positions(self) -> np.ndarray:
+        """Return trajectory positions as fractional coordinates.
+
+        Returns
+        -------
+        positions : np.ndarray
+            Output array with positions
+        """
+        if self.coords_are_displacement:
+            self.to_positions()
+            return self.coords
+        return self.coords
+
+    @property
+    def displacements(self) -> np.ndarray:
+        """Return trajectory displacements as fractional coordinates from base
+        position.
+
+        Returns
+        -------
+        displacements : np.ndarray
+            Output array with displacements
+        """
+        if self.coords_are_displacement:
+            return self.coords
+        self.to_displacements()
+        return self.coords
 
     @classmethod
     def from_cache(cls, cache: str | Path):
