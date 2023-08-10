@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
   # 'pymatgen >= 2023.7.14',
-  'pymatgen @ git+https://github.com/stefsmeets/pymatgen@label-update',
+  'pymatgen @ git+https://github.com/materialsproject/pymatgen',
   'numpy',
   'rich',
   'scipy',
