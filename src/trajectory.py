@@ -9,11 +9,50 @@ from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
 
+def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
+    """Calculate vector lengths using the metric tensor (Dunitz 1078, p227).
+
+    Parameters
+    ----------
+    vectors : np.ndarray[i, j, k]
+        Vectors in fractional coordinates
+    metric_tensor : np.ndarray
+        Metric tensor for the lattice
+
+    Returns
+    -------
+    lengths : np.ndarray
+        Vector lengths
+    """
+    metric_tensor = lattice.metric_tensor
+    tmp = np.dot(vectors, metric_tensor)
+    lengths_sq = np.einsum('ij,ji->i', tmp, vectors.T)
+    assert lengths_sq.shape[0] == vectors.shape[0]
+    assert lengths_sq.ndim == 1
+    return np.sqrt(lengths_sq)
+
+
 class Trajectory(PymatgenTrajectory):
 
     def __init__(self, *, metadata: dict | None = None, **kwargs):
         super().__init__(**kwargs)
         self.metadata = metadata if metadata else None
+
+    def __getitem__(self, frames):
+        """Hack around pymatgen Trajectory limitations."""
+        new = super().__getitem__(frames)
+        if isinstance(new, PymatgenTrajectory):
+            new.__class__ = self.__class__
+            new.metadata = self.metadata
+        return new
+
+    def to_positions(self):
+        """Pymatgen does not mod coords back to original unit cell.
+
+        https://github.com/GEMDAT-repos/GEMDAT/issues/103
+        """
+        super().to_positions()
+        self.coords = np.mod(self.coords, 1)
 
     @property
     def positions(self) -> np.ndarray:
@@ -24,9 +63,7 @@ class Trajectory(PymatgenTrajectory):
         positions : np.ndarray
             Output array with positions
         """
-        if self.coords_are_displacement:
-            self.to_positions()
-            return self.coords
+        self.to_positions()
         return self.coords
 
     @property
@@ -39,8 +76,6 @@ class Trajectory(PymatgenTrajectory):
         displacements : np.ndarray
             Output array with displacements
         """
-        if self.coords_are_displacement:
-            return self.coords
         self.to_displacements()
         return self.coords
 
@@ -138,13 +173,31 @@ class Trajectory(PymatgenTrajectory):
         latt = self.lattices[idx]
         return Lattice(latt)
 
-    def __getitem__(self, frames):
-        """Hack around pymatgen Trajectory limitations."""
-        new = super().__getitem__(frames)
-        if isinstance(new, PymatgenTrajectory):
-            new.__class__ = self.__class__
-            new.metadata = self.metadata
-        return new
+    @property
+    def cumulative_displacements(self) -> np.ndarray:
+        """Return cumulative displacement vectors from base positions.
+
+        This differs from `.displacements` in that it ignores the periodic boundary
+        conditions. Instead, it cumulatively tracks the lattice translation vector (jimage).
+        """
+        return np.cumsum(self.displacements, axis=0)
+
+    def distances_from_base_position(self) -> np.ndarray:
+        """Return total distances from base positions.
+
+        Ignores periodic boundary conditions.
+        """
+        lattice = self.get_lattice()
+
+        all_distances = []
+
+        for diff_vectors in self.cumulative_displacements:
+            distances = _lengths(diff_vectors, lattice=lattice)
+            all_distances.append(distances)
+
+        all_distances = np.array(all_distances).T
+
+        return all_distances
 
     def drift(
         self,
@@ -216,7 +269,8 @@ class Trajectory(PymatgenTrajectory):
                               lattice=self.get_lattice(),
                               metadata=self.metadata,
                               coords_are_displacement=True,
-                              base_positions=self.base_positions)
+                              base_positions=self.base_positions,
+                              time_step=self.time_step)
 
     def filter(self, species: str | Collection[str]):
         """Return trajectory with coordinates for given species only.
@@ -238,4 +292,5 @@ class Trajectory(PymatgenTrajectory):
         return self.__class__(species=new_species,
                               coords=new_coords,
                               lattice=self.get_lattice(),
-                              metadata=self.metadata)
+                              metadata=self.metadata,
+                              time_step=self.time_step)

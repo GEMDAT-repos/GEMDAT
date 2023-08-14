@@ -65,6 +65,8 @@ class SitesData:
             trajectory, vibration_amplitude=extras.vibration_amplitude)
 
         diff_trajectory = trajectory.filter(extras.diffusing_element)
+        n_diffusing = len(diff_trajectory.species)
+
         self.atom_sites = self.calculate_atom_sites(diff_trajectory)
         self.atom_sites_from = self.calculate_atom_sites_from()
         self.atom_sites_to = self.calculate_atom_sites_to()
@@ -79,14 +81,14 @@ class SitesData:
             n_steps=extras.n_steps)
 
         self.atom_locations = self.calculate_atom_locations(
-            n_diffusing=extras.n_diffusing)
+            n_diffusing=n_diffusing)
 
         self.jumps = self.calculate_jumps()
         self.n_jumps = len(self.all_transitions)
 
         self.jump_diffusivity = self.calculate_jump_diffusivity(
             lattice=lattice,
-            n_diffusing=extras.n_diffusing,
+            n_diffusing=n_diffusing,
             total_time=extras.total_time,
             dimensions=extras.diffusion_dimensions)
         self.correlation_factor = extras.tracer_diff / self.jump_diffusivity
@@ -105,14 +107,16 @@ class SitesData:
 
         # calculate some statistics
         if extras.n_parts > 1:
-            self.parts = self.split(n_parts=extras.n_parts, extras=extras)
+            self.parts = self.split(n_parts=extras.n_parts,
+                                    n_diffusing=n_diffusing,
+                                    extras=extras)
 
             self.rates = self.calculate_rates(total_time=extras.total_time,
-                                              n_diffusing=extras.n_diffusing)
+                                              n_diffusing=n_diffusing)
 
             self.activation_energies = self.calculate_activation_energies(
                 total_time=extras.total_time,
-                n_diffusing=extras.n_diffusing,
+                n_diffusing=n_diffusing,
                 attempt_freq=extras.attempt_freq,
                 temperature=trajectory.metadata['temperature'])
 
@@ -259,13 +263,16 @@ class SitesData:
         """
         return _calculate_occupancy(self.atom_sites)
 
-    def split(self, n_parts: int, extras: SimpleNamespace) -> list[SitesData]:
+    def split(self, n_parts: int, n_diffusing: int,
+              extras: SimpleNamespace) -> list[SitesData]:
         """Split data into equal parts in time for internal statistics.
 
         Parameters
         ----------
         n_parts : int
             Number of parts to split the data into
+        n_diffusing : int
+            Number of diffusing species
         extras : SimpleNamespace
             Extra parameters
 
@@ -296,7 +303,7 @@ class SitesData:
                 n_steps=extras.n_steps / n_parts)
 
             part.atom_locations = part.calculate_atom_locations(
-                n_diffusing=extras.n_diffusing)
+                n_diffusing=n_diffusing)
 
             part.jumps = part.calculate_jumps()
 

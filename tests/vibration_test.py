@@ -1,21 +1,16 @@
-from types import SimpleNamespace
-
 import numpy as np
 from gemdat.calculate import Vibration
 from gemdat.calculate.vibration import meanfreq
 
 
 def test_vibration_calculate_all(trajectory):
-    extras = SimpleNamespace(diff_displacements=np.array(
-        [[0., 0.1, 0.2, 0.3, 0.4]]), )
+    ret = Vibration.calculate_all(trajectory.filter('B'))
 
-    ret = Vibration.calculate_all(trajectory, extras)
-
-    assert (np.allclose(ret['speed'], np.array([[0., 0.1, 0.1, 0.1, 0.1]])))
-    assert (np.isclose(ret['attempt_freq'], 0.3))
-    assert (np.isclose(ret['attempt_freq_std'], 0.0))
-    assert (np.allclose(ret['amplitudes'], np.array([0.4])))
-    assert (np.isclose(ret['vibration_amplitude'], 0.0))
+    assert np.allclose(ret['speed'], np.array([[0., 0.2, 0.2, 0.2, 0.3]]))
+    assert np.isclose(ret['attempt_freq'], 0.33727)
+    assert np.isclose(ret['attempt_freq_std'], 0.0)
+    assert np.allclose(ret['amplitudes'], np.array([0.9]))
+    assert np.isclose(ret['vibration_amplitude'], 0.0)
 
 
 def test_meanfreq_single_timestep():

@@ -73,7 +73,7 @@ def test_positions_property(trajectory):
         [[0.4, 0.0, 0.0], [0.0, 0.0, 0.5]],
         [[0.6, 0.0, 0.0], [0.0, 0.0, 0.5]],
         [[0.8, 0.0, 0.0], [0.0, 0.0, 0.5]],
-        [[1.1, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        [[0.1, 0.0, 0.0], [0.0, 0.0, 0.5]],
     ])
 
     assert not trajectory.coords_are_displacement
@@ -90,3 +90,22 @@ def test_drift_correction(trajectory):
 
     # drift must now be effectively removed
     assert_allclose(global_drift2, [[0.0, 0.0, 0.0]])
+
+
+def test_distances_from_base_position(trajectory):
+    distances = trajectory.distances_from_base_position()
+    assert_allclose(distances, [
+        [0.0, 0.2, 0.4, 0.6, 0.9],
+        [0.0, 0.0, 0.0, 0.0, 0.0],
+    ])
+
+
+def test_cumulative_displacements(trajectory):
+    displacements = trajectory.cumulative_displacements
+    assert_allclose(displacements, [
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.4, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.9, 0.0, 0.0], [0.0, 0.0, 0.0]],
+    ])

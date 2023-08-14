@@ -7,7 +7,6 @@ from pymatgen.core.units import FloatWithUnit
 from scipy import signal
 
 if typing.TYPE_CHECKING:
-    from types import SimpleNamespace
 
     from gemdat.trajectory import Trajectory
 
@@ -50,15 +49,13 @@ def meanfreq(x: np.ndarray, fs: float = 1.0):
 class Vibration:
 
     @staticmethod
-    def calculate_all(trajectory: Trajectory, extras: SimpleNamespace) -> dict:
+    def calculate_all(trajectory: Trajectory) -> dict:
         """Calculate Vibration properties.
 
         Parameters
         ----------
         trajectory : Trajectory
-            Input trajectory
-        extras : SimpleNamespace
-            Extra variables
+            Input trajectory for diffusing species
 
         Returns
         -------
@@ -67,7 +64,7 @@ class Vibration:
         """
         fs = 1 / trajectory.time_step
 
-        speed = Vibration.speed(extras.diff_displacements)
+        speed = Vibration.speed(trajectory.distances_from_base_position())
         attempt_freq, attempt_freq_std = Vibration.attempt_frequency(speed,
                                                                      fs=fs)
 
@@ -84,20 +81,20 @@ class Vibration:
         }
 
     @staticmethod
-    def speed(displacements: np.ndarray) -> np.ndarray:
+    def speed(distances: np.ndarray) -> np.ndarray:
         """Calculate attempt frequency.
 
         Parameters
         ----------
-        displacements : np.ndarray
-            Input array with displacements
+        distances : np.ndarray
+            Input array with distances
 
         Returns
         -------
         speed : np.ndarray
             Output array with speeds
         """
-        return np.diff(displacements, prepend=0)
+        return np.diff(distances, prepend=0)
 
     @staticmethod
     def attempt_frequency(speed: np.ndarray,
@@ -160,6 +157,18 @@ class Vibration:
 
     @staticmethod
     def vibration_amplitude(amplitudes: np.ndarray) -> float:
+        """Calcualte vibration ambplitude.
+
+        Parameters
+        ----------
+        amplitudes : np.ndarray
+            Input amplitudes
+
+        Returns
+        -------
+        vibration_amp : float
+            Vibration amplitude
+        """
         mean_vib = np.mean(amplitudes)
         vibration_amp: float = np.std(amplitudes)
 

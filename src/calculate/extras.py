@@ -3,7 +3,6 @@ from __future__ import annotations
 import typing
 from types import SimpleNamespace
 
-from .displacements import Displacements
 from .tracer import Tracer
 from .vibration import Vibration
 
@@ -38,6 +37,10 @@ def calculate_all(trajectory: Trajectory,
     dist_collective : float
         Maximum distance for collective motions in Angstrom
     """
+    _ = trajectory.to_displacements()
+
+    diff_trajectory = trajectory.filter(diffusing_element)
+
     extras = SimpleNamespace(
         diffusing_element=diffusing_element,
         known_structure=known_structure,
@@ -45,21 +48,12 @@ def calculate_all(trajectory: Trajectory,
         z_ion=z_ion,
         n_parts=n_parts,
         dist_collective=dist_collective,
+        n_steps=len(trajectory),
+        total_time=len(trajectory) * trajectory.time_step,
     )
-    _add_shared_variables(trajectory, extras)
 
-    extras.__dict__.update(
-        Displacements.calculate_all(trajectory, extras=extras))
-    extras.__dict__.update(Vibration.calculate_all(trajectory, extras=extras))
-    extras.__dict__.update(Tracer.calculate_all(trajectory, extras=extras))
+    extras.__dict__.update(Vibration.calculate_all(diff_trajectory))
+    extras.__dict__.update(Tracer.calculate_all(diff_trajectory,
+                                                extras=extras))
 
     return extras
-
-
-def _add_shared_variables(trajectory: Trajectory, extras: SimpleNamespace):
-    """Add common shared variables to extras namespace."""
-    extras.n_diffusing = sum(
-        [sp.symbol == extras.diffusing_element for sp in trajectory.species])
-    extras.n_steps = len(trajectory)
-
-    extras.total_time = extras.n_steps * trajectory.time_step
