@@ -38,6 +38,19 @@ class Trajectory(PymatgenTrajectory):
         super().__init__(**kwargs)
         self.metadata = metadata if metadata else None
 
+    def __getitem__(self, frames):
+        """Hack around pymatgen Trajectory limitations."""
+        new = super().__getitem__(frames)
+        if isinstance(new, PymatgenTrajectory):
+            new.__class__ = self.__class__
+            new.metadata = self.metadata
+        return new
+
+    def to_positions(self):
+        """Pymatgen does not mod coords back to original unit cell."""
+        super().to_positions()
+        self.coords = np.mod(self.coords, 1)
+
     @property
     def positions(self) -> np.ndarray:
         """Return trajectory positions as fractional coordinates.
@@ -156,14 +169,6 @@ class Trajectory(PymatgenTrajectory):
 
         latt = self.lattices[idx]
         return Lattice(latt)
-
-    def __getitem__(self, frames):
-        """Hack around pymatgen Trajectory limitations."""
-        new = super().__getitem__(frames)
-        if isinstance(new, PymatgenTrajectory):
-            new.__class__ = self.__class__
-            new.metadata = self.metadata
-        return new
 
     @property
     def total_displacements(self) -> np.ndarray:
