@@ -3,9 +3,6 @@ from __future__ import annotations
 import typing
 from types import SimpleNamespace
 
-from .tracer import Tracer
-from .vibration import Vibration
-
 if typing.TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
@@ -39,7 +36,7 @@ def calculate_all(trajectory: Trajectory,
     """
     _ = trajectory.to_displacements()
 
-    diff_trajectory = trajectory.filter(diffusing_element)
+    trajectory.filter(diffusing_element)
 
     extras = SimpleNamespace(
         diffusing_element=diffusing_element,
@@ -52,8 +49,8 @@ def calculate_all(trajectory: Trajectory,
         total_time=len(trajectory) * trajectory.time_step,
     )
 
-    extras.__dict__.update(Vibration.calculate_all(diff_trajectory))
-    extras.__dict__.update(Tracer.calculate_all(diff_trajectory,
-                                                extras=extras))
+    # extras.__dict__.update(Vibration.calculate_all(diff_trajectory))
+    # extras.__dict__.update(Tracer.calculate_all(diff_trajectory,
+    #                                             extras=extras))
 
     return extras
