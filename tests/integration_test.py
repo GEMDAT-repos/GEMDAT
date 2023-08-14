@@ -151,16 +151,6 @@ def test_sites(gemdat_results, structure):
 
     assert isclose(sites.atom_locations['48h'], 0.761255, rel_tol=1e-4)
 
-    assert len(sites.sites_occupancy_parts) == extras.n_parts
-    assert isclose(sites.sites_occupancy_parts[0]['48h'],
-                   0.377555,
-                   rel_tol=1e-4)
-    assert isclose(sites.sites_occupancy_parts[9]['48h'],
-                   0.36922,
-                   rel_tol=1e-4)
-
-    assert isclose(sites.atom_locations['48h'], 0.761255, rel_tol=1e-4)
-
     assert len(sites.atom_locations_parts) == extras.n_parts
     assert isclose(sites.atom_locations_parts[0]['48h'],
                    0.755111,
