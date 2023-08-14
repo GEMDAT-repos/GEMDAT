@@ -32,8 +32,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  # 'pymatgen >= 2023.7.14',
-  'pymatgen @ git+https://github.com/materialsproject/pymatgen',
+  'pymatgen >= 2023.8.10',
   'numpy',
   'rich',
   'scipy',
