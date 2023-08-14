@@ -41,8 +41,6 @@ def calculate_all(trajectory: Trajectory,
 
     diff_trajectory = trajectory.filter(diffusing_element)
 
-    len(diff_trajectory.species)
-
     extras = SimpleNamespace(
         diffusing_element=diffusing_element,
         known_structure=known_structure,
