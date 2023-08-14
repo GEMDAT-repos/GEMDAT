@@ -88,7 +88,7 @@ def test_volume_cartesian(gemdat_results):
                                cartesian=True)
 
     assert isinstance(vol, np.ndarray)
-    # assert vol.shape == (101, 51, 52)
+    assert vol.shape == (101, 51, 52)
     assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
 
 
