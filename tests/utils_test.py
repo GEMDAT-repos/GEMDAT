@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from gemdat.utils import bfill, ffill
+from gemdat.utils import bfill, ffill, meanfreq
 
 
 @pytest.fixture
@@ -54,3 +54,25 @@ def test_bfill_axis0(arr):
     ])
 
     np.testing.assert_equal(ret, expected)
+
+
+def test_meanfreq_single_timestep():
+    x = np.sin(np.linspace(0, 1, 6))
+    ret = meanfreq(x)
+
+    expected = np.array([[0.2303359]])
+
+    np.testing.assert_allclose(ret, expected)
+
+
+def test_meanfreq():
+    x = np.array([
+        np.sin(np.linspace(0, 1, 6)),
+        np.sin(np.linspace(0, 2, 6)),
+        np.sin(np.linspace(0, 3, 6)),
+    ])
+    ret = meanfreq(x)
+
+    expected = np.array([[0.2303359], [0.21308077], [0.17074241]])
+
+    np.testing.assert_allclose(ret, expected)
