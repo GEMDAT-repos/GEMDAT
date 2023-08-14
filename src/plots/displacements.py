@@ -21,7 +21,7 @@ def plot_displacement_per_site(*, trajectory: Trajectory,
     """
     fig, ax = plt.subplots()
 
-    for distances in trajectory.total_distances():
+    for distances in trajectory.distances_from_base_position():
         ax.plot(distances, lw=0.3)
 
     ax.set(title='Displacement per site',
@@ -53,7 +53,8 @@ def plot_displacement_per_element(*, trajectory: Trajectory,
 
     species = trajectory.species
 
-    for sp, distances in zip(species, trajectory.total_distances()):
+    for sp, distances in zip(species,
+                             trajectory.distances_from_base_position()):
         grouped[sp.symbol].append(distances)
 
     fig, ax = plt.subplots()
@@ -88,7 +89,7 @@ def plot_displacement_histogram(trajectory: Trajectory,
         Output matplotlib figure
     """
     fig, ax = plt.subplots()
-    ax.hist(trajectory.total_distances()[:, -1])
+    ax.hist(trajectory.distances_from_base_position()[:, -1])
     ax.set(title='Histogram of displacements',
            xlabel='Displacement (Angstrom)',
            ylabel='Nr. of atoms')

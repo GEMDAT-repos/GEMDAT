@@ -92,16 +92,16 @@ def test_drift_correction(trajectory):
     assert_allclose(global_drift2, [[0.0, 0.0, 0.0]])
 
 
-def test_total_distances(trajectory):
-    distances = trajectory.total_distances()
+def test_distances_from_base_position(trajectory):
+    distances = trajectory.distances_from_base_position()
     assert_allclose(distances, [
         [0.0, 0.2, 0.4, 0.6, 0.9],
         [0.0, 0.0, 0.0, 0.0, 0.0],
     ])
 
 
-def test_total_displacements(trajectory):
-    displacements = trajectory.total_displacements
+def test_cumulative_displacements(trajectory):
+    displacements = trajectory.cumulative_displacements
     assert_allclose(displacements, [
         [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
         [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],

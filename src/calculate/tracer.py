@@ -48,7 +48,8 @@ class Tracer:
         # Matlab code contains a bug here so I'm not entirely sure what is the definition
         # Matlab code takes the first column, which is equal to 0
         # Do they mean the total displacement (i.e. last column)?
-        msd = np.mean(trajectory.total_distances()[:, -1]**2)  # Angstrom^2
+        msd = np.mean(
+            trajectory.distances_from_base_position()[:, -1]**2)  # Angstrom^2
 
         temperature = trajectory.metadata['temperature']
 

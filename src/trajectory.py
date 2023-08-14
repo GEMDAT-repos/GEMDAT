@@ -47,7 +47,10 @@ class Trajectory(PymatgenTrajectory):
         return new
 
     def to_positions(self):
-        """Pymatgen does not mod coords back to original unit cell."""
+        """Pymatgen does not mod coords back to original unit cell.
+
+        https://github.com/GEMDAT-repos/GEMDAT/issues/103
+        """
         super().to_positions()
         self.coords = np.mod(self.coords, 1)
 
@@ -171,21 +174,24 @@ class Trajectory(PymatgenTrajectory):
         return Lattice(latt)
 
     @property
-    def total_displacements(self) -> np.ndarray:
-        """Return total displacement vectors from base position.
+    def cumulative_displacements(self) -> np.ndarray:
+        """Return cumulative displacement vectors from base positions.
 
         This differs from `.displacements` in that it ignores the periodic boundary
         conditions. Instead, it cumulatively tracks the lattice translation vector (jimage).
         """
         return np.cumsum(self.displacements, axis=0)
 
-    def total_distances(self) -> np.ndarray:
-        """Return total distance from base position."""
+    def distances_from_base_position(self) -> np.ndarray:
+        """Return total distances from base positions.
+
+        Ignores periodic boundary conditions.
+        """
         lattice = self.get_lattice()
 
         all_distances = []
 
-        for diff_vectors in self.total_displacements:
+        for diff_vectors in self.cumulative_displacements:
             distances = _lengths(diff_vectors, lattice=lattice)
             all_distances.append(distances)
 

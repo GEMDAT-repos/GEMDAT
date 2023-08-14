@@ -64,7 +64,7 @@ class Vibration:
         """
         fs = 1 / trajectory.time_step
 
-        speed = Vibration.speed(trajectory.total_distances())
+        speed = Vibration.speed(trajectory.distances_from_base_position())
         attempt_freq, attempt_freq_std = Vibration.attempt_frequency(speed,
                                                                      fs=fs)
 
