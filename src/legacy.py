@@ -1,8 +1,7 @@
 from types import SimpleNamespace
 
-from gemdat import SitesData, load_known_material, plot_all
+from gemdat import SitesData, load_known_material, plots
 from gemdat.calculate import calculate_all
-from gemdat.plots.jumps import plot_jumps_3d_animation
 from gemdat.rdf import calculate_rdfs, plot_rdf
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_vasp_volume
@@ -75,6 +74,8 @@ def analyse_md(
 
     trajectory = trajectory[equilibration_steps:]
 
+    diff_trajectory = trajectory.filter(diff_elem)
+
     extras = calculate_all(
         trajectory,
         diffusing_element=diff_elem,
@@ -90,13 +91,23 @@ def analyse_md(
                         extras=extras,
                         dist_collective=dist_collective)
 
-    plot_all(trajectory=trajectory,
-             sites=sites,
-             **vars(extras),
-             show=False,
-             jump_res=jump_res)
+    plots.plot_displacement_per_element(trajectory=trajectory)
+    plots.plot_displacement_per_site(trajectory=diff_trajectory)
+    plots.plot_displacement_histogram(trajectory=diff_trajectory)
+    plots.plot_frequency_vs_occurence(trajectory=trajectory,
+                                      sites=sites,
+                                      **vars(extras))
+    plots.plot_vibrational_amplitudes(trajectory=trajectory,
+                                      sites=sites,
+                                      **vars(extras))
+    plots.plot_jumps_vs_distance(trajectory=trajectory,
+                                 sites=sites,
+                                 jump_res=jump_res)
+    plots.plot_jumps_vs_time(trajectory=trajectory, sites=sites)
+    plots.plot_collective_jumps(trajectory=trajectory, sites=sites)
+    plots.plot_jumps_3d(trajectory=trajectory, sites=sites)
 
-    plot_jumps_3d_animation(
+    plots.plot_jumps_3d_animation(
         trajectory=trajectory,
         sites=sites,
         t_start=start_end[0],

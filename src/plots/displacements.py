@@ -3,52 +3,63 @@ import numpy as np
 from gemdat.trajectory import Trajectory
 
 
-def plot_displacement_per_site(*, diff_displacements: np.ndarray, **kwargs):
+def plot_displacement_per_site(*, trajectory: Trajectory,
+                               **kwargs) -> plt.Figure:
     """Plot displacement per site.
 
     Parameters
     ----------
-    displacements : np.ndarray
-        Numpy array with displacements
+    trajectory : Trajectory
+        Input trajectory
+    **kwargs : dict
+        Extra parameters
+
+    Returns
+    -------
+    fig : plt.Figure
+        Output matplotlib figure
     """
     fig, ax = plt.subplots()
 
-    for site_displacement in diff_displacements:
-        ax.plot(site_displacement, lw=0.3)
+    for distances in trajectory.total_distances():
+        ax.plot(distances, lw=0.3)
 
-    ax.set(title='Displacement of diffusing element',
+    ax.set(title='Displacement per site',
            xlabel='Time step',
            ylabel='Displacement (Angstrom)')
 
     return fig
 
 
-def plot_displacement_per_element(*, displacements: np.ndarray,
-                                  trajectory: Trajectory, **kwargs):
+def plot_displacement_per_element(*, trajectory: Trajectory,
+                                  **kwargs) -> plt.Figure:
     """Plot displacement per element.
 
     Parameters
     ----------
-    structure : Structure
-        Pymatgen structure used for labelling
-    displacements : np.ndarray
-        Numpy array with displacements
-    species:
+    trajectory : Trajectory
+        Input trajectory
+    **kwargs : dict
+        Extra parameters
+
+    Returns
+    -------
+    fig : plt.Figure
+        Output matplotlib figure
     """
     from collections import defaultdict
 
     grouped = defaultdict(list)
 
-    trajectory.get_structure(0)
     species = trajectory.species
 
-    for sp, displacement in zip(species, displacements):
-        grouped[sp.symbol].append(displacement)
+    for sp, distances in zip(species, trajectory.total_distances()):
+        grouped[sp.symbol].append(distances)
 
     fig, ax = plt.subplots()
 
-    for symbol, displacement in grouped.items():
-        mean_disp = np.mean(displacement, axis=0)
+    for symbol, distances in grouped.items():
+        mean_disp = np.mean(distances, axis=0)
         ax.plot(mean_disp, lw=0.3, label=symbol)
 
     ax.legend()
@@ -59,18 +70,26 @@ def plot_displacement_per_element(*, displacements: np.ndarray,
     return fig
 
 
-def plot_displacement_histogram(diff_displacements: np.ndarray, **kwargs):
+def plot_displacement_histogram(trajectory: Trajectory,
+                                **kwargs) -> plt.Figure:
     """Plot histogram of total displacement of diffusing element at final
     timestep.
 
     Parameters
     ----------
-    diff_displacements : np.ndarray
-        Numpy array with displacements of diffusing element
+    trajectory : Trajectory
+        Input trajectory
+    **kwargs : dict
+        Extra parameters
+
+    Returns
+    -------
+    fig : plt.Figure
+        Output matplotlib figure
     """
     fig, ax = plt.subplots()
-    ax.hist(diff_displacements[:, -1])
-    ax.set(title='Histogram of displacement of diffusing element',
+    ax.hist(trajectory.total_distances()[:, -1])
+    ax.set(title='Histogram of displacements',
            xlabel='Displacement (Angstrom)',
            ylabel='Nr. of atoms')
 

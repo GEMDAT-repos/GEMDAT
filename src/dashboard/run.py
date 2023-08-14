@@ -1,6 +1,6 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
-from gemdat import SitesData, __version__, plot_all
+from gemdat import SitesData, __version__, plots
 from gemdat.calculate import calculate_all
 from gemdat.io import get_list_of_known_materials, load_known_material
 from gemdat.rdf import calculate_rdfs, plot_rdf
@@ -121,10 +121,23 @@ with tab1:
         sites = SitesData(sites_structure)
         sites.calculate_all(trajectory=trajectory, extras=extras)
 
-    figures = plot_all(trajectory=trajectory,
-                       sites=sites,
-                       **vars(extras),
-                       show=False)
+    diff_trajectory = trajectory.filter(diffusing_element)
+
+    figures = (
+        plots.plot_displacement_per_element(trajectory=trajectory),
+        plots.plot_displacement_per_site(trajectory=diff_trajectory),
+        plots.plot_displacement_histogram(trajectory=diff_trajectory),
+        plots.plot_frequency_vs_occurence(trajectory=trajectory,
+                                          sites=sites,
+                                          **vars(extras)),
+        plots.plot_vibrational_amplitudes(trajectory=trajectory,
+                                          sites=sites,
+                                          **vars(extras)),
+        plots.plot_jumps_vs_distance(trajectory=trajectory, sites=sites),
+        plots.plot_jumps_vs_time(trajectory=trajectory, sites=sites),
+        plots.plot_collective_jumps(trajectory=trajectory, sites=sites),
+        plots.plot_jumps_3d(trajectory=trajectory, sites=sites),
+    )
 
     # automagically divide the plots over the number of columns
     for num, col in enumerate(st.columns(number_of_cols)):
@@ -149,13 +162,15 @@ with tab2:
             rdfs = calculate_rdfs(
                 trajectory=trajectory,
                 sites=sites,
-                species=extras.diffusing_element,
+                species=diffusing_element,
                 max_dist=max_dist_rdf,
                 resolution=resolution_rdf,
             )
-        figures = [plot_rdf(rdf, name=state) for state, rdf in rdfs.items()]
+        rdf_figures = [
+            plot_rdf(rdf, name=state) for state, rdf in rdfs.items()
+        ]
 
         # automagically divide the plots over the number of columns
         for num, col in enumerate(st.columns(number_of_cols)):
-            for figure in figures[num::number_of_cols]:
+            for figure in rdf_figures[num::number_of_cols]:
                 col.pyplot(figure)
