@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from gemdat import SitesData
-from gemdat.calculate import calculate_all
+from gemdat.extras import calculate_all
 from gemdat.io import load_known_material
 from gemdat.rdf import calculate_rdfs
 from gemdat.trajectory import Trajectory

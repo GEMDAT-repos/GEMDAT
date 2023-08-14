@@ -3,6 +3,8 @@ from __future__ import annotations
 import typing
 from types import SimpleNamespace
 
+from .simulation_metrics import SimulationMetrics
+
 if typing.TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
@@ -34,10 +36,6 @@ def calculate_all(trajectory: Trajectory,
     dist_collective : float
         Maximum distance for collective motions in Angstrom
     """
-    _ = trajectory.to_displacements()
-
-    trajectory.filter(diffusing_element)
-
     extras = SimpleNamespace(
         diffusing_element=diffusing_element,
         known_structure=known_structure,
@@ -49,8 +47,19 @@ def calculate_all(trajectory: Trajectory,
         total_time=len(trajectory) * trajectory.time_step,
     )
 
-    # extras.__dict__.update(Vibration.calculate_all(diff_trajectory))
-    # extras.__dict__.update(Tracer.calculate_all(diff_trajectory,
-    #                                             extras=extras))
+    diff_trajectory = trajectory.filter(diffusing_element)
+    metrics = SimulationMetrics(diff_trajectory)
+
+    attempt_freq, attempt_freq_std = metrics.attempt_frequency()
+
+    extras.attempt_freq = attempt_freq
+    extras.attempt_freq_std = attempt_freq_std
+    extras.amplitudes = metrics.amplitudes()
+    extras.vibration_amplitude = metrics.vibration_amplitude()
+    extras.particle_density = metrics.particle_density()
+    extras.mol_per_liter = metrics.mol_per_liter()
+    extras.tracer_diff = metrics.tracer_diffusivity(diffusion_dimensions=3)
+    extras.tracer_conduc = metrics.tracer_conductivity(z_ion=1,
+                                                       diffusion_dimensions=3)
 
     return extras
