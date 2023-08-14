@@ -21,6 +21,10 @@ class SimulationMetrics:
     def total_time(self):
         return len(self.trajectory) * self.trajectory.time_step
 
+    def speed(self):
+        distances = self.trajectory.distances_from_base_position()
+        return np.diff(distances, prepend=0)
+
     def particle_density(self):
         lattice = self.trajectory.get_lattice()
         volume_ang = lattice.volume
@@ -70,8 +74,7 @@ class SimulationMetrics:
         attempt_freq_std : float
             Attempt frequency standard deviation
         """
-        distances = self.trajectory.distances_from_base_position()
-        speed = np.diff(distances, prepend=0)
+        speed = self.speed()
 
         freq_mean = meanfreq(speed, fs=self.fs)
 
@@ -115,9 +118,7 @@ class SimulationMetrics:
             Output array with vibrational amplitudes
         """
         amplitudes = []
-
-        distances = self.trajectory.distances_from_base_position()
-        speed = np.diff(distances, prepend=0)
+        speed = self.speed()
 
         for i, speed_range in enumerate(speed):
             signs = np.sign(speed_range)
