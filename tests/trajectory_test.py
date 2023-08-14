@@ -93,8 +93,19 @@ def test_drift_correction(trajectory):
 
 
 def test_total_distances(trajectory):
-    pass
+    distances = trajectory.total_distances()
+    assert_allclose(distances, [
+        [0.0, 0.2, 0.4, 0.6, 0.9],
+        [0.0, 0.0, 0.0, 0.0, 0.0],
+    ])
 
 
 def test_total_displacements(trajectory):
-    pass
+    displacements = trajectory.total_displacements
+    assert_allclose(displacements, [
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.4, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        [[0.9, 0.0, 0.0], [0.0, 0.0, 0.0]],
+    ])
