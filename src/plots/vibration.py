@@ -1,29 +1,26 @@
-from typing import Optional
-
 import matplotlib.pyplot as plt
 import numpy as np
+from gemdat.simulation_metrics import SimulationMetrics
+from gemdat.trajectory import Trajectory
 from scipy import stats
 
 
-def plot_frequency_vs_occurence(*,
-                                speed: np.ndarray,
-                                fs: float,
-                                attempt_freq: Optional[float] = None,
-                                attempt_freq_std: Optional[float] = None,
-                                **kwargs):
+def plot_frequency_vs_occurence(*, trajectory: Trajectory,
+                                **kwargs) -> plt.Figure:
     """Plot attempt frequency vs occurence.
 
     Parameters
     ----------
-    speed : np.ndarray
-        Input array with displacement velocities
-    fs : float, optional
-        Sampling frequency
-    freq : Optional[float], optional
-        Attempt frequency
-    freq_std : Optional[float], optional
-        Attempt frequency standard deviation
+    trajectory : Trajectory
+        Input trajectory
+
+    Returns
+    -------
+    fig : plt.Figure
+        Output figure
     """
+    metrics = SimulationMetrics(trajectory)
+    speed = metrics.speed()
 
     length = speed.shape[1]
     half_length = length // 2 + 1
@@ -35,13 +32,15 @@ def plot_frequency_vs_occurence(*,
 
     fig, ax = plt.subplots()
 
-    f = fs * np.arange(half_length) / length
+    f = metrics.fs * np.arange(half_length) / length
 
     sum_freqs = np.sum(one_sided, axis=0)
     smoothed = np.convolve(sum_freqs, np.ones(51), 'same') / 51
     ax.plot(f, smoothed, linewidth=3)
 
     y_max = np.max(sum_freqs)
+
+    attempt_freq, attempt_freq_std = metrics.attempt_frequency()
 
     if attempt_freq:
         ax.vlines([attempt_freq], 0, y_max, colors='red')
@@ -63,23 +62,26 @@ def plot_frequency_vs_occurence(*,
     return fig
 
 
-def plot_vibrational_amplitudes(*, amplitudes: np.ndarray,
-                                vibration_amplitude: float, **kwargs):
+def plot_vibrational_amplitudes(*, trajectory: Trajectory, **kwargs):
     """Plot histogram of vibrational amplitudes with fitted Gaussian.
 
     Parameters
     ----------
-    amplitudes : np.ndarray
-        Input array with vibrational amplitudes
-    vibration_amplitude : float
-        Sigma of the vibrational amplitudes
+    trajectory : Trajectory
+        Input trajectory
+
+    Returns
+    -------
+    fig : plt.Figure
+        Output figure
     """
+    metrics = SimulationMetrics(trajectory)
 
     fig, ax = plt.subplots()
-    ax.hist(amplitudes, bins=100, density=True)
+    ax.hist(metrics.amplitudes(), bins=100, density=True)
 
     x = np.linspace(-2, 2, 100)
-    y_gauss = stats.norm.pdf(x, 0, vibration_amplitude)
+    y_gauss = stats.norm.pdf(x, 0, metrics.vibration_amplitude())
     ax.plot(x, y_gauss, 'r')
 
     ax.set(title='Histogram of vibrational amplitudes with fitted Gaussian',

@@ -1,7 +1,7 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
 from gemdat import SitesData, __version__, plots
-from gemdat.calculate import calculate_all
+from gemdat.extras import calculate_all
 from gemdat.io import get_list_of_known_materials, load_known_material
 from gemdat.rdf import calculate_rdfs, plot_rdf
 from gemdat.trajectory import Trajectory
@@ -127,12 +127,8 @@ with tab1:
         plots.plot_displacement_per_element(trajectory=trajectory),
         plots.plot_displacement_per_site(trajectory=diff_trajectory),
         plots.plot_displacement_histogram(trajectory=diff_trajectory),
-        plots.plot_frequency_vs_occurence(trajectory=trajectory,
-                                          sites=sites,
-                                          **vars(extras)),
-        plots.plot_vibrational_amplitudes(trajectory=trajectory,
-                                          sites=sites,
-                                          **vars(extras)),
+        plots.plot_frequency_vs_occurence(trajectory=trajectory),
+        plots.plot_vibrational_amplitudes(trajectory=trajectory),
         plots.plot_jumps_vs_distance(trajectory=trajectory, sites=sites),
         plots.plot_jumps_vs_time(trajectory=trajectory, sites=sites),
         plots.plot_collective_jumps(trajectory=trajectory, sites=sites),
