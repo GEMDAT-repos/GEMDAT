@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from functools import lru_cache
 
 import numpy as np
 from pymatgen.core.units import FloatWithUnit
@@ -17,6 +18,7 @@ class SimulationMetrics:
     def __init__(self, trajectory: Trajectory):
         self.trajectory = trajectory
 
+    @lru_cache
     def speed(self) -> np.ndarray:
         """Calculate speed.
 
@@ -25,6 +27,7 @@ class SimulationMetrics:
         distances = self.trajectory.distances_from_base_position()
         return np.diff(distances, prepend=0)
 
+    @lru_cache
     def particle_density(self) -> float:
         """Return number of particles per m3."""
         lattice = self.trajectory.get_lattice()
@@ -33,11 +36,13 @@ class SimulationMetrics:
         particle_density = len(self.trajectory.species) / volume_m3
         return FloatWithUnit(particle_density, 'm^-3')
 
+    @lru_cache
     def mol_per_liter(self) -> float:
         """Return particle density as mol/liter."""
         mol_per_liter = (self.particle_density() * 1e-3) / Avogadro
         return FloatWithUnit(mol_per_liter, 'mol l^-1')
 
+    @lru_cache
     def tracer_diffusivity(self, *, diffusion_dimensions: int) -> float:
         """Return tracer diffusivity in m2/s.
 
@@ -60,6 +65,7 @@ class SimulationMetrics:
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
+    @lru_cache
     def tracer_conductivity(self, *, z_ion: int,
                             diffusion_dimensions: int) -> float:
         """Return tracer conductivity as S/m.
@@ -86,6 +92,7 @@ class SimulationMetrics:
 
         return FloatWithUnit(tracer_conduc, 'S m^-1')
 
+    @lru_cache
     def attempt_frequency(self) -> tuple[float, float]:
         """Return attempt frequency and standard deviation in Hz.
 
@@ -108,6 +115,7 @@ class SimulationMetrics:
 
         return attempt_freq, attempt_freq_std
 
+    @lru_cache
     def vibration_amplitude(self) -> float:
         """Return vibration amplitude in Angstrom.
 
@@ -125,6 +133,7 @@ class SimulationMetrics:
 
         return vibration_amp
 
+    @lru_cache
     def amplitudes(self) -> np.ndarray:
         """Return vibration amplitudes.
 
