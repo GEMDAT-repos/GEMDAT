@@ -36,14 +36,14 @@ class Trajectory(PymatgenTrajectory):
 
     def __init__(self, *, metadata: dict | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.metadata = metadata if metadata else None
+        self.metadata = metadata if metadata else {}
 
     def __getitem__(self, frames):
         """Hack around pymatgen Trajectory limitations."""
         new = super().__getitem__(frames)
         if isinstance(new, PymatgenTrajectory):
             new.__class__ = self.__class__
-            new.metadata = self.metadata
+        new.metadata = self.metadata if hasattr(self, 'metadata') else {}
         return new
 
     def to_positions(self):
