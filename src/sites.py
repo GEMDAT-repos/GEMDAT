@@ -10,10 +10,10 @@ from pymatgen.core import Lattice, Structure
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Boltzmann, angstrom, elementary_charge
 
+from .simulation_metrics import SimulationMetrics
 from .utils import bfill, ffill, is_lattice_similar
 
 if typing.TYPE_CHECKING:
-    from types import SimpleNamespace
 
     from gemdat.trajectory import Trajectory
 
@@ -46,26 +46,43 @@ class SitesData:
             warnings.warn(f'Lattice mismatch: {this_lattice.parameters} '
                           f'vs. {other_lattice.parameters}')
 
-    def calculate_all(self, trajectory: Trajectory, extras: SimpleNamespace,
-                      **kwargs):
+    def calculate_all(
+        self,
+        trajectory: Trajectory,
+        *,
+        diffusing_element: str,
+        z_ion: int = 1,
+        diffusion_dimensions: int = 3,
+        dist_collective: float = 4.5,
+        n_parts: int = 1,
+    ):
         """Calculate all parameters.
 
         Parameters
         ----------
         trajectory : Trajectory
             Input trajectory
-        extras : SimpleNamespace
-            Extra parameters
+        diffusing_element : str
+            Name of the diffusing species
+        z_ion : int
+            Ionic charge of difussing species
+        diffusion_dimensions : int
+            Number of diffusion dimensions
+        n_parts : int
+            Number of parts to divide simulation into for statistics
         """
         lattice = trajectory.get_lattice()
 
         self.warn_if_lattice_not_similar(lattice)
 
-        self.dist_close = self.calculate_dist_close(
-            trajectory, vibration_amplitude=extras.vibration_amplitude)
-
-        diff_trajectory = trajectory.filter(extras.diffusing_element)
+        diff_trajectory = trajectory.filter(diffusing_element)
         n_diffusing = len(diff_trajectory.species)
+        n_steps = len(diff_trajectory)
+
+        metrics = SimulationMetrics(diff_trajectory)
+
+        self.dist_close = self.calculate_dist_close(
+            trajectory, vibration_amplitude=metrics.vibration_amplitude())
 
         self.atom_sites = self.calculate_atom_sites(diff_trajectory)
         self.atom_sites_from = self.calculate_atom_sites_from()
@@ -77,8 +94,7 @@ class SitesData:
 
         self.occupancy = self.calculate_occupancy()
 
-        self.sites_occupancy = self.calculate_site_occupancy(
-            n_steps=extras.n_steps)
+        self.sites_occupancy = self.calculate_site_occupancy(n_steps=n_steps)
 
         self.atom_locations = self.calculate_atom_locations(
             n_diffusing=n_diffusing)
@@ -90,14 +106,19 @@ class SitesData:
             lattice=lattice,
             n_diffusing=n_diffusing,
             total_time=trajectory.total_time,
-            dimensions=extras.diffusion_dimensions)
-        self.correlation_factor = extras.tracer_diff / self.jump_diffusivity
+            dimensions=diffusion_dimensions)
+        tracer_diff = metrics.tracer_diffusivity(
+            diffusion_dimensions=diffusion_dimensions)
+        self.correlation_factor = tracer_diff / self.jump_diffusivity
+
+        attempt_freq, _ = metrics.attempt_frequency()
 
         self.collective, self.coll_jumps, self.n_solo_jumps = self.calculate_collective(
             lattice=lattice,
-            attempt_freq=extras.attempt_freq,
+            attempt_freq=attempt_freq,
             time_step=trajectory.time_step,
-            **kwargs)
+            dist_collective=dist_collective,
+        )
 
         self.solo_frac = self.n_solo_jumps / len(self.all_transitions)
         self.coll_count = len(self.collective)
@@ -106,10 +127,12 @@ class SitesData:
         self.multi_coll = self.calculate_multiple_collective()
 
         # calculate some statistics
-        if extras.n_parts > 1:
-            self.parts = self.split(n_parts=extras.n_parts,
-                                    n_diffusing=n_diffusing,
-                                    extras=extras)
+        if n_parts > 1:
+            self.parts = self.split(
+                n_parts=n_parts,
+                n_steps=n_steps,
+                n_diffusing=n_diffusing,
+            )
 
             self.rates = self.calculate_rates(total_time=trajectory.total_time,
                                               n_diffusing=n_diffusing)
@@ -117,7 +140,7 @@ class SitesData:
             self.activation_energies = self.calculate_activation_energies(
                 total_time=trajectory.total_time,
                 n_diffusing=n_diffusing,
-                attempt_freq=extras.attempt_freq,
+                attempt_freq=attempt_freq,
                 temperature=trajectory.metadata['temperature'])
 
     @property
@@ -263,18 +286,18 @@ class SitesData:
         """
         return _calculate_occupancy(self.atom_sites)
 
-    def split(self, n_parts: int, n_diffusing: int,
-              extras: SimpleNamespace) -> list[SitesData]:
+    def split(self, *, n_parts: int, n_steps: int,
+              n_diffusing: int) -> list[SitesData]:
         """Split data into equal parts in time for internal statistics.
 
         Parameters
         ----------
         n_parts : int
             Number of parts to split the data into
+        n_steps : int
+            Number of steps in the trajectory
         n_diffusing : int
             Number of diffusing species
-        extras : SimpleNamespace
-            Extra parameters
 
         Returns
         -------
@@ -283,7 +306,7 @@ class SitesData:
         """
         split_atom_sites = np.split(self.atom_sites, n_parts)
         split_transitions = _split_transitions_in_parts(
-            self.all_transitions, extras.n_steps, n_parts)
+            self.all_transitions, n_steps, n_parts)
 
         parts = [SitesData(self.structure) for _ in range(n_parts)]
 
@@ -300,7 +323,7 @@ class SitesData:
             part.occupancy = part.calculate_occupancy()
 
             part.sites_occupancy = part.calculate_site_occupancy(
-                n_steps=extras.n_steps / n_parts)
+                n_steps=int(n_steps / n_parts))
 
             part.atom_locations = part.calculate_atom_locations(
                 n_diffusing=n_diffusing)

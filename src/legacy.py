@@ -1,7 +1,4 @@
-from types import SimpleNamespace
-
 from gemdat import SitesData, load_known_material, plots
-from gemdat.extras import calculate_all
 from gemdat.rdf import calculate_rdfs, plot_rdf
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_vasp_volume
@@ -25,7 +22,7 @@ def analyse_md(
     rdf_max_dist: int = 10,
     start_end: tuple[int, int] = (5000, 7500),
     nr_steps_frame: int = 5,
-) -> tuple[Trajectory, SitesData, SimpleNamespace]:
+) -> tuple[Trajectory, SitesData]:
     """Analyse md data.
 
     Parameters
@@ -76,20 +73,17 @@ def analyse_md(
 
     diff_trajectory = trajectory.filter(diff_elem)
 
-    extras = calculate_all(
-        trajectory,
-        diffusing_element=diff_elem,
-        z_ion=z_ion,
-        diffusion_dimensions=diffusion_dimensions,
-        n_parts=nr_parts,
-    )
-
     sites_structure = load_known_material(material, supercell=supercell)
 
     sites = SitesData(sites_structure)
-    sites.calculate_all(trajectory=trajectory,
-                        extras=extras,
-                        dist_collective=dist_collective)
+    sites.calculate_all(
+        trajectory=trajectory,
+        diffusing_element=diff_elem,
+        diffusion_dimensions=diffusion_dimensions,
+        z_ion=z_ion,
+        n_parts=nr_parts,
+        dist_collective=dist_collective,
+    )
 
     plots.plot_displacement_per_element(trajectory=trajectory)
     plots.plot_displacement_per_site(trajectory=diff_trajectory)
@@ -132,4 +126,4 @@ def analyse_md(
         for name, rdf in rdf_data.items():
             plot_rdf(rdf, name=name)
 
-    return trajectory, sites, extras
+    return trajectory, sites
