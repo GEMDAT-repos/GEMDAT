@@ -10,9 +10,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 from gemdat import SitesData
-from gemdat.calculate import calculate_all
 from gemdat.io import load_known_material
 from gemdat.rdf import calculate_rdfs
+from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume
 
@@ -28,35 +28,19 @@ vaspxml_available = pytest.mark.skipif(
 
 
 @pytest.fixture
-def gemdat_results():
+def vasp_traj():
     trajectory = Trajectory.from_vasprun(VASP_XML)
     trajectory = trajectory[1250:]
-
-    extras = calculate_all(
-        trajectory,
-        diffusing_element='Li',
-        z_ion=1,
-        diffusion_dimensions=3,
-    )
-
-    return (trajectory, extras)
+    return trajectory
 
 
 @pytest.fixture
-def gemdat_results_subset():
+def vasp_traj_short():
     trajectory = Trajectory.from_vasprun(VASP_XML)
     # Reduced number of time steps for slow calculations
     trajectory = trajectory[4000:]
 
-    extras = calculate_all(
-        trajectory,
-        diffusing_element='Li',
-        z_ion=1,
-        diffusion_dimensions=3,
-        n_parts=1,
-    )
-
-    return (trajectory, extras)
+    return trajectory
 
 
 @pytest.fixture
@@ -65,10 +49,10 @@ def structure():
 
 
 @vaspxml_available
-def test_volume(gemdat_results):
-    trajectory, extras = gemdat_results
+def test_volume(vasp_traj):
+    trajectory = vasp_traj
 
-    diff_trajectory = trajectory.filter(extras.diffusing_element)
+    diff_trajectory = trajectory.filter('Li')
 
     vol = trajectory_to_volume(trajectory=diff_trajectory, resolution=0.2)
 
@@ -78,10 +62,10 @@ def test_volume(gemdat_results):
 
 
 @vaspxml_available
-def test_volume_cartesian(gemdat_results):
-    trajectory, extras = gemdat_results
+def test_volume_cartesian(vasp_traj):
+    trajectory = vasp_traj
 
-    diff_trajectory = trajectory.filter(extras.diffusing_element)
+    diff_trajectory = trajectory.filter('Li')
 
     vol = trajectory_to_volume(trajectory=diff_trajectory,
                                resolution=0.2,
@@ -93,25 +77,37 @@ def test_volume_cartesian(gemdat_results):
 
 
 @vaspxml_available
-def test_tracer(gemdat_results):
-    _, extras = gemdat_results
+def test_tracer(vasp_traj):
 
-    assert isclose(extras.particle_density, 2.4557e28, rel_tol=1e-4)
-    assert isclose(extras.mol_per_liter, 40.777, rel_tol=1e-4)
-    assert isclose(extras.tracer_diff, 1.5706e-09, rel_tol=1e-4)
-    assert isclose(extras.tracer_conduc, 110.322, rel_tol=1e-4)
+    diff_trajectory = vasp_traj.filter('Li')
+    metrics = SimulationMetrics(diff_trajectory)
+
+    assert isclose(metrics.particle_density(), 2.4557e28, rel_tol=1e-4)
+    assert isclose(metrics.mol_per_liter(), 40.777, rel_tol=1e-4)
+    assert isclose(metrics.tracer_diffusivity(diffusion_dimensions=3),
+                   1.5706e-09,
+                   rel_tol=1e-4)
+    assert isclose(metrics.tracer_conductivity(z_ion=1,
+                                               diffusion_dimensions=3),
+                   110.322,
+                   rel_tol=1e-4)
 
 
 @vaspxml_available
-def test_sites(gemdat_results, structure):
-    trajectory, extras = gemdat_results
+def test_sites(vasp_traj, structure):
+    trajectory = vasp_traj
+
+    n_parts = 10
 
     sites = SitesData(structure)
-    sites.calculate_all(trajectory=trajectory, extras=extras)
+    sites.calculate_all(trajectory=trajectory,
+                        diffusing_element='Li',
+                        z_ion=1,
+                        diffusion_dimensions=3,
+                        n_parts=n_parts)
 
-    n_steps = extras.n_steps
-    n_diffusing = sum(
-        [sp.symbol == extras.diffusing_element for sp in trajectory.species])
+    n_steps = len(trajectory)
+    n_diffusing = sum([sp.symbol == 'Li' for sp in trajectory.species])
     n_sites = sites.n_sites
 
     assert sites.atom_sites.shape == (n_steps, n_diffusing)
@@ -125,14 +121,14 @@ def test_sites(gemdat_results, structure):
 
     assert sites.transitions.shape == (n_sites, n_sites)
 
-    assert sites.transitions_parts.shape == (extras.n_parts, n_sites, n_sites)
+    assert sites.transitions_parts.shape == (n_parts, n_sites, n_sites)
     assert np.sum(sites.transitions_parts[0]) == 37
     assert np.sum(sites.transitions_parts[9]) == 38
 
     assert sites.occupancy[0] == 1704
     assert sites.occupancy[43] == 542
 
-    assert len(sites.occupancy_parts) == extras.n_parts
+    assert len(sites.occupancy_parts) == n_parts
 
     assert sites.occupancy_parts[0][0] == 56
     assert sites.occupancy_parts[0][42] == 36
@@ -141,7 +137,7 @@ def test_sites(gemdat_results, structure):
 
     assert isclose(sites.sites_occupancy['48h'], 0.380628, rel_tol=1e-4)
 
-    assert len(sites.sites_occupancy_parts) == extras.n_parts
+    assert len(sites.sites_occupancy_parts) == n_parts
     assert isclose(sites.sites_occupancy_parts[0]['48h'],
                    0.37756,
                    rel_tol=1e-4)
@@ -151,7 +147,7 @@ def test_sites(gemdat_results, structure):
 
     assert isclose(sites.atom_locations['48h'], 0.761255, rel_tol=1e-4)
 
-    assert len(sites.atom_locations_parts) == extras.n_parts
+    assert len(sites.atom_locations_parts) == n_parts
     assert isclose(sites.atom_locations_parts[0]['48h'],
                    0.755111,
                    rel_tol=1e-4)
@@ -198,18 +194,24 @@ def test_sites(gemdat_results, structure):
 
 
 @vaspxml_available
-def test_rdf(gemdat_results_subset, structure):
-    trajectory, extras = gemdat_results_subset
+def test_rdf(vasp_traj_short, structure):
+    trajectory = vasp_traj_short
 
     structure = load_known_material('argyrodite')
 
     sites = SitesData(structure)
-    sites.calculate_all(trajectory=trajectory, extras=extras)
+    sites.calculate_all(
+        trajectory=trajectory,
+        diffusing_element='Li',
+        z_ion=1,
+        diffusion_dimensions=3,
+        n_parts=1,
+    )
 
     rdfs = calculate_rdfs(
         trajectory=trajectory,
         sites=sites,
-        species=extras.diffusing_element,
+        species='Li',
         max_dist=5,
     )
 

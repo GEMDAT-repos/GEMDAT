@@ -30,21 +30,29 @@ Suggestions, improvements, and edits are most welcome.
 The following snippet can be used to test the code using VASP data.
 
 ```python
-from gemdat import Trajectory, plot_all, plot
+from gemdat import Trajectory, plots
 from gemdat.calculate.extras import calculate_all
 
 trajectory = Trajectory.from_vasprun(Path('../example/vasprun.xml'))
-extras = calculate_all(diffusing_element='Li')
+
+diff_trajectory = trajectory.filter('Li')
+
+plots.plot_displacement_per_element(trajectory)
+plots.plot_displacement_per_site(diff_trajectory)
+plots.plot_displacement_histogram(diff_trajectory)
+plots.plot_frequency_vs_occurence(trajectory)
+plots.plot_vibrational_amplitudes(trajectory)
 
 structure = load_known_material('argyrodite', supercell=(2, 1, 1))
 
 sites = SitesData(structure)
 sites.calculate_all(trajectory=trajectory,
-                    extras=extras)
+                    diffusing_element='Li')
 
-plot_all(trajectory=trajectory,
-         sites=sites,
-         **vars(extras),
+plots.plot_jumps_vs_distance(trajectory, sites)
+plots.plot_jumps_vs_time(trajectory, sites)
+plots.plot_collective_jumps(trajectory, sites)
+plots.plot_jumps_3d(trajectory, sites)
 ```
 
 Or, one function to do everything:

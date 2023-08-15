@@ -36,14 +36,14 @@ class Trajectory(PymatgenTrajectory):
 
     def __init__(self, *, metadata: dict | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.metadata = metadata if metadata else None
+        self.metadata = metadata if metadata else {}
 
     def __getitem__(self, frames):
         """Hack around pymatgen Trajectory limitations."""
         new = super().__getitem__(frames)
         if isinstance(new, PymatgenTrajectory):
             new.__class__ = self.__class__
-            new.metadata = self.metadata
+        new.metadata = self.metadata if hasattr(self, 'metadata') else {}
         return new
 
     def to_positions(self):
@@ -53,6 +53,16 @@ class Trajectory(PymatgenTrajectory):
         """
         super().to_positions()
         self.coords = np.mod(self.coords, 1)
+
+    @property
+    def total_time(self) -> float:
+        """Return total time for trajectory."""
+        return len(self) * self.time_step
+
+    @property
+    def sampling_frequency(self) -> float:
+        """Return number of time steps per second."""
+        return 1 / self.time_step
 
     @property
     def positions(self) -> np.ndarray:

@@ -1,9 +1,9 @@
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
 from gemdat import SitesData, __version__, plots
-from gemdat.calculate import calculate_all
 from gemdat.io import get_list_of_known_materials, load_known_material
 from gemdat.rdf import calculate_rdfs, plot_rdf
+from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
 
@@ -78,29 +78,31 @@ with st.sidebar:
 
 number_of_cols = 3  # Number of figure columns
 
-with st.spinner('Processing trajectory...'):
-    trajectory = trajectory[equilibration_steps:]
-    extras = calculate_all(trajectory, diffusing_element=diffusing_element)
+trajectory = trajectory[equilibration_steps:]
+diff_trajectory = trajectory.filter('Li')
+metrics = SimulationMetrics(diff_trajectory)
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     import uncertainties as u
-    attempt_freq = u.ufloat(extras.attempt_freq, extras.attempt_freq_std)
+    attempt_freq = u.ufloat(metrics.attempt_frequency())
     st.metric('Attempt frequency ($\\mathrm{s^{-1}}$)',
               value=f'{attempt_freq:g}')
     st.metric('Vibration amplitude ($\\mathrm{Å}$)',
-              value=f'{extras.vibration_amplitude:g}')
+              value=f'{metrics.vibration_amplitude():g}')
 with col2:
     st.metric('Particle density ($\\mathrm{m^{-3}}$)',
-              value=f'{extras.particle_density:g}')
+              value=f'{metrics.particle_density():g}')
     st.metric('Mol per liter ($\\mathrm{mol/l}$)',
-              value=f'{extras.mol_per_liter:g}')
+              value=f'{metrics.mol_per_liter():g}')
 with col3:
     st.metric('Tracer diffusivity ($\\mathrm{m^2/s}$)',
-              value=f'{extras.tracer_diff:g}')
-    st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
-              value=f'{extras.tracer_conduc:g}')
+              value=f'{metrics.tracer_diffusivity(diffusion_dimensions=3):g}')
+    st.metric(
+        'Tracer conductivity ($\\mathrm{S/m}$)',
+        value=
+        f'{metrics.tracer_conductivity(z_ion=1, diffusion_dimensions=3):g}')
 
 tab1, tab2 = st.tabs(['Default plots', 'RDF plots'])
 
@@ -119,7 +121,13 @@ with tab1:
 
     with st.spinner('Calculating jumps...'):
         sites = SitesData(sites_structure)
-        sites.calculate_all(trajectory=trajectory, extras=extras)
+        sites.calculate_all(
+            trajectory=trajectory,
+            diffusing_element=diffusing_element,
+            z_ion=1,
+            diffusion_dimensions=3,
+            n_parts=10,
+        )
 
     diff_trajectory = trajectory.filter(diffusing_element)
 
@@ -127,12 +135,8 @@ with tab1:
         plots.plot_displacement_per_element(trajectory=trajectory),
         plots.plot_displacement_per_site(trajectory=diff_trajectory),
         plots.plot_displacement_histogram(trajectory=diff_trajectory),
-        plots.plot_frequency_vs_occurence(trajectory=trajectory,
-                                          sites=sites,
-                                          **vars(extras)),
-        plots.plot_vibrational_amplitudes(trajectory=trajectory,
-                                          sites=sites,
-                                          **vars(extras)),
+        plots.plot_frequency_vs_occurence(trajectory=trajectory),
+        plots.plot_vibrational_amplitudes(trajectory=trajectory),
         plots.plot_jumps_vs_distance(trajectory=trajectory, sites=sites),
         plots.plot_jumps_vs_time(trajectory=trajectory, sites=sites),
         plots.plot_collective_jumps(trajectory=trajectory, sites=sites),

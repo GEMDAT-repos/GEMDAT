@@ -1,5 +1,6 @@
 import numpy as np
 from pymatgen.core import Lattice, Structure
+from scipy import signal
 
 
 def ffill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
@@ -42,6 +43,41 @@ def bfill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
         raise ValueError
 
     return np.fliplr(ffill(np.fliplr(arr), fill_val=fill_val))
+
+
+def meanfreq(x: np.ndarray, fs: float = 1.0):
+    """Estimates the mean frequency in terms of the sample rate, fs.
+
+    Vectorized version of https://stackoverflow.com/a/56487241
+
+    Parameters
+    ----------
+    x : np.ndarray[i, j]
+        Time series of measurement values. The mean frequency is computed
+        along the last axis (-1).
+    fs : float, optional
+        Sampling frequency of the `x` time series. Defaults to 1.0.
+
+    Returns
+    -------
+    mnfreq : np.ndarray
+        Array of mean frequencies.
+    """
+    if x.ndim == 1:
+        x = x.reshape(1, -1)
+
+    assert x.ndim == 2
+
+    f, Pxx_den = signal.periodogram(x, fs, axis=-1)
+    width = np.tile(f[1] - f[0], Pxx_den.shape)
+    P = Pxx_den * width
+    pwr = np.sum(P, axis=1).reshape(-1, 1)
+
+    f = f.reshape(1, -1)
+
+    mnfreq = np.dot(P, f.T) / pwr
+
+    return mnfreq
 
 
 def is_lattice_similar(a: Lattice | Structure,
