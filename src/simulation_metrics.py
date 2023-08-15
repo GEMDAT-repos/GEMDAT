@@ -17,10 +17,6 @@ class SimulationMetrics:
     def __init__(self, trajectory: Trajectory):
         self.trajectory = trajectory
 
-    @property
-    def total_time(self):
-        return len(self.trajectory) * self.trajectory.time_step
-
     def speed(self):
         distances = self.trajectory.distances_from_base_position()
         return np.diff(distances, prepend=0)
@@ -45,7 +41,7 @@ class SimulationMetrics:
 
         # Diffusivity = MSD/(2*dimensions*time)
         tracer_diff = (msd * angstrom**2) / (2 * diffusion_dimensions *
-                                             self.total_time)
+                                             self.trajectory.total_time)
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
@@ -59,11 +55,6 @@ class SimulationMetrics:
 
         return FloatWithUnit(tracer_conduc, 'S m^-1')
 
-    @property
-    def fs(self) -> float:
-        """Return sampling frequency of simulation."""
-        return 1 / self.trajectory.time_step
-
     def attempt_frequency(self) -> tuple[float, float]:
         """Calculate attempt frequency.
 
@@ -76,7 +67,7 @@ class SimulationMetrics:
         """
         speed = self.speed()
 
-        freq_mean = meanfreq(speed, fs=self.fs)
+        freq_mean = meanfreq(speed, fs=self.trajectory.sampling_frequency)
 
         attempt_freq_std = np.std(freq_mean)
         attempt_freq_std = FloatWithUnit(attempt_freq_std, 'hz')

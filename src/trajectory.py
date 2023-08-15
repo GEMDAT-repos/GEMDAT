@@ -55,6 +55,16 @@ class Trajectory(PymatgenTrajectory):
         self.coords = np.mod(self.coords, 1)
 
     @property
+    def total_time(self) -> float:
+        """Return total time for trajectory."""
+        return len(self) * self.time_step
+
+    @property
+    def sampling_frequency(self) -> float:
+        """Return number of time steps per second."""
+        return 1 / self.time_step
+
+    @property
     def positions(self) -> np.ndarray:
         """Return trajectory positions as fractional coordinates.
 

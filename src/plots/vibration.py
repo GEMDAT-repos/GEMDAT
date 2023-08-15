@@ -32,7 +32,7 @@ def plot_frequency_vs_occurence(*, trajectory: Trajectory,
 
     fig, ax = plt.subplots()
 
-    f = metrics.fs * np.arange(half_length) / length
+    f = trajectory.sampling_frequency * np.arange(half_length) / length
 
     sum_freqs = np.sum(one_sided, axis=0)
     smoothed = np.convolve(sum_freqs, np.ones(51), 'same') / 51

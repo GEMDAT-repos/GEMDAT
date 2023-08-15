@@ -89,7 +89,7 @@ class SitesData:
         self.jump_diffusivity = self.calculate_jump_diffusivity(
             lattice=lattice,
             n_diffusing=n_diffusing,
-            total_time=extras.total_time,
+            total_time=trajectory.total_time,
             dimensions=extras.diffusion_dimensions)
         self.correlation_factor = extras.tracer_diff / self.jump_diffusivity
 
@@ -111,11 +111,11 @@ class SitesData:
                                     n_diffusing=n_diffusing,
                                     extras=extras)
 
-            self.rates = self.calculate_rates(total_time=extras.total_time,
+            self.rates = self.calculate_rates(total_time=trajectory.total_time,
                                               n_diffusing=n_diffusing)
 
             self.activation_energies = self.calculate_activation_energies(
-                total_time=extras.total_time,
+                total_time=trajectory.total_time,
                 n_diffusing=n_diffusing,
                 attempt_freq=extras.attempt_freq,
                 temperature=trajectory.metadata['temperature'])
@@ -401,13 +401,13 @@ class SitesData:
         return jumps
 
     def calculate_rates(
-            self, *, total_time: int,
+            self, *, total_time: float,
             n_diffusing: int) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate jump rates (total jumps / second).
 
         Parameters
         ----------
-        total_time : int
+        total_time : float
             Total time for the simulation
         n_diffusing : int
             Number of diffusing atoms
@@ -435,13 +435,13 @@ class SitesData:
         return rates
 
     def calculate_activation_energies(
-            self, *, total_time: int, n_diffusing: int, attempt_freq: float,
+            self, *, total_time: float, n_diffusing: int, attempt_freq: float,
             temperature: float) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate activation energies for jumps (UNITS?).
 
         Parameters
         ----------
-        total_time : int
+        total_time : float
             Total time for the simulation
         n_diffusing : int
             Number of diffusing atoms

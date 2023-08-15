@@ -44,7 +44,7 @@ def calculate_all(trajectory: Trajectory,
         n_parts=n_parts,
         dist_collective=dist_collective,
         n_steps=len(trajectory),
-        total_time=len(trajectory) * trajectory.time_step,
+        total_time=trajectory.total_time,
     )
 
     diff_trajectory = trajectory.filter(diffusing_element)
