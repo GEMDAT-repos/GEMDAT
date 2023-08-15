@@ -94,12 +94,8 @@ def analyse_md(
     plots.plot_displacement_per_element(trajectory=trajectory)
     plots.plot_displacement_per_site(trajectory=diff_trajectory)
     plots.plot_displacement_histogram(trajectory=diff_trajectory)
-    plots.plot_frequency_vs_occurence(trajectory=trajectory,
-                                      sites=sites,
-                                      **vars(extras))
-    plots.plot_vibrational_amplitudes(trajectory=trajectory,
-                                      sites=sites,
-                                      **vars(extras))
+    plots.plot_frequency_vs_occurence(trajectory=trajectory)
+    plots.plot_vibrational_amplitudes(trajectory=trajectory)
     plots.plot_jumps_vs_distance(trajectory=trajectory,
                                  sites=sites,
                                  jump_res=jump_res)

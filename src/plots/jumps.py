@@ -16,8 +16,7 @@ if TYPE_CHECKING:
 def plot_jumps_vs_distance(*,
                            trajectory: Trajectory,
                            sites: SitesData,
-                           jump_res: float = 0.1,
-                           **kwargs) -> plt.Figure:
+                           jump_res: float = 0.1) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -61,8 +60,7 @@ def plot_jumps_vs_distance(*,
 def plot_jumps_vs_time(*,
                        trajectory: Trajectory,
                        sites: SitesData,
-                       binsize: int = 500,
-                       **kwargs) -> plt.Figure:
+                       binsize: int = 500) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -73,7 +71,6 @@ def plot_jumps_vs_time(*,
         Input sites data
     binsize : int, optional
         Width of each bin in number of time steps
-
 
     Returns
     -------
@@ -93,8 +90,8 @@ def plot_jumps_vs_time(*,
     return fig
 
 
-def plot_collective_jumps(*, trajectory: Trajectory, sites: SitesData,
-                          **kwargs) -> plt.Figure:
+def plot_collective_jumps(*, trajectory: Trajectory,
+                          sites: SitesData) -> plt.Figure:
     """Plot collective jumps per jump-type combination.
 
     Parameters
@@ -124,8 +121,7 @@ def plot_collective_jumps(*, trajectory: Trajectory, sites: SitesData,
     return fig
 
 
-def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData,
-                  **kwargs) -> plt.Figure:
+def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
     """Plot jumps in 3D.
 
     Parameters
@@ -214,8 +210,7 @@ def plot_jumps_3d_animation(*,
                             t_stop: int,
                             decay: float = 0.05,
                             skip: int = 5,
-                            interval: int = 20,
-                            **kwargs):
+                            interval: int = 20):
     """Plot jumps in 3D as an animation over time.
 
     # TODO

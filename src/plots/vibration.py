@@ -5,8 +5,7 @@ from gemdat.trajectory import Trajectory
 from scipy import stats
 
 
-def plot_frequency_vs_occurence(*, trajectory: Trajectory,
-                                **kwargs) -> plt.Figure:
+def plot_frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
     """Plot attempt frequency vs occurence.
 
     Parameters
@@ -62,7 +61,7 @@ def plot_frequency_vs_occurence(*, trajectory: Trajectory,
     return fig
 
 
-def plot_vibrational_amplitudes(*, trajectory: Trajectory, **kwargs):
+def plot_vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
     """Plot histogram of vibrational amplitudes with fitted Gaussian.
 
     Parameters
