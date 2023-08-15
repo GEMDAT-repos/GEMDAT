@@ -17,36 +17,67 @@ class SimulationMetrics:
     def __init__(self, trajectory: Trajectory):
         self.trajectory = trajectory
 
-    def speed(self):
+    def speed(self) -> np.ndarray:
+        """Calculate speed.
+
+        Corresponds to change in distance from the base position.
+        """
         distances = self.trajectory.distances_from_base_position()
         return np.diff(distances, prepend=0)
 
-    def particle_density(self):
+    def particle_density(self) -> float:
+        """Return number of particles per m3."""
         lattice = self.trajectory.get_lattice()
         volume_ang = lattice.volume
         volume_m3 = volume_ang * angstrom**3
         particle_density = len(self.trajectory.species) / volume_m3
         return FloatWithUnit(particle_density, 'm^-3')
 
-    def mol_per_liter(self):
+    def mol_per_liter(self) -> float:
+        """Return particle density as mol/liter."""
         mol_per_liter = (self.particle_density() * 1e-3) / Avogadro
         return FloatWithUnit(mol_per_liter, 'mol l^-1')
 
-    def tracer_diffusivity(self, *, diffusion_dimensions: int):
-        # Matlab code contains a bug here so I'm not entirely sure what is the definition
-        # Matlab code takes the first column, which is equal to 0
-        # Do they mean the total displacement (i.e. last column)?
-        msd = np.mean(self.trajectory.distances_from_base_position()[:, -1]**
-                      2)  # Angstrom^2
+    def tracer_diffusivity(self, *, diffusion_dimensions: int) -> float:
+        """Return tracer diffusivity in m2/s.
 
-        # Diffusivity = MSD/(2*dimensions*time)
+        Defined as: MSD/(2*dimensions*time)
+
+        Parameters
+        ----------
+        diffusion_dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        tracer_diffusivity : float
+        """
+        distances = self.trajectory.distances_from_base_position()
+        msd = np.mean(distances[:, -1]**2)  # Angstrom^2
+
         tracer_diff = (msd * angstrom**2) / (2 * diffusion_dimensions *
                                              self.trajectory.total_time)
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
-    def tracer_conductivity(self, *, z_ion: int, diffusion_dimensions: int):
-        # Conductivity = elementary_charge^2 * charge_ion^2 * diffusivity * particle_density / (k_B * T)
+    def tracer_conductivity(self, *, z_ion: int,
+                            diffusion_dimensions: int) -> float:
+        """Return tracer conductivity as S/m.
+
+        Defined as: elementary_charge^2 * charge_ion^2 * diffusivity *
+            particle_density / (k_B * T)
+
+        Parameters
+        ----------
+        z_ion : int
+            Charge of the ion
+        diffusion_dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        tracer_conductivity : float
+        """
         temperature = self.trajectory.metadata['temperature']
         tracer_diff = self.tracer_diffusivity(
             diffusion_dimensions=diffusion_dimensions)
@@ -56,7 +87,7 @@ class SimulationMetrics:
         return FloatWithUnit(tracer_conduc, 'S m^-1')
 
     def attempt_frequency(self) -> tuple[float, float]:
-        """Calculate attempt frequency.
+        """Return attempt frequency and standard deviation in Hz.
 
         Returns
         -------
@@ -78,17 +109,11 @@ class SimulationMetrics:
         return attempt_freq, attempt_freq_std
 
     def vibration_amplitude(self) -> float:
-        """Calculate vibration amplitude.
-
-        Parameters
-        ----------
-        amplitudes : np.ndarray
-            Input amplitudes
+        """Return vibration amplitude in Angstrom.
 
         Returns
         -------
         vibration_amp : float
-            Vibration amplitude
         """
         amplitudes = self.amplitudes()
 
@@ -101,12 +126,12 @@ class SimulationMetrics:
         return vibration_amp
 
     def amplitudes(self) -> np.ndarray:
-        """Calculate vibration amplitude.
+        """Return vibration amplitudes.
 
         Returns
         -------
         amplitudes : np.ndarray
-            Output array with vibrational amplitudes
+            Output array of vibration amplitudes
         """
         amplitudes = []
         speed = self.speed()
