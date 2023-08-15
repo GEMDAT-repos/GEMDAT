@@ -19,6 +19,8 @@ def test_vibration_metrics(trajectory):
     diff_trajectory = trajectory.filter('B')
     metrics = SimulationMetrics(diff_trajectory)
 
+    assert np.allclose(metrics.speed(), [[0., 0.2, 0.2, 0.2, 0.3]])
+
     attempt_freq, attempt_freq_std = metrics.attempt_frequency()
 
     assert np.isclose(attempt_freq, 0.33727)
