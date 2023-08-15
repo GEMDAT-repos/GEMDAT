@@ -27,7 +27,7 @@ vaspxml_available = pytest.mark.skipif(
      '-xjf tests/data/short_simulation/vasprun.xml.bz2`'))
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def vasp_traj():
     trajectory = Trajectory.from_vasprun(VASP_XML)
     trajectory = trajectory[1250:]
@@ -43,7 +43,7 @@ def vasp_traj_short():
     return trajectory
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def structure():
     return load_known_material('argyrodite', supercell=(2, 1, 1))
 
@@ -94,103 +94,131 @@ def test_tracer(vasp_traj):
 
 
 @vaspxml_available
-def test_sites(vasp_traj, structure):
-    trajectory = vasp_traj
-
+class TestSites:
     n_parts = 10
+    diffusing_element = 'Li'
 
-    sites = SitesData(structure)
-    sites.calculate_all(trajectory=trajectory,
-                        diffusing_element='Li',
-                        z_ion=1,
-                        diffusion_dimensions=3,
-                        n_parts=n_parts)
+    @pytest.fixture(scope='class')
+    def sites(self, vasp_traj, structure):
+        trajectory = vasp_traj
 
-    n_steps = len(trajectory)
-    n_diffusing = sum([sp.symbol == 'Li' for sp in trajectory.species])
-    n_sites = sites.n_sites
+        sites = SitesData(structure)
+        sites.calculate_all(trajectory=trajectory,
+                            diffusing_element=self.diffusing_element,
+                            z_ion=1,
+                            diffusion_dimensions=3,
+                            n_parts=self.n_parts)
 
-    assert sites.atom_sites.shape == (n_steps, n_diffusing)
-    assert sites.atom_sites.sum() == 6154859
-    assert sites.atom_sites_to.shape == (n_steps, n_diffusing)
-    assert sites.atom_sites_to.sum() == 8172006
-    assert sites.atom_sites_from.shape == (n_steps, n_diffusing)
-    assert sites.atom_sites_from.sum() == 8148552
+        return sites
 
-    assert sites.all_transitions.shape == (450, 5)
+    def test_atom_sites(self, sites, vasp_traj):
+        n_steps = len(vasp_traj)
+        n_diffusing = sum(
+            [sp.symbol == self.diffusing_element for sp in vasp_traj.species])
 
-    assert sites.transitions.shape == (n_sites, n_sites)
+        assert sites.atom_sites.shape == (n_steps, n_diffusing)
+        assert sites.atom_sites.sum() == 6154859
+        assert sites.atom_sites_to.shape == (n_steps, n_diffusing)
+        assert sites.atom_sites_to.sum() == 8172006
+        assert sites.atom_sites_from.shape == (n_steps, n_diffusing)
+        assert sites.atom_sites_from.sum() == 8148552
 
-    assert sites.transitions_parts.shape == (n_parts, n_sites, n_sites)
-    assert np.sum(sites.transitions_parts[0]) == 37
-    assert np.sum(sites.transitions_parts[9]) == 38
+    def test_all_transitions(self, sites):
+        assert sites.all_transitions.shape == (450, 5)
+        assert sites.transitions.shape == (sites.n_sites, sites.n_sites)
 
-    assert sites.occupancy[0] == 1704
-    assert sites.occupancy[43] == 542
+    def test_transitions_parts(self, sites):
+        n_sites = sites.n_sites
+        assert sites.transitions_parts.shape == (self.n_parts, n_sites,
+                                                 n_sites)
+        assert np.sum(sites.transitions_parts[0]) == 37
+        assert np.sum(sites.transitions_parts[9]) == 38
 
-    assert len(sites.occupancy_parts) == n_parts
+    def test_occupancy(self, sites):
+        assert sites.occupancy[0] == 1704
+        assert sites.occupancy[43] == 542
 
-    assert sites.occupancy_parts[0][0] == 56
-    assert sites.occupancy_parts[0][42] == 36
-    assert sites.occupancy_parts[9][0] == 62
-    assert sites.occupancy_parts[9][42] == 177
+    def test_occupancy_parts(self, sites):
+        assert len(sites.occupancy_parts) == self.n_parts
 
-    assert isclose(sites.sites_occupancy['48h'], 0.380628, rel_tol=1e-4)
+        assert sites.occupancy_parts[0][0] == 56
+        assert sites.occupancy_parts[0][42] == 36
+        assert sites.occupancy_parts[9][0] == 62
+        assert sites.occupancy_parts[9][42] == 177
 
-    assert len(sites.sites_occupancy_parts) == n_parts
-    assert isclose(sites.sites_occupancy_parts[0]['48h'],
-                   0.37756,
-                   rel_tol=1e-4)
-    assert isclose(sites.sites_occupancy_parts[9]['48h'],
-                   0.36922,
-                   rel_tol=1e-4)
+    def test_sites_occupancy(self, sites):
+        assert isclose(sites.sites_occupancy['48h'], 0.380628, rel_tol=1e-4)
 
-    assert isclose(sites.atom_locations['48h'], 0.761255, rel_tol=1e-4)
+    def test_sites_occupancy_parts(self, sites):
+        assert len(sites.sites_occupancy_parts) == self.n_parts
+        assert isclose(sites.sites_occupancy_parts[0]['48h'],
+                       0.37756,
+                       rel_tol=1e-4)
+        assert isclose(sites.sites_occupancy_parts[9]['48h'],
+                       0.36922,
+                       rel_tol=1e-4)
 
-    assert len(sites.atom_locations_parts) == n_parts
-    assert isclose(sites.atom_locations_parts[0]['48h'],
-                   0.755111,
-                   rel_tol=1e-4)
-    assert isclose(sites.atom_locations_parts[9]['48h'],
-                   0.738444,
-                   rel_tol=1e-4)
+    def test_atom_locations(self, sites):
+        assert isclose(sites.atom_locations['48h'], 0.761255, rel_tol=1e-4)
 
-    assert sites.n_jumps == 450
+    def test_atom_locations_parts(self, sites):
+        assert len(sites.atom_locations_parts) == self.n_parts
+        assert isclose(sites.atom_locations_parts[0]['48h'],
+                       0.755111,
+                       rel_tol=1e-4)
+        assert isclose(sites.atom_locations_parts[9]['48h'],
+                       0.738444,
+                       rel_tol=1e-4)
 
-    assert isinstance(sites.rates, dict)
-    assert len(sites.rates) == 1
+    def test_n_jumps(self, sites):
+        assert sites.n_solo_jumps == 1922
+        assert sites.n_jumps == 450
+        assert isclose(sites.solo_frac, 4.2711, rel_tol=1e-4)
 
-    rates, rates_std = sites.rates[('48h', '48h')]
-    assert isclose(rates, 1249999999999.9998)
-    assert isclose(rates_std, 137337009020.29002)
+    def test_rates(self, sites):
+        assert isinstance(sites.rates, dict)
+        assert len(sites.rates) == 1
 
-    assert isinstance(sites.activation_energies, dict)
-    assert len(sites.activation_energies) == 1
+        rates, rates_std = sites.rates[('48h', '48h')]
+        assert isclose(rates, 1249999999999.9998)
+        assert isclose(rates_std, 137337009020.29002)
 
-    e_act, e_act_std = sites.activation_energies[('48h', '48h')]
-    assert isclose(e_act, 0.130754, rel_tol=1e-6)
-    assert isclose(e_act_std, 0.0063201, rel_tol=1e-6)
+    def test_activation_energies(self, sites):
+        assert isinstance(sites.activation_energies, dict)
+        assert len(sites.activation_energies) == 1
 
-    assert isclose(sites.jump_diffusivity, 9.220713700212185e-09, rel_tol=1e-6)
-    assert isclose(sites.correlation_factor, 0.1703355120150192, rel_tol=1e-6)
+        e_act, e_act_std = sites.activation_energies[('48h', '48h')]
+        assert isclose(e_act, 0.130754, rel_tol=1e-6)
+        assert isclose(e_act_std, 0.0063201, rel_tol=1e-6)
 
-    assert sites.n_solo_jumps == 1922
-    assert sites.coll_count == 1280
-    assert isclose(sites.solo_frac, 4.2711, rel_tol=1e-4)
+    def test_jump_diffusivity(self, sites):
+        assert isclose(sites.jump_diffusivity,
+                       9.220713700212185e-09,
+                       rel_tol=1e-6)
 
-    assert len(sites.collective) == 1280
+    def test_correlation_factor(self, sites):
+        assert isclose(sites.correlation_factor,
+                       0.1703355120150192,
+                       rel_tol=1e-6)
 
-    assert sites.collective[0] == (158, 384)
-    assert sites.collective[-1] == (348, 383)
+    def test_collective(self, sites):
+        assert sites.coll_count == 1280
+        assert len(sites.collective) == 1280
 
-    assert len(sites.coll_jumps) == 1280
-    assert sites.coll_jumps[0] == ((74, 8), (41, 67))
-    assert sites.coll_jumps[-1] == ((15, 77), (21, 45))
+        assert sites.collective[0] == (158, 384)
+        assert sites.collective[-1] == (348, 383)
 
-    assert sites.coll_matrix.shape == (1, 1)
-    assert sites.coll_matrix[0, 0] == 1280
+    def test_coll_jumps(self, sites):
+        assert len(sites.coll_jumps) == 1280
+        assert sites.coll_jumps[0] == ((74, 8), (41, 67))
+        assert sites.coll_jumps[-1] == ((15, 77), (21, 45))
 
-    assert sites.multi_coll.sum() == 434227
+    def test_coll_matrix(self, sites):
+        assert sites.coll_matrix.shape == (1, 1)
+        assert sites.coll_matrix[0, 0] == 1280
+
+    def test_multi_coll(self, sites):
+        assert sites.multi_coll.sum() == 434227
 
 
 @vaspxml_available
