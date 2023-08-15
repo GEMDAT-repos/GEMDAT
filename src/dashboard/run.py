@@ -76,6 +76,16 @@ with st.sidebar:
                                    value=1,
                                    label_visibility='collapsed'))
 
+    st.markdown('## Radial distribution function')
+    do_rdf = st.checkbox('Plot RDFs')
+
+    if do_rdf:
+        with st.sidebar:
+            max_dist_rdf = st.number_input(
+                'Maximum distance for RDF calculation', value=10.0)
+            resolution_rdf = st.number_input('Resolution (width of bins)',
+                                             value=0.1)
+
 number_of_cols = 3  # Number of figure columns
 
 trajectory = trajectory[equilibration_steps:]
@@ -108,16 +118,15 @@ tab1, tab2 = st.tabs(['Default plots', 'RDF plots'])
 
 sites_structure = load_known_material(sites_filename, supercell=supercell)
 
-with tab1:
-    st.title('GEMDAT pregenerated figures')
+if not is_lattice_similar(trajectory.get_lattice(), sites_structure):
+    st.error('Lattices are not similar!')
+    st.text(f'{sites_filename}: {sites_structure.lattice.parameters}')
+    st.text(
+        f'{trajectory_location.name}: {trajectory.get_lattice().parameters}')
+    st.stop()
 
-    if not is_lattice_similar(trajectory.get_lattice(), sites_structure):
-        st.error('Lattices are not similar!')
-        st.text(f'{sites_filename}: {sites_structure.lattice.parameters}')
-        st.text(
-            f'{trajectory_location.name}: {trajectory.get_lattice().parameters}'
-        )
-        st.stop()
+with tab1:
+    st.title('Trajectory and jumps')
 
     with st.spinner('Calculating jumps...'):
         sites = SitesData(sites_structure)
@@ -148,19 +157,9 @@ with tab1:
         for figure in figures[num::number_of_cols]:
             col.pyplot(figure)
 
-with tab2:
-    st.title('GEMDAT RDF plots')
-
-    do_rdf = st.checkbox(
-        'Enable RDF plots (This might increase the page load time significantly)'
-    )
-    if do_rdf:
-        with st.sidebar:
-            st.markdown('RDF specific parameters')
-            max_dist_rdf = st.number_input(
-                'Maximum Distance for RDF calculation', value=10.0)
-            resolution_rdf = st.number_input(
-                'Resolution for RDF calculation (width of bins)', value=0.1)
+if do_rdf:
+    with tab2:
+        st.title('Radial distribution function')
 
         with st.spinner('Calculating RDFs...'):
             rdfs = calculate_rdfs(
@@ -170,6 +169,7 @@ with tab2:
                 max_dist=max_dist_rdf,
                 resolution=resolution_rdf,
             )
+
         rdf_figures = [
             plot_rdf(rdf, name=state) for state, rdf in rdfs.items()
         ]
