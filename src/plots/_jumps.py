@@ -43,7 +43,7 @@ def jumps_vs_distance(*,
     counts = np.zeros_like(x)
 
     bin_idx = np.digitize(pdist, bins=x)
-    for idx, n in zip(bin_idx.flatten(), sites.transitions_matrix().flatten()):
+    for idx, n in zip(bin_idx.flatten(), sites.transitions.matrix().flatten()):
         counts[idx] += n
 
     fig, ax = plt.subplots()
@@ -81,7 +81,7 @@ def jumps_vs_time(*,
 
     fig, ax = plt.subplots()
 
-    ax.hist(sites.transition_events()[:, 4], bins=bins, width=0.8 * binsize)
+    ax.hist(sites.transitions.events[:, 4], bins=bins, width=0.8 * binsize)
 
     ax.set(title='Jumps vs. time',
            xlabel='Time (steps)',
@@ -165,8 +165,8 @@ def jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
     plotter.plot_points(coords, lattice=lattice, ax=ax)
 
     for i, j in zip(*np.triu_indices(len(coords), k=1)):
-        count = sites.transitions_matrix()[i,
-                                           j] + sites.transitions_matrix()[j,
+        count = sites.transitions.matrix()[i,
+                                           j] + sites.transitions.matrix()[j,
                                                                            i]
         if count == 0:
             continue
@@ -286,9 +286,9 @@ def jumps_3d_animation(*,
     points = ax.collections
 
     time_col = 4
-    event_order = sites.transition_events()[:, time_col].argsort()
+    event_order = sites.transitions.events[:, time_col].argsort()
 
-    events = sites.transition_events()[event_order]
+    events = sites.transitions.events[event_order]
 
     for _, site_i, site_j, *_ in events:
 

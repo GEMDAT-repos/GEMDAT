@@ -19,17 +19,22 @@ class TestSites:
         n_steps = len(vasp_traj)
         n_diffusing = vasp_sites.n_floating
 
-        assert vasp_sites.atom_sites().shape == (n_steps, n_diffusing)
-        assert vasp_sites.atom_sites().sum() == 6154859
-        assert vasp_sites.atom_sites_to().shape == (n_steps, n_diffusing)
-        assert vasp_sites.atom_sites_to().sum() == 8172006
-        assert vasp_sites.atom_sites_from().shape == (n_steps, n_diffusing)
-        assert vasp_sites.atom_sites_from().sum() == 8148552
+        transitions = vasp_sites.transitions
+
+        assert transitions._dist_close == 0.9284961123176741
+
+        assert transitions.states.shape == (n_steps, n_diffusing)
+        assert transitions.states.sum() == 6154859
+        assert transitions.states_next().shape == (n_steps, n_diffusing)
+        assert transitions.states_next().sum() == 8172006
+        assert transitions.states_prev().shape == (n_steps, n_diffusing)
+        assert transitions.states_prev().sum() == 8148552
 
     def test_all_transitions(self, vasp_sites):
-        assert vasp_sites.transition_events().shape == (450, 5)
-        assert vasp_sites.transitions_matrix().shape == (vasp_sites.n_sites,
-                                                         vasp_sites.n_sites)
+        transitions = vasp_sites.transitions
+        assert transitions.events.shape == (450, 5)
+        assert transitions.matrix().shape == (vasp_sites.n_sites,
+                                              vasp_sites.n_sites)
 
     def test_transitions_parts(self, vasp_sites):
         n_sites = vasp_sites.n_sites
@@ -39,8 +44,8 @@ class TestSites:
         assert np.sum(vasp_sites.transitions_parts[9]) == 38
 
     def test_occupancy(self, vasp_sites):
-        assert vasp_sites.occupancy()[0] == 1704
-        assert vasp_sites.occupancy()[43] == 542
+        assert vasp_sites.transitions.occupancy()[0] == 1704
+        assert vasp_sites.transitions.occupancy()[43] == 542
 
     def test_occupancy_parts(self, vasp_sites):
         assert len(vasp_sites.occupancy_parts) == self.n_parts

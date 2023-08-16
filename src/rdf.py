@@ -48,12 +48,13 @@ def _get_states(labels: list[str]) -> dict[int, str]:
 
 def _get_states_array(sites: SitesData, labels: list[str]) -> np.ndarray:
     """Helper function to generate integer array of transition states."""
-    atom_sites = _uniqify_labels(sites.atom_sites(), labels)
-    atom_sites_from = _uniqify_labels(sites.atom_sites_from(), labels)
-    atom_sites_to = _uniqify_labels(sites.atom_sites_to(), labels)
+    transitions = sites.transitions
 
-    states_array = (atom_sites * 1e6 + atom_sites_from * 1e3 +
-                    atom_sites_to).astype(int)
+    states = _uniqify_labels(transitions.states, labels)
+    states_prev = _uniqify_labels(transitions.states_prev(), labels)
+    states_next = _uniqify_labels(transitions.states_next(), labels)
+
+    states_array = (states * 1e6 + states_prev * 1e3 + states_next).astype(int)
 
     return states_array
 
