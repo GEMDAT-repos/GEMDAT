@@ -5,7 +5,6 @@ VASP_XML=/home/stef/md-analysis-matlab-example/vasprun.xml pytest
 """
 
 from math import isclose
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -13,42 +12,10 @@ from gemdat import SitesData
 from gemdat.io import load_known_material
 from gemdat.rdf import calculate_rdfs
 from gemdat.simulation_metrics import SimulationMetrics
-from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume
 
-DATA_DIR = Path(__file__).parent / 'data'
-VASP_XML = DATA_DIR / 'short_simulation' / 'vasprun.xml'
 
-vaspxml_available = pytest.mark.skipif(
-    not VASP_XML.exists(),
-    reason=
-    ('Simulation data from vasprun.xml example is required for this test. '
-     'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
-     '-xjf tests/data/short_simulation/vasprun.xml.bz2`'))
-
-
-@pytest.fixture(scope='module')
-def vasp_traj():
-    trajectory = Trajectory.from_vasprun(VASP_XML)
-    trajectory = trajectory[1250:]
-    return trajectory
-
-
-@pytest.fixture
-def vasp_traj_short():
-    trajectory = Trajectory.from_vasprun(VASP_XML)
-    # Reduced number of time steps for slow calculations
-    trajectory = trajectory[4000:]
-
-    return trajectory
-
-
-@pytest.fixture(scope='module')
-def structure():
-    return load_known_material('argyrodite', supercell=(2, 1, 1))
-
-
-@vaspxml_available
+@pytest.vaspxml_available
 def test_volume(vasp_traj):
     trajectory = vasp_traj
 
@@ -61,7 +28,7 @@ def test_volume(vasp_traj):
     assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
 
 
-@vaspxml_available
+@pytest.vaspxml_available
 def test_volume_cartesian(vasp_traj):
     trajectory = vasp_traj
 
@@ -76,7 +43,7 @@ def test_volume_cartesian(vasp_traj):
     assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
 
 
-@vaspxml_available
+@pytest.vaspxml_available
 def test_tracer(vasp_traj):
 
     diff_trajectory = vasp_traj.filter('Li')
@@ -93,7 +60,7 @@ def test_tracer(vasp_traj):
                    rel_tol=1e-4)
 
 
-@vaspxml_available
+@pytest.vaspxml_available
 class TestSites:
     n_parts = 10
     diffusing_element = 'Li'
@@ -221,9 +188,10 @@ class TestSites:
         assert sites.multi_coll.sum() == 434227
 
 
-@vaspxml_available
-def test_rdf(vasp_traj_short, structure):
-    trajectory = vasp_traj_short
+@pytest.vaspxml_available
+def test_rdf(vasp_traj, structure):
+    # Shorten trajectory for faster test
+    trajectory = vasp_traj[-1000:]
 
     structure = load_known_material('argyrodite')
 
