@@ -48,9 +48,9 @@ def _get_states(labels: list[str]) -> dict[int, str]:
 
 def _get_states_array(sites: SitesData, labels: list[str]) -> np.ndarray:
     """Helper function to generate integer array of transition states."""
-    atom_sites = _uniqify_labels(sites.atom_sites, labels)
-    atom_sites_from = _uniqify_labels(sites.atom_sites_from, labels)
-    atom_sites_to = _uniqify_labels(sites.atom_sites_to, labels)
+    atom_sites = _uniqify_labels(sites.atom_sites(), labels)
+    atom_sites_from = _uniqify_labels(sites.atom_sites_from(), labels)
+    atom_sites_to = _uniqify_labels(sites.atom_sites_to(), labels)
 
     states_array = (atom_sites * 1e6 + atom_sites_from * 1e3 +
                     atom_sites_to).astype(int)

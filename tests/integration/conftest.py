@@ -32,11 +32,7 @@ def structure():
 
 @pytest.fixture(scope='module')
 def vasp_sites(vasp_traj, structure):
-    sites = SitesData(structure)
-    sites.calculate_all(trajectory=vasp_traj,
-                        diffusing_element='Li',
-                        z_ion=1,
-                        diffusion_dimensions=3,
-                        n_parts=10)
-
+    sites = SitesData(structure=structure,
+                      trajectory=vasp_traj,
+                      floating_specie='Li')
     return sites
