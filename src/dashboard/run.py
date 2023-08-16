@@ -127,12 +127,10 @@ with tab1:
     st.title('Trajectory and jumps')
 
     with st.spinner('Calculating jumps...'):
-        sites = SitesData(sites_structure)
-        sites.calculate_all(
+        sites = SitesData(
+            structure=sites_structure,
             trajectory=trajectory,
-            diffusing_element=diffusing_element,
-            z_ion=1,
-            dimensions=3,
+            floating_specie=diffusing_element,
             n_parts=10,
         )
 
