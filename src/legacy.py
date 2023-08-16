@@ -85,19 +85,19 @@ def analyse_md(
         dist_collective=dist_collective,
     )
 
-    plots.plot_displacement_per_element(trajectory=trajectory)
-    plots.plot_displacement_per_site(trajectory=diff_trajectory)
-    plots.plot_displacement_histogram(trajectory=diff_trajectory)
-    plots.plot_frequency_vs_occurence(trajectory=trajectory)
-    plots.plot_vibrational_amplitudes(trajectory=trajectory)
-    plots.plot_jumps_vs_distance(trajectory=trajectory,
-                                 sites=sites,
-                                 jump_res=jump_res)
-    plots.plot_jumps_vs_time(trajectory=trajectory, sites=sites)
-    plots.plot_collective_jumps(trajectory=trajectory, sites=sites)
-    plots.plot_jumps_3d(trajectory=trajectory, sites=sites)
+    plots.displacement_per_element(trajectory=trajectory)
+    plots.displacement_per_site(trajectory=diff_trajectory)
+    plots.displacement_histogram(trajectory=diff_trajectory)
+    plots.frequency_vs_occurence(trajectory=trajectory)
+    plots.vibrational_amplitudes(trajectory=trajectory)
+    plots.jumps_vs_distance(trajectory=trajectory,
+                            sites=sites,
+                            jump_res=jump_res)
+    plots.jumps_vs_time(trajectory=trajectory, sites=sites)
+    plots.collective_jumps(trajectory=trajectory, sites=sites)
+    plots.jumps_3d(trajectory=trajectory, sites=sites)
 
-    plots.plot_jumps_3d_animation(
+    plots.jumps_3d_animation(
         trajectory=trajectory,
         sites=sites,
         t_start=start_end[0],

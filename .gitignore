@@ -139,3 +139,7 @@ dmypy.json
 
 *.ipynb
 *.vasp
+
+# matplotlib result images
+tests/result_images/*
+result_images/*

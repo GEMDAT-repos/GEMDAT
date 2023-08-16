@@ -3,7 +3,7 @@ import numpy as np
 from gemdat.trajectory import Trajectory
 
 
-def plot_displacement_per_site(*, trajectory: Trajectory) -> plt.Figure:
+def displacement_per_site(*, trajectory: Trajectory) -> plt.Figure:
     """Plot displacement per site.
 
     Parameters
@@ -28,7 +28,7 @@ def plot_displacement_per_site(*, trajectory: Trajectory) -> plt.Figure:
     return fig
 
 
-def plot_displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
+def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
     """Plot displacement per element.
 
     Parameters
@@ -65,7 +65,7 @@ def plot_displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
     return fig
 
 
-def plot_displacement_histogram(trajectory: Trajectory) -> plt.Figure:
+def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
     """Plot histogram of total displacement of diffusing element at final
     timestep.
 
