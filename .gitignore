@@ -142,3 +142,4 @@ dmypy.json
 
 # matplotlib result images
 tests/result_images/*
+result_images/*
