@@ -108,11 +108,9 @@ with col2:
               value=f'{metrics.mol_per_liter():g}')
 with col3:
     st.metric('Tracer diffusivity ($\\mathrm{m^2/s}$)',
-              value=f'{metrics.tracer_diffusivity(diffusion_dimensions=3):g}')
-    st.metric(
-        'Tracer conductivity ($\\mathrm{S/m}$)',
-        value=
-        f'{metrics.tracer_conductivity(z_ion=1, diffusion_dimensions=3):g}')
+              value=f'{metrics.tracer_diffusivity(dimensions=3):g}')
+    st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
+              value=f'{metrics.tracer_conductivity(z_ion=1, dimensions=3):g}')
 
 tab1, tab2 = st.tabs(['Default plots', 'RDF plots'])
 
@@ -134,7 +132,7 @@ with tab1:
             trajectory=trajectory,
             diffusing_element=diffusing_element,
             z_ion=1,
-            diffusion_dimensions=3,
+            dimensions=3,
             n_parts=10,
         )
 
