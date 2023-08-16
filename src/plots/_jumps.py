@@ -13,10 +13,10 @@ if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
 
-def plot_jumps_vs_distance(*,
-                           trajectory: Trajectory,
-                           sites: SitesData,
-                           jump_res: float = 0.1) -> plt.Figure:
+def jumps_vs_distance(*,
+                      trajectory: Trajectory,
+                      sites: SitesData,
+                      jump_res: float = 0.1) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -57,10 +57,10 @@ def plot_jumps_vs_distance(*,
     return fig
 
 
-def plot_jumps_vs_time(*,
-                       trajectory: Trajectory,
-                       sites: SitesData,
-                       binsize: int = 500) -> plt.Figure:
+def jumps_vs_time(*,
+                  trajectory: Trajectory,
+                  sites: SitesData,
+                  binsize: int = 500) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -90,8 +90,8 @@ def plot_jumps_vs_time(*,
     return fig
 
 
-def plot_collective_jumps(*, trajectory: Trajectory,
-                          sites: SitesData) -> plt.Figure:
+def collective_jumps(*, trajectory: Trajectory,
+                     sites: SitesData) -> plt.Figure:
     """Plot collective jumps per jump-type combination.
 
     Parameters
@@ -121,7 +121,7 @@ def plot_collective_jumps(*, trajectory: Trajectory,
     return fig
 
 
-def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
+def jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
     """Plot jumps in 3D.
 
     Parameters
@@ -203,14 +203,14 @@ def plot_jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
     return fig
 
 
-def plot_jumps_3d_animation(*,
-                            trajectory: Trajectory,
-                            sites: SitesData,
-                            t_start: int,
-                            t_stop: int,
-                            decay: float = 0.05,
-                            skip: int = 5,
-                            interval: int = 20):
+def jumps_3d_animation(*,
+                       trajectory: Trajectory,
+                       sites: SitesData,
+                       t_start: int,
+                       t_stop: int,
+                       decay: float = 0.05,
+                       skip: int = 5,
+                       interval: int = 20):
     """Plot jumps in 3D as an animation over time.
 
     # TODO

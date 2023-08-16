@@ -141,15 +141,15 @@ with tab1:
     diff_trajectory = trajectory.filter(diffusing_element)
 
     figures = (
-        plots.plot_displacement_per_element(trajectory=trajectory),
-        plots.plot_displacement_per_site(trajectory=diff_trajectory),
-        plots.plot_displacement_histogram(trajectory=diff_trajectory),
-        plots.plot_frequency_vs_occurence(trajectory=trajectory),
-        plots.plot_vibrational_amplitudes(trajectory=trajectory),
-        plots.plot_jumps_vs_distance(trajectory=trajectory, sites=sites),
-        plots.plot_jumps_vs_time(trajectory=trajectory, sites=sites),
-        plots.plot_collective_jumps(trajectory=trajectory, sites=sites),
-        plots.plot_jumps_3d(trajectory=trajectory, sites=sites),
+        plots.displacement_per_element(trajectory=trajectory),
+        plots.displacement_per_site(trajectory=diff_trajectory),
+        plots.displacement_histogram(trajectory=diff_trajectory),
+        plots.frequency_vs_occurence(trajectory=trajectory),
+        plots.vibrational_amplitudes(trajectory=trajectory),
+        plots.jumps_vs_distance(trajectory=trajectory, sites=sites),
+        plots.jumps_vs_time(trajectory=trajectory, sites=sites),
+        plots.collective_jumps(trajectory=trajectory, sites=sites),
+        plots.jumps_3d(trajectory=trajectory, sites=sites),
     )
 
     # automagically divide the plots over the number of columns
