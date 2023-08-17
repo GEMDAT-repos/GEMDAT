@@ -55,3 +55,24 @@ def test_jumps_3d_animation(vasp_traj, vasp_sites):
                              sites=vasp_sites,
                              t_start=1000,
                              t_stop=1001)
+
+
+@image_comparison2(baseline_images=['rdf1', 'rdf2', 'rdf3'])
+def test_rdf(vasp_traj, structure):
+    from gemdat.rdf import radial_distribution
+    from gemdat.sites import SitesData
+
+    trajectory = vasp_traj[-1000:]
+
+    sites = SitesData(structure=structure,
+                      trajectory=trajectory,
+                      floating_specie='Li')
+
+    rdfs = radial_distribution(
+        trajectory=trajectory,
+        sites=sites,
+        species='Li',
+        max_dist=5,
+    )
+    for state, rdf in rdfs.items():
+        plots.radial_distribution(rdf, name=state)
