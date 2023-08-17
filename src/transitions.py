@@ -18,16 +18,55 @@ NOSITE = -1
 
 
 class Transitions:
+    """Container class for jumps and transitions between sites.
+
+    Attributes
+    ----------
+    events : np.ndarray
+        5-column numpy array holding all transition events
+    n_sites : int
+        Total number of sites
+    states : np.ndarray
+        For each time step, for each atom, track the index of the site it is at.
+        Assingn NOSITE if the atom is in transition
+    """
 
     def __init__(self, events: np.ndarray, states: np.ndarray, n_sites: int):
+        """Store event data for jumps and transitions between sites.
 
+        Parameters
+        ----------
+        events : np.ndarray
+            Input events
+        states : np.ndarray
+            Input states
+        n_sites : int
+            Total number of sites
+        """
         self.states = states
         self.events = events
         self.n_sites = n_sites
 
     @classmethod
-    def from_trajectory(cls, *, trajectory: Trajectory, structure: Structure,
-                        floating_specie: str):
+    def from_trajectory(
+        cls,
+        *,
+        trajectory: Trajectory,
+        structure: Structure,
+        floating_specie: str,
+    ) -> Transitions:
+        """Compute transitions for floating specie from trajectory and
+        structure with known sites.
+
+        Parameters
+        ----------
+        trajectory : Trajectory
+            Input trajectory
+        structure : Structure
+            Input structure with known sites
+        floating_specie : str
+            Name of the floating specie to calculate transitions for
+        """
         diff_trajectory = trajectory.filter(floating_specie)
         vibration_amplitude = SimulationMetrics(
             diff_trajectory).vibration_amplitude()
@@ -48,7 +87,7 @@ class Transitions:
         return obj
 
     @lru_cache
-    def matrix(self):
+    def matrix(self) -> np.ndarray:
         """Convert list of transition events to dense matrix.
 
         Returns
@@ -59,7 +98,7 @@ class Transitions:
         return _calculate_transitions_matrix(self.events, n_sites=self.n_sites)
 
     @lru_cache
-    def states_next(self):
+    def states_next(self) -> np.ndarray:
         """Calculate atom transition states per time step by backward filling
         `self.states`.
 
@@ -72,7 +111,7 @@ class Transitions:
         return bfill(self.states, fill_val=NOSITE, axis=0)
 
     @lru_cache
-    def states_prev(self):
+    def states_prev(self) -> np.ndarray:
         """Calculate atom transition states per time step by forward filling
         `self.states`.
 
@@ -84,7 +123,7 @@ class Transitions:
         """
         return ffill(self.states, fill_val=NOSITE, axis=0)
 
-    def occupancy(self):
+    def occupancy(self) -> np.ndarray:
         """Calculate occupancy per site.
 
         Returns
@@ -94,7 +133,7 @@ class Transitions:
         """
         return _calculate_occupancy(self.states)
 
-    def split(self, n_parts: int = 10, *, n_steps: int):
+    def split(self, n_parts: int = 10, *, n_steps: int) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
 
         Parameters
