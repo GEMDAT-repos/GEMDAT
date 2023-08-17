@@ -107,7 +107,7 @@ def collective_jumps(*, trajectory: Trajectory,
     """
     fig, ax = plt.subplots()
 
-    mat = ax.imshow(sites.collective_matrix())
+    mat = ax.imshow(sites.collective().matrix())
 
     ticks = range(len(sites.jump_names))
 

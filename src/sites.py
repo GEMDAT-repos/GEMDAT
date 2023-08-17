@@ -11,6 +11,7 @@ from pymatgen.core import Structure
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Boltzmann, angstrom, elementary_charge
 
+from .collective import Collective
 from .simulation_metrics import SimulationMetrics
 from .transitions import Transitions
 from .utils import is_lattice_similar
@@ -91,7 +92,7 @@ class SitesData:
     @property
     def n_solo_jumps(self):
         """Return number of solo jumps."""
-        return self.collective()[2]
+        return self.collective().n_solo_jumps
 
     @property
     def solo_fraction(self):
@@ -109,11 +110,16 @@ class SitesData:
 
     @property
     def jump_names(self) -> list[str]:
-        """Return list of jump names.
+        """Return list of jump names."""
+        return ['->'.join(key) for key in self.site_pairs]
 
-        These correspond to the axes in `.collective_matrix`.
-        """
-        return ['->'.join(key) for key in self.jumps()]
+    @property
+    def site_pairs(self) -> list[tuple[str, str]]:
+        """Return list of all unique site pairs."""
+        labels = self.structure.labels
+        return list({(label1, label2)
+                     for label1 in labels
+                     for label2 in labels})
 
     @property
     def transitions_parts(self):
@@ -172,7 +178,7 @@ class SitesData:
 
         n_parts = self.n_parts
 
-        for site_pair in self.jumps():
+        for site_pair in self.site_pairs:
             n_jumps = [part[site_pair] for part in self.jumps_parts]
 
             part_time = self.trajectory.total_time / n_parts
@@ -203,7 +209,7 @@ class SitesData:
 
         temperature = self.trajectory.metadata['temperature']
 
-        for i, site_pair in enumerate(self.jumps()):
+        for i, site_pair in enumerate(self.site_pairs):
             site_start, site_stop = site_pair
 
             n_jumps = np.array([part[site_pair] for part in self.jumps_parts])
@@ -298,116 +304,31 @@ class SitesData:
         return jump_diff
 
     @lru_cache
-    def collective(self,
-                   dist_collective: float = 4.5) -> tuple[list, list, int]:
+    def collective(self, max_dist: float = 4.5) -> Collective:
         """Calculate collective jumps.
 
         Parameters
         ----------
-        dist_collective : float, optional
+        max_dist : float, optional
             Maximum distance for collective motions in Angstrom
 
         Returns
         -------
-        tuple[list, list, int]
-            collective, list of indices to collective jump events
-            coll_jumps, list with start/stop site indices involved in collective jumps
-            n_solo_jumps, number of solo jumps
+        collective : Collective
+            Output class with data on collective jumps
         """
-        lattice = self.trajectory.get_lattice()
         time_step = self.trajectory.time_step
         attempt_freq, _ = self.metrics.attempt_frequency()
 
-        coll_steps = ceil(1.0 / (attempt_freq * time_step))
+        max_steps = ceil(1.0 / (attempt_freq * time_step))
 
-        time_col = 4
-        events = self.transitions.events
-        event_order = events[:, time_col].argsort()
-
-        coll_jumps = []
-        collective = []
-
-        n_solo_jumps = 0
-
-        structure = self.structure
-
-        for i, event_i in enumerate(event_order[:-1]):
-
-            for j, event_j in enumerate(event_order[i + 1:], start=1):
-
-                atom_i, start_site_i, stop_site_i, _, stop_time_i = events[
-                    event_i]
-                atom_j, start_site_j, stop_site_j, _, stop_time_j = events[
-                    event_j]
-
-                if stop_time_j - stop_time_i > coll_steps:
-                    break
-
-                if atom_i == atom_j:
-                    n_solo_jumps += 1
-                    continue
-
-                a = structure.frac_coords[[start_site_i, stop_site_i]]
-                b = structure.frac_coords[[start_site_j, stop_site_j]]
-
-                dists = lattice.get_all_distances(a, b)
-
-                if np.any(dists < dist_collective):
-                    collective.append((event_i, event_j))
-                    coll_jumps.append(((start_site_i, stop_site_i),
-                                       (start_site_j, stop_site_j)))
-
-                else:
-                    n_solo_jumps += 1
-
-        return collective, coll_jumps, n_solo_jumps
-
-    @lru_cache
-    def collective_matrix(self) -> np.ndarray:
-        """Calculate collective jumps matrix.
-
-        Returns
-        -------
-        coll_matrix : np.ndarray
-            Matrix where all types of jumps combinations are counted
-        """
-        labels = self.structure.labels
-        _, coll_jumps, _ = self.collective()
-
-        jump_names = list(self.jumps())
-
-        coll_matrix = np.zeros((len(jump_names), len(jump_names)), dtype=int)
-
-        for ((start_i, stop_i), (start_j, stop_j)) in coll_jumps:
-            name_start_i = labels[start_i]
-            name_stop_i = labels[stop_i]
-            name_start_j = labels[start_j]
-            name_stop_j = labels[stop_j]
-
-            i = jump_names.index((name_start_i, name_stop_i))
-            j = jump_names.index((name_start_j, name_stop_j))
-
-            coll_matrix[i, j] += 1
-
-        return coll_matrix
-
-    @lru_cache
-    def multiple_collective(self) -> np.ndarray:
-        """Find jumps that occur collectively multiple times.
-
-        Only returns non-unique jumps
-
-        Returns
-        -------
-        multi_coll : np.ndarray
-            Dictionary with indices of sites between which jumps happen and their counts.
-        """
-        collective, *_ = self.collective()
-        coll_sorted = np.sort(np.array(collective).flatten())
-        difference = np.diff(coll_sorted, prepend=0)
-        multi_coll = coll_sorted[difference == 0]
-
-        return multi_coll
+        return Collective(
+            transitions=self.transitions,
+            structure=self.structure,
+            lattice=self.trajectory.get_lattice(),
+            max_steps=max_steps,
+            max_dist=max_dist,
+        )
 
 
 def _calculate_site_occupancy(*, occupancy: dict[int, int], labels: list[str],

@@ -116,22 +116,24 @@ class TestSites:
         assert isclose(correlation_factor, 0.1703355120150192, rel_tol=1e-6)
 
     def test_collective(self, vasp_sites):
-        collective, coll_jumps, n_solo_jumps = vasp_sites.collective()
-        assert len(collective) == 1280
+        collective = vasp_sites.collective()
+        assert len(collective.collective) == 1280
 
-        assert collective[0] == (158, 384)
-        assert collective[-1] == (348, 383)
+        assert collective.collective[0] == (158, 384)
+        assert collective.collective[-1] == (348, 383)
 
     def test_coll_jumps(self, vasp_sites):
-        collective, coll_jumps, n_solo_jumps = vasp_sites.collective()
+        collective = vasp_sites.collective()
 
-        assert len(coll_jumps) == 1280
-        assert coll_jumps[0] == ((74, 8), (41, 67))
-        assert coll_jumps[-1] == ((15, 77), (21, 45))
+        assert len(collective.coll_jumps) == 1280
+        assert collective.coll_jumps[0] == ((74, 8), (41, 67))
+        assert collective.coll_jumps[-1] == ((15, 77), (21, 45))
 
     def test_collective_matrix(self, vasp_sites):
-        assert vasp_sites.collective_matrix().shape == (1, 1)
-        assert vasp_sites.collective_matrix()[0, 0] == 1280
+        collective = vasp_sites.collective()
+        assert collective.matrix().shape == (1, 1)
+        assert collective.matrix()[0, 0] == 1280
 
     def test_multiple_collective(self, vasp_sites):
-        assert vasp_sites.multiple_collective().sum() == 434227
+        collective = vasp_sites.collective()
+        assert collective.multiple_collective().sum() == 434227
