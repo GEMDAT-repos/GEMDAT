@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from gemdat.io import load_known_material
+from gemdat.rdf import radial_distribution
 from gemdat.sites import SitesData
 from gemdat.trajectory import Trajectory
 
@@ -36,3 +37,20 @@ def vasp_sites(vasp_traj, structure):
                       trajectory=vasp_traj,
                       floating_specie='Li')
     return sites
+
+
+@pytest.fixture(scope='module')
+def vasp_rdf_data(vasp_traj, structure):
+    # Shorten trajectory for faster test
+    trajectory = vasp_traj[-1000:]
+
+    sites = SitesData(structure=structure,
+                      trajectory=trajectory,
+                      floating_specie='Li')
+
+    rdfs = radial_distribution(
+        sites=sites,
+        max_dist=5,
+    )
+
+    return rdfs

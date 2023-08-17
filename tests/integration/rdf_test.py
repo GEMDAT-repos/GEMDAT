@@ -1,30 +1,15 @@
 import pytest
-from gemdat.rdf import radial_distribution
-from gemdat.sites import SitesData
 
 
 @pytest.vaspxml_available
-def test_rdf(vasp_traj, structure):
-    # Shorten trajectory for faster test
-    trajectory = vasp_traj[-1000:]
-
-    sites = SitesData(structure=structure,
-                      trajectory=trajectory,
-                      floating_specie='Li')
-
-    rdfs = radial_distribution(
-        trajectory=trajectory,
-        sites=sites,
-        species='Li',
-        max_dist=5,
-    )
-
+def test_rdf(vasp_rdf_data):
     expected_states = {'~>48h', '@48h', '48h->48h'}
-    expected_symbols = set(trajectory.get_structure(0).symbol_set)
+    expected_symbols = {'Li', 'P', 'S', 'Br'}
 
-    assert isinstance(rdfs, dict)
+    assert isinstance(vasp_rdf_data, dict)
 
-    for state, rdf in rdfs.items():
+    for state, rdfs in vasp_rdf_data.items():
         assert state in expected_states
-        assert set(rdf.keys()) == expected_symbols
-        assert all(len(arr) == 51 for arr in rdf.values())
+        assert set(rdfs.keys()) == expected_symbols
+        assert all(len(rdf.y) == 51 for rdf in rdfs.values())
+        assert all(len(rdf.x) == 51 for rdf in rdfs.values())
