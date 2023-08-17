@@ -151,7 +151,7 @@ def jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    site_labels = LabelItems(sites.structure.labels, coords)
+    site_labels = LabelItems(sites.site_labels, coords)
 
     xyz_labels = LabelItems('OABC', [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1],
                                      [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]])
@@ -262,8 +262,6 @@ def jumps_3d_animation(*,
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-
-    LabelItems(sites.structure.labels, coords)
 
     xyz_labels = LabelItems('OABC', [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1],
                                      [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]])
