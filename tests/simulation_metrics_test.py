@@ -8,11 +8,9 @@ def test_tracer_metrics(trajectory):
 
     assert (np.isclose(metrics.particle_density(), 1e30))
     assert (np.isclose(metrics.mol_per_liter(), 1660.53906))
-    assert (np.isclose(metrics.tracer_diffusivity(diffusion_dimensions=3),
-                       2.666667e-10))
-    assert (np.isclose(
-        metrics.tracer_conductivity(z_ion=1, diffusion_dimensions=3),
-        4.081278e-09))
+    assert (np.isclose(metrics.tracer_diffusivity(dimensions=3), 2.666667e-10))
+    assert (np.isclose(metrics.tracer_conductivity(z_ion=1, dimensions=3),
+                       4.081278e-09))
 
 
 def test_vibration_metrics(trajectory):

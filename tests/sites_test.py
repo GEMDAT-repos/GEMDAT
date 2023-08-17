@@ -1,5 +1,5 @@
 import numpy as np
-from gemdat.sites import _calculate_transitions_matrix
+from gemdat.transitions import _calculate_transitions_matrix
 
 
 def test_transitions_matrix():

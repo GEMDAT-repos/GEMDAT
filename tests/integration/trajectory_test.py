@@ -43,12 +43,12 @@ def test_tracer(vasp_traj):
     assert isclose(metrics.particle_density(), 2.4557e28, rel_tol=1e-4)
     assert isclose(metrics.mol_per_liter(), 40.777, rel_tol=1e-4)
     assert isclose(
-        metrics.tracer_diffusivity(diffusion_dimensions=3),
+        metrics.tracer_diffusivity(dimensions=3),
         1.5706e-09,
         rel_tol=1e-4,
     )
     assert isclose(
-        metrics.tracer_conductivity(z_ion=1, diffusion_dimensions=3),
+        metrics.tracer_conductivity(z_ion=1, dimensions=3),
         110.322,
         rel_tol=1e-4,
     )

@@ -43,14 +43,14 @@ class SimulationMetrics:
         return FloatWithUnit(mol_per_liter, 'mol l^-1')
 
     @lru_cache
-    def tracer_diffusivity(self, *, diffusion_dimensions: int) -> float:
+    def tracer_diffusivity(self, *, dimensions: int) -> float:
         """Return tracer diffusivity in m2/s.
 
         Defined as: MSD/(2*dimensions*time)
 
         Parameters
         ----------
-        diffusion_dimensions : int
+        dimensions : int
             Number of diffusion dimensions
 
         Returns
@@ -60,14 +60,13 @@ class SimulationMetrics:
         distances = self.trajectory.distances_from_base_position()
         msd = np.mean(distances[:, -1]**2)  # Angstrom^2
 
-        tracer_diff = (msd * angstrom**2) / (2 * diffusion_dimensions *
+        tracer_diff = (msd * angstrom**2) / (2 * dimensions *
                                              self.trajectory.total_time)
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
     @lru_cache
-    def tracer_conductivity(self, *, z_ion: int,
-                            diffusion_dimensions: int) -> float:
+    def tracer_conductivity(self, *, z_ion: int, dimensions: int) -> float:
         """Return tracer conductivity as S/m.
 
         Defined as: elementary_charge^2 * charge_ion^2 * diffusivity *
@@ -77,7 +76,7 @@ class SimulationMetrics:
         ----------
         z_ion : int
             Charge of the ion
-        diffusion_dimensions : int
+        dimensions : int
             Number of diffusion dimensions
 
         Returns
@@ -85,8 +84,7 @@ class SimulationMetrics:
         tracer_conductivity : float
         """
         temperature = self.trajectory.metadata['temperature']
-        tracer_diff = self.tracer_diffusivity(
-            diffusion_dimensions=diffusion_dimensions)
+        tracer_diff = self.tracer_diffusivity(dimensions=dimensions)
         tracer_conduc = ((elementary_charge**2) * (z_ion**2) * tracer_diff *
                          self.particle_density()) / (Boltzmann * temperature)
 

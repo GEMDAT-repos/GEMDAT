@@ -75,14 +75,11 @@ def analyse_md(
 
     sites_structure = load_known_material(material, supercell=supercell)
 
-    sites = SitesData(sites_structure)
-    sites.calculate_all(
+    sites = SitesData(
+        structure=sites_structure,
         trajectory=trajectory,
-        diffusing_element=diff_elem,
-        diffusion_dimensions=diffusion_dimensions,
-        z_ion=z_ion,
+        floating_specie=diff_elem,
         n_parts=nr_parts,
-        dist_collective=dist_collective,
     )
 
     plots.displacement_per_element(trajectory=trajectory)

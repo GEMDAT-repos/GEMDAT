@@ -45,9 +45,11 @@ plots.plot_vibrational_amplitudes(trajectory)
 
 structure = load_known_material('argyrodite', supercell=(2, 1, 1))
 
-sites = SitesData(structure)
-sites.calculate_all(trajectory=trajectory,
-                    diffusing_element='Li')
+sites = SitesData(
+   structure=structure,
+   trajectory=trajectory,
+   floating_specie='Li',
+)
 
 plots.plot_jumps_vs_distance(trajectory, sites)
 plots.plot_jumps_vs_time(trajectory, sites)
@@ -60,7 +62,7 @@ Or, one function to do everything:
 ```python
 from gemdat.legacy import analyse_md
 
-trajectory, sites, extras = analyse_md(
+trajectory, sites = analyse_md(
    '/data/vasprun.xml',
    diff_elem='Li',
    supercell=(2, 1, 1),
