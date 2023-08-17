@@ -70,7 +70,7 @@ def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
     }
 
 
-def calculate_rdfs(
+def radial_distribution(
         *,
         trajectory: Trajectory,
         sites: SitesData,
@@ -144,27 +144,3 @@ def calculate_rdfs(
         new_rdf[k0][k1] = v[:-1]
 
     return new_rdf
-
-
-def plot_rdf(rdfs: dict[str, np.ndarray], name: str | None = None):
-    """Plot radial distribution function.
-
-    Parameters
-    ----------
-    rdfs : dict[str, np.ndarray]
-        Dictionary with rdf array per symbol
-    """
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots()
-
-    for symbol, rdf in rdfs.items():
-        ax.plot(rdf[:-1], label=symbol)
-
-    suffix = f' ({name})' if name else ''
-
-    ax.legend()
-    ax.set(title=f'Radial distribution function{suffix}',
-           xlabel='Distance (Ang)',
-           ylabel='Counts')
-    return fig

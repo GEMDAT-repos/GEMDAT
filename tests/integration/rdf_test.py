@@ -1,5 +1,5 @@
 import pytest
-from gemdat.rdf import calculate_rdfs
+from gemdat.rdf import radial_distribution
 from gemdat.sites import SitesData
 
 
@@ -12,7 +12,7 @@ def test_rdf(vasp_traj, structure):
                       trajectory=trajectory,
                       floating_specie='Li')
 
-    rdfs = calculate_rdfs(
+    rdfs = radial_distribution(
         trajectory=trajectory,
         sites=sites,
         species='Li',
