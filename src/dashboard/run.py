@@ -158,17 +158,14 @@ if do_rdf:
         st.title('Radial distribution function')
 
         with st.spinner('Calculating RDFs...'):
-            rdfs = radial_distribution(
-                trajectory=trajectory,
+            rdf_data = radial_distribution(
                 sites=sites,
-                species=diffusing_element,
                 max_dist=max_dist_rdf,
                 resolution=resolution_rdf,
             )
 
         rdf_figures = [
-            plots.radial_distribution(rdf, name=state)
-            for state, rdf in rdfs.items()
+            plots.radial_distribution(rdfs) for rdfs in rdf_data.values()
         ]
 
         # automagically divide the plots over the number of columns

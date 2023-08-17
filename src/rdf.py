@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
-from gemdat import SitesData
-from pymatgen.core import Structure
 from rich.progress import track
 
 if TYPE_CHECKING:
-    from gemdat.trajectory import Trajectory
+    from gemdat import SitesData
+    from gemdat.transitions import Transitions
+    from pymatgen.core import Structure
 
 
 def _uniqify_labels(arr, labels: list[str]) -> np.ndarray:
@@ -46,10 +47,9 @@ def _get_states(labels: list[str]) -> dict[int, str]:
     return states
 
 
-def _get_states_array(sites: SitesData, labels: list[str]) -> np.ndarray:
+def _get_states_array(transitions: Transitions,
+                      labels: list[str]) -> np.ndarray:
     """Helper function to generate integer array of transition states."""
-    transitions = sites.transitions
-
     states = _uniqify_labels(transitions.states, labels)
     states_prev = _uniqify_labels(transitions.states_prev(), labels)
     states_next = _uniqify_labels(transitions.states_next(), labels)
@@ -70,23 +70,26 @@ def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
     }
 
 
+@dataclass
+class RDFData:
+    """Container for storing radial distribution data."""
+    x: np.ndarray
+    y: np.ndarray
+    symbol: str
+    state: str
+
+
 def radial_distribution(
         *,
-        trajectory: Trajectory,
         sites: SitesData,
-        species: str | Sequence[str],
         max_dist: float = 5.0,
-        resolution: float = 0.1) -> dict[str, dict[str, np.ndarray]]:
-    """Calculate and sum RDFs from the given species coordinates.
+        resolution: float = 0.1) -> dict[str, dict[str, RDFData]]:
+    """Calculate and sum RDFs for the floating species in the given sites data.
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
     sites : SitesData
         Input sites data
-    species : str | Sequence[str]
-        Species to calculate distances from
     max_dist : float, optional
         Max distance for rdf calculation
     resolution : float, optional
@@ -97,14 +100,15 @@ def radial_distribution(
     rdfs : dict[str, np.ndarray]
         Dictionary with rdf arrays per symbol
     """
+    trajectory = sites.trajectory
     structure = trajectory.get_structure(0)
     lattice = trajectory.get_lattice()
 
     coords = trajectory.positions
-    sp_coords = trajectory.filter(species).positions
+    sp_coords = sites.diff_trajectory.positions
 
-    states2str = _get_states(sites.structure.labels)
-    states_array = _get_states_array(sites, sites.structure.labels)
+    states2str = _get_states(sites.site_labels)
+    states_array = _get_states_array(sites.transitions, sites.site_labels)
     symbol_indices = _get_symbol_indices(structure)
 
     bins = np.arange(0, max_dist + resolution, resolution)
@@ -137,10 +141,15 @@ def radial_distribution(
                 rdfs[state_str, symbol] += np.bincount(rdf_state,
                                                        minlength=length)
 
-    new_rdf: dict[str, dict[str, np.ndarray]] = defaultdict(dict)
+    ret: dict[str, dict[str, np.ndarray]] = defaultdict(dict)
 
-    for (k0, k1), v in rdfs.items():
-        # Drop last element with distance > max_dist
-        new_rdf[k0][k1] = v[:-1]
+    for (state, symbol), values in rdfs.items():
+        ret[state][symbol] = RDFData(
+            x=bins,
+            # Drop last element with distance > max_dist
+            y=values[:-1],
+            symbol=symbol,
+            state=state,
+        )
 
-    return new_rdf
+    return ret

@@ -1,9 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Iterable
+
 import matplotlib.pyplot as plt
-import numpy as np
+
+if TYPE_CHECKING:
+    from gemdat.rdf import RDFData
 
 
-def radial_distribution(rdfs: dict[str, np.ndarray],
-                        name: str | None = None) -> plt.Figure:
+def radial_distribution(rdfs: Iterable[RDFData]) -> plt.Figure:
     """Plot radial distribution function.
 
     Parameters
@@ -16,16 +21,15 @@ def radial_distribution(rdfs: dict[str, np.ndarray],
     fig : plt.Figure
         Output matplotlib figure
     """
-
     fig, ax = plt.subplots()
 
-    for symbol, rdf in rdfs.items():
-        ax.plot(rdf[:-1], label=symbol)
+    for rdf in rdfs:
+        ax.plot(rdf.x, rdf.y, label=rdf.symbol)
 
-    suffix = f' ({name})' if name else ''
+    states = ', '.join({rdf.state for rdf in rdfs})
 
     ax.legend()
-    ax.set(title=f'Radial distribution function{suffix}',
+    ax.set(title=f'Radial distribution function ({states})',
            xlabel='Distance (Ang)',
            ylabel='Counts')
 

@@ -114,13 +114,11 @@ def analyse_md(
 
     if rdfs:
         rdf_data = radial_distribution(
-            trajectory=trajectory,
             sites=sites,
-            species=diff_elem,
             max_dist=rdf_max_dist,
             resolution=rdf_res,
         )
-        for state, rdf in rdf_data.items():
-            plots.radial_distribution(rdf, name=state)
+        for rdfs in rdf_data.values():
+            plots.radial_distribution(rdfs)
 
     return trajectory, sites
