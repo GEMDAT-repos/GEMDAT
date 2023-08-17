@@ -21,7 +21,7 @@ class TestSites:
 
         transitions = vasp_sites.transitions
 
-        assert isclose(transitions._dist_close, 0.928496)
+        assert isclose(transitions._dist_close, 0.9284961123176741)
 
         assert transitions.states.shape == (n_steps, n_diffusing)
         assert transitions.states.sum() == 6154859
