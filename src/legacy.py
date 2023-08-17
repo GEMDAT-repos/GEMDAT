@@ -1,5 +1,5 @@
 from gemdat import SitesData, load_known_material, plots
-from gemdat.rdf import calculate_rdfs, plot_rdf
+from gemdat.rdf import radial_distribution
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_vasp_volume
 
@@ -113,14 +113,12 @@ def analyse_md(
                               filename=filename)
 
     if rdfs:
-        rdf_data = calculate_rdfs(
-            trajectory=trajectory,
+        rdf_data = radial_distribution(
             sites=sites,
-            species=diff_elem,
             max_dist=rdf_max_dist,
             resolution=rdf_res,
         )
-        for name, rdf in rdf_data.items():
-            plot_rdf(rdf, name=name)
+        for rdfs in rdf_data.values():
+            plots.radial_distribution(rdfs)
 
     return trajectory, sites

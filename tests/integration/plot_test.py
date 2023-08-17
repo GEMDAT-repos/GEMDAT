@@ -55,3 +55,9 @@ def test_jumps_3d_animation(vasp_traj, vasp_sites):
                              sites=vasp_sites,
                              t_start=1000,
                              t_stop=1001)
+
+
+@image_comparison2(baseline_images=['rdf1', 'rdf2', 'rdf3'])
+def test_rdf(vasp_rdf_data):
+    for rdfs in vasp_rdf_data.values():
+        plots.radial_distribution(rdfs.values())

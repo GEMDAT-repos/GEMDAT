@@ -75,6 +75,11 @@ class SitesData:
         return self.structure.frac_coords
 
     @property
+    def site_labels(self):
+        """Return site labels."""
+        return self.structure.labels
+
+    @property
     def n_sites(self):
         """Return number of sites."""
         return len(self.structure)
@@ -116,7 +121,7 @@ class SitesData:
     @property
     def site_pairs(self) -> list[tuple[str, str]]:
         """Return list of all unique site pairs."""
-        labels = self.structure.labels
+        labels = self.site_labels
         return list({(label1, label2)
                      for label1 in labels
                      for label2 in labels})
@@ -131,7 +136,7 @@ class SitesData:
 
     @property
     def site_occupancy_parts(self):
-        labels = self.structure.labels
+        labels = self.site_labels
         n_steps = len(self.trajectory)
 
         parts = self.parts
@@ -155,7 +160,7 @@ class SitesData:
     def jumps_parts(self):
         parts = self.parts
 
-        labels = self.structure.labels
+        labels = self.site_labels
         jumps_parts = []
 
         for part in parts:
@@ -242,7 +247,7 @@ class SitesData:
         site_occopancy : dict[str, float]
             Percentage occupancy per unique site
         """
-        labels = self.structure.labels
+        labels = self.site_labels
         n_steps = len(self.trajectory)
         return _calculate_site_occupancy(
             occupancy=self.transitions.occupancy(),
@@ -268,7 +273,7 @@ class SitesData:
         jumps : dict[tuple[str, str], int]
             Dictionary with number of jumpst per sites combination
         """
-        labels = self.structure.labels
+        labels = self.site_labels
         jumps = Counter([(labels[i], labels[j])
                          for i, j in self.transitions.events[:, 1:3]])
 

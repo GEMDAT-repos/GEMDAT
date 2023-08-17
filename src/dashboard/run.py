@@ -2,7 +2,7 @@ import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
 from gemdat import SitesData, __version__, plots
 from gemdat.io import get_list_of_known_materials, load_known_material
-from gemdat.rdf import calculate_rdfs, plot_rdf
+from gemdat.rdf import radial_distribution
 from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
@@ -158,16 +158,14 @@ if do_rdf:
         st.title('Radial distribution function')
 
         with st.spinner('Calculating RDFs...'):
-            rdfs = calculate_rdfs(
-                trajectory=trajectory,
+            rdf_data = radial_distribution(
                 sites=sites,
-                species=diffusing_element,
                 max_dist=max_dist_rdf,
                 resolution=resolution_rdf,
             )
 
         rdf_figures = [
-            plot_rdf(rdf, name=state) for state, rdf in rdfs.items()
+            plots.radial_distribution(rdfs) for rdfs in rdf_data.values()
         ]
 
         # automagically divide the plots over the number of columns
