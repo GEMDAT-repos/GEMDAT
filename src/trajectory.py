@@ -114,9 +114,12 @@ class Trajectory(PymatgenTrajectory):
             pickle.dump(self, f)
 
     @classmethod
-    def from_vasprun(cls,
-                     xml_file: str | Path,
-                     cache: Optional[str | Path] = None):
+    def from_vasprun(
+        cls,
+        xml_file: str | Path,
+        cache: Optional[str | Path] = None,
+        **kwargs,
+    ):
         """Load data from vasprun.xml.
 
         Parameters
@@ -125,12 +128,19 @@ class Trajectory(PymatgenTrajectory):
             Path to vasprun.xml
         cache : Optional[Path], optional
             Path to cache data for vasprun.xml
+        **kwargs : dict
+            Optional arguments passed to `vasp.Vasprun`
 
         Returns
         -------
         data : Data
             Dataclass with simulation data
         """
+        kwargs.setdefault('parse_dos', False)
+        kwargs.setdefault('parse_eigen', False)
+        kwargs.setdefault('parse_projected_eigen', False)
+        kwargs.setdefault('parse_potcar_file', False)
+
         if not cache:
             cache = Path(str(xml_file) + '.cache')
 
@@ -141,13 +151,7 @@ class Trajectory(PymatgenTrajectory):
                 print(e)
                 print('Error reading from cache, reading full VaspRun')
 
-        run = vasp.Vasprun(
-            xml_file,
-            parse_dos=False,
-            parse_eigen=False,
-            parse_projected_eigen=False,
-            parse_potcar_file=False,
-        )
+        run = vasp.Vasprun(xml_file, **kwargs)
 
         metadata = {'temperature': run.parameters['TEBEG']}
 
