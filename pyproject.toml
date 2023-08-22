@@ -32,12 +32,13 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  'pymatgen >= 2023.8.10',
-  'numpy',
-  'rich',
-  'scipy',
-  'matplotlib >= 3.6.0', # Axes3D.set_aspect('equal') introduced here
+  'matplotlib >= 3.6.0',
   'MDAnalysis',
+  'numpy',
+  'pymatgen >= 2023.8.10',
+  'rich',
+  'scikit-image',
+  'scipy',
 ]
 
 [project.urls]
