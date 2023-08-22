@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
+from pymatgen.core import Structure
 from pymatgen.io.vasp import VolumetricData
 
 if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
-    from pymatgen.core import Structure
 
 
 def trajectory_to_volume(
@@ -100,8 +100,72 @@ def trajectory_to_vasp_volume(trajectory: Trajectory,
     return vasp_vol
 
 
-def volume_to_structure(vol: VolumetricData | np.ndarray) -> Structure:
+import scipy.ndimage as ndi
+from pymatgen.core import Lattice
+from pymatgen.io.cif import CifWriter
+from skimage import feature
+from skimage.measure import regionprops
+from skimage.segmentation import watershed
+
+
+def volume_to_structure(
+    vol: VolumetricData | np.ndarray,
+    *,
+    lattice: Lattice,
+    specie: str,
+    name: str = 'structure',
+    min_n: int = 30,
+    **kwargs,
+) -> Structure:
+    """Converts a volume array back to a structure using peak detection.
+
+    Parameters
+    ----------
+    vol : VolumetricData | np.ndarray
+        Description
+    min_n : int, optional
+        Description
+    **kwargs
+        Additional keyword arguments are passed to skimage.feature.blob_dog
+    """
     if isinstance(vol, VolumetricData):
         vol = vol.data['total']
 
-    pass
+    def save(coords, name):
+        print('Saving', name, '...')
+        s = Structure(lattice=lattice,
+                      coords=coords,
+                      species=[specie for _ in coords])
+        VolumetricData(structure=s, data={
+            'total': vol
+        }).write_file(name + '.vasp')
+        CifWriter(s).write_file(name + '.cif')
+
+    # normalize data
+    data = 256 * vol / vol.max()
+
+    coords = feature.blob_dog(data, **kwargs)
+    coords = coords[:, 0:3].astype(int)
+
+    # Normalize to volume
+    save((coords / np.array(vol.shape)), f'{name}-dog')
+
+    mask = np.zeros(data.shape, dtype=bool)
+    mask[tuple(coords.T)] = True
+    markers, _ = ndi.label(mask)
+    labels = watershed(-data, markers, mask=data > min_n)
+
+    props = regionprops(labels, intensity_image=data)
+    cw_coords = np.array([p.centroid_weighted for p in props])
+    # intensities = np.array([p.intensity_mean for p in props])
+    # areas = np.array([p.area_filled for p in props])
+
+    # Move coords to voxel center by shifting 0.5
+    frac_coords = (cw_coords + 0.5) / np.array(vol.shape)
+
+    # Normalize to volume
+    save(frac_coords, f'{name}-props')
+
+    return Structure(lattice=lattice,
+                     coords=frac_coords,
+                     species=[specie for _ in frac_coords])
