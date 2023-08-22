@@ -180,6 +180,9 @@ def volume_to_structure(
     # Move coords to voxel center by shifting 0.5
     frac_coords = (centroids + 0.5) / np.array(vol.shape)
 
+    # mod to unit cell
+    frac_coords = np.mod(frac_coords, 1)
+
     structure = Structure(lattice=lattice,
                           coords=frac_coords,
                           species=[specie for _ in frac_coords])
