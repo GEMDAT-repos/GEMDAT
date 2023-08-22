@@ -3,40 +3,46 @@ from math import isclose
 import numpy as np
 import pytest
 from gemdat.simulation_metrics import SimulationMetrics
-from gemdat.volume import trajectory_to_volume
+from gemdat.volume import trajectory_to_volume, volume_to_structure
+from pymatgen.core import Structure
+
+
+@pytest.fixture
+def vasp_vol(vasp_traj):
+    trajectory = vasp_traj
+    diff_trajectory = trajectory.filter('Li')
+    return trajectory_to_volume(trajectory=diff_trajectory, resolution=0.2)
 
 
 @pytest.vaspxml_available
-def test_volume(vasp_traj):
-    trajectory = vasp_traj
+def test_volume(vasp_vol, vasp_traj):
+    vol = vasp_vol
 
-    diff_trajectory = trajectory.filter('Li')
-
-    vol = trajectory_to_volume(trajectory=diff_trajectory, resolution=0.2)
+    n_species = sum(sp.symbol == 'Li' for sp in vasp_traj.species)
 
     assert isinstance(vol, np.ndarray)
-    assert vol.shape == (101, 51, 51)
-    assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
+    assert vol.shape == (99, 49, 49)
+    assert vol.sum() == n_species * len(vasp_traj)
+
+    # make sure edges are not empty
+    s_ = np.s_
+    for s in s_[0], s_[:, 0], s_[:, :, 0], s_[-1], s_[:, -1], s_[:, :, -1]:
+        assert vol[s].sum() != 0
 
 
-@pytest.vaspxml_available
-def test_volume_cartesian(vasp_traj):
-    trajectory = vasp_traj
+def test_volume_to_structure(vasp_traj, vasp_vol):
+    structure = volume_to_structure(vasp_vol,
+                                    lattice=vasp_traj.get_lattice(),
+                                    specie='Li')
 
-    diff_trajectory = trajectory.filter('Li')
-
-    vol = trajectory_to_volume(trajectory=diff_trajectory,
-                               resolution=0.2,
-                               cartesian=True)
-
-    assert isinstance(vol, np.ndarray)
-    assert vol.shape == (101, 51, 52)
-    assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
+    assert isinstance(structure, Structure)
+    assert len(structure) == 190
+    assert np.min(structure.frac_coords) >= 0
+    assert np.max(structure.frac_coords) < 1
 
 
 @pytest.vaspxml_available
 def test_tracer(vasp_traj):
-
     diff_trajectory = vasp_traj.filter('Li')
     metrics = SimulationMetrics(diff_trajectory)
 
