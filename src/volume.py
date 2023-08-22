@@ -10,9 +10,10 @@ if TYPE_CHECKING:
     from pymatgen.core import Structure
 
 
-def trajectory_to_volume(trajectory: Trajectory,
-                         resolution: float = 0.2,
-                         cartesian: bool = False) -> np.ndarray:
+def trajectory_to_volume(
+    trajectory: Trajectory,
+    resolution: float = 0.2,
+) -> np.ndarray:
     """Calculate density volume from list of coordinates.
 
     Parameters
@@ -21,9 +22,6 @@ def trajectory_to_volume(trajectory: Trajectory,
         Input trajectory
     resolution : float, optional
         Minimum resolution for the voxels in Angstrom
-    cartesian : bool, optional
-        If True, return volume on a cartesian grid.
-        Useful for generic 3D volume viewers
 
     Returns
     -------
@@ -38,22 +36,12 @@ def trajectory_to_volume(trajectory: Trajectory,
     assert coords.min() >= 0
     assert coords.max() < 1
 
-    if cartesian:
-        coords = lattice.get_cartesian_coords(coords)
+    x0 = y0 = z0 = 0
+    x1 = y1 = z1 = 1
 
-        x0, y0, z0 = coords.min(axis=0)
-        x1, y1, z1 = coords.max(axis=0)
-
-        nx = int(1 + (x1 - x0) // resolution)
-        ny = int(1 + (y1 - y0) // resolution)
-        nz = int(1 + (z1 - z0) // resolution)
-    else:
-        x0 = y0 = z0 = 0
-        x1 = y1 = z1 = 1
-
-        nx = int(1 + lattice.lengths[0] // resolution)
-        ny = int(1 + lattice.lengths[1] // resolution)
-        nz = int(1 + lattice.lengths[2] // resolution)
+    nx = int(1 + lattice.lengths[0] // resolution)
+    ny = int(1 + lattice.lengths[1] // resolution)
+    nz = int(1 + lattice.lengths[2] // resolution)
 
     # Drop first item, because bins are open-ended on left side
     xbins = np.linspace(x0, x1, nx)[1:]
@@ -110,3 +98,10 @@ def trajectory_to_vasp_volume(trajectory: Trajectory,
         vasp_vol.write_file(filename)
 
     return vasp_vol
+
+
+def volume_to_structure(vol: VolumetricData | np.ndarray) -> Structure:
+    if isinstance(vol, VolumetricData):
+        vol = vol.data['total']
+
+    pass

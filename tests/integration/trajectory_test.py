@@ -15,23 +15,13 @@ def test_volume(vasp_traj):
     vol = trajectory_to_volume(trajectory=diff_trajectory, resolution=0.2)
 
     assert isinstance(vol, np.ndarray)
-    assert vol.shape == (101, 51, 51)
+    assert vol.shape == (99, 49, 49)
     assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
 
-
-@pytest.vaspxml_available
-def test_volume_cartesian(vasp_traj):
-    trajectory = vasp_traj
-
-    diff_trajectory = trajectory.filter('Li')
-
-    vol = trajectory_to_volume(trajectory=diff_trajectory,
-                               resolution=0.2,
-                               cartesian=True)
-
-    assert isinstance(vol, np.ndarray)
-    assert vol.shape == (101, 51, 52)
-    assert vol.sum() == len(diff_trajectory.species) * len(diff_trajectory)
+    # make sure edges are not empty
+    s_ = np.s_
+    for s in s_[0], s_[:, 0], s_[:, :, 0], s_[-1], s_[:, -1], s_[:, :, -1]:
+        assert vol[s].sum() != 0
 
 
 @pytest.vaspxml_available
