@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
+import scipy.ndimage as ndi
 from pymatgen.core import Structure
+from pymatgen.io.cif import CifWriter
 from pymatgen.io.vasp import VolumetricData
+from skimage.feature import blob_dog
+from skimage.measure import regionprops
+from skimage.segmentation import watershed
 
 if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
+    from pymatgen.core import Lattice
 
 
 def trajectory_to_volume(
@@ -100,21 +107,15 @@ def trajectory_to_vasp_volume(trajectory: Trajectory,
     return vasp_vol
 
 
-import scipy.ndimage as ndi
-from pymatgen.core import Lattice
-from pymatgen.io.cif import CifWriter
-from skimage import feature
-from skimage.measure import regionprops
-from skimage.segmentation import watershed
-
-
 def volume_to_structure(
     vol: VolumetricData | np.ndarray,
     *,
     lattice: Lattice,
     specie: str,
-    name: str = 'structure',
-    min_n: int = 30,
+    pad: int = 3,
+    background_level: float = 0.1,
+    cif_filename: str | None = None,
+    vol_filename: str | None = None,
     **kwargs,
 ) -> Structure:
     """Converts a volume array back to a structure using peak detection.
@@ -123,49 +124,74 @@ def volume_to_structure(
     ----------
     vol : VolumetricData | np.ndarray
         Description
-    min_n : int, optional
-        Description
+    lattice : Lattice
+        Lattice for the structure
+    specie : str
+        Specie to assign to the found sites
+    pad : int
+        Extend the volume by this number of voxels by wrapping around. This helps with
+        densities at the edge of the volume bounds. Set this value higher for high resolution
+        densities.
+    background_level : float
+        Fraction of the maximum volume value to set as the minimum value for peak finding.
+        Essentially sets `vol_min = background_level * max(vol)`.
+        All values below `vol_min` are masked in the peak search.
+        Must be between 0 and 1
+    cif_filename : str
+        If specified, write structure in CIF format to this filename
+    vol_filename : str
+        If specified, write structure and volume in VASP format to this
+        filename
     **kwargs
         Additional keyword arguments are passed to skimage.feature.blob_dog
     """
     if isinstance(vol, VolumetricData):
         vol = vol.data['total']
 
-    def save(coords, name):
-        print('Saving', name, '...')
-        s = Structure(lattice=lattice,
-                      coords=coords,
-                      species=[specie for _ in coords])
-        VolumetricData(structure=s, data={
-            'total': vol
-        }).write_file(name + '.vasp')
-        CifWriter(s).write_file(name + '.cif')
+    kwargs.setdefault('overlap', 1)
 
     # normalize data
-    data = 256 * vol / vol.max()
+    data = 255 * vol / vol.max()
+    data = np.pad(data, pad_width=pad, mode='wrap')
 
-    coords = feature.blob_dog(data, **kwargs)
+    vol_min = (255 * background_level)
+
+    coords = blob_dog(data, **kwargs)
     coords = coords[:, 0:3].astype(int)
-
-    # Normalize to volume
-    save((coords / np.array(vol.shape)), f'{name}-dog')
 
     mask = np.zeros(data.shape, dtype=bool)
     mask[tuple(coords.T)] = True
     markers, _ = ndi.label(mask)
-    labels = watershed(-data, markers, mask=data > min_n)
+    labels = watershed(-data, markers, mask=data > vol_min)
 
     props = regionprops(labels, intensity_image=data)
-    cw_coords = np.array([p.centroid_weighted for p in props])
-    # intensities = np.array([p.intensity_mean for p in props])
-    # areas = np.array([p.area_filled for p in props])
+    centroids = np.array([p.centroid_weighted for p in props])
+
+    # Cut centroids in padded area
+    imax, jmax, kmax = pad + np.array(data.shape)
+    imin, jmin, kmin = (pad, pad, pad)
+
+    c0 = (centroids[:, 0] >= imin) & (centroids[:, 0] < imax)
+    c1 = (centroids[:, 1] >= jmin) & (centroids[:, 1] < jmax)
+    c2 = (centroids[:, 2] >= kmin) & (centroids[:, 2] < kmax)
+
+    centroids = centroids[c0 & c1 & c2] - [imin, jmin, kmin]
 
     # Move coords to voxel center by shifting 0.5
-    frac_coords = (cw_coords + 0.5) / np.array(vol.shape)
+    frac_coords = (centroids + 0.5) / np.array(vol.shape)
 
-    # Normalize to volume
-    save(frac_coords, f'{name}-props')
+    structure = Structure(lattice=lattice,
+                          coords=frac_coords,
+                          species=[specie for _ in frac_coords])
 
-    return Structure(lattice=lattice,
-                     coords=frac_coords,
-                     species=[specie for _ in frac_coords])
+    if cif_filename:
+        cif_path = Path(cif_filename)
+        CifWriter(structure).write_file(cif_path.with_suffix('.cif'))
+
+    if vol_filename:
+        vol_path = Path(vol_filename).with_suffix('.vasp')
+        VolumetricData(structure=structure, data={
+            'total': vol
+        }).write_file(vol_path)
+
+    return structure
