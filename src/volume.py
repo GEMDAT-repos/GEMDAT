@@ -34,6 +34,10 @@ def trajectory_to_volume(trajectory: Trajectory,
 
     coords = trajectory.positions.reshape(-1, 3)
 
+    # coords must be between >= 0, < 1
+    assert coords.min() >= 0
+    assert coords.max() < 1
+
     if cartesian:
         coords = lattice.get_cartesian_coords(coords)
 
@@ -51,9 +55,10 @@ def trajectory_to_volume(trajectory: Trajectory,
         ny = int(1 + lattice.lengths[1] // resolution)
         nz = int(1 + lattice.lengths[2] // resolution)
 
-    xbins = np.linspace(x0, x1, nx)
-    ybins = np.linspace(y0, y1, ny)
-    zbins = np.linspace(z0, z1, nz)
+    # Drop first item, because bins are open-ended on left side
+    xbins = np.linspace(x0, x1, nx)[1:]
+    ybins = np.linspace(y0, y1, ny)[1:]
+    zbins = np.linspace(z0, z1, nz)[1:]
 
     digitized_coords = np.vstack([
         np.digitize(coords[:, 0], bins=xbins),
@@ -64,7 +69,7 @@ def trajectory_to_volume(trajectory: Trajectory,
     indices, counts = np.unique(digitized_coords, return_counts=True, axis=0)
     i, j, k = indices.T
 
-    vol = np.zeros((nx + 1, ny + 1, nz + 1), dtype=int)
+    vol = np.zeros((nx - 1, ny - 1, nz - 1), dtype=int)
     vol[i, j, k] = counts
 
     return vol
