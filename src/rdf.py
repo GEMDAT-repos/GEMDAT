@@ -141,7 +141,7 @@ def radial_distribution(
                 rdfs[state_str, symbol] += np.bincount(rdf_state,
                                                        minlength=length)
 
-    ret: dict[str, dict[str, np.ndarray]] = defaultdict(dict)
+    ret: dict[str, dict[str, RDFData]] = defaultdict(dict)
 
     for (state, symbol), values in rdfs.items():
         ret[state][symbol] = RDFData(

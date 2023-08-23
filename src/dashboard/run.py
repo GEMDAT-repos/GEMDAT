@@ -153,6 +153,12 @@ with tab1:
         for figure in figures[num::number_of_cols]:
             col.pyplot(figure)
 
+
+@st.cache_data
+def _radial_distribution(**kwargs):
+    return radial_distribution(**kwargs)
+
+
 if do_rdf:
     with tab2:
         st.title('Radial distribution function')
@@ -165,7 +171,8 @@ if do_rdf:
             )
 
         rdf_figures = [
-            plots.radial_distribution(rdfs) for rdfs in rdf_data.values()
+            plots.radial_distribution(rdfs.values())
+            for rdfs in rdf_data.values()
         ]
 
         # automagically divide the plots over the number of columns

@@ -17,7 +17,7 @@ def analyse_md(
     dist_collective: float = 4.5,
     density_resolution: float = 0.2,
     jump_res: float = 0.1,
-    rdfs: bool = False,
+    calc_rdfs: bool = False,
     rdf_res: float = 0.1,
     rdf_max_dist: int = 10,
     start_end: tuple[int, int] = (5000, 7500),
@@ -49,7 +49,7 @@ def analyse_md(
         Resolution for the diffusing atom density plot in Angstrom
     jump_res: float, optional
         Resolution for the number of jumps vs distance plot in Angstrom
-    rdfs : bool, optional
+    calc_rdfs : bool, optional
         Calculate and show radial distribution functions
     rdf_res : float, optional
         Resolution of the rdf bins in Angstrom
@@ -112,13 +112,13 @@ def analyse_md(
                               resolution=density_resolution,
                               filename=filename)
 
-    if rdfs:
+    if calc_rdfs:
         rdf_data = radial_distribution(
             sites=sites,
             max_dist=rdf_max_dist,
             resolution=rdf_res,
         )
         for rdfs in rdf_data.values():
-            plots.radial_distribution(rdfs)
+            plots.radial_distribution(rdfs.values())
 
     return trajectory, sites
