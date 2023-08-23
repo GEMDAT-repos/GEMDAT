@@ -21,12 +21,14 @@ def test_displacement_histogram(vasp_traj):
 
 @image_comparison2(baseline_images=['frequency_vs_occurence'])
 def test_frequency_vs_occurence(vasp_traj):
-    plots.frequency_vs_occurence(trajectory=vasp_traj)
+    diff_traj = vasp_traj.filter('Li')
+    plots.frequency_vs_occurence(trajectory=diff_traj)
 
 
 @image_comparison2(baseline_images=['vibrational_amplitudes'])
 def test_vibrational_amplitudes(vasp_traj):
-    plots.vibrational_amplitudes(trajectory=vasp_traj)
+    diff_traj = vasp_traj.filter('Li')
+    plots.vibrational_amplitudes(trajectory=diff_traj)
 
 
 @image_comparison2(baseline_images=['jumps_vs_distance'])
