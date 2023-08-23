@@ -3,7 +3,6 @@ from __future__ import annotations
 import typing
 import warnings
 from collections import Counter, defaultdict
-from functools import lru_cache
 from math import ceil
 
 import numpy as np
@@ -11,6 +10,7 @@ from pymatgen.core import Structure
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Boltzmann, angstrom, elementary_charge
 
+from .caching import weak_lru_cache
 from .collective import Collective
 from .simulation_metrics import SimulationMetrics
 from .transitions import Transitions
@@ -170,7 +170,7 @@ class SitesData:
 
         return jumps_parts
 
-    @lru_cache
+    @weak_lru_cache()
     def rates(self) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate jump rates (total jumps / second).
 
@@ -196,7 +196,7 @@ class SitesData:
 
         return rates
 
-    @lru_cache
+    @weak_lru_cache()
     def activation_energies(
             self) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate activation energies for jumps (UNITS?).
@@ -279,7 +279,7 @@ class SitesData:
 
         return jumps
 
-    @lru_cache
+    @weak_lru_cache()
     def jump_diffusivity(self, dimensions: int) -> float:
         """Calculate jump diffusivity.
 
@@ -308,7 +308,7 @@ class SitesData:
 
         return jump_diff
 
-    @lru_cache
+    @weak_lru_cache()
     def collective(self, max_dist: float = 4.5) -> Collective:
         """Calculate collective jumps.
 
