@@ -18,8 +18,8 @@ def radial_distribution(rdfs: Iterable[RDFData]) -> plt.Figure:
 
     Returns
     -------
-    fig : plt.Figure
-        Output matplotlib figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     fig, ax = plt.subplots()
 

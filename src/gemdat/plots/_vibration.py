@@ -16,7 +16,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
 
     Returns
     -------
-    fig : plt.Figure
+    fig : matplotlib.figure.Figure
         Output figure
     """
     metrics = SimulationMetrics(trajectory)
@@ -72,7 +72,7 @@ def vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
 
     Returns
     -------
-    fig : plt.Figure
+    fig : matplotlib.figure.Figure
         Output figure
     """
     metrics = SimulationMetrics(trajectory)

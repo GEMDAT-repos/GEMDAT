@@ -14,8 +14,8 @@ def displacement_per_site(*, trajectory: Trajectory) -> plt.Figure:
 
     Returns
     -------
-    fig : plt.Figure
-        Output matplotlib figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     fig, ax = plt.subplots()
 
@@ -39,8 +39,8 @@ def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
 
     Returns
     -------
-    fig : plt.Figure
-        Output matplotlib figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     from collections import defaultdict
 
@@ -77,8 +77,8 @@ def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
 
     Returns
     -------
-    fig : plt.Figure
-        Output matplotlib figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     fig, ax = plt.subplots()
     ax.hist(trajectory.distances_from_base_position()[:, -1])

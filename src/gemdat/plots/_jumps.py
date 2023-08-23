@@ -30,7 +30,8 @@ def jumps_vs_distance(*,
 
     Returns
     -------
-    plt.Figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     lattice = trajectory.get_lattice()
     structure = sites.structure
@@ -74,7 +75,8 @@ def jumps_vs_time(*,
 
     Returns
     -------
-    plt.Figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     n_steps = len(trajectory)
     bins = np.arange(0, n_steps + binsize, binsize)
@@ -103,7 +105,8 @@ def collective_jumps(*, trajectory: Trajectory,
 
     Returns
     -------
-    plt.Figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     fig, ax = plt.subplots()
 
@@ -133,7 +136,8 @@ def jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
 
     Returns
     -------
-    plt.Figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
 
     class LabelItems:
@@ -212,14 +216,8 @@ def jumps_3d_animation(*,
                        t_stop: int,
                        decay: float = 0.05,
                        skip: int = 5,
-                       interval: int = 20):
+                       interval: int = 20) -> plt.Figure:
     """Plot jumps in 3D as an animation over time.
-
-    # TODO
-    # - Refactor using init func
-    # - Refactor shared code with `plot_jumps_3d`
-    # - Save/export animation somehow
-    # - Probably cleaner to combine these functions as a class
 
     Parameters
     ----------
@@ -240,7 +238,8 @@ def jumps_3d_animation(*,
 
     Returns
     -------
-    plt.Figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     minwidth = 0.2
     maxwidth = 5.0
