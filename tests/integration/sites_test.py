@@ -8,6 +8,7 @@ from math import isclose
 
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 
 
 @pytest.vaspxml_available
@@ -23,37 +24,76 @@ class TestSites:
 
         assert isclose(transitions._dist_close, 0.9284961123176741)
 
-        assert transitions.states.shape == (n_steps, n_diffusing)
-        assert transitions.states.sum() == 6154859
-        assert transitions.states_next().shape == (n_steps, n_diffusing)
-        assert transitions.states_next().sum() == 8172006
-        assert transitions.states_prev().shape == (n_steps, n_diffusing)
-        assert transitions.states_prev().sum() == 8148552
+        slice_ = np.s_[::1000, ::24]
+
+        states = transitions.states
+        assert states.shape == (n_steps, n_diffusing)
+        assert states.sum() == 6154859
+        assert_allclose(states[slice_],
+                        np.array([[94, -1], [94, -1], [0, 65], [0, 65]]))
+
+        states_next = transitions.states_next()
+        assert states_next.shape == (n_steps, n_diffusing)
+        assert states_next.sum() == 8172006
+        assert_allclose(states_next[slice_],
+                        np.array([[94, 1], [94, 65], [0, 65], [0, 65]]))
+
+        states_prev = transitions.states_prev()
+        assert states_prev.shape == (n_steps, n_diffusing)
+        assert states_prev.sum() == 8148552
+        assert_allclose(states_prev[slice_],
+                        np.array([[94, -1], [94, 65], [0, 65], [0, 65]]))
 
     def test_all_transitions(self, vasp_sites):
         transitions = vasp_sites.transitions
+
+        events = transitions.events
         assert transitions.events.shape == (450, 5)
-        assert transitions.matrix().shape == (vasp_sites.n_sites,
-                                              vasp_sites.n_sites)
+        assert_allclose(
+            events[::100],
+            np.array([
+                [0, 94, 0, 228, 284],
+                [9, 60, 68, 2692, 2946],
+                [18, 24, 54, 3435, 3646],
+                [31, 59, 51, 1240, 1536],
+                [41, 41, 67, 3633, 3667],
+            ]))
+
+        matrix = transitions.matrix()
+        assert matrix.shape == (vasp_sites.n_sites, vasp_sites.n_sites)
+        assert matrix.sum() == 450
+        assert_allclose(
+            np.argwhere(matrix)[::50],
+            np.array([[0, 94], [26, 10], [48, 32], [74, 8]]))
 
     def test_transitions_parts(self, vasp_sites):
         n_sites = vasp_sites.n_sites
-        assert vasp_sites.transitions_parts.shape == (self.n_parts, n_sites,
-                                                      n_sites)
-        assert np.sum(vasp_sites.transitions_parts[0]) == 37
-        assert np.sum(vasp_sites.transitions_parts[9]) == 38
+        tp = vasp_sites.transitions_parts
+
+        assert tp.shape == (self.n_parts, n_sites, n_sites)
+        assert tp.sum() == 450
+        assert_allclose(
+            np.argwhere(tp)[::100],
+            np.array([
+                [0, 2, 66],
+                [2, 43, 51],
+                [5, 4, 90],
+                [7, 23, 31],
+            ]))
 
     def test_occupancy(self, vasp_sites):
-        assert vasp_sites.transitions.occupancy()[0] == 1704
-        assert vasp_sites.transitions.occupancy()[43] == 542
+        occupancy = vasp_sites.transitions.occupancy()
+        assert len(occupancy) == 95
+        assert sum(occupancy.values()) == 137026
+        assert list(occupancy.values())[::20] == [1704, 971, 351, 1508, 1104]
 
     def test_occupancy_parts(self, vasp_sites):
-        assert len(vasp_sites.occupancy_parts) == self.n_parts
-
-        assert vasp_sites.occupancy_parts[0][0] == 56
-        assert vasp_sites.occupancy_parts[0][42] == 36
-        assert vasp_sites.occupancy_parts[9][0] == 62
-        assert vasp_sites.occupancy_parts[9][42] == 177
+        parts = vasp_sites.occupancy_parts
+        assert len(parts) == self.n_parts
+        assert [sum(part.values()) for part in parts] == [
+            13592, 13898, 13819, 14028, 14022, 14470, 13200, 13419, 13286,
+            13292
+        ]
 
     def test_site_occupancy(self, vasp_sites):
         assert isclose(vasp_sites.site_occupancy()['48h'],
@@ -117,23 +157,28 @@ class TestSites:
 
     def test_collective(self, vasp_sites):
         collective = vasp_sites.collective()
-        assert len(collective.collective) == 1280
+        cc = collective.collective
 
-        assert collective.collective[0] == (158, 384)
-        assert collective.collective[-1] == (348, 383)
+        assert len(cc) == 1280
+        assert cc[::1000] == [(158, 384), (33, 113)]
 
     def test_coll_jumps(self, vasp_sites):
         collective = vasp_sites.collective()
+        coll_jumps = collective.coll_jumps
 
-        assert len(collective.coll_jumps) == 1280
-        assert collective.coll_jumps[0] == ((74, 8), (41, 67))
-        assert collective.coll_jumps[-1] == ((15, 77), (21, 45))
+        assert len(coll_jumps) == 1280
+        assert coll_jumps[::1000] == [((74, 8), (41, 67)), ((6, 88), (62, 18))]
 
     def test_collective_matrix(self, vasp_sites):
         collective = vasp_sites.collective()
-        assert collective.matrix().shape == (1, 1)
-        assert collective.matrix()[0, 0] == 1280
+        matrix = collective.matrix()
+        assert matrix.shape == (1, 1)
+        assert matrix[0, 0] == 1280
 
     def test_multiple_collective(self, vasp_sites):
         collective = vasp_sites.collective()
-        assert collective.multiple_collective().sum() == 434227
+        mc = collective.multiple_collective()
+        assert mc.shape == (2112, )
+        assert mc.sum() == 434227
+        assert_allclose(mc[::250],
+                        np.array([0, 50, 98, 137, 187, 232, 284, 347, 420]))
