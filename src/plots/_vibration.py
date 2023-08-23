@@ -41,8 +41,6 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
 
     attempt_freq, attempt_freq_std = metrics.attempt_frequency()
 
-    print(attempt_freq, attempt_freq_std)
-
     if attempt_freq:
         ax.vlines([attempt_freq], 0, y_max, colors='red')
     if attempt_freq and attempt_freq_std:
