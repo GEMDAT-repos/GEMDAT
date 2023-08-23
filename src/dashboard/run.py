@@ -1,3 +1,6 @@
+from typing import Any
+
+import numpy as np
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
 from gemdat import SitesData, __version__, plots
@@ -6,6 +9,7 @@ from gemdat.rdf import radial_distribution
 from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
+from pymatgen.core import Structure
 
 st.set_page_config(
     page_title='Gemdat dashboard',
@@ -123,11 +127,28 @@ if not is_lattice_similar(trajectory.get_lattice(), sites_structure):
         f'{trajectory_location.name}: {trajectory.get_lattice().parameters}')
     st.stop()
 
+
+def _structure_hash_func(obj: Structure) -> dict:
+    return obj.as_dict()
+
+
+def _trajectory_hash_func(obj: Trajectory) -> np.ndarray:
+    return obj.positions
+
+
+@st.cache_data(hash_funcs={
+    Structure: _structure_hash_func,
+    Trajectory: _trajectory_hash_func
+})
+def _SitesData(**kwargs):
+    return SitesData(**kwargs)
+
+
 with tab1:
     st.title('Trajectory and jumps')
 
     with st.spinner('Calculating jumps...'):
-        sites = SitesData(
+        sites = _SitesData(
             structure=sites_structure,
             trajectory=trajectory,
             floating_specie=diffusing_element,
@@ -154,7 +175,11 @@ with tab1:
             col.pyplot(figure)
 
 
-@st.cache_data
+def _sites_hash_func(obj: SitesData) -> tuple[Any, Any, Any]:
+    return obj.structure.frac_coords, obj.trajectory.positions, obj.floating_specie
+
+
+@st.cache_data(hash_funcs={SitesData: _sites_hash_func})
 def _radial_distribution(**kwargs):
     return radial_distribution(**kwargs)
 
@@ -164,7 +189,7 @@ if do_rdf:
         st.title('Radial distribution function')
 
         with st.spinner('Calculating RDFs...'):
-            rdf_data = radial_distribution(
+            rdf_data = _radial_distribution(
                 sites=sites,
                 max_dist=max_dist_rdf,
                 resolution=resolution_rdf,
