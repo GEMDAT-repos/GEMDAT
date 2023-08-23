@@ -5,7 +5,14 @@ repo_name: GitHub
 
 nav:
   - Home: index.md
-  - Python API: api.md
+  - Getting started: getting_started.md
+  - Plotting: plotting.md
+  - Python API:
+    - gemdat: api/gemdat.md
+    - gemdat.rdf: api/gemdat_rdf.md
+    - gemdat.simulation_metrics: api/gemdat_simulation_metrics.md
+    - gemdat.utils: api/gemdat_utils.md
+    - gemdat.volume: api/gemdat_volume.md
   - Contributing: CONTRIBUTING.md
   - Code of Conduct: CODE_OF_CONDUCT.md
   - 🔗 Source code: https://github.com/GEMDAT-repos/GEMDAT
@@ -47,15 +54,17 @@ plugins:
         - https://numpy.org/doc/stable/objects.inv
         - https://docs.scipy.org/doc/scipy/objects.inv
         - https://pandas.pydata.org/docs/objects.inv
+        - https://matplotlib.org/stable/objects.inv
         options:
           docstring_style: numpy
           docstring_options:
             ignore_init_summary: yes
           show_submodules: no
           show_source: true
+          show_root_heading: false
+          show_root_full_path: false
           docstring_section_style: list
           members_order: alphabetical
-          show_category_heading: no
           merge_init_into_class: yes
           filters: ["!^_"]
 
