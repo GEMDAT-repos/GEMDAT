@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -15,6 +16,42 @@ from skimage.segmentation import watershed
 if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
     from pymatgen.core import Lattice
+
+
+@dataclass
+class Volume:
+    data: np.ndarray
+    lattice: Lattice
+    # Minimum resolution in Angstrom
+    resolution: float | None = None
+
+    @property
+    def normalized_data(self):
+        return self.data / self.data.max()
+
+    @property
+    def voxel_size(self) -> tuple[float, float, float]:
+        """Return voxel size in Angstrom."""
+        return tuple(a / b for a, b in zip(self.lattice.lengths,
+                                           self.data.shape))  # type: ignore
+
+    @property
+    def nx(self):
+        return self.data.shape[0]
+
+    @property
+    def ny(self):
+        return self.data.shape[1]
+
+    @property
+    def nz(self):
+        return self.data.shape[2]
+
+    @classmethod
+    def from_volumetric_data(cls, vol: VolumetricData):
+        return cls(data=vol.data['total'],
+                   lattice=vol.structure.lattice,
+                   resolution=None)
 
 
 def trajectory_to_volume(
@@ -67,7 +104,7 @@ def trajectory_to_volume(
     vol = np.zeros((nx - 1, ny - 1, nz - 1), dtype=int)
     vol[i, j, k] = counts
 
-    return vol
+    return Volume(data=vol, resolution=resolution, lattice=lattice)
 
 
 def trajectory_to_vasp_volume(trajectory: Trajectory,
@@ -108,9 +145,8 @@ def trajectory_to_vasp_volume(trajectory: Trajectory,
 
 
 def volume_to_structure(
-    vol: VolumetricData | np.ndarray,
+    vol: Volume | VolumetricData,
     *,
-    lattice: Lattice,
     specie: str,
     pad: int = 3,
     background_level: float = 0.1,
@@ -122,10 +158,8 @@ def volume_to_structure(
 
     Parameters
     ----------
-    vol : VolumetricData | np.ndarray
-        Description
-    lattice : Lattice
-        Lattice for the structure
+    vol : Volume | VolumetricData
+        Input volume data
     specie : str
         Specie to assign to the found sites
     pad : int
@@ -146,15 +180,13 @@ def volume_to_structure(
         Additional keyword arguments are passed to skimage.feature.blob_dog
     """
     if isinstance(vol, VolumetricData):
-        vol = vol.data['total']
+        vol = Volume.from_volumetric_data(vol)
 
-    kwargs.setdefault('overlap', 1)
+    kwargs.setdefault('threshold', 0.01)
 
     # normalize data
-    data = 255 * vol / vol.max()
+    data = vol.normalized_data
     data = np.pad(data, pad_width=pad, mode='wrap')
-
-    vol_min = (255 * background_level)
 
     coords = blob_dog(data, **kwargs)
     coords = coords[:, 0:3].astype(int)
@@ -162,7 +194,7 @@ def volume_to_structure(
     mask = np.zeros(data.shape, dtype=bool)
     mask[tuple(coords.T)] = True
     markers, _ = ndi.label(mask)
-    labels = watershed(-data, markers, mask=data > vol_min)
+    labels = watershed(-data, markers, mask=data > background_level)
 
     props = regionprops(labels, intensity_image=data)
     centroids = np.array([p.centroid_weighted for p in props])
@@ -178,12 +210,12 @@ def volume_to_structure(
     centroids = centroids[c0 & c1 & c2] - [imin, jmin, kmin]
 
     # Move coords to voxel center by shifting 0.5
-    frac_coords = (centroids + 0.5) / np.array(vol.shape)
+    frac_coords = (centroids + 0.5) / np.array(vol.data.shape)
 
     # mod to unit cell
     frac_coords = np.mod(frac_coords, 1)
 
-    structure = Structure(lattice=lattice,
+    structure = Structure(lattice=vol.lattice,
                           coords=frac_coords,
                           species=[specie for _ in frac_coords])
 
@@ -194,7 +226,7 @@ def volume_to_structure(
     if vol_filename:
         vol_path = Path(vol_filename).with_suffix('.vasp')
         VolumetricData(structure=structure, data={
-            'total': vol
+            'total': vol.data
         }).write_file(vol_path)
 
     return structure
