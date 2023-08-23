@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from functools import lru_cache
-
 import numpy as np
 from pymatgen.core import Lattice, Structure
 
+from .caching import weak_lru_cache
 from .transitions import Transitions
 
 
@@ -99,7 +98,7 @@ class Collective:
         self.coll_jumps = coll_jumps
         self.n_solo_jumps = n_solo_jumps
 
-    @lru_cache
+    @weak_lru_cache()
     def matrix(self) -> np.ndarray:
         """Calculate collective jumps matrix.
 
@@ -131,7 +130,7 @@ class Collective:
 
         return collective_matrix
 
-    @lru_cache
+    @weak_lru_cache()
     def multiple_collective(self) -> np.ndarray:
         """Find jumps that occur collectively multiple times.
 

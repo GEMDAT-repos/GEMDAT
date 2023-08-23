@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import typing
-from functools import lru_cache
 
 import numpy as np
 from MDAnalysis.lib.pkdtree import PeriodicKDTree
 from pymatgen.core import Structure
 
+from .caching import weak_lru_cache
 from .simulation_metrics import SimulationMetrics
 from .utils import bfill, ffill
 
@@ -86,7 +86,7 @@ class Transitions:
 
         return obj
 
-    @lru_cache
+    @weak_lru_cache()
     def matrix(self) -> np.ndarray:
         """Convert list of transition events to dense matrix.
 
@@ -97,7 +97,7 @@ class Transitions:
         """
         return _calculate_transitions_matrix(self.events, n_sites=self.n_sites)
 
-    @lru_cache
+    @weak_lru_cache()
     def states_next(self) -> np.ndarray:
         """Calculate atom transition states per time step by backward filling
         `self.states`.
@@ -110,7 +110,7 @@ class Transitions:
         """
         return bfill(self.states, fill_val=NOSITE, axis=0)
 
-    @lru_cache
+    @weak_lru_cache()
     def states_prev(self) -> np.ndarray:
         """Calculate atom transition states per time step by forward filling
         `self.states`.
