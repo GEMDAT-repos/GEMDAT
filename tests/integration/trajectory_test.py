@@ -56,3 +56,34 @@ def test_tracer(vasp_traj):
         110.322,
         rel_tol=1e-4,
     )
+
+
+@pytest.vaspxml_available
+def test_vibration_metrics(vasp_traj):
+    diff_trajectory = vasp_traj.filter('Li')
+    metrics = SimulationMetrics(diff_trajectory)
+
+    speed = metrics.speed()
+    assert speed.shape == (48, 3750)
+    assert np.allclose(
+        speed[::24, ::1000],
+        [[0., 0.01348809, -0.02682779, 0.00293911],
+         [0., -0.0059066, 0.01617687, 0.01080066]],
+    )
+
+    attempt_freq, attempt_freq_std = metrics.attempt_frequency()
+
+    assert np.isclose(attempt_freq, 8496267574320.341)
+    assert np.isclose(attempt_freq_std, 857338723421.6494)
+
+    amplitudes = metrics.amplitudes()
+    assert amplitudes.shape == (6644, )
+    assert np.allclose(
+        amplitudes[::1000],
+        [
+            0.29206348, -0.11529727, 0.33333244, -1.05528599, 0.53086991,
+            -0.48080325, 0.61573288
+        ],
+    )
+
+    assert np.isclose(metrics.vibration_amplitude(), 0.5204299134264091)
