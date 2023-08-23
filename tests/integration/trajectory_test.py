@@ -16,27 +16,25 @@ def vasp_vol(vasp_traj):
 
 @pytest.vaspxml_available
 def test_volume(vasp_vol, vasp_traj):
-    vol = vasp_vol
+    data = vasp_vol.data
 
     n_species = sum(sp.symbol == 'Li' for sp in vasp_traj.species)
 
-    assert isinstance(vol, np.ndarray)
-    assert vol.shape == (99, 49, 49)
-    assert vol.sum() == n_species * len(vasp_traj)
+    assert isinstance(data, np.ndarray)
+    assert data.shape == (99, 49, 49)
+    assert data.sum() == n_species * len(vasp_traj)
 
     # make sure edges are not empty
     s_ = np.s_
     for s in s_[0], s_[:, 0], s_[:, :, 0], s_[-1], s_[:, -1], s_[:, :, -1]:
-        assert vol[s].sum() != 0
+        assert data[s].sum() != 0
 
 
 def test_volume_to_structure(vasp_traj, vasp_vol):
-    structure = volume_to_structure(vasp_vol,
-                                    lattice=vasp_traj.get_lattice(),
-                                    specie='Li')
+    structure = volume_to_structure(vasp_vol, specie='Li')
 
     assert isinstance(structure, Structure)
-    assert len(structure) == 190
+    assert len(structure) == 188
     assert np.min(structure.frac_coords) >= 0
     assert np.max(structure.frac_coords) < 1
 
