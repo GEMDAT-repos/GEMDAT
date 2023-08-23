@@ -96,7 +96,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     import uncertainties as u
-    attempt_freq = u.ufloat(metrics.attempt_frequency())
+    attempt_freq = u.ufloat(*metrics.attempt_frequency())
     st.metric('Attempt frequency ($\\mathrm{s^{-1}}$)',
               value=f'{attempt_freq:g}')
     st.metric('Vibration amplitude ($\\mathrm{Å}$)',
