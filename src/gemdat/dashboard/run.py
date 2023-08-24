@@ -197,8 +197,7 @@ if do_rdf:
             )
 
         rdf_figures = [
-            plots.radial_distribution(rdfs.values())
-            for rdfs in rdf_data.values()
+            plots.radial_distribution(rdfs) for rdfs in rdf_data.values()
         ]
 
         # automagically divide the plots over the number of columns

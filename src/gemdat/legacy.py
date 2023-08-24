@@ -116,6 +116,6 @@ def analyse_md(
             resolution=rdf_res,
         )
         for rdfs in rdf_data.values():
-            plots.radial_distribution(rdfs.values())
+            plots.radial_distribution(rdfs)
 
     return trajectory, sites
