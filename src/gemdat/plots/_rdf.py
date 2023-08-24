@@ -13,8 +13,8 @@ def radial_distribution(rdfs: Iterable[RDFData]) -> plt.Figure:
 
     Parameters
     ----------
-    rdfs : dict[str, np.ndarray]
-        Dictionary with rdf array per symbol
+    rdfs : Iterable[RDFData]
+        List of RDF data to plot
 
     Returns
     -------

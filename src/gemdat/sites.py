@@ -35,7 +35,7 @@ class SitesData:
 
         Parameters
         ----------
-        structure : Structure
+        structure : pymatgen.core.structure.Structure
             Input structure with known jump sites
         trajectory : Trajectory
             Input trajectory

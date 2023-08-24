@@ -12,9 +12,11 @@ if TYPE_CHECKING:
     from gemdat import SitesData
 
 
-def jumps_vs_distance(*,
-                      sites: SitesData,
-                      jump_res: float = 0.1) -> plt.Figure:
+def jumps_vs_distance(
+    *,
+    sites: SitesData,
+    jump_res: float = 0.1,
+) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -201,13 +203,15 @@ def jumps_3d(*, sites: SitesData) -> plt.Figure:
     return fig
 
 
-def jumps_3d_animation(*,
-                       sites: SitesData,
-                       t_start: int,
-                       t_stop: int,
-                       decay: float = 0.05,
-                       skip: int = 5,
-                       interval: int = 20) -> plt.Figure:
+def jumps_3d_animation(
+    *,
+    sites: SitesData,
+    t_start: int,
+    t_stop: int,
+    decay: float = 0.05,
+    skip: int = 5,
+    interval: int = 20,
+) -> plt.Figure:
     """Plot jumps in 3D as an animation over time.
 
     Parameters

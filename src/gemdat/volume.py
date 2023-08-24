@@ -1,3 +1,5 @@
+"""This module contains functions related to dealing with volumetric data."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,13 +23,25 @@ if TYPE_CHECKING:
 
 @dataclass
 class Volume:
+    """Container for volumetric data.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Input volume as 3D numpy array
+    lattice : pymatgen.core.lattice.Lattice
+        Lattice parameters for the volume
+    resolution : optional[float]
+        The minimum resolution in Angstrom that the volume
+        was generated at.
+    """
     data: np.ndarray
     lattice: Lattice
-    # Minimum resolution in Angstrom
     resolution: float | None = None
 
     @property
-    def normalized_data(self):
+    def normalized_data(self) -> np.ndarray:
+        """Return normalized data."""
         return self.data / self.data.max()
 
     @property
@@ -36,20 +50,15 @@ class Volume:
         return tuple(a / b for a, b in zip(self.lattice.lengths,
                                            self.data.shape))  # type: ignore
 
-    @property
-    def nx(self):
-        return self.data.shape[0]
-
-    @property
-    def ny(self):
-        return self.data.shape[1]
-
-    @property
-    def nz(self):
-        return self.data.shape[2]
-
     @classmethod
     def from_volumetric_data(cls, vol: VolumetricData):
+        """Create instance from VolumetricData.
+
+        Parameters
+        ----------
+        vol : pymatgen.io.common.VolumetricData
+            Input volumetric data
+        """
         return cls(data=vol.data['total'],
                    lattice=vol.structure.lattice,
                    resolution=None)
@@ -59,7 +68,11 @@ def trajectory_to_volume(
     trajectory: Trajectory,
     resolution: float = 0.2,
 ) -> np.ndarray:
-    """Calculate density volume from list of coordinates.
+    """Calculate density volume from a trajectory.
+
+    All coordinates are binned into voxels. The value of each
+    voxel represents the number of coodinates that are associated
+    with it.
 
     Parameters
     ----------
@@ -70,8 +83,8 @@ def trajectory_to_volume(
 
     Returns
     -------
-    vol : np.ndarray
-        3D numpy volume array
+    vol : Volume
+        Output volume
     """
     lattice = trajectory.get_lattice()
 
@@ -112,13 +125,13 @@ def trajectory_to_vasp_volume(trajectory: Trajectory,
                               structure: Optional[Structure] = None,
                               resolution: float = 0.2,
                               filename: str | None = None) -> VolumetricData:
-    """Calculate density volume as from list of coordinates.
+    """Calculate density volume from a trajectory.
 
     Parameters
     ----------
     trajectory : np.ndarray
         Input trajectory
-    structure : Optional[Structure]
+    structure : Optional[pymatgen.core.structure.Structure]
         structure to include in the vasp file, defaults to trajectory structure.
         Useful if you want to output the density for a select number of species,
         and show the host structure. Defaults to first structure in
@@ -130,14 +143,14 @@ def trajectory_to_vasp_volume(trajectory: Trajectory,
 
     Returns
     -------
-    vol : VolumetricData
+    vol : pymatgen.io.vasp.VolumetricData
         Output volumetric data object
     """
     vol = trajectory_to_volume(trajectory=trajectory, resolution=resolution)
 
     structure = structure if structure else trajectory.get_structure(0)
 
-    vasp_vol = VolumetricData(structure=structure, data={'total': vol})
+    vasp_vol = VolumetricData(structure=structure, data={'total': vol.data})
 
     if filename:
         vasp_vol.write_file(filename)
@@ -155,11 +168,14 @@ def volume_to_structure(
     vol_filename: str | None = None,
     **kwargs,
 ) -> Structure:
-    """Converts a volume array back to a structure using peak detection.
+    """Converts a volume back to a structure using peak detection.
+
+    Peaks are found using the Difference of Gaussian method available in
+    [scikit-image][skimage.feature.blob_dog].
 
     Parameters
     ----------
-    vol : Volume | VolumetricData
+    vol : Volume | pymatgen.io.common.VolumetricData
         Input volume data
     specie : str
         Specie to assign to the found sites
@@ -178,7 +194,7 @@ def volume_to_structure(
         If specified, write structure and volume in VASP format to this
         filename
     **kwargs
-        Additional keyword arguments are passed to skimage.feature.blob_dog
+        Additional keyword arguments are passed to [skimage.feature.blob_dog][]
     """
     if isinstance(vol, VolumetricData):
         vol = Volume.from_volumetric_data(vol)

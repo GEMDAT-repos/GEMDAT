@@ -62,7 +62,7 @@ class Transitions:
         ----------
         trajectory : Trajectory
             Input trajectory
-        structure : Structure
+        structure : pymatgen.core.structure.Structure
             Input structure with known sites
         floating_specie : str
             Name of the floating specie to calculate transitions for
@@ -211,7 +211,7 @@ def _dist_close(trajectory: Trajectory, structure: Structure,
     ----------
     trajectory : Trajectory
         Input trajectory
-    structure : Structure
+    structure : pymatgen.core.structure.Structure
         Input structure
 
     Returns
@@ -268,7 +268,7 @@ def _calculate_atom_states(
 
     Parameters
     ----------
-    structure : Structure
+    structure : pymatgen.core.structure.Structure
         Input structure with pre-defined sites
     trajectory : Trajectory
         Input trajectory for floating atoms

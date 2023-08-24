@@ -1,3 +1,5 @@
+"""This module contains all the plots that Gemdat can generate."""
+
 from ._displacements import (
     displacement_histogram,
     displacement_per_element,

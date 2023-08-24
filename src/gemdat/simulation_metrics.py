@@ -1,3 +1,6 @@
+"""This module contains classes for calculating metrics and other properties
+from trajectories."""
+
 from __future__ import annotations
 
 import typing
@@ -14,8 +17,17 @@ if typing.TYPE_CHECKING:
 
 
 class SimulationMetrics:
+    """Class for calculating different metrics and properties from a molecular
+    dynamics simulation."""
 
     def __init__(self, trajectory: Trajectory):
+        """Initialize class.
+
+        Parameters
+        ----------
+        trajectory: Trajectory
+            Input trajectory
+        """
         self.trajectory = trajectory
 
     @weak_lru_cache()
@@ -23,13 +35,24 @@ class SimulationMetrics:
         """Calculate speed.
 
         Corresponds to change in distance from the base position.
+
+        Returns
+        -------
+        speed : np.ndarray
+            Output array with speeds
         """
         distances = self.trajectory.distances_from_base_position()
         return np.diff(distances, prepend=0)
 
     @weak_lru_cache()
-    def particle_density(self) -> float:
-        """Return number of particles per m3."""
+    def particle_density(self) -> FloatWithUnit:
+        """Calculate number of particles per unit of volume from trajectory.
+
+        Returns
+        -------
+        particle_density : FloatWithUnit
+            Number of particles in $m^{-3}$
+        """
         lattice = self.trajectory.get_lattice()
         volume_ang = lattice.volume
         volume_m3 = volume_ang * angstrom**3
@@ -37,16 +60,22 @@ class SimulationMetrics:
         return FloatWithUnit(particle_density, 'm^-3')
 
     @weak_lru_cache()
-    def mol_per_liter(self) -> float:
-        """Return particle density as mol/liter."""
+    def mol_per_liter(self) -> FloatWithUnit:
+        """Calculate density.
+
+        Returns
+        -------
+        particle_density : FloatWithUnit
+            Particle density as $mol/l$.
+        """
         mol_per_liter = (self.particle_density() * 1e-3) / Avogadro
         return FloatWithUnit(mol_per_liter, 'mol l^-1')
 
     @weak_lru_cache()
-    def tracer_diffusivity(self, *, dimensions: int) -> float:
-        """Return tracer diffusivity in m2/s.
+    def tracer_diffusivity(self, *, dimensions: int) -> FloatWithUnit:
+        """Calculate tracer diffusivity.
 
-        Defined as: MSD/(2*dimensions*time)
+        Defined as: MSD / (2*dimensions*time)
 
         Parameters
         ----------
@@ -55,7 +84,8 @@ class SimulationMetrics:
 
         Returns
         -------
-        tracer_diffusivity : float
+        tracer_diffusivity : FloatWithUnit
+            Tracer diffusivity in $m^2/s$
         """
         distances = self.trajectory.distances_from_base_position()
         msd = np.mean(distances[:, -1]**2)  # Angstrom^2
@@ -66,7 +96,8 @@ class SimulationMetrics:
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
     @weak_lru_cache()
-    def tracer_conductivity(self, *, z_ion: int, dimensions: int) -> float:
+    def tracer_conductivity(self, *, z_ion: int,
+                            dimensions: int) -> FloatWithUnit:
         """Return tracer conductivity as S/m.
 
         Defined as: elementary_charge^2 * charge_ion^2 * diffusivity *
@@ -81,7 +112,8 @@ class SimulationMetrics:
 
         Returns
         -------
-        tracer_conductivity : float
+        tracer_conductivity : FloatWithUnit
+            Tracer conductivity in $S/m$
         """
         temperature = self.trajectory.metadata['temperature']
         tracer_diff = self.tracer_diffusivity(dimensions=dimensions)
@@ -91,14 +123,14 @@ class SimulationMetrics:
         return FloatWithUnit(tracer_conduc, 'S m^-1')
 
     @weak_lru_cache()
-    def attempt_frequency(self) -> tuple[float, float]:
+    def attempt_frequency(self) -> tuple[FloatWithUnit, FloatWithUnit]:
         """Return attempt frequency and standard deviation in Hz.
 
         Returns
         -------
-        attempt_freq : float
+        attempt_freq : FloatWithUnit
             Attempt frequency
-        attempt_freq_std : float
+        attempt_freq_std : FloatWithUnit
             Attempt frequency standard deviation
         """
         speed = self.speed()
@@ -114,12 +146,13 @@ class SimulationMetrics:
         return attempt_freq, attempt_freq_std
 
     @weak_lru_cache()
-    def vibration_amplitude(self) -> float:
-        """Return vibration amplitude in Angstrom.
+    def vibration_amplitude(self) -> FloatWithUnit:
+        """Calculate vibration amplitude.
 
         Returns
         -------
-        vibration_amp : float
+        vibration_amp : FloatWithUnit
+            Vibration amplitude in $Å$
         """
         amplitudes = self.amplitudes()
 
@@ -133,7 +166,7 @@ class SimulationMetrics:
 
     @weak_lru_cache()
     def amplitudes(self) -> np.ndarray:
-        """Return vibration amplitudes.
+        """Calculate vibration amplitudes.
 
         Returns
         -------

@@ -1,3 +1,5 @@
+"""The io module contains functions to read and write data."""
+
 from importlib.resources import files
 from pathlib import Path
 
@@ -18,7 +20,8 @@ SUPERCELL = {
 
 
 def load_cif(filename: Path | str) -> Structure:
-    """Load cif file and return first item as pymatgen structure.
+    """Load cif file and return first item as
+    [pymatgen.core.structure.Structure][].
 
     Parameters
     ----------
@@ -27,7 +30,7 @@ def load_cif(filename: Path | str) -> Structure:
 
     Returns
     -------
-    structure : Structure
+    structure : pymatgen.core.structure.Structure
         Output structure
     """
     cifdata = cif.CifParser(filename)
@@ -35,9 +38,10 @@ def load_cif(filename: Path | str) -> Structure:
     return structure
 
 
-def load_known_material(name: str,
-                        supercell: tuple[int, int, int] | None = None
-                        ) -> Structure:
+def load_known_material(
+    name: str,
+    supercell: tuple[int, int, int] | None = None,
+) -> Structure:
     """Load known material from internal database.
 
     Parameters
@@ -46,12 +50,12 @@ def load_known_material(name: str,
         Name of the material
     supercell : tuple(int, int, int) | None, optional
         Optionally, scale the lattice by a sequence of three factors.
-        For example, (2, 1, 1) specifies that the supercell should have
-        dimensions 2a x b x c.
+        For example, `(2, 1, 1)` specifies that the supercell should have
+        dimensions $2a \\times b \\times c$.
 
     Returns
     -------
-    structure : Structure
+    structure : pymatgen.core.structure.Structure
         Output structure
     """
     filename = (DATA / name).with_suffix('.cif')

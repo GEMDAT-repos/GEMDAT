@@ -73,17 +73,32 @@ def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
 
 @dataclass
 class RDFData:
-    """Container for storing radial distribution data."""
+    """Data class for storing radial distribution data.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        1D array with x data (bins)
+    y : np.ndarray
+        1D array with y data (counts)
+    symbol : str
+        Distance to species with this symbol
+    state : str
+        State that the floating species is in, e.g.
+        the jump that it is making.
+    """
     x: np.ndarray
     y: np.ndarray
     symbol: str
     state: str
 
 
-def radial_distribution(*,
-                        sites: SitesData,
-                        max_dist: float = 5.0,
-                        resolution: float = 0.1) -> dict[str, list[RDFData]]:
+def radial_distribution(
+    *,
+    sites: SitesData,
+    max_dist: float = 5.0,
+    resolution: float = 0.1,
+) -> dict[str, list[RDFData]]:
     """Calculate and sum RDFs for the floating species in the given sites data.
 
     Parameters

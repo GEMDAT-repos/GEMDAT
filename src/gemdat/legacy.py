@@ -1,3 +1,6 @@
+"""This module provides a code to deal with the original matlab code that
+Gemdat is based on."""
+
 from gemdat import SitesData, load_known_material, plots
 from gemdat.rdf import radial_distribution
 from gemdat.trajectory import Trajectory
@@ -24,6 +27,10 @@ def analyse_md(
     nr_steps_frame: int = 5,
 ) -> tuple[Trajectory, SitesData]:
     """Analyse md data.
+
+    This function mimicks the the API of the `analyse_md` function in the
+    [Matlab code to analyse Molecular Dynamics simulations](https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/)
+    that Gemdat is based on.
 
     Parameters
     ----------
@@ -62,8 +69,10 @@ def analyse_md(
 
     Returns
     -------
-    tuple[SimulationData, SitesData, SimpleNamespace]
-        Output data
+    trajectory : Trajectory
+        Output trajectory
+    sites : SitesData
+        Output sites data
     """
     trajectory = Trajectory.from_vasprun(vasp_xml)
 
