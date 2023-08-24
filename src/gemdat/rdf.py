@@ -73,7 +73,20 @@ def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
 
 @dataclass
 class RDFData:
-    """Container for storing radial distribution data."""
+    """Data class for storing radial distribution data.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        1D array with x data (bins)
+    y : np.ndarray
+        1D array with y data (counts)
+    symbol : str
+        Distance to species with this symbol
+    state : str
+        State that the floating species is in, e.g.
+        the jump that it is making.
+    """
     x: np.ndarray
     y: np.ndarray
     symbol: str
@@ -81,10 +94,11 @@ class RDFData:
 
 
 def radial_distribution(
-        *,
-        sites: SitesData,
-        max_dist: float = 5.0,
-        resolution: float = 0.1) -> dict[str, dict[str, RDFData]]:
+    *,
+    sites: SitesData,
+    max_dist: float = 5.0,
+    resolution: float = 0.1,
+) -> dict[str, list[RDFData]]:
     """Calculate and sum RDFs for the floating species in the given sites data.
 
     Parameters
@@ -142,15 +156,17 @@ def radial_distribution(
                 rdfs[state_str, symbol] += np.bincount(rdf_state,
                                                        minlength=length)
 
-    ret: dict[str, dict[str, RDFData]] = defaultdict(dict)
+    ret: dict[str, list[RDFData]] = {}
 
     for (state, symbol), values in rdfs.items():
-        ret[state][symbol] = RDFData(
+        rdf_data = RDFData(
             x=bins,
             # Drop last element with distance > max_dist
             y=values[:-1],
             symbol=symbol,
             state=state,
         )
+        ret.setdefault(state, [])
+        ret[state].append(rdf_data)
 
     return ret

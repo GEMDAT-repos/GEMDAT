@@ -1,3 +1,6 @@
+"""This module provides a code to deal with the original matlab code that
+Gemdat is based on."""
+
 from gemdat import SitesData, load_known_material, plots
 from gemdat.rdf import radial_distribution
 from gemdat.trajectory import Trajectory
@@ -24,6 +27,10 @@ def analyse_md(
     nr_steps_frame: int = 5,
 ) -> tuple[Trajectory, SitesData]:
     """Analyse md data.
+
+    This function mimicks the the API of the `analyse_md` function in the
+    [Matlab code to analyse Molecular Dynamics simulations](https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/)
+    that Gemdat is based on.
 
     Parameters
     ----------
@@ -62,8 +69,10 @@ def analyse_md(
 
     Returns
     -------
-    tuple[SimulationData, SitesData, SimpleNamespace]
-        Output data
+    trajectory : Trajectory
+        Output trajectory
+    sites : SitesData
+        Output sites data
     """
     trajectory = Trajectory.from_vasprun(vasp_xml)
 
@@ -87,15 +96,12 @@ def analyse_md(
     plots.displacement_histogram(trajectory=diff_trajectory)
     plots.frequency_vs_occurence(trajectory=diff_trajectory)
     plots.vibrational_amplitudes(trajectory=diff_trajectory)
-    plots.jumps_vs_distance(trajectory=trajectory,
-                            sites=sites,
-                            jump_res=jump_res)
-    plots.jumps_vs_time(trajectory=trajectory, sites=sites)
-    plots.collective_jumps(trajectory=trajectory, sites=sites)
-    plots.jumps_3d(trajectory=trajectory, sites=sites)
+    plots.jumps_vs_distance(sites=sites, jump_res=jump_res)
+    plots.jumps_vs_time(sites=sites)
+    plots.collective_jumps(sites=sites)
+    plots.jumps_3d(sites=sites)
 
     plots.jumps_3d_animation(
-        trajectory=trajectory,
         sites=sites,
         t_start=start_end[0],
         t_stop=start_end[1],
@@ -119,6 +125,6 @@ def analyse_md(
             resolution=rdf_res,
         )
         for rdfs in rdf_data.values():
-            plots.radial_distribution(rdfs.values())
+            plots.radial_distribution(rdfs)
 
     return trajectory, sites

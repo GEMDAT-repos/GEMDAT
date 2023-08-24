@@ -10,12 +10,12 @@ def displacement_per_site(*, trajectory: Trajectory) -> plt.Figure:
     Parameters
     ----------
     trajectory : Trajectory
-        Input trajectory
+        Input trajectory, i.e. for the diffusing atom
 
     Returns
     -------
-    fig : plt.Figure
-        Output matplotlib figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     fig, ax = plt.subplots()
 
@@ -39,8 +39,8 @@ def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
 
     Returns
     -------
-    fig : plt.Figure
-        Output matplotlib figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     from collections import defaultdict
 
@@ -67,18 +67,17 @@ def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
 
 
 def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
-    """Plot histogram of total displacement of diffusing element at final
-    timestep.
+    """Plot histogram of total displacement at final timestep.
 
     Parameters
     ----------
     trajectory : Trajectory
-        Input trajectory
+        Input trajectory, i.e. for the diffusing atom
 
     Returns
     -------
-    fig : plt.Figure
-        Output matplotlib figure
+    fig : matplotlib.figure.Figure
+        Output figure
     """
     fig, ax = plt.subplots()
     ax.hist(trajectory.distances_from_base_position()[:, -1])

@@ -5,12 +5,24 @@ repo_name: GitHub
 
 nav:
   - Home: index.md
-  - Python API: api.md
+  - Getting started: getting_started.md
+  - Visualization: plotting.md
+  - Dashboard: dashboard.md
+  - Python API:
+    - gemdat: api/gemdat.md
+    - gemdat.io: api/gemdat_io.md
+    - gemdat.legacy: api/gemdat_legacy.md
+    - gemdat.plots: api/gemdat_plots.md
+    - gemdat.rdf: api/gemdat_rdf.md
+    - gemdat.simulation_metrics: api/gemdat_simulation_metrics.md
+    - gemdat.sites: api/gemdat_sites.md
+    - gemdat.trajectory: api/gemdat_trajectory.md
+    - gemdat.utils: api/gemdat_utils.md
+    - gemdat.volume: api/gemdat_volume.md
   - Contributing: CONTRIBUTING.md
   - Code of Conduct: CODE_OF_CONDUCT.md
   - 🔗 Source code: https://github.com/GEMDAT-repos/GEMDAT
   - 🔗 Issues: https://github.com/GEMDAT-repos/GEMDAT/issues
-
 
 theme:
   name: material
@@ -42,20 +54,25 @@ plugins:
     # https://mkdocstrings.github.io/usage/
     handlers:
       python:
+        paths: [src]
         import:
         - https://docs.python.org/3/objects.inv
         - https://numpy.org/doc/stable/objects.inv
         - https://docs.scipy.org/doc/scipy/objects.inv
         - https://pandas.pydata.org/docs/objects.inv
+        - https://matplotlib.org/stable/objects.inv
+        - https://pymatgen.org/objects.inv
+        - https://scikit-image.org/docs/stable/objects.inv
         options:
           docstring_style: numpy
           docstring_options:
             ignore_init_summary: yes
           show_submodules: no
           show_source: true
+          show_root_heading: false
+          show_root_full_path: false
           docstring_section_style: list
           members_order: alphabetical
-          show_category_heading: no
           merge_init_into_class: yes
           filters: ["!^_"]
 

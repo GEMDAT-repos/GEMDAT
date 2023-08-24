@@ -1,3 +1,8 @@
+"""This module contains class for dealing with trajectories from molecular
+dynamics simulations."""
+
+from __future__ import annotations
+
 import pickle
 from itertools import compress
 from pathlib import Path
@@ -33,8 +38,18 @@ def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
 
 
 class Trajectory(PymatgenTrajectory):
+    """Trajectory of sites from a molecular dynamics simulation."""
 
     def __init__(self, *, metadata: dict | None = None, **kwargs):
+        """Initialize class.
+
+        Parameters
+        ----------
+        metadata : dict | None, optional
+            Optional dictionary with metadata
+        **kwargs
+            These are passed to [pymatgen.core.trajectory.Trajectory][]
+        """
         super().__init__(**kwargs)
         self.metadata = metadata if metadata else {}
 
@@ -49,7 +64,7 @@ class Trajectory(PymatgenTrajectory):
     def to_positions(self):
         """Pymatgen does not mod coords back to original unit cell.
 
-        https://github.com/GEMDAT-repos/GEMDAT/issues/103
+        See [GEMDAT#103](https://github.com/GEMDAT-repos/GEMDAT/issues/103)
         """
         super().to_positions()
         self.coords = np.mod(self.coords, 1)
@@ -90,7 +105,7 @@ class Trajectory(PymatgenTrajectory):
         return self.coords
 
     @classmethod
-    def from_cache(cls, cache: str | Path):
+    def from_cache(cls, cache: str | Path) -> Trajectory:
         """Load data from cache using pickle.
 
         Parameters
@@ -119,8 +134,8 @@ class Trajectory(PymatgenTrajectory):
         xml_file: str | Path,
         cache: Optional[str | Path] = None,
         **kwargs,
-    ):
-        """Load data from vasprun.xml.
+    ) -> Trajectory:
+        """Load data from a `vasprun.xml`.
 
         Parameters
         ----------
@@ -129,12 +144,12 @@ class Trajectory(PymatgenTrajectory):
         cache : Optional[Path], optional
             Path to cache data for vasprun.xml
         **kwargs : dict
-            Optional arguments passed to `vasp.Vasprun`
+            Optional arguments passed to [pymatgen.io.vasp.outputs.Vasprun][]
 
         Returns
         -------
-        data : Data
-            Dataclass with simulation data
+        trajectory : Trajectory
+            Output trajectory
         """
         kwargs.setdefault('parse_dos', False)
         kwargs.setdefault('parse_eigen', False)
@@ -178,7 +193,7 @@ class Trajectory(PymatgenTrajectory):
 
         Returns
         -------
-        lattice : Lattice
+        lattice : pymatgen.core.lattice.Lattice
             Pymatgen Lattice object
         """
         if self.constant_lattice:
@@ -191,7 +206,8 @@ class Trajectory(PymatgenTrajectory):
     def cumulative_displacements(self) -> np.ndarray:
         """Return cumulative displacement vectors from base positions.
 
-        This differs from `.displacements` in that it ignores the periodic boundary
+        This differs from [displacements()][gemdat.trajectory.Trajectory.displacements]
+        in that it ignores the periodic boundary
         conditions. Instead, it cumulatively tracks the lattice translation vector (jimage).
         """
         return np.cumsum(self.displacements, axis=0)
@@ -218,7 +234,7 @@ class Trajectory(PymatgenTrajectory):
         *,
         fixed_species: None | str | Collection[str] = None,
         floating_species: None | str | Collection[str] = None,
-    ):
+    ) -> np.ndarray:
         """Compute drift by averaging the displacement from the base positions
         per frame.
 
@@ -256,8 +272,9 @@ class Trajectory(PymatgenTrajectory):
         *,
         fixed_species: None | str | Collection[str] = None,
         floating_species: None | str | Collection[str] = None,
-    ):
-        """Apply drift correction to trajectory. For details see `Trajectory.drift`.
+    ) -> Trajectory:
+        """Apply drift correction to trajectory. For details see
+        [drift()][gemdat.trajectory.Trajectory.drift].
 
         If no species are specified, use all species to calculate drift.
 
@@ -286,7 +303,7 @@ class Trajectory(PymatgenTrajectory):
                               base_positions=self.base_positions,
                               time_step=self.time_step)
 
-    def filter(self, species: str | Collection[str]):
+    def filter(self, species: str | Collection[str]) -> Trajectory:
         """Return trajectory with coordinates for given species only.
 
         Parameters

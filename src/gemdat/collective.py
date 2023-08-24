@@ -32,9 +32,9 @@ class Collective:
         ----------
         transitions : Transitions
             Input transition events
-        structure : Structure
+        structure : pymatgen.core.structure.Structure
             Structure with list of jump sites
-        lattice : Lattice
+        lattice : pymatgen.core.lattice.Lattice
             Input lattice for distance calculations (from simulation data)
         max_steps : int
             Maximum number of time steps which would still mean correlation

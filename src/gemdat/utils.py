@@ -1,3 +1,5 @@
+"""This module connects generally useful utilties."""
+
 import numpy as np
 from pymatgen.core import Lattice, Structure
 from scipy import signal
@@ -32,7 +34,7 @@ def ffill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
 
 
 def bfill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
-    """Backward fill.
+    """Backward fill values equal to `val` with upcoming values.
 
     See ffill for options.
     """
@@ -45,7 +47,7 @@ def bfill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
     return np.fliplr(ffill(np.fliplr(arr), fill_val=fill_val))
 
 
-def meanfreq(x: np.ndarray, fs: float = 1.0):
+def meanfreq(x: np.ndarray, fs: float = 1.0) -> np.ndarray:
     """Estimates the mean frequency in terms of the sample rate, fs.
 
     Vectorized version of https://stackoverflow.com/a/56487241
@@ -88,7 +90,7 @@ def is_lattice_similar(a: Lattice | Structure,
 
     Parameters
     ----------
-    a, b : Lattice | Structure
+    a, b : pymatgen.core.lattice.Lattice | pymatgen.core.structure.Structure
         Input lattices or structures
     length_tol : float, optional
         Length tolerance in Angstrom
