@@ -6,7 +6,7 @@ repo_name: GitHub
 nav:
   - Home: index.md
   - Getting started: getting_started.md
-  - Plotting: plotting.md
+  - Visualization: plotting.md
   - Dashboard: dashboard.md
   - Python API:
     - gemdat: api/gemdat.md
@@ -61,6 +61,7 @@ plugins:
         - https://pandas.pydata.org/docs/objects.inv
         - https://matplotlib.org/stable/objects.inv
         - https://pymatgen.org/objects.inv
+        - https://scikit-image.org/docs/stable/objects.inv
         options:
           docstring_style: numpy
           docstring_options:
