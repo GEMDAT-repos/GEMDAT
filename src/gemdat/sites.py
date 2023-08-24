@@ -25,12 +25,14 @@ NOSITE = -1
 
 class SitesData:
 
-    def __init__(self,
-                 *,
-                 structure: Structure,
-                 trajectory: Trajectory,
-                 floating_specie: str,
-                 n_parts: int = 10):
+    def __init__(
+        self,
+        *,
+        structure: Structure,
+        trajectory: Trajectory,
+        floating_specie: str,
+        n_parts: int = 10,
+    ):
         """Contain sites and jumps data.
 
         Parameters
@@ -64,43 +66,43 @@ class SitesData:
     def set_split(self, n_parts: int):
         """Set number to split transitions into for statistics.
 
-        Sets `.parts`.
+        Sets [SitesData.parts][gemdat.sites.SitesData].
         """
         self.parts = self.transitions.split(n_parts,
                                             n_steps=len(self.trajectory))
 
     @property
-    def site_coords(self):
+    def site_coords(self) -> np.ndarray:
         """Return fractional coordinates for known sites."""
         return self.structure.frac_coords
 
     @property
-    def site_labels(self):
+    def site_labels(self) -> list[str]:
         """Return site labels."""
         return self.structure.labels
 
     @property
-    def n_sites(self):
+    def n_sites(self) -> int:
         """Return number of sites."""
         return len(self.structure)
 
     @property
-    def n_floating(self):
+    def n_floating(self) -> int:
         """Return number of floating species."""
         return len(self.diff_trajectory.species)
 
     @property
-    def n_jumps(self):
+    def n_jumps(self) -> int:
         """Return total number of jumps."""
         return len(self.transitions.events)
 
     @property
-    def n_solo_jumps(self):
+    def n_solo_jumps(self) -> int:
         """Return number of solo jumps."""
         return self.collective().n_solo_jumps
 
     @property
-    def solo_fraction(self):
+    def solo_fraction(self) -> float:
         """Fraction of solo jumps."""
         return self.n_solo_jumps / self.n_jumps
 
@@ -127,15 +129,21 @@ class SitesData:
                      for label2 in labels})
 
     @property
-    def transitions_parts(self):
+    def transitions_parts(self) -> np.array:
+        """Return stacked array from
+        [part.matrix()][gemdat.transitions.Transitions.matrix]"""
         return np.stack([part.matrix() for part in self.parts])
 
     @property
-    def occupancy_parts(self):
+    def occupancy_parts(self) -> list[np.array]:
+        """Return [occupancy arrays][gemdat.transitions.Transitions.occupancy]
+        from parts."""
         return [part.occupancy() for part in self.parts]
 
     @property
-    def site_occupancy_parts(self):
+    def site_occupancy_parts(self) -> list[dict[str, float]]:
+        """Return [site occupancy][gemdat.sites.SitesData.site_occupancy] dicts
+        per part."""
         labels = self.site_labels
         n_steps = len(self.trajectory)
 
@@ -144,12 +152,14 @@ class SitesData:
         return [
             _calculate_site_occupancy(occupancy=part.occupancy(),
                                       labels=labels,
-                                      n_steps=n_steps / self.n_parts)
+                                      n_steps=int(n_steps / self.n_parts))
             for part in parts
         ]
 
     @property
-    def atom_locations_parts(self):
+    def atom_locations_parts(self) -> list[dict[str, float]]:
+        """Return [atom locations][gemdat.sites.SitesData.atom_locations] dicts
+        per part."""
         multiplier = self.n_sites / self.n_floating
         return [{
             k: v * multiplier
@@ -157,7 +167,8 @@ class SitesData:
         } for part in self.site_occupancy_parts]
 
     @property
-    def jumps_parts(self):
+    def jumps_parts(self) -> list[Counter]:
+        """Return [jump counters][gemdat.sites.SitesData.jumps] per part."""
         parts = self.parts
 
         labels = self.site_labels
@@ -265,8 +276,8 @@ class SitesData:
         multiplier = self.n_sites / self.n_floating
         return {k: v * multiplier for k, v in self.site_occupancy().items()}
 
-    def jumps(self, ):
-        """Calculate number of jumpst between sites.
+    def jumps(self) -> Counter:
+        """Calculate number of jumps between sites.
 
         Returns
         -------
@@ -336,8 +347,12 @@ class SitesData:
         )
 
 
-def _calculate_site_occupancy(*, occupancy: dict[int, int], labels: list[str],
-                              n_steps: int) -> dict[str, float]:
+def _calculate_site_occupancy(
+    *,
+    occupancy: dict[int, int],
+    labels: list[str],
+    n_steps: int,
+) -> dict[str, float]:
     """Calculate percentage occupancy per unique site.
 
     Parameters
@@ -364,6 +379,5 @@ def _calculate_site_occupancy(*, occupancy: dict[int, int], labels: list[str],
 
     div = len(labels) * n_steps
     site_occupancies = {k: sum(v) / div for k, v in counts.items()}
-    # site_occupancies['total'] = sum(chain(*counts.values())) / (len(occupancy) * n_steps)
 
     return site_occupancies

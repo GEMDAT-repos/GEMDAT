@@ -1,3 +1,8 @@
-::: gemdat
-    options:
-      show_root_heading: false
+- [gemdat.load_cif][gemdat.io.load_cif]
+- [gemdat.load_known_material][gemdat.io.load_known_material]
+- [gemdat.SimulationMetrics][gemdat.simulation_metrics.SimulationMetrics]
+- [gemdat.SitesData][gemdat.sites.SitesData]
+- [gemdat.Trajectory][gemdat.trajectory.Trajectory]
+- [gemdat.trajectory_to_vasp_volume][gemdat.volume.trajectory_to_vasp_volume]
+- [gemdat.trajectory_to_volume][gemdat.volume.trajectory_to_volume]
+- [gemdat.volume_to_structure][gemdat.volume.volume_to_structure]
