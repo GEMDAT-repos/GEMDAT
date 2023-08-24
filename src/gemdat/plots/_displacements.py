@@ -10,7 +10,7 @@ def displacement_per_site(*, trajectory: Trajectory) -> plt.Figure:
     Parameters
     ----------
     trajectory : Trajectory
-        Input trajectory
+        Input trajectory, i.e. for the diffusing atom
 
     Returns
     -------
@@ -67,13 +67,12 @@ def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
 
 
 def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
-    """Plot histogram of total displacement of diffusing element at final
-    timestep.
+    """Plot histogram of total displacement at final timestep.
 
     Parameters
     ----------
     trajectory : Trajectory
-        Input trajectory
+        Input trajectory, i.e. for the diffusing atom
 
     Returns
     -------

@@ -87,15 +87,12 @@ def analyse_md(
     plots.displacement_histogram(trajectory=diff_trajectory)
     plots.frequency_vs_occurence(trajectory=diff_trajectory)
     plots.vibrational_amplitudes(trajectory=diff_trajectory)
-    plots.jumps_vs_distance(trajectory=trajectory,
-                            sites=sites,
-                            jump_res=jump_res)
-    plots.jumps_vs_time(trajectory=trajectory, sites=sites)
-    plots.collective_jumps(trajectory=trajectory, sites=sites)
-    plots.jumps_3d(trajectory=trajectory, sites=sites)
+    plots.jumps_vs_distance(sites=sites, jump_res=jump_res)
+    plots.jumps_vs_time(sites=sites)
+    plots.collective_jumps(sites=sites)
+    plots.jumps_3d(sites=sites)
 
     plots.jumps_3d_animation(
-        trajectory=trajectory,
         sites=sites,
         t_start=start_end[0],
         t_stop=start_end[1],

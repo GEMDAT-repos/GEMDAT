@@ -10,19 +10,15 @@ from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
     from gemdat import SitesData
-    from gemdat.trajectory import Trajectory
 
 
 def jumps_vs_distance(*,
-                      trajectory: Trajectory,
                       sites: SitesData,
                       jump_res: float = 0.1) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
     sites : SitesData
         Input sites data
     jump_res : float, optional
@@ -33,8 +29,11 @@ def jumps_vs_distance(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-    lattice = trajectory.get_lattice()
     structure = sites.structure
+
+    trajectory = sites.trajectory
+    lattice = trajectory.get_lattice()
+
     pdist = lattice.get_all_distances(structure.frac_coords,
                                       structure.frac_coords)
 
@@ -58,16 +57,11 @@ def jumps_vs_distance(*,
     return fig
 
 
-def jumps_vs_time(*,
-                  trajectory: Trajectory,
-                  sites: SitesData,
-                  binsize: int = 500) -> plt.Figure:
+def jumps_vs_time(*, sites: SitesData, binsize: int = 500) -> plt.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
     sites : SitesData
         Input sites data
     binsize : int, optional
@@ -78,6 +72,8 @@ def jumps_vs_time(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
+    trajectory = sites.trajectory
+
     n_steps = len(trajectory)
     bins = np.arange(0, n_steps + binsize, binsize)
 
@@ -92,14 +88,11 @@ def jumps_vs_time(*,
     return fig
 
 
-def collective_jumps(*, trajectory: Trajectory,
-                     sites: SitesData) -> plt.Figure:
+def collective_jumps(*, sites: SitesData) -> plt.Figure:
     """Plot collective jumps per jump-type combination.
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
     sites : SitesData
         Input sites data
 
@@ -124,13 +117,11 @@ def collective_jumps(*, trajectory: Trajectory,
     return fig
 
 
-def jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
+def jumps_3d(*, sites: SitesData) -> plt.Figure:
     """Plot jumps in 3D.
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
     sites : SitesData
         Input sites data
 
@@ -139,6 +130,7 @@ def jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
+    trajectory = sites.trajectory
 
     class LabelItems:
 
@@ -210,7 +202,6 @@ def jumps_3d(*, trajectory: Trajectory, sites: SitesData) -> plt.Figure:
 
 
 def jumps_3d_animation(*,
-                       trajectory: Trajectory,
                        sites: SitesData,
                        t_start: int,
                        t_stop: int,
@@ -221,8 +212,6 @@ def jumps_3d_animation(*,
 
     Parameters
     ----------
-    trajectory : Trajectory
-        Input trajectory
     sites : SitesData
         Input sites data
     t_start : int
@@ -243,6 +232,8 @@ def jumps_3d_animation(*,
     """
     minwidth = 0.2
     maxwidth = 5.0
+
+    trajectory = sites.trajectory
 
     class LabelItems:
 

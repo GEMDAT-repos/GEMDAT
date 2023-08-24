@@ -12,7 +12,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
     Parameters
     ----------
     trajectory : Trajectory
-        Input trajectory
+        Input trajectory, i.e. for the diffusing atom
 
     Returns
     -------
@@ -68,7 +68,7 @@ def vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
     Parameters
     ----------
     trajectory : Trajectory
-        Input trajectory
+        Input trajectory, i.e. for the diffusing atom
 
     Returns
     -------
