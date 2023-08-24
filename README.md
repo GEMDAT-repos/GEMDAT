@@ -8,17 +8,21 @@
 
 # GEMDAT
 
-This repository contains Python code to analyse Molecular Dynamics simulations.
+GEMDAT is a Python library for the analysis of diffusion in solid-state electrolytes from Molecular Dynamics simulations.
 
-The code in this repository is based on:
-https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/
+With GEMDAT, you can:
 
-## Installation
+- Explore your MD simulation via an easy-to-use Python API
+- Load and analyze trajectories from VASP simulation data
+- Characterize and visualize diffusivity
+- Find jumps and transitions between sites
+- Plot radial distribution functions
+- Analyze results via an interactive dashboard
 
 To install:
 
 ```console
-pip install .[develop]
+pip install gemdat
 ```
 
 The source code is available from [Github](https://github.com/GEMDAT-repos/GEMDAT).
@@ -35,13 +39,14 @@ from gemdat.calculate.extras import calculate_all
 
 trajectory = Trajectory.from_vasprun(Path('../example/vasprun.xml'))
 
+plots.plot_displacement_per_element(trajectory)
+
 diff_trajectory = trajectory.filter('Li')
 
-plots.plot_displacement_per_element(trajectory)
 plots.plot_displacement_per_site(diff_trajectory)
 plots.plot_displacement_histogram(diff_trajectory)
-plots.plot_frequency_vs_occurence(trajectory)
-plots.plot_vibrational_amplitudes(trajectory)
+plots.plot_frequency_vs_occurence(diff_trajectory)
+plots.plot_vibrational_amplitudes(diff_trajectory)
 
 structure = load_known_material('argyrodite', supercell=(2, 1, 1))
 
@@ -75,5 +80,9 @@ trajectory, sites = analyse_md(
 Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-development) to get started with development.
 
 ## References
+
+The code in this repository is based on ]Matlab code to analyse Molecular Dynamics simulations](https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/).
+
+For background information on how some of the properties are calculated, check out the accompanying paper:
 
 - Niek J.J. de Klerk, Eveline van der Maas and Marnix Wagemaker, ACS Applied Energy Materials, (2018), doi: [10.1021/acsaem.8b00457](https://doi.org/10.1021/acsaem.8b00457)
