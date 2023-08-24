@@ -76,12 +76,12 @@ gemdash = [
 gemdash= "gemdat.dashboard:gemdash"
 
 [tool.setuptools]
-package-dir = {"gemdat" = "src", "pymatgen.analysis.gemdat" = "src" }
+package-dir = {"gemdat" = "src/gemdat" }
 include-package-data = true
 
 [tool.coverage.run]
 branch = true
-source = ['gemdat']
+source = ["gemdat"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

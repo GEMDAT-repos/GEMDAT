@@ -8,9 +8,10 @@ import numpy as np
 from rich.progress import track
 
 if TYPE_CHECKING:
+    from pymatgen.core import Structure
+
     from gemdat import SitesData
     from gemdat.transitions import Transitions
-    from pymatgen.core import Structure
 
 
 def _uniqify_labels(arr, labels: list[str]) -> np.ndarray:
