@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
+
 from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.trajectory import Trajectory
-from scipy import stats
 
 
 def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:

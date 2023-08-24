@@ -14,8 +14,9 @@ from skimage.measure import regionprops
 from skimage.segmentation import watershed
 
 if TYPE_CHECKING:
-    from gemdat.trajectory import Trajectory
     from pymatgen.core import Lattice
+
+    from gemdat.trajectory import Trajectory
 
 
 @dataclass

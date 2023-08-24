@@ -3,13 +3,14 @@ from typing import Any
 import numpy as np
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
+from pymatgen.core import Structure
+
 from gemdat import SitesData, __version__, plots
 from gemdat.io import get_list_of_known_materials, load_known_material
 from gemdat.rdf import radial_distribution
 from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
-from pymatgen.core import Structure
 
 st.set_page_config(
     page_title='Gemdat dashboard',
