@@ -8,9 +8,9 @@
 
 # GEMDAT
 
-GEMDAT is a Python library for the analysis of diffusion in solid-state electrolytes from Molecular Dynamics simulations.
+Gemdat is a Python library for the analysis of diffusion in solid-state electrolytes from Molecular Dynamics simulations. Gemdat is built on top of [Pymatgen](https://pymatgen.org/), making it straightforward to integrate it into your Pymatgen-based workflows.
 
-With GEMDAT, you can:
+With Gemdat, you can:
 
 - Explore your MD simulation via an easy-to-use Python API
 - Load and analyze trajectories from VASP simulation data
@@ -39,14 +39,14 @@ from gemdat.calculate.extras import calculate_all
 
 trajectory = Trajectory.from_vasprun(Path('../example/vasprun.xml'))
 
-plots.plot_displacement_per_element(trajectory)
+plots.plot_displacement_per_element(trajectory=trajectory)
 
 diff_trajectory = trajectory.filter('Li')
 
-plots.plot_displacement_per_site(diff_trajectory)
-plots.plot_displacement_histogram(diff_trajectory)
-plots.plot_frequency_vs_occurence(diff_trajectory)
-plots.plot_vibrational_amplitudes(diff_trajectory)
+plots.plot_displacement_per_site(trajectory=diff_trajectory)
+plots.plot_displacement_histogram(trajectory=diff_trajectory)
+plots.plot_frequency_vs_occurence(trajectory=diff_trajectory)
+plots.plot_vibrational_amplitudes(trajectory=diff_trajectory)
 
 structure = load_known_material('argyrodite', supercell=(2, 1, 1))
 
@@ -56,10 +56,10 @@ sites = SitesData(
    floating_specie='Li',
 )
 
-plots.plot_jumps_vs_distance(trajectory, sites)
-plots.plot_jumps_vs_time(trajectory, sites)
-plots.plot_collective_jumps(trajectory, sites)
-plots.plot_jumps_3d(trajectory, sites)
+plots.plot_jumps_vs_distance(sites=sites)
+plots.plot_jumps_vs_time(sites=sites)
+plots.plot_collective_jumps(sites=sites)
+plots.plot_jumps_3d(sites=sites)
 ```
 
 Or, one function to do everything:
