@@ -1,4 +1,4 @@
-"""The io module contains functions to read and write data."""
+"""This module contains functions to read and write data."""
 
 from importlib.resources import files
 from pathlib import Path

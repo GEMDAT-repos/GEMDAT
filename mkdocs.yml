@@ -10,6 +10,7 @@ nav:
   - Dashboard: dashboard.md
   - Python API:
     - gemdat: api/gemdat.md
+    - gemdat.collective: api/gemdat_collective.md
     - gemdat.io: api/gemdat_io.md
     - gemdat.legacy: api/gemdat_legacy.md
     - gemdat.plots: api/gemdat_plots.md
@@ -17,6 +18,7 @@ nav:
     - gemdat.simulation_metrics: api/gemdat_simulation_metrics.md
     - gemdat.sites: api/gemdat_sites.md
     - gemdat.trajectory: api/gemdat_trajectory.md
+    - gemdat.transitions: api/gemdat_transitions.md
     - gemdat.utils: api/gemdat_utils.md
     - gemdat.volume: api/gemdat_volume.md
   - Contributing: CONTRIBUTING.md

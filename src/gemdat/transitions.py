@@ -1,3 +1,6 @@
+"""This module contains classes for computing jumps and transitions between
+sites."""
+
 from __future__ import annotations
 
 import typing
