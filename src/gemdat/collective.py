@@ -1,3 +1,6 @@
+"""This module contains classes for computing which jumps show collective
+behaviour."""
+
 from __future__ import annotations
 
 import numpy as np
