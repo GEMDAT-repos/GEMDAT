@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 import scipy.ndimage as ndi
 from pymatgen.core import Structure
-from pymatgen.io.cif import CifWriter
 from pymatgen.io.vasp import VolumetricData
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
@@ -62,6 +61,30 @@ class Volume:
         return cls(data=vol.data['total'],
                    lattice=vol.structure.lattice,
                    resolution=None)
+
+    def to_vasp_volume(self, structure: Structure, *, filename: Optional[str]) -> VolumetricData:
+        """Convert to vasp volume.
+
+        Parameters
+        ----------
+        structure : pymatgen.core.structure.Structure
+            structure to include in the vasp file (e.g. trajectory structure)
+            Also useful if you want to output the density for a select number of species,
+            and show the host structure.
+        filename : Optional[str]
+            If specified, save volume to this filename.
+
+        Returns
+        -------
+        vol_vasp : pymatgen.io.vasp.VolumetricData
+            Output volume
+        """
+        if filename:
+            vol_path = Path(filename).with_suffix('.vasp')
+            vol_vasp = VolumetricData(structure=structure, data={
+                'total': self.data
+            }).write_file(vol_path)
+        return vol_vasp
 
 
 def trajectory_to_volume(
@@ -121,57 +144,14 @@ def trajectory_to_volume(
     return Volume(data=vol, resolution=resolution, lattice=lattice)
 
 
-def trajectory_to_vasp_volume(trajectory: Trajectory,
-                              structure: Optional[Structure] = None,
-                              resolution: float = 0.2,
-                              filename: str | None = None) -> VolumetricData:
-    """Calculate density volume from a trajectory.
-
-    Parameters
-    ----------
-    trajectory : np.ndarray
-        Input trajectory
-    structure : Optional[pymatgen.core.structure.Structure]
-        structure to include in the vasp file, defaults to trajectory structure.
-        Useful if you want to output the density for a select number of species,
-        and show the host structure. Defaults to first structure in
-        given trajectory (base coordinates).
-    resolution : float, optional
-        Minimum resolution for the voxels in Angstrom
-    filename : str | None, optional
-        If specified, save volume to this filename.
-
-    Returns
-    -------
-    vol : pymatgen.io.vasp.VolumetricData
-        Output volumetric data object
-    """
-    vol = trajectory_to_volume(trajectory=trajectory, resolution=resolution)
-
-    structure = structure if structure else trajectory.get_structure(0)
-
-    vasp_vol = VolumetricData(structure=structure, data={'total': vol.data})
-
-    if filename:
-        vasp_vol.write_file(filename)
-
-    return vasp_vol
-
-
 def volume_to_structure(
     vol: Volume | VolumetricData,
     *,
     specie: str,
     pad: int = 3,
     background_level: float = 0.1,
-    cif_filename: str | None = None,
-    vol_filename: str | None = None,
-    **kwargs,
 ) -> Structure:
     """Converts a volume back to a structure using peak detection.
-
-    Peaks are found using the Difference of Gaussian method available in
-    [scikit-image][skimage.feature.blob_dog].
 
     Parameters
     ----------
@@ -188,11 +168,6 @@ def volume_to_structure(
         Essentially sets `vol_min = background_level * max(vol)`.
         All values below `vol_min` are masked in the peak search.
         Must be between 0 and 1
-    cif_filename : str
-        If specified, write structure in CIF format to this filename
-    vol_filename : str
-        If specified, write structure and volume in VASP format to this
-        filename
     **kwargs
         Additional keyword arguments are passed to [skimage.feature.blob_dog][]
     """
@@ -235,15 +210,5 @@ def volume_to_structure(
     structure = Structure(lattice=vol.lattice,
                           coords=frac_coords,
                           species=[specie for _ in frac_coords])
-
-    if cif_filename:
-        cif_path = Path(cif_filename)
-        CifWriter(structure).write_file(cif_path.with_suffix('.cif'))
-
-    if vol_filename:
-        vol_path = Path(vol_filename).with_suffix('.vasp')
-        VolumetricData(structure=structure, data={
-            'total': vol.data
-        }).write_file(vol_path)
 
     return structure
