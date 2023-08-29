@@ -244,7 +244,13 @@ def trajectory_to_volume(
     indices, counts = np.unique(digitized_coords, return_counts=True, axis=0)
     i, j, k = indices.T
 
-    vol = np.zeros((nx - 1, ny - 1, nz - 1), dtype=int)
-    vol[i, j, k] = counts
+    data = np.zeros((nx - 1, ny - 1, nz - 1), dtype=int)
+    data[i, j, k] = counts
 
-    return Volume(data=vol, resolution=resolution, lattice=lattice)
+    voxel_index = np.ravel_multi_index(digitized_coords.T, data.shape)
+    voxel_index = voxel_index.reshape(len(trajectory), len(trajectory.species))
+
+    # Find better place to store this
+    trajectory.voxel_index = voxel_index
+
+    return Volume(data=data, resolution=resolution, lattice=lattice)
