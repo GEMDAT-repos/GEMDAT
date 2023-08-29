@@ -3,7 +3,7 @@ from math import isclose
 import numpy as np
 import pytest
 from gemdat.simulation_metrics import SimulationMetrics
-from gemdat.volume import trajectory_to_volume, volume_to_structure
+from gemdat.volume import trajectory_to_volume
 from pymatgen.core import Structure
 
 
@@ -31,7 +31,7 @@ def test_volume(vasp_vol, vasp_traj):
 
 
 def test_volume_to_structure(vasp_traj, vasp_vol):
-    structure = volume_to_structure(vasp_vol, specie='Li')
+    structure = vasp_vol.to_structure(specie='Li')
 
     assert isinstance(structure, Structure)
     assert len(structure) == 188

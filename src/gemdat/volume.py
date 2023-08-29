@@ -62,7 +62,43 @@ class Volume:
                    lattice=vol.structure.lattice,
                    resolution=None)
 
-    def to_vasp_volume(self, structure: Structure, *, filename: Optional[str]) -> VolumetricData:
+    def find_peaks(
+        self,
+        pad: int = 3,
+        **kwargs,
+    ) -> np.ndarray:
+        """Find peaks using the [Difference of
+        Gaussian][skimage.feature.blob_dog] function in [scikit-
+        image][skimage].
+
+        Volume data are normalized to (0-1) prior to peak finding.
+
+        Parameters
+        ----------
+        pad : int
+            Extend the volume by this number of voxels by wrapping around. This helps with
+            densities at the edge of the volume bounds. Set this value higher for high resolution
+            densities.
+        **kwargs
+            Additional keyword arguments are passed to [skimage.feature.blob_dog][]
+
+        Returns
+        -------
+        coords : np.ndarray
+            List of coordinates
+        """
+        kwargs.setdefault('threshold', 0.01)
+
+        # normalize data
+        data = self.normalized_data
+        data = np.pad(data, pad_width=pad, mode='wrap')
+
+        coords = blob_dog(data, **kwargs)[:, 0:3]
+        coords = coords - np.array((pad, pad, pad))
+        return coords[:, 0:3].astype(int)
+
+    def to_vasp_volume(self, structure: Structure, *,
+                       filename: Optional[str]) -> VolumetricData:
         """Convert to vasp volume.
 
         Parameters
@@ -81,10 +117,80 @@ class Volume:
         """
         if filename:
             vol_path = Path(filename).with_suffix('.vasp')
-            vol_vasp = VolumetricData(structure=structure, data={
-                'total': self.data
-            }).write_file(vol_path)
+            vol_vasp = VolumetricData(structure=structure,
+                                      data={
+                                          'total': self.data
+                                      }).write_file(vol_path)
         return vol_vasp
+
+    def to_structure(
+        self,
+        *,
+        specie: str = 'X',
+        pad: int = 3,
+        background_level: float = 0.1,
+        **kwargs,
+    ) -> Structure:
+        """Converts a volume back to a structure using peak detection.
+
+        Parameters
+        ----------
+        specie : str
+            Specie to assign to the found sites, defaults to 'X'
+        pad : int
+            Extend the volume by this number of voxels by wrapping around. This helps with
+            densities at the edge of the volume bounds. Set this value higher for high resolution
+            densities.
+        background_level : float
+            Fraction of the maximum volume value to set as the minimum value for peak finding.
+            Essentially sets `vol_min = background_level * max(vol)`.
+            All values below `vol_min` are masked in the peak search.
+            Must be between 0 and 1
+        **kwargs : dict
+            These keywords parameters are passed to [Volume.find_peaks][].
+
+        Returns
+        -------
+        structure : pymatgen.core.structure.Structure
+            Output structure
+        """
+        data = self.normalized_data
+        data = np.pad(data, pad_width=pad, mode='wrap')
+
+        coords = self.find_peaks(pad=pad, **kwargs)
+        coords += np.array((pad, pad, pad))
+
+        background_level = background_level * data.max()
+
+        mask = np.zeros(data.shape, dtype=bool)
+        mask[tuple(coords.T)] = True
+        markers, _ = ndi.label(mask)
+        labels = watershed(-data, markers, mask=data > background_level)
+
+        props = regionprops(labels, intensity_image=data)
+        centroids = np.array([p.centroid_weighted for p in props])
+
+        # Cut centroids in padded area
+        imax, jmax, kmax = pad + np.array(data.shape)
+        imin, jmin, kmin = (pad, pad, pad)
+
+        c0 = (centroids[:, 0] >= imin) & (centroids[:, 0] < imax)
+        c1 = (centroids[:, 1] >= jmin) & (centroids[:, 1] < jmax)
+        c2 = (centroids[:, 2] >= kmin) & (centroids[:, 2] < kmax)
+
+        centroids = centroids[c0 & c1 & c2] - [imin, jmin, kmin]
+
+        # Move coords to voxel center by shifting 0.5
+        frac_coords = (centroids + 0.5) / np.array(self.data.shape)
+
+        # mod to unit cell
+        frac_coords = np.mod(frac_coords, 1)
+
+        structure = Structure(lattice=self.lattice,
+                              coords=frac_coords,
+                              species=[specie for _ in frac_coords])
+
+        return structure
 
 
 def trajectory_to_volume(
@@ -142,73 +248,3 @@ def trajectory_to_volume(
     vol[i, j, k] = counts
 
     return Volume(data=vol, resolution=resolution, lattice=lattice)
-
-
-def volume_to_structure(
-    vol: Volume | VolumetricData,
-    *,
-    specie: str,
-    pad: int = 3,
-    background_level: float = 0.1,
-) -> Structure:
-    """Converts a volume back to a structure using peak detection.
-
-    Parameters
-    ----------
-    vol : Volume | pymatgen.io.common.VolumetricData
-        Input volume data
-    specie : str
-        Specie to assign to the found sites
-    pad : int
-        Extend the volume by this number of voxels by wrapping around. This helps with
-        densities at the edge of the volume bounds. Set this value higher for high resolution
-        densities.
-    background_level : float
-        Fraction of the maximum volume value to set as the minimum value for peak finding.
-        Essentially sets `vol_min = background_level * max(vol)`.
-        All values below `vol_min` are masked in the peak search.
-        Must be between 0 and 1
-    **kwargs
-        Additional keyword arguments are passed to [skimage.feature.blob_dog][]
-    """
-    if isinstance(vol, VolumetricData):
-        vol = Volume.from_volumetric_data(vol)
-
-    kwargs.setdefault('threshold', 0.01)
-
-    # normalize data
-    data = vol.normalized_data
-    data = np.pad(data, pad_width=pad, mode='wrap')
-
-    coords = blob_dog(data, **kwargs)
-    coords = coords[:, 0:3].astype(int)
-
-    mask = np.zeros(data.shape, dtype=bool)
-    mask[tuple(coords.T)] = True
-    markers, _ = ndi.label(mask)
-    labels = watershed(-data, markers, mask=data > background_level)
-
-    props = regionprops(labels, intensity_image=data)
-    centroids = np.array([p.centroid_weighted for p in props])
-
-    # Cut centroids in padded area
-    imax, jmax, kmax = pad + np.array(data.shape)
-    imin, jmin, kmin = (pad, pad, pad)
-
-    c0 = (centroids[:, 0] >= imin) & (centroids[:, 0] < imax)
-    c1 = (centroids[:, 1] >= jmin) & (centroids[:, 1] < jmax)
-    c2 = (centroids[:, 2] >= kmin) & (centroids[:, 2] < kmax)
-
-    centroids = centroids[c0 & c1 & c2] - [imin, jmin, kmin]
-
-    # Move coords to voxel center by shifting 0.5
-    frac_coords = (centroids + 0.5) / np.array(vol.data.shape)
-
-    # mod to unit cell
-    frac_coords = np.mod(frac_coords, 1)
-
-    structure = Structure(lattice=vol.lattice,
-                          coords=frac_coords,
-                          species=[specie for _ in frac_coords])
-
-    return structure

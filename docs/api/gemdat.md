@@ -4,4 +4,3 @@
 - [gemdat.SitesData][gemdat.sites.SitesData]
 - [gemdat.Trajectory][gemdat.trajectory.Trajectory]
 - [gemdat.trajectory_to_volume][gemdat.volume.trajectory_to_volume]
-- [gemdat.volume_to_structure][gemdat.volume.volume_to_structure]
