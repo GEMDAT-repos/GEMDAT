@@ -192,6 +192,89 @@ class Volume:
 
         return structure
 
+    def to_structure2(
+        self,
+        trajectory: Trajectory,
+        *,
+        specie: str = 'X',
+        pad: int = 3,
+        background_level: float = 0.1,
+        **kwargs,
+    ) -> Structure:
+        """Converts a volume back to a structure using peak detection.
+
+        Parameters
+        ----------
+        trajectory : Trajectory
+            Input trajectory for positions and voxel indices
+        specie : str
+            Specie to assign to the found sites, defaults to 'X'
+        pad : int
+            Extend the volume by this number of voxels by wrapping around. This helps with
+            densities at the edge of the volume bounds. Set this value higher for high resolution
+            densities.
+        background_level : float
+            Fraction of the maximum volume value to set as the minimum value for peak finding.
+            Essentially sets `vol_min = background_level * max(vol)`.
+            All values below `vol_min` are masked in the peak search.
+            Must be between 0 and 1
+        **kwargs : dict
+            These keywords parameters are passed to [Volume.find_peaks][].
+
+        Returns
+        -------
+        structure : pymatgen.core.structure.Structure
+            Output structure
+        """
+        data = self.normalized_data
+        data = np.pad(data, pad_width=pad, mode='wrap')
+
+        coords = self.find_peaks(pad=pad, **kwargs)
+        coords += np.array((pad, pad, pad))
+
+        background_level = background_level * data.max()
+
+        mask = np.zeros(data.shape, dtype=bool)
+        mask[tuple(coords.T)] = True
+        markers, _ = ndi.label(mask)
+        labels = watershed(-data, markers, mask=data > background_level)
+
+        props = regionprops(labels, intensity_image=data)
+
+        voxel_coords = trajectory.voxel_coords
+        positions = trajectory.positions
+        centroids = []
+
+        for i, prop in enumerate(props):
+            prop_coords = (prop.coords - [pad, pad, pad]).T
+            prop_coords_idx = np.ravel_multi_index(prop_coords,
+                                                   dims=data.shape,
+                                                   mode='wrap')
+
+            sel = np.isin(voxel_coords, prop_coords_idx)
+
+            prop_pos = positions[sel]
+
+            max_difference = prop_pos.max(axis=0) - prop_pos.min(axis=0)
+
+            # Needs correction for boundary condition
+            if np.any(max_difference > 0.9):
+                pass
+
+            centroid = prop_pos.mean(axis=0)
+            centroids.append(centroid)
+
+        frac_coords = np.array(centroids)
+
+        # mod to unit cell
+        frac_coords = np.mod(frac_coords, 1)
+
+        structure = Structure(lattice=self.lattice,
+                              coords=frac_coords,
+                              species=[specie for _ in frac_coords])
+
+        return structure
+
 
 def trajectory_to_volume(
     trajectory: Trajectory,
