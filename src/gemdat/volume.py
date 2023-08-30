@@ -13,12 +13,12 @@ from pymatgen.io.vasp import VolumetricData
 from rich.progress import track
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
-from skimage.segmentation import watershed
 
 from .segmentation import watershed_pbc
 
 if TYPE_CHECKING:
     from pymatgen.core import Lattice
+    from skimage.measure._regionprops import RegionProperties
 
     from gemdat.trajectory import Trajectory
 
@@ -140,11 +140,27 @@ class Volume:
                                       }).write_file(vol_path)
         return vol_vasp
 
+    def _peaks_to_props(self, peaks: np.ndarray,
+                        background_level: float) -> list[RegionProperties]:
+        """Segment volume using watershed algorithm.
+
+        Return regionprops.
+        """
+        data = self.normalized_data
+
+        background_level = background_level * data.max()
+
+        mask = np.zeros(data.shape, dtype=bool)
+        mask[tuple(peaks.T)] = True
+        markers, _ = ndi.label(mask)
+        labels = watershed_pbc(-data, markers, mask=data > background_level)
+
+        return regionprops(labels, intensity_image=data)
+
     def to_structure(
         self,
         *,
         specie: str = 'X',
-        pad: int = 3,
         background_level: float = 0.1,
         **kwargs,
     ) -> Structure:
@@ -154,10 +170,6 @@ class Volume:
         ----------
         specie : str
             Specie to assign to the found sites, defaults to 'X'
-        pad : int
-            Extend the volume by this number of voxels by wrapping around. This helps with
-            densities at the edge of the volume bounds. Set this value higher for high resolution
-            densities.
         background_level : float
             Fraction of the maximum volume value to set as the minimum value for peak finding.
             Essentially sets `vol_min = background_level * max(vol)`.
@@ -171,31 +183,24 @@ class Volume:
         structure : pymatgen.core.structure.Structure
             Output structure
         """
-        data = self.normalized_data
-        data = np.pad(data, pad_width=pad, mode='wrap')
+        peaks = self.find_peaks(**kwargs)
+        props = self._peaks_to_props(peaks=peaks,
+                                     background_level=background_level)
 
-        coords = self.find_peaks(pad=pad, **kwargs)
-        coords += np.array((pad, pad, pad))
+        centroids = []
 
-        background_level = background_level * data.max()
+        for prop in props:
+            coords = prop.coords
 
-        mask = np.zeros(data.shape, dtype=bool)
-        mask[tuple(coords.T)] = True
-        markers, _ = ndi.label(mask)
-        labels = watershed(-data, markers, mask=data > background_level)
+            for axis in (0, 1, 2):
+                dim = self.data.shape[axis]
+                if prop.image.shape[axis] == dim:
+                    sel = (coords[:, axis] < dim / 2)
+                    coords[sel, axis] += dim
 
-        props = regionprops(labels, intensity_image=data)
-        centroids = np.array([p.centroid_weighted for p in props])
+            centroids.append(coords.mean(axis=0))
 
-        # Cut centroids in padded area
-        imax, jmax, kmax = pad + np.array(data.shape)
-        imin, jmin, kmin = (pad, pad, pad)
-
-        c0 = (centroids[:, 0] >= imin) & (centroids[:, 0] < imax)
-        c1 = (centroids[:, 1] >= jmin) & (centroids[:, 1] < jmax)
-        c2 = (centroids[:, 2] >= kmin) & (centroids[:, 2] < kmax)
-
-        centroids = centroids[c0 & c1 & c2] - [imin, jmin, kmin]
+        centroids = np.array(centroids)
 
         # Move coords to voxel center by shifting 0.5
         frac_coords = (centroids + 0.5) / np.array(self.data.shape)
@@ -240,18 +245,9 @@ class Volume:
         structure : pymatgen.core.structure.Structure
             Output structure
         """
-        data = self.normalized_data
-
-        coords = self.find_peaks(**kwargs)
-
-        background_level = background_level * data.max()
-
-        mask = np.zeros(data.shape, dtype=bool)
-        mask[tuple(coords.T)] = True
-        markers, _ = ndi.label(mask)
-        labels = watershed_pbc(-data, markers, mask=data > background_level)
-
-        props = regionprops(labels, intensity_image=data)
+        peaks = self.find_peaks(**kwargs)
+        props = self._peaks_to_props(peaks=peaks,
+                                     background_level=background_level)
 
         voxel_coords = trajectory.voxel_index
         positions = trajectory.positions
