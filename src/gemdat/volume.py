@@ -241,33 +241,37 @@ class Volume:
 
         props = regionprops(labels, intensity_image=data)
 
-        voxel_coords = trajectory.voxel_coords
+        voxel_coords = trajectory.voxel_index
         positions = trajectory.positions
-        centroids = []
+        frac_coords = []
+        tol = 1 - self.resolution
 
         for i, prop in enumerate(props):
             prop_coords = (prop.coords - [pad, pad, pad]).T
             prop_coords_idx = np.ravel_multi_index(prop_coords,
-                                                   dims=data.shape,
+                                                   dims=self.data.shape,
                                                    mode='wrap')
 
             sel = np.isin(voxel_coords, prop_coords_idx)
 
             prop_pos = positions[sel]
 
-            max_difference = prop_pos.max(axis=0) - prop_pos.min(axis=0)
+            max_diff = prop_pos.max(axis=0) - prop_pos.min(axis=0)
 
-            # Needs correction for boundary condition
-            if np.any(max_difference > 0.9):
-                pass
+            if max_diff[0] > tol:
+                c0 = (prop_pos[:, 0] < 0.5)
+                prop_pos[c0, 0] += 1
 
-            centroid = prop_pos.mean(axis=0)
-            centroids.append(centroid)
+            if max_diff[1] > tol:
+                c1 = (prop_pos[:, 1] < 0.5)
+                prop_pos[c1, 1] += 1
 
-        frac_coords = np.array(centroids)
+            if max_diff[2] > tol:
+                c2 = (prop_pos[:, 2] < 0.5)
+                prop_pos[c2, 2] += 1
 
-        # mod to unit cell
-        frac_coords = np.mod(frac_coords, 1)
+            frac_coord = prop_pos.mean(axis=0)
+            frac_coords.append(frac_coord)
 
         structure = Structure(lattice=self.lattice,
                               coords=frac_coords,
