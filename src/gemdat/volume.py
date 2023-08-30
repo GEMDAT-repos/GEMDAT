@@ -65,6 +65,7 @@ class Volume:
     def find_peaks(
         self,
         pad: int = 3,
+        remove_outside: bool = True,
         **kwargs,
     ) -> np.ndarray:
         """Find peaks using the [Difference of
@@ -76,9 +77,11 @@ class Volume:
         Parameters
         ----------
         pad : int
-            Extend the volume by this number of voxels by wrapping around. This helps with
-            densities at the edge of the volume bounds. Set this value higher for high resolution
-            densities.
+            Extend the volume by this number of voxels by wrapping around. This finding
+            maxima for blobs sitting at the edge of the unit cell.
+        remove_outside : bool
+            If True, remove peaks outside the lattice. Only applicable
+            if pad > 0.
         **kwargs
             Additional keyword arguments are passed to [skimage.feature.blob_dog][]
 
@@ -95,6 +98,17 @@ class Volume:
 
         coords = blob_dog(data, **kwargs)[:, 0:3]
         coords = coords - np.array((pad, pad, pad))
+
+        if remove_outside:
+            imax, jmax, kmax = data.shape
+            imin, jmin, kmin = 0, 0, 0
+
+            c0 = (coords[:, 0] >= imin) & (coords[:, 0] < imax)
+            c1 = (coords[:, 1] >= jmin) & (coords[:, 1] < jmax)
+            c2 = (coords[:, 2] >= kmin) & (coords[:, 2] < kmax)
+
+            coords = coords[c0 & c1 & c2]
+
         return coords[:, 0:3].astype(int)
 
     def to_vasp_volume(self, structure: Structure, *,
