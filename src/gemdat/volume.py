@@ -10,9 +10,12 @@ import numpy as np
 import scipy.ndimage as ndi
 from pymatgen.core import Structure
 from pymatgen.io.vasp import VolumetricData
+from rich.progress import track
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
 from skimage.segmentation import watershed
+
+from .segmentation import watershed_pbc
 
 if TYPE_CHECKING:
     from pymatgen.core import Lattice
@@ -100,7 +103,7 @@ class Volume:
         coords = coords - np.array((pad, pad, pad))
 
         if remove_outside:
-            imax, jmax, kmax = data.shape
+            imax, jmax, kmax = self.data.shape
             imin, jmin, kmin = 0, 0, 0
 
             c0 = (coords[:, 0] >= imin) & (coords[:, 0] < imax)
@@ -213,7 +216,6 @@ class Volume:
         trajectory: Trajectory,
         *,
         specie: str = 'X',
-        pad: int = 3,
         background_level: float = 0.1,
         **kwargs,
     ) -> Structure:
@@ -225,10 +227,6 @@ class Volume:
             Input trajectory for positions and voxel indices
         specie : str
             Specie to assign to the found sites, defaults to 'X'
-        pad : int
-            Extend the volume by this number of voxels by wrapping around. This helps with
-            densities at the edge of the volume bounds. Set this value higher for high resolution
-            densities.
         background_level : float
             Fraction of the maximum volume value to set as the minimum value for peak finding.
             Essentially sets `vol_min = background_level * max(vol)`.
@@ -243,51 +241,43 @@ class Volume:
             Output structure
         """
         data = self.normalized_data
-        data = np.pad(data, pad_width=pad, mode='wrap')
 
-        coords = self.find_peaks(pad=pad, **kwargs)
-        coords += np.array((pad, pad, pad))
+        coords = self.find_peaks(**kwargs)
 
         background_level = background_level * data.max()
 
         mask = np.zeros(data.shape, dtype=bool)
         mask[tuple(coords.T)] = True
         markers, _ = ndi.label(mask)
-        labels = watershed(-data, markers, mask=data > background_level)
+        labels = watershed_pbc(-data, markers, mask=data > background_level)
 
         props = regionprops(labels, intensity_image=data)
 
         voxel_coords = trajectory.voxel_index
         positions = trajectory.positions
         frac_coords = []
-        tol = 1 - self.resolution
 
-        for i, prop in enumerate(props):
-            prop_coords = (prop.coords - [pad, pad, pad]).T
-            prop_coords_idx = np.ravel_multi_index(prop_coords,
+        tol = 0.95
+
+        for prop in track(props, transient=True):
+            prop_coords_idx = np.ravel_multi_index(prop.coords.T,
                                                    dims=self.data.shape,
                                                    mode='wrap')
 
-            sel = np.isin(voxel_coords, prop_coords_idx)
+            prop_pos_idx = np.isin(voxel_coords, prop_coords_idx)
+            prop_pos = positions[prop_pos_idx]
 
-            prop_pos = positions[sel]
+            extent = prop_pos.max(axis=0) - prop_pos.min(axis=0)
 
-            max_diff = prop_pos.max(axis=0) - prop_pos.min(axis=0)
-
-            if max_diff[0] > tol:
-                c0 = (prop_pos[:, 0] < 0.5)
-                prop_pos[c0, 0] += 1
-
-            if max_diff[1] > tol:
-                c1 = (prop_pos[:, 1] < 0.5)
-                prop_pos[c1, 1] += 1
-
-            if max_diff[2] > tol:
-                c2 = (prop_pos[:, 2] < 0.5)
-                prop_pos[c2, 2] += 1
+            for axis in (0, 1, 2):
+                if extent[axis] > tol:
+                    sel = (prop_pos[:, axis] < 0.5)
+                    prop_pos[sel, axis] += 1
 
             frac_coord = prop_pos.mean(axis=0)
             frac_coords.append(frac_coord)
+
+        frac_coords = np.mod(frac_coords, 1)
 
         structure = Structure(lattice=self.lattice,
                               coords=frac_coords,
