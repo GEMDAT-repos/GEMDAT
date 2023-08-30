@@ -190,6 +190,8 @@ class Volume:
                               coords=frac_coords,
                               species=[specie for _ in frac_coords])
 
+        structure.merge_sites(tol=0.1, mode='average')
+
         return structure
 
     def to_structure2(
@@ -276,6 +278,8 @@ class Volume:
         structure = Structure(lattice=self.lattice,
                               coords=frac_coords,
                               species=[specie for _ in frac_coords])
+
+        structure.merge_sites(tol=0.1, mode='average')
 
         return structure
 
