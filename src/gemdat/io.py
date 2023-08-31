@@ -2,10 +2,10 @@
 
 from importlib.resources import files
 from pathlib import Path
-from pymatgen.io.cif import CifWriter
 
 from pymatgen.core import Structure
 from pymatgen.io import cif
+from pymatgen.io.cif import CifWriter
 
 DATA = Path(files('gemdat') / 'data')  # type: ignore
 
@@ -21,8 +21,7 @@ SUPERCELL = {
 
 
 def write_cif(structure: Structure, filename: Path | str):
-    """Write structure to cif file using
-    [pymatgen.io.cif.CifWriter][].
+    """Write structure to cif file using [pymatgen.io.cif.CifWriter][].
 
     Parameters
     ----------

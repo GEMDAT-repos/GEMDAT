@@ -113,9 +113,14 @@ def analyse_md(
     filename = 'volume.vasp'
     print(f'Writing trajectory as a volume to `{filename}')
 
-    vol = trajectory_to_volume(trajectory=trajectory.filter(diff_elem),
-                              resolution=density_resolution,)
-    vol.to_vasp_volume(structure=trajectory.get_structure(0), filename=filename,)
+    vol = trajectory_to_volume(
+        trajectory=trajectory.filter(diff_elem),
+        resolution=density_resolution,
+    )
+    vol.to_vasp_volume(
+        structure=trajectory.get_structure(0),
+        filename=filename,
+    )
 
     if calc_rdfs:
         rdf_data = radial_distribution(
