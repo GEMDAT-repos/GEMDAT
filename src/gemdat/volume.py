@@ -36,10 +36,17 @@ class Volume:
     resolution : optional[float]
         The minimum resolution in Angstrom that the volume
         was generated at.
+    positions : optional[np.ndarray]
+        Input trajectory coordinates
+    voxel_mapping : optional[np.ndarray]
+        Integer array that maps `positions` onto
+        flattened voxel indices
     """
     data: np.ndarray
     lattice: Lattice
     resolution: float | None = None
+    positions: np.ndarray | None = None
+    voxel_mapping: np.ndarray | None = None
 
     @property
     def normalized_data(self) -> np.ndarray:
@@ -218,7 +225,6 @@ class Volume:
 
     def to_structure2(
         self,
-        trajectory: Trajectory,
         *,
         specie: str = 'X',
         background_level: float = 0.1,
@@ -228,8 +234,6 @@ class Volume:
 
         Parameters
         ----------
-        trajectory : Trajectory
-            Input trajectory for positions and voxel indices
         specie : str
             Specie to assign to the found sites, defaults to 'X'
         background_level : float
@@ -249,8 +253,13 @@ class Volume:
         props = self._peaks_to_props(peaks=peaks,
                                      background_level=background_level)
 
-        voxel_coords = trajectory.voxel_index
-        positions = trajectory.positions
+        voxel_mapping = self.voxel_mapping
+        positions = self.positions
+
+        if not (voxel_mapping and positions):
+            raise ValueError(
+                '`self.voxel_mapping` and `self.positions` must be defined.')
+
         frac_coords = []
 
         tol = 0.95
@@ -260,7 +269,7 @@ class Volume:
                                                    dims=self.data.shape,
                                                    mode='wrap')
 
-            prop_pos_idx = np.isin(voxel_coords, prop_coords_idx)
+            prop_pos_idx = np.isin(voxel_mapping, prop_coords_idx)
             prop_pos = positions[prop_pos_idx]
 
             extent = prop_pos.max(axis=0) - prop_pos.min(axis=0)
@@ -338,10 +347,15 @@ def trajectory_to_volume(
     data = np.zeros((nx - 1, ny - 1, nz - 1), dtype=int)
     data[i, j, k] = counts
 
-    voxel_index = np.ravel_multi_index(digitized_coords.T, data.shape)
-    voxel_index = voxel_index.reshape(len(trajectory), len(trajectory.species))
+    voxel_mapping = np.ravel_multi_index(digitized_coords.T, data.shape)
+    voxel_mapping = voxel_mapping.reshape(len(trajectory),
+                                          len(trajectory.species))
 
-    # Find better place to store this
-    trajectory.voxel_index = voxel_index
-
-    return Volume(data=data, resolution=resolution, lattice=lattice)
+    return Volume(
+        data=data,
+        resolution=resolution,
+        lattice=lattice,
+        # find better place to store these
+        positions=trajectory.positions,
+        voxel_mapping=voxel_mapping,
+    )
