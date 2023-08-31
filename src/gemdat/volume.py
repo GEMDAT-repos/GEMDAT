@@ -256,7 +256,7 @@ class Volume:
         voxel_mapping = self.voxel_mapping
         positions = self.positions
 
-        if not (voxel_mapping and positions):
+        if (voxel_mapping is None) or (positions is None):
             raise ValueError(
                 '`self.voxel_mapping` and `self.positions` must be defined.')
 
