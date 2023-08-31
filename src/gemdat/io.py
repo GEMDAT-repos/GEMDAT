@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pymatgen.core import Structure
 from pymatgen.io import cif
+from pymatgen.io.cif import CifWriter
 
 DATA = Path(files('gemdat') / 'data')  # type: ignore
 
@@ -19,7 +20,21 @@ SUPERCELL = {
 }
 
 
-def load_cif(filename: Path | str) -> Structure:
+def write_cif(structure: Structure, filename: Path | str):
+    """Write structure to cif file using [pymatgen.io.cif.CifWriter][].
+
+    Parameters
+    ----------
+    structure : pymatgen.core.structure.Structure
+        Structure to save
+    filename : Path | str
+        Filename to write to
+    """
+    cif_path = Path(filename).with_suffix('.cif')
+    CifWriter(structure).write_file(cif_path)
+
+
+def read_cif(filename: Path | str) -> Structure:
     """Load cif file and return first item as
     [pymatgen.core.structure.Structure][].
 
@@ -63,7 +78,7 @@ def load_known_material(
     if not filename.exists():
         raise ValueError(f'Unknown material: {name}')
 
-    structure = load_cif(filename)
+    structure = read_cif(filename)
 
     if supercell:
         structure.make_supercell(supercell)

@@ -3,7 +3,7 @@ from math import isclose
 import numpy as np
 import pytest
 from gemdat.simulation_metrics import SimulationMetrics
-from gemdat.volume import trajectory_to_volume, volume_to_structure
+from gemdat.volume import trajectory_to_volume
 from pymatgen.core import Structure
 
 
@@ -30,13 +30,27 @@ def test_volume(vasp_vol, vasp_traj):
         assert data[s].sum() != 0
 
 
-def test_volume_to_structure(vasp_traj, vasp_vol):
-    structure = volume_to_structure(vasp_vol, specie='Li')
+def test_volume_to_structure(vasp_vol):
+    structure = vasp_vol.to_structure(specie='Li', pad=5)
 
     assert isinstance(structure, Structure)
-    assert len(structure) == 188
+    assert len(structure) == 157
     assert np.min(structure.frac_coords) >= 0
     assert np.max(structure.frac_coords) < 1
+    assert all(sp.symbol == 'Li' for sp in structure.species)
+
+
+def test_volume_to_structure2(vasp_vol):
+    structure = vasp_vol.to_structure2(specie='Li', pad=5)
+
+    assert hasattr(vasp_vol, 'positions')
+    assert hasattr(vasp_vol, 'voxel_mapping')
+
+    assert isinstance(structure, Structure)
+    assert len(structure) == 157
+    assert np.min(structure.frac_coords) >= 0
+    assert np.max(structure.frac_coords) < 1
+    assert all(sp.symbol == 'Li' for sp in structure.species)
 
 
 @pytest.vaspxml_available

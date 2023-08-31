@@ -4,7 +4,7 @@ Gemdat is based on."""
 from gemdat import SitesData, load_known_material, plots
 from gemdat.rdf import radial_distribution
 from gemdat.trajectory import Trajectory
-from gemdat.volume import trajectory_to_vasp_volume
+from gemdat.volume import trajectory_to_volume
 
 
 def analyse_md(
@@ -113,10 +113,14 @@ def analyse_md(
     filename = 'volume.vasp'
     print(f'Writing trajectory as a volume to `{filename}')
 
-    trajectory_to_vasp_volume(trajectory=trajectory.filter(diff_elem),
-                              structure=trajectory.get_structure(0),
-                              resolution=density_resolution,
-                              filename=filename)
+    vol = trajectory_to_volume(
+        trajectory=trajectory.filter(diff_elem),
+        resolution=density_resolution,
+    )
+    vol.to_vasp_volume(
+        structure=trajectory.get_structure(0),
+        filename=filename,
+    )
 
     if calc_rdfs:
         rdf_data = radial_distribution(

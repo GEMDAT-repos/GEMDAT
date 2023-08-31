@@ -32,7 +32,7 @@ See the [plots page](./plotting.md#trajectory-and-displacements-plots) for more 
 
 To find out how Lithium jumps from site to site, we must know what the sites are. Gemdat contains a [small internal database](https://github.com/GEMDAT-repos/GEMDAT/tree/main/src/gemdat/data) with available structures.
 
-Alternatively, you can load the sites from 1. [a cif file][gemdat.io.load_cif], 2. [a density or volume][gemdat.volume.volume_to_structure] or 3. construct your own [Structure][pymatgen.core.structure.Structure].
+Alternatively, you can load the sites from 1. [a cif file][gemdat.io.read_cif], 2. [a density or volume][gemdat.volume.Volume.to_structure] or 3. construct your own [Structure][pymatgen.core.structure.Structure].
 
 ```python
 from gemdat import load_known_material
