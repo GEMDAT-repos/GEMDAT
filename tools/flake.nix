@@ -1,11 +1,11 @@
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
-  inputs.ruff_274.url = "github:nixos/nixpkgs/1bc7f069be719c24fef65e01383ca48bf3088027";
+  inputs.ruff_287.url = "github:nixos/nixpkgs/e32a63389adb6ee017f8b344e21c80432bb75c10";
 
-  outputs = { self, nixpkgs, ruff_274, ... }:
+  outputs = { self, nixpkgs, ruff_287, ... }:
     let
     pkgs = nixpkgs.legacyPackages.x86_64-linux;
-    ruffpkg = ruff_274.legacyPackages.x86_64-linux.ruff;
+    ruffpkg = ruff_287.legacyPackages.x86_64-linux.ruff;
     mypython = pkgs.python311;
     pythonpkgs = pkgs.python311Packages;
     in with pkgs; {
