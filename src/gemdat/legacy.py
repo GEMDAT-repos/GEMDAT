@@ -1,6 +1,8 @@
 """This module provides a code to deal with the original matlab code that
 Gemdat is based on."""
 
+import matplotlib.pyplot as plt
+
 from gemdat import SitesData, load_known_material, plots
 from gemdat.rdf import radial_distribution
 from gemdat.trajectory import Trajectory
@@ -25,6 +27,7 @@ def analyse_md(
     rdf_max_dist: int = 10,
     start_end: tuple[int, int] = (5000, 7500),
     nr_steps_frame: int = 5,
+    show_plots: bool = True,
 ) -> tuple[Trajectory, SitesData]:
     """Analyse md data.
 
@@ -101,7 +104,7 @@ def analyse_md(
     plots.collective_jumps(sites=sites)
     plots.jumps_3d(sites=sites)
 
-    plots.jumps_3d_animation(
+    _tmp = plots.jumps_3d_animation(  # Assignment needed to not desctruct animation before plt.show()
         sites=sites,
         t_start=start_end[0],
         t_stop=start_end[1],
@@ -109,6 +112,8 @@ def analyse_md(
         decay=0.05,
         interval=20,
     )
+    if show_plots:
+        plt.show()
 
     filename = 'volume.vasp'
     print(f'Writing trajectory as a volume to `{filename}')
