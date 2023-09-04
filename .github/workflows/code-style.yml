@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
     - name: Install dependencies to enable correct API usage check
       run: pip install .[develop]
-    - uses: actions/setup-python@v4
     - uses: pre-commit/action@v3.0.0
