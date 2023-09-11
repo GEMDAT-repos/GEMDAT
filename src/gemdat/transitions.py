@@ -126,7 +126,7 @@ class Transitions:
         """
         return ffill(self.states, fill_val=NOSITE, axis=0)
 
-    def occupancy(self) -> np.ndarray:
+    def occupancy(self) -> dict[int, int]:
         """Calculate occupancy per site.
 
         Returns
@@ -161,7 +161,10 @@ class Transitions:
                 'n_sites': self.n_sites,
             })
 
-        return [self.__class__(**kwargs) for kwargs in kwargs_list]
+        return [
+            self.__class__(**kwargs)  # type: ignore
+            for kwargs in kwargs_list
+        ]
 
 
 def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
