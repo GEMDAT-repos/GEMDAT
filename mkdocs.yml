@@ -8,6 +8,8 @@ nav:
   - Getting started: getting_started.md
   - Visualization: plotting.md
   - Dashboard: dashboard.md
+  - Examples:
+    - notebooks/simple.ipynb
   - Python API:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md
@@ -77,6 +79,12 @@ plugins:
           members_order: alphabetical
           merge_init_into_class: yes
           filters: ["!^_"]
+- mkdocs-jupyter:
+    include_source: True
+    ignore:
+      - gendocs.py
+      - genvariables.py
+
 
 watch:
   - src/
