@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.vaspxml_available
+@pytest.vaspxml_available  # type: ignore
 def test_rdf(vasp_rdf_data):
     expected_states = {'~>48h', '@48h', '48h->48h'}
     expected_symbols = {'Li', 'P', 'S', 'Br'}
