@@ -346,8 +346,8 @@ def trajectory_to_volume(
 
     data = np.zeros((nx - 1, ny - 1, nz - 1), dtype=int)
     data[i, j, k] = counts
-
-    voxel_mapping = np.ravel_multi_index(digitized_coords.T, data.shape)
+    voxel_mapping = np.ravel_multi_index(tuple(digitized_coords.T),
+                                         tuple(data.shape))
     voxel_mapping = voxel_mapping.reshape(len(trajectory),
                                           len(trajectory.species))
 
