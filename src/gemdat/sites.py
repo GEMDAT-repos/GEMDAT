@@ -129,13 +129,13 @@ class SitesData:
                      for label2 in labels})
 
     @property
-    def transitions_parts(self) -> np.array:
+    def transitions_parts(self) -> np.ndarray:
         """Return stacked array from
         [part.matrix()][gemdat.transitions.Transitions.matrix]"""
         return np.stack([part.matrix() for part in self.parts])
 
     @property
-    def occupancy_parts(self) -> list[np.array]:
+    def occupancy_parts(self) -> list[dict[int, int]]:
         """Return [occupancy arrays][gemdat.transitions.Transitions.occupancy]
         from parts."""
         return [part.occupancy() for part in self.parts]

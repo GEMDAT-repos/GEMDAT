@@ -57,29 +57,33 @@ with st.sidebar:
     diffusing_element = st.selectbox('Diffusive Element',
                                      elements,
                                      index=index)
-    equilibration_steps = st.number_input('Equilibration Steps',
-                                          min_value=0,
-                                          max_value=len(trajectory) - 1,
-                                          value=1250)
+    equilibration_steps = int(
+        st.number_input('Equilibration Steps',
+                        min_value=0,
+                        max_value=len(trajectory) - 1,
+                        value=1250))
 
-    sites_filename = st.selectbox('Load sites from known material',
-                                  KNOWN_MATERIALS)
+    sites_filename = str(
+        st.selectbox('Load sites from known material', KNOWN_MATERIALS))
 
     st.markdown('Supercell (x,y,z)')
     col1, col2, col3 = st.columns(3)
-    supercell = (col1.number_input('supercell x',
-                                   min_value=1,
-                                   value=1,
-                                   label_visibility='collapsed',
-                                   help=None),
-                 col2.number_input('supercell y',
-                                   min_value=1,
-                                   value=1,
-                                   label_visibility='collapsed'),
-                 col3.number_input('supercell z',
-                                   min_value=1,
-                                   value=1,
-                                   label_visibility='collapsed'))
+    supercell = (int(
+        col1.number_input('supercell x',
+                          min_value=1,
+                          value=1,
+                          label_visibility='collapsed',
+                          help=None)),
+                 int(
+                     col2.number_input('supercell y',
+                                       min_value=1,
+                                       value=1,
+                                       label_visibility='collapsed')),
+                 int(
+                     col3.number_input('supercell z',
+                                       min_value=1,
+                                       value=1,
+                                       label_visibility='collapsed')))
 
     st.markdown('## Radial distribution function')
     do_rdf = st.checkbox('Plot RDFs')

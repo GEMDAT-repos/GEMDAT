@@ -29,18 +29,19 @@ repos:
         additional_dependencies:
           - toml
   - repo: https://github.com/myint/docformatter
-    rev: v1.7.2
+    rev: v1.7.5
     hooks:
       - id: docformatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.274
+    rev: v0.0.287
     hooks:
       - id: ruff
         args: [--fix]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.3.0
+    rev: v1.5.1
     hooks:
       - id: mypy
+        additional_dependencies: [matplotlib, MDAnalysis, numpy, pymatgen, rich, scikit-image, scipy]
   - repo: https://github.com/nbQA-dev/nbQA
     rev: 1.7.0
     hooks:

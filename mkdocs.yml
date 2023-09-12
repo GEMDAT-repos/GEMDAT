@@ -77,6 +77,12 @@ plugins:
           members_order: alphabetical
           merge_init_into_class: yes
           filters: ["!^_"]
+- mkdocs-jupyter:
+    include_source: True
+    ignore:
+      - gendocs.py
+      - genvariables.py
+
 
 watch:
   - src/

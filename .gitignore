@@ -138,6 +138,7 @@ dmypy.json
 .pyre/
 
 *.ipynb
+!docs/notebooks/*.ipynb
 *.vasp
 
 # matplotlib result images

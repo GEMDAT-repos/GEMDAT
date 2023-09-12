@@ -296,7 +296,7 @@ class Volume:
 def trajectory_to_volume(
     trajectory: Trajectory,
     resolution: float = 0.2,
-) -> np.ndarray:
+) -> Volume:
     """Calculate density volume from a trajectory.
 
     All coordinates are binned into voxels. The value of each
