@@ -12,7 +12,7 @@ from numpy.testing import assert_allclose
 
 
 @pytest.vaspxml_available
-class TestSites:
+class TestSites:  # type: ignore
     n_parts = 10
     diffusing_element = 'Li'
 
