@@ -44,7 +44,7 @@
             python -m venv $VENV
             source ./$VENV/bin/activate
 
-            pip install -e ".[develop]"
+            pip install -e ".[develop,gemdash]"
           fi
 
           export PYTHONPATH=`pwd`/$VENV/${mypython.sitePackages}/:$PYTHONPATH

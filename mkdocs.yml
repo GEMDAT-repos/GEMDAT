@@ -8,6 +8,9 @@ nav:
   - Getting started: getting_started.md
   - Visualization: plotting.md
   - Dashboard: dashboard.md
+  - Examples:
+    - Simple Example: notebooks/simple.ipynb
+    - Loading a CIF File: notebooks/CIF.ipynb
   - Python API:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md
