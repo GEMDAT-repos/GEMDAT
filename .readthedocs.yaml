@@ -22,3 +22,8 @@ python:
      path: .
      extra_requirements:
       - docs
+
+# Use submodule for notebooks
+submodules:
+  include:
+    - docs/notebooks
