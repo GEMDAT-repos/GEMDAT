@@ -61,6 +61,29 @@ class Trajectory(PymatgenTrajectory):
         new.metadata = self.metadata if hasattr(self, 'metadata') else {}
         return new
 
+    def __repr__(self):
+        base = self.get_structure(0)
+        outs = [
+            f'Full Formula ({base.composition.formula})',
+            f'Reduced Formula: {base.composition.reduced_formula}',
+        ]
+
+        def to_str(x):
+            return f'{x:>10.6f}'
+
+        outs.append('abc   : ' + ' '.join(to_str(i) for i in base.lattice.abc))
+        outs.append('angles: ' +
+                    ' '.join(to_str(i) for i in base.lattice.angles))
+        outs.append('pbc   : ' +
+                    ' '.join(str(p).rjust(10) for p in base.lattice.pbc))
+        if base._charge:
+            outs.append(f'Overall Charge: {base._charge:+}')
+        outs.append(f'Constant lattice ({self.constant_lattice})')
+        outs.append(f'Sites ({len(base)})')
+        outs.append(f'Time steps ({len(self)})')
+
+        return '\n'.join(outs)
+
     def to_positions(self):
         """Pymatgen does not mod coords back to original unit cell.
 
