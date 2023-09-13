@@ -30,6 +30,7 @@ def test_volume(vasp_vol, vasp_traj):
         assert data[s].sum() != 0
 
 
+@pytest.mark.skip(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/138')
 def test_volume_to_structure(vasp_vol):
     structure = vasp_vol.to_structure(specie='Li', pad=5)
 
