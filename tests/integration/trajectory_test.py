@@ -14,7 +14,7 @@ def vasp_vol(vasp_traj):
     return trajectory_to_volume(trajectory=diff_trajectory, resolution=0.2)
 
 
-@pytest.vaspxml_available  # type: ignore
+@pytest.vaspxml_available
 def test_volume(vasp_vol, vasp_traj):
     data = vasp_vol.data
 
@@ -30,9 +30,10 @@ def test_volume(vasp_vol, vasp_traj):
         assert data[s].sum() != 0
 
 
-@pytest.mark.skip(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/138')
-def test_volume_to_structure(vasp_vol):
-    structure = vasp_vol.to_structure(specie='Li', pad=5)
+# @pytest.mark.skip(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/138')
+@pytest.vaspxml_available
+def test_volume_to_structure_centroid(vasp_vol):
+    structure = vasp_vol.to_structure(specie='Li', pad=5, method='centroid')
 
     assert isinstance(structure, Structure)
     assert len(structure) == 157
@@ -41,8 +42,9 @@ def test_volume_to_structure(vasp_vol):
     assert all(sp.symbol == 'Li' for sp in structure.species)
 
 
-def test_volume_to_structure2(vasp_vol):
-    structure = vasp_vol.to_structure2(specie='Li', pad=5)
+@pytest.vaspxml_available
+def test_volume_to_structure_cluster(vasp_vol):
+    structure = vasp_vol.to_structure(specie='Li', pad=5, method='cluster')
 
     assert hasattr(vasp_vol, 'positions')
     assert hasattr(vasp_vol, 'voxel_mapping')
@@ -54,7 +56,7 @@ def test_volume_to_structure2(vasp_vol):
     assert all(sp.symbol == 'Li' for sp in structure.species)
 
 
-@pytest.vaspxml_available  # type: ignore
+@pytest.vaspxml_available
 def test_tracer(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
     metrics = SimulationMetrics(diff_trajectory)
@@ -73,7 +75,7 @@ def test_tracer(vasp_traj):
     )
 
 
-@pytest.vaspxml_available  # type: ignore
+@pytest.vaspxml_available
 def test_vibration_metrics(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
     metrics = SimulationMetrics(diff_trajectory)
