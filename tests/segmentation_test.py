@@ -1,9 +1,8 @@
 import numpy as np
-import pytest
 from gemdat.segmentation import watershed_pbc
 
 
-def test_watershed06():
+def test_watershed_horizontal():
     """Test watershed in horizontal direction."""
     data = np.array(
         [
@@ -25,7 +24,11 @@ def test_watershed06():
     markers = np.zeros_like(data, dtype=int)
     markers[4, 0] = 1
 
-    out = watershed_pbc(data, markers, mask=mask)
+    out = watershed_pbc(
+        data,
+        markers,
+        mask=mask,
+    )
 
     expected = np.array([
         [0, 0, 0, 0, 0, 0, 0],
@@ -42,8 +45,7 @@ def test_watershed06():
     np.testing.assert_allclose(out, expected)
 
 
-@pytest.mark.xfail(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/138')
-def test_watershed07():
+def test_watershed_vertical():
     """Test watershed in vertical direction."""
     data = np.array(
         [

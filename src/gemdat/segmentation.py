@@ -1,46 +1,49 @@
+from typing import Sequence
+
 import numpy as np
-from skimage.morphology._util import _offsets_to_raveled_neighbors
-from skimage.segmentation import _watershed, _watershed_cy
+from skimage.segmentation import watershed as skimage_watershed
+
+
+def unpad(array: np.ndarray, pad_width: int | Sequence[int]) -> np.ndarray:
+    """Opposite of `np.pad`."""
+    slices = []
+    if isinstance(pad_width, int):
+        pad_width = [pad_width for _ in range(array.ndim)]
+
+    for start in pad_width:
+        end = -start
+        slices.append(slice(start, end))
+
+    return array[tuple(slices)]
 
 
 def watershed_pbc(
-    image,
-    markers=None,
-    connectivity=1,
-    offset=None,
-    mask=None,
-    compactness=0,
-    watershed_line=False,
+    image: np.ndarray,
+    markers: np.ndarray,
+    *,
+    mask: np.ndarray,
+    pad: int = 10,
+    **kwargs,
 ):
-    """Modified immplementation of [skimage.segmentation.watershed][] that adds
-    periodic boundary conditions.
+    """Modified version of [watershed()][skimage.segmentation.watershed] that
+    wraps around the edges to account for periodic boundary conditions.
 
-    See [watershed()][skimage.segmentation.watershed][] for details.
+    See [watershed()][skimage.segmentation.watershed] for details on parameters.
+
+    Parameters
+    ----------
+    pad : int
+        Number of values to be padded around the edges of the image/markers/mask arrays.
+
+    Returns
+    -------
+    out : np.ndarray
+        Segmented array
     """
+    image = np.pad(image, pad_width=pad, mode='wrap')
+    mask = np.pad(mask, pad_width=pad, mode='wrap')
+    markers = np.pad(markers, pad_width=pad, mode='wrap')
 
-    image, markers, mask = _watershed._validate_inputs(image, markers, mask,
-                                                       connectivity)
-    connectivity, offset = _watershed._validate_connectivity(
-        image.ndim, connectivity, offset)
+    out = skimage_watershed(image=image, markers=markers, mask=mask)
 
-    mask = mask.ravel()
-    output = markers.copy()
-
-    flat_neighborhood = _offsets_to_raveled_neighbors(image.shape,
-                                                      connectivity,
-                                                      center=offset)
-    marker_locations = np.flatnonzero(output)
-    image_strides = np.array(image.strides, dtype=np.intp) // image.itemsize
-
-    _watershed_cy.watershed_raveled(
-        image.ravel(),
-        marker_locations,
-        flat_neighborhood,
-        mask,
-        image_strides,
-        compactness,
-        output.ravel(),
-        watershed_line,
-    )
-
-    return output
+    return unpad(out, pad_width=pad)
