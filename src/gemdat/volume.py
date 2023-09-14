@@ -164,36 +164,13 @@ class Volume:
 
         return regionprops(labels, intensity_image=data)
 
-    def to_structure(
+    def _props_to_frac_coords_centroid(
         self,
         *,
-        specie: str = 'X',
-        background_level: float = 0.1,
+        props: list[RegionProperties],
         **kwargs,
-    ) -> Structure:
-        """Converts a volume back to a structure using peak detection.
-
-        Parameters
-        ----------
-        specie : str
-            Specie to assign to the found sites, defaults to 'X'
-        background_level : float
-            Fraction of the maximum volume value to set as the minimum value for peak finding.
-            Essentially sets `vol_min = background_level * max(vol)`.
-            All values below `vol_min` are masked in the peak search.
-            Must be between 0 and 1
-        **kwargs : dict
-            These keywords parameters are passed to [Volume.find_peaks][].
-
-        Returns
-        -------
-        structure : pymatgen.core.structure.Structure
-            Output structure
-        """
-        peaks = self.find_peaks(**kwargs)
-        props = self._peaks_to_props(peaks=peaks,
-                                     background_level=background_level)
-
+    ) -> np.ndarray:
+        """Generate fractional coords using centroid method."""
         centroids = []
 
         for prop in props:
@@ -212,47 +189,15 @@ class Volume:
         # Move coords to voxel center by shifting 0.5
         frac_coords = (centroids + 0.5) / np.array(self.data.shape)
 
-        # mod to unit cell
-        frac_coords = np.mod(frac_coords, 1)
+        return np.array(frac_coords)
 
-        structure = Structure(lattice=self.lattice,
-                              coords=frac_coords,
-                              species=[specie for _ in frac_coords])
-
-        structure.merge_sites(tol=0.1, mode='average')
-
-        return structure
-
-    def to_structure2(
+    def _props_to_frac_coords_cluster(
         self,
         *,
-        specie: str = 'X',
-        background_level: float = 0.1,
+        props: list[RegionProperties],
         **kwargs,
-    ) -> Structure:
-        """Converts a volume back to a structure using peak detection.
-
-        Parameters
-        ----------
-        specie : str
-            Specie to assign to the found sites, defaults to 'X'
-        background_level : float
-            Fraction of the maximum volume value to set as the minimum value for peak finding.
-            Essentially sets `vol_min = background_level * max(vol)`.
-            All values below `vol_min` are masked in the peak search.
-            Must be between 0 and 1
-        **kwargs : dict
-            These keywords parameters are passed to [Volume.find_peaks][].
-
-        Returns
-        -------
-        structure : pymatgen.core.structure.Structure
-            Output structure
-        """
-        peaks = self.find_peaks(**kwargs)
-        props = self._peaks_to_props(peaks=peaks,
-                                     background_level=background_level)
-
+    ) -> np.ndarray:
+        """Generate fractional coords using cluster method."""
         voxel_mapping = self.voxel_mapping
         positions = self.positions
 
@@ -281,6 +226,57 @@ class Volume:
 
             frac_coord = prop_pos.mean(axis=0)
             frac_coords.append(frac_coord)
+
+        return np.array(frac_coords)
+
+    def to_structure(
+        self,
+        *,
+        specie: str = 'X',
+        background_level: float = 0.1,
+        method: str = 'centroid',
+        peaks: Optional[np.ndarray] = None,
+        **kwargs,
+    ) -> Structure:
+        """Converts a volume back to a structure using peak detection.
+
+        Parameters
+        ----------
+        specie : str
+            Specie to assign to the found sites, defaults to 'X'
+        background_level : float
+            Fraction of the maximum volume value to set as the minimum value for peak segmentation.
+            Essentially sets `vol_min = background_level * max(vol)`.
+            All values below `vol_min` are masked in the peak search.
+            Must be between 0 and 1
+        method : str
+            Select method to use for calculating fractional coordinates.
+            'centroid' takes the weighted centroid of all voxels in a labeled region (fast),
+            'cluster' takes the mean of all trajectory coordinates that contributed to
+            that voxel (slow, but more accurate).
+        peaks : Optional[np.ndarray]
+            Voxel coordinates to use as starting points for watershed algorithm.
+        **kwargs : dict
+            These keywords parameters are passed to [Volume.find_peaks][].
+            Only applies if `peaks == None`.
+
+        Returns
+        -------
+        structure : pymatgen.core.structure.Structure
+            Output structure
+        """
+        if peaks is None:
+            peaks = self.find_peaks(**kwargs)
+
+        props = self._peaks_to_props(peaks=peaks,
+                                     background_level=background_level)
+
+        props_to_frac_coords = {
+            'centroid': self._props_to_frac_coords_centroid,
+            'cluster': self._props_to_frac_coords_cluster,
+        }[method]
+
+        frac_coords = props_to_frac_coords(props=props)
 
         frac_coords = np.mod(frac_coords, 1)
 
