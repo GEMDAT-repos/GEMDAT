@@ -19,8 +19,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pipreqs
-        python -m pip install .
 
     - name: Set configuration
       run: |
@@ -29,8 +27,8 @@ jobs:
 
     - name: Create requirements files
       run: |
-        python -m pip freeze > requirements_full.txt
-        pipreqs . --print > requirements.txt
+        python -m pip freeze --exclude gemdat > requirements_full.txt
+        python tools/generate_requirements_txt.py
         git add requirements_full.txt requirements.txt
         git commit -m "Updated requirements.txt files" || true
 
