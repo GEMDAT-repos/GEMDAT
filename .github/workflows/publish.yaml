@@ -18,7 +18,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip pip-tools
 
     - name: Set configuration
       run: |
@@ -27,8 +27,8 @@ jobs:
 
     - name: Create requirements files
       run: |
-        python -m pip freeze --exclude gemdat > requirements_full.txt
         python tools/generate_requirements_txt.py
+        pip-compile -o requirements_full.txt pyproject.toml
         git add requirements_full.txt requirements.txt
         git commit -m "Updated requirements.txt files" || true
 
