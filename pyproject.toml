@@ -52,6 +52,7 @@ develop = [
     "pre-commit",
     "mypy",
     "pytest",
+    "pytest-playwright",
     "coverage[toml]",
 ]
 

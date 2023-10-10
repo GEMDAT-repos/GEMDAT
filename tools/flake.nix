@@ -18,6 +18,7 @@
           pythonpkgs.pandas
           pythonpkgs.pyarrow
           pythonpkgs.jupyterlab
+          playwright
         ];
         pythonWithPkgs = mypython.withPackages (pythonPkgs: with pythonPkgs; [
           # This list contains tools for Python development.
@@ -44,7 +45,7 @@
             python -m venv $VENV
             source ./$VENV/bin/activate
 
-            pip install -e ".[develop,gemdash]"
+            pip install -e ".[develop,gemdash,docs]"
           fi
 
           export PYTHONPATH=`pwd`/$VENV/${mypython.sitePackages}/:$PYTHONPATH
