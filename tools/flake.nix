@@ -33,9 +33,9 @@
         ]);
         shellHook = ''
           # fixes libstdc++ issues and libgl.so issues
-          LD_LIBRARY_PATH=${stdenv.cc.cc.lib}/lib/
+          export LD_LIBRARY_PATH=${stdenv.cc.cc.lib}/lib/
           # Allow the use of wheels.
-          SOURCE_DATE_EPOCH=$(date +%s)
+          export SOURCE_DATE_EPOCH=$(date +%s)
 
           # Augment the dynamic linker path
           # Setup the virtual environment if it doesn't already exist.
