@@ -211,7 +211,7 @@ def jumps_3d_animation(
     decay: float = 0.05,
     skip: int = 5,
     interval: int = 20,
-) -> plt.Figure:
+) -> animation.FuncAnimation:
     """Plot jumps in 3D as an animation over time.
 
     Parameters
@@ -251,8 +251,8 @@ def jumps_3d_animation(
     coords = sites.structure.frac_coords
     lattice = trajectory.get_lattice()
 
-    color_from = colormaps['Set1'].colors
-    color_to = colormaps['Pastel1'].colors
+    color_from = colormaps['Set1'].colors  # type: ignore
+    color_to = colormaps['Pastel1'].colors  # type: ignore
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
