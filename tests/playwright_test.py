@@ -37,7 +37,10 @@ def test_gemdash(page: Page):
     page.get_by_label('filename').fill('short_simulation/vasprun.xml')
     page.get_by_label('filename').press('Enter')
 
+    # this will take a wile, increase timeout on next check
+
     # Correct SuperCell
+    expect(page.get_by_label('supercell x')).to_be_visible(timeout=100_000)
     page.get_by_label('supercell x').click()
     page.get_by_label('supercell x').fill('2')
     page.get_by_label('supercell x').press('Enter')
