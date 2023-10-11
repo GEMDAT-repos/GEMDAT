@@ -12,16 +12,8 @@ def pytest_addoption(parser):
                      help='Run dashboard workflow tests')
 
 
-def pytest_collection_modifyitems(config, items):
-    """Modify items for pytest."""
-    if config.getoption('--dashboard'):
-        return
-
-    skip_dashboard = pytest.mark.skip(
-        reason='Use `-m dashboard` to test dashboard workflow.')
-    for item in items:
-        if 'dashboard' in item.keywords:
-            item.add_marker(skip_dashboard)
+def pytest_configure(config):
+    pytest.skip_dashboard = not config.getoption('--dashboard')
 
 
 @pytest.fixture()

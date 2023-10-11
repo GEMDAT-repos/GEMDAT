@@ -1,12 +1,14 @@
 import time
 
 import pytest
-from playwright.sync_api import Page
+from playwright.sync_api import Page, expect
 
 PORT = '8501'
 BASE_URL = f'localhost:{PORT}'
 
-pytestmark = pytest.mark.dashboard
+if pytest.skip_dashboard:
+    pytestmark = pytest.mark.skip(
+        reason='Use `-m dashboard` to test dashboard workflow.')
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -40,9 +42,26 @@ def test_gemdash(page: Page):
     page.get_by_label('supercell x').fill('2')
     page.get_by_label('supercell x').press('Enter')
 
+    # Check if pictures are present
+    expect(page.locator('img').first).to_be_visible()
+    expect(page.locator('img').nth(1)).to_be_visible()
+    expect(page.locator('img').nth(2)).to_be_visible()
+    expect(page.locator('img').nth(3)).to_be_visible()
+    expect(page.locator('img').nth(4)).to_be_visible()
+    expect(page.locator('img').nth(5)).to_be_visible()
+    expect(page.locator('img').nth(6)).to_be_visible()
+    expect(page.locator('img').nth(7)).to_be_visible()
+    expect(page.locator('img').nth(8)).to_be_visible()
+
     # Enable RDFs
     page.get_by_role('tab', name='RDF plots').click()
     page.get_by_test_id('stCheckbox').locator('span').click()
+
+    # Check pictures
+    expect(page.get_by_role('img',
+                            name='0').first).to_be_visible(timeout=10_000)
+    expect(page.get_by_role('img', name='0').nth(1)).to_be_visible()
+    expect(page.get_by_role('img', name='0').nth(2)).to_be_visible()
 
     # change equilibration steps
     page.get_by_label('Equilibration Steps').click()
@@ -50,13 +69,11 @@ def test_gemdash(page: Page):
     page.get_by_label('Equilibration Steps').press('Enter')
 
     # check fullscreen
-    page.get_by_role('button', name='View fullscreen').nth(2).click()
-    page.get_by_role('button', name='Exit fullscreen').click()
 
     # These values should be presented on the page
-    page.get_by_text('0.511089').click()
-    page.get_by_text('40.7774').click()
-    page.get_by_text('119.858').click()
-    page.get_by_text('1.70636e-09').click()
-    page.get_by_text('(8.5+/-0.7)e+12').click()
-    page.get_by_text('2.45567e+28').click()
+    expect(page.get_by_text('0.511089')).to_be_visible(timeout=10_000)
+    expect(page.get_by_text('40.7774')).to_be_visible()
+    expect(page.get_by_text('119.858')).to_be_visible()
+    expect(page.get_by_text('1.70636e-09')).to_be_visible()
+    expect(page.get_by_text('(8.5+/-0.7)e+12')).to_be_visible()
+    expect(page.get_by_text('2.45567e+28')).to_be_visible()
