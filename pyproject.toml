@@ -86,6 +86,8 @@ include-package-data = true
 [tool.coverage.run]
 branch = true
 source = ["gemdat"]
+omit = ["*/dashboard/*"]
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
