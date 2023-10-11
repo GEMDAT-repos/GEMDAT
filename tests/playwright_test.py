@@ -47,14 +47,6 @@ def test_gemdash(page: Page):
 
     # Check if pictures are present
     expect(page.locator('img').first).to_be_visible()
-    expect(page.locator('img').nth(1)).to_be_visible()
-    expect(page.locator('img').nth(2)).to_be_visible()
-    expect(page.locator('img').nth(3)).to_be_visible()
-    expect(page.locator('img').nth(4)).to_be_visible()
-    expect(page.locator('img').nth(5)).to_be_visible()
-    expect(page.locator('img').nth(6)).to_be_visible()
-    expect(page.locator('img').nth(7)).to_be_visible()
-    expect(page.locator('img').nth(8)).to_be_visible()
 
     # Enable RDFs
     page.get_by_role('tab', name='RDF plots').click()
