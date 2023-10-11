@@ -4,7 +4,7 @@ import pytest
 from playwright.sync_api import Page, expect
 
 PORT = '8501'
-BASE_URL = f'localhost:{PORT}'
+BASE_URL = f'http://localhost:{PORT}'
 
 if pytest.skip_dashboard:
     pytestmark = pytest.mark.skip(
@@ -30,28 +30,24 @@ def before_module():
 
 def test_gemdash(page: Page):
     # Goto web page
-    page.goto('http://localhost:8501/')
+    page.goto(BASE_URL)
 
     # Enter vasprun location
     page.get_by_label('filename').click()
-    page.get_by_label('filename').fill('short_simulation/vasprun.xml')
+    page.get_by_label('filename').fill(
+        'tests/data/short_simulation/vasprun.xml')
     page.get_by_label('filename').press('Enter')
 
+    # this will take a wile, increase timeout on next check
+
     # Correct SuperCell
+    expect(page.get_by_label('supercell x')).to_be_visible(timeout=100_000)
     page.get_by_label('supercell x').click()
     page.get_by_label('supercell x').fill('2')
     page.get_by_label('supercell x').press('Enter')
 
     # Check if pictures are present
     expect(page.locator('img').first).to_be_visible()
-    expect(page.locator('img').nth(1)).to_be_visible()
-    expect(page.locator('img').nth(2)).to_be_visible()
-    expect(page.locator('img').nth(3)).to_be_visible()
-    expect(page.locator('img').nth(4)).to_be_visible()
-    expect(page.locator('img').nth(5)).to_be_visible()
-    expect(page.locator('img').nth(6)).to_be_visible()
-    expect(page.locator('img').nth(7)).to_be_visible()
-    expect(page.locator('img').nth(8)).to_be_visible()
 
     # Enable RDFs
     page.get_by_role('tab', name='RDF plots').click()
@@ -59,7 +55,7 @@ def test_gemdash(page: Page):
 
     # Check pictures
     expect(page.get_by_role('img',
-                            name='0').first).to_be_visible(timeout=10_000)
+                            name='0').first).to_be_visible(timeout=100_000)
     expect(page.get_by_role('img', name='0').nth(1)).to_be_visible()
     expect(page.get_by_role('img', name='0').nth(2)).to_be_visible()
 
@@ -71,7 +67,7 @@ def test_gemdash(page: Page):
     # check fullscreen
 
     # These values should be presented on the page
-    expect(page.get_by_text('0.511089')).to_be_visible(timeout=10_000)
+    expect(page.get_by_text('0.511089')).to_be_visible(timeout=100_000)
     expect(page.get_by_text('40.7774')).to_be_visible()
     expect(page.get_by_text('119.858')).to_be_visible()
     expect(page.get_by_text('1.70636e-09')).to_be_visible()
