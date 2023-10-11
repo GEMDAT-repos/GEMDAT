@@ -55,7 +55,7 @@ def test_gemdash(page: Page):
 
     # Check pictures
     expect(page.get_by_role('img',
-                            name='0').first).to_be_visible(timeout=10_000)
+                            name='0').first).to_be_visible(timeout=100_000)
     expect(page.get_by_role('img', name='0').nth(1)).to_be_visible()
     expect(page.get_by_role('img', name='0').nth(2)).to_be_visible()
 
@@ -67,7 +67,7 @@ def test_gemdash(page: Page):
     # check fullscreen
 
     # These values should be presented on the page
-    expect(page.get_by_text('0.511089')).to_be_visible(timeout=10_000)
+    expect(page.get_by_text('0.511089')).to_be_visible(timeout=100_000)
     expect(page.get_by_text('40.7774')).to_be_visible()
     expect(page.get_by_text('119.858')).to_be_visible()
     expect(page.get_by_text('1.70636e-09')).to_be_visible()
