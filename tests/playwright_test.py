@@ -8,7 +8,7 @@ BASE_URL = f'localhost:{PORT}'
 
 if pytest.skip_dashboard:
     pytestmark = pytest.mark.skip(
-        reason='Use `-m dashboard` to test dashboard workflow.')
+        reason='Use `--dashboard` to test dashboard workflow.')
 
 
 @pytest.fixture(scope='module', autouse=True)
