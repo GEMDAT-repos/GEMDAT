@@ -4,7 +4,7 @@ import pytest
 from playwright.sync_api import Page, expect
 
 PORT = '8501'
-BASE_URL = f'localhost:{PORT}'
+BASE_URL = f'http://localhost:{PORT}'
 
 if pytest.skip_dashboard:
     pytestmark = pytest.mark.skip(
@@ -30,11 +30,12 @@ def before_module():
 
 def test_gemdash(page: Page):
     # Goto web page
-    page.goto('http://localhost:8501/')
+    page.goto(BASE_URL)
 
     # Enter vasprun location
     page.get_by_label('filename').click()
-    page.get_by_label('filename').fill('short_simulation/vasprun.xml')
+    page.get_by_label('filename').fill(
+        'tests/data/short_simulation/vasprun.xml')
     page.get_by_label('filename').press('Enter')
 
     # this will take a wile, increase timeout on next check
