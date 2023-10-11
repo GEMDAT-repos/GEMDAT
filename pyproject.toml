@@ -51,6 +51,7 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 develop = [
     "pre-commit",
     "mypy",
+    "playwright",
     "pytest",
     "pytest-playwright",
     "coverage[toml]",
