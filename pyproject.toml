@@ -49,12 +49,12 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 
 [project.optional-dependencies]
 develop = [
-    "pre-commit",
+    "coverage[toml]",
     "mypy",
     "playwright",
+    "pre-commit",
     "pytest",
     "pytest-playwright",
-    "coverage[toml]",
 ]
 
 docs = [
@@ -72,8 +72,8 @@ publishing = [
 ]
 
 gemdash = [
-    'uncertainties',
-  'streamlit',
+    "uncertainties",
+    "streamlit",
 ]
 
 [project.scripts]
