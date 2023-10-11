@@ -10,6 +10,12 @@ from gemdat import Trajectory
 trajectory = Trajectory.from_vasprun('./path/to/vasprun.xml')
 ```
 
+If not all timesteps are relevant, the trajectory can be sliced to only include relevant timesteps:
+
+```python
+trajectory = trajectory[100:] # Exclude the first 100 timesteps
+```
+
 For now, select the trajectory for the diffusing species, Lithium, by its symbol:
 
 ```python
