@@ -181,7 +181,9 @@ class Trajectory(PymatgenTrajectory):
         kwargs.setdefault('parse_potcar_file', False)
 
         if not cache:
-            cache = Path(str(xml_file) + '.' + str(kwargs) + '.cache')
+            cache = Path(
+                str(xml_file) + '.' + str(hash(repr(sorted(kwargs.items())))) +
+                '.cache')
 
         if Path(cache).exists():
             try:
