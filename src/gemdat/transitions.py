@@ -149,7 +149,7 @@ class Transitions:
         parts : list[SitesData]
             List with `Transitions` object for each part
         """
-        split_states = np.split(self.states, n_parts)
+        split_states = np.array_split(self.states, n_parts)
         split_events = _split_transitions_events(self.events, n_steps, n_parts)
 
         kwargs_list = []
@@ -375,7 +375,7 @@ def _split_transitions_events(events: np.ndarray,
 
     sorted_transitions = events[events[:, col].argsort()]
 
-    parts = np.split(sorted_transitions, splits)
+    parts = np.array_split(sorted_transitions, splits)
 
     if len(parts) < n_parts:
         raise ValueError(

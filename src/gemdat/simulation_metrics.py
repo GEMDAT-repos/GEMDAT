@@ -182,7 +182,7 @@ class SimulationMetrics:
             # get indices where sign flips
             splits = np.where(signs != np.roll(signs, shift=-1))[0]
             # strip first and last splits
-            subarrays = np.split(speed_range, splits[1:-1] + 1)
+            subarrays = np.array_split(speed_range, splits[1:-1] + 1)
 
             amplitudes.extend([np.sum(array) for array in subarrays])
 
