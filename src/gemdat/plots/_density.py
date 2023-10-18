@@ -67,7 +67,33 @@ def plot_structure(structure: Structure, *, fig: go.Figure):
 
 
 def plot_volume(volume: Volume, *, fig: go.Figure):
-    pass
+    data = volume.data
+    # data = np.pad(data, ((0, 1), (0,1), (0,1)), mode='wrap')
+    data = gaussian_filter(data, sigma=1.0)
+
+    colors = ['red', 'yellow', 'cyan']
+    iso_values = [0.25, 0.10, 0.007]  # Adjust isosurface values as needed
+    alpha_values = [0.7, 0.5, 0.35]  # Adjust transparency as needed
+
+    # Plot isosurfaces
+    for i, isoval in enumerate(iso_values):
+        isoval = isoval * np.max(data)
+        verts, faces, _, _ = measure.marching_cubes(data, level=isoval)
+
+        # Transform verts to cartesian system
+        verts = (verts + 0.0) / np.array(data.shape)
+        cart_verts = volume.lattice.get_cartesian_coords(verts)
+
+        fig.add_trace(
+            go.Mesh3d(x=cart_verts[:, 0],
+                      y=cart_verts[:, 1],
+                      z=cart_verts[:, 2],
+                      i=faces[:, 0],
+                      j=faces[:, 1],
+                      k=faces[:, 2],
+                      opacity=alpha_values[i],
+                      color=colors[i],
+                      showlegend=False))
 
 
 def density(lattice,
