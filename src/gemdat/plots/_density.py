@@ -1,8 +1,73 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Sequence
+
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from scipy.ndimage import gaussian_filter
 from skimage import measure
+
+if TYPE_CHECKING:
+    from pymatgen.core import Lattice, Structure
+
+    from gemdat.volume import Volume
+
+
+def plot_lattice_vectors(lattice: Lattice, *, fig: go.Figure):
+    o = lattice.get_cartesian_coords([0.0, 0.0, 0.0])
+    a = lattice.get_cartesian_coords([1.0, 0.0, 0.0])
+    b = lattice.get_cartesian_coords([0.0, 1.0, 0.0])
+    c = lattice.get_cartesian_coords([0.0, 0.0, 1.0])
+    abc = a + b + c
+
+    for start, stop in ((o, a), (o, b), (o, c), (a, a + b), (a, a + c),
+                        (b, b + a), (b, b + c), (c, c + a), (c, c + b),
+                        (abc, abc - a), (abc, abc - b), (abc, abc - c)):
+        fig.add_trace(
+            go.Scatter3d(
+                x=(start[0], stop[0]),
+                y=(start[1], stop[1]),
+                z=(start[2], stop[2]),
+                mode='lines',
+                line={'color': 'black'},
+                showlegend=False,
+            ))
+
+    return fig
+
+
+def plot_points(points: np.ndarray, labels: Sequence, *, fig: go.Figure):
+    point_size = 5
+    colors = px.colors.qualitative.G10
+
+    for i, (x, y, z) in enumerate(points):
+        color = colors[i % len(colors)]
+
+        fig.add_trace(
+            go.Scatter3d(x=[x],
+                         y=[y],
+                         z=[z],
+                         mode='markers',
+                         name=labels[i],
+                         marker={
+                             'size': point_size,
+                             'color': color,
+                             'line': {
+                                 'width': 2.5
+                             }
+                         },
+                         showlegend=False))
+    return fig
+
+
+def plot_structure(structure: Structure, *, fig: go.Figure):
+    plot_points(structure.cart_coords, labels=structure.labels, fig=fig)
+    plot_lattice_vectors(structure.lattice, fig=fig)
+
+
+def plot_volume(volume: Volume, *, fig: go.Figure):
+    pass
 
 
 def density(lattice,

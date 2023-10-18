@@ -104,7 +104,9 @@ select = [
 line-length = 110
 
 [tool.ruff.isort]
+known-first-party=["gemdat"]
 known-third-party = ["pymatgen"]
+required-imports = ["from __future__ import annotations"]
 
 [tool.mypy]
 files = ["src", "tests"]
