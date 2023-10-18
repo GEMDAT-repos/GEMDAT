@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import numpy as np
-from gemdat.trajectory import Trajectory
 from numpy.testing import assert_allclose
 from pymatgen.core import Lattice, Species
+
+from gemdat.trajectory import Trajectory
 
 
 def test_trajectory(trajectory):

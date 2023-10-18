@@ -3,6 +3,7 @@ Run integration test with:
 
 VASP_XML=/home/stef/md-analysis-matlab-example/vasprun.xml pytest
 """
+from __future__ import annotations
 
 from math import isclose
 

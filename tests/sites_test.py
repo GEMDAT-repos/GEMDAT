@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import numpy as np
+
 from gemdat.transitions import _calculate_transitions_matrix
 
 
