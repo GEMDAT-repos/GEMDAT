@@ -213,5 +213,5 @@ loop_
  _atom_site_fract_y
  _atom_site_fract_z
  _atom_site_occupancy
-  Li  16c  16   0.00   0.00   0.00
-  Li   8a   8   0.125  0.125  0.125
+  Na  16c  16   0.00   0.00   0.00
+  Na   8a   8   0.125  0.125  0.125
