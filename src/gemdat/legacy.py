@@ -1,5 +1,6 @@
 """This module provides a code to deal with the original matlab code that
 Gemdat is based on."""
+from __future__ import annotations
 
 import matplotlib.pyplot as plt
 

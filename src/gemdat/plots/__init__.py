@@ -1,5 +1,7 @@
 """This module contains all the plots that Gemdat can generate."""
+from __future__ import annotations
 
+from ._density import density
 from ._displacements import (
     displacement_histogram,
     displacement_per_element,
@@ -19,6 +21,7 @@ from ._vibration import (
 )
 
 __all__ = [
+    'density',
     'displacement_per_site',
     'displacement_per_element',
     'displacement_histogram',

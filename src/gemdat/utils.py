@@ -1,4 +1,5 @@
 """This module connects generally useful utilties."""
+from __future__ import annotations
 
 import numpy as np
 from pymatgen.core import Lattice, Structure

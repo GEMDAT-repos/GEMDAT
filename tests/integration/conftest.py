@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
+
 from gemdat.io import load_known_material
 from gemdat.rdf import radial_distribution
 from gemdat.sites import SitesData

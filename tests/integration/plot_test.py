@@ -1,5 +1,8 @@
-from gemdat import plots
+from __future__ import annotations
+
 from helpers import image_comparison2
+
+from gemdat import plots
 
 
 @image_comparison2(baseline_images=['displacement_per_element'])
