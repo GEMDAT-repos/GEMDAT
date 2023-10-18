@@ -81,7 +81,8 @@ def plot_volume(volume, *, fig):
         verts, faces, _, _ = measure.marching_cubes(data, level=isoval)
 
         # Transform verts to cartesian system
-        verts = verts / (np.array(data.shape) - 1)
+        verts = (verts + 0.5) / np.array(data.shape)
+
         cart_verts = volume.lattice.get_cartesian_coords(verts)
 
         fig.add_trace(
@@ -91,6 +92,7 @@ def plot_volume(volume, *, fig):
                       i=faces[:, 0],
                       j=faces[:, 1],
                       k=faces[:, 2],
+                      name=f'{isoval=}',
                       opacity=alpha_values[i],
                       color=colors[i],
                       showlegend=False))
@@ -107,15 +109,17 @@ def density(vol: Volume, structure: Structure) -> go.Figure:
     plot_volume(vol, fig=fig)
 
     fig.update_layout(title='Density of diffusing element',
-                      scene=dict(aspectmode='manual',
-                                 aspectratio={
-                                     'x': 2,
-                                     'y': 1,
-                                     'z': 1
-                                 },
-                                 xaxis_title='X (Angstrom)',
-                                 yaxis_title='Y (Angstrom)',
-                                 zaxis_title='Z (Angstrom)'),
+                      scene={
+                          'aspectmode': 'manual',
+                          'aspectratio': {
+                              'x': 2,
+                              'y': 1,
+                              'z': 1
+                          },
+                          'xaxis_title': 'X (Angstrom)',
+                          'yaxis_title': 'Y (Angstrom)',
+                          'zaxis_title': 'Z (Angstrom)'
+                      },
                       legend={
                           'orientation': 'h',
                           'yanchor': 'bottom',
