@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .io import load_known_material, read_cif
 from .simulation_metrics import SimulationMetrics
 from .sites import SitesData
