@@ -3,6 +3,8 @@ dynamics simulations."""
 
 from __future__ import annotations
 
+import hashlib
+import json
 import pickle
 import xml.etree.ElementTree as ET
 from itertools import compress
@@ -185,23 +187,22 @@ class Trajectory(PymatgenTrajectory):
         kwargs.setdefault('parse_potcar_file', False)
 
         if not cache:
-            cache = Path(
-                str(xml_file) + '.' + str(hash(repr(sorted(kwargs.items())))) +
-                '.cache')
+            serialized = json.dumps(kwargs, sort_keys=True).encode()
+            hashid = hashlib.sha1(serialized).hexdigest()[:8]
+            cache = Path(xml_file).with_suffix(f'.xml.{hashid}.cache')
 
         if Path(cache).exists():
             try:
                 return cls.from_cache(cache)
             except Exception as e:
                 print(e)
-                print('Error reading from cache, reading full VaspRun')
+                print(f'Error reading from cache, reading {xml_file!r}')
         try:
             run = vasp.Vasprun(xml_file, **kwargs)
         except ET.ParseError as e:
             raise Exception(
-                'Error parsing the vasprun.xml, to parse incomplete data'
-                " adding 'exception_on_bad_xml=False' to"
-                ' Trajectory.from_vasprun function might help') from e
+                f'Error parsing {xml_file!r}, to parse incomplete data '
+                'adding `exception_on_bad_xml=False` might help') from e
 
         metadata = {'temperature': run.parameters['TEBEG']}
 
