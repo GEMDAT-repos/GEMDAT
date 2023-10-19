@@ -157,6 +157,7 @@ class Trajectory(PymatgenTrajectory):
         cls,
         xml_file: str | Path,
         cache: Optional[str | Path] = None,
+        constant_lattice: bool = True,
         **kwargs,
     ) -> Trajectory:
         """Load data from a `vasprun.xml`.
@@ -167,6 +168,9 @@ class Trajectory(PymatgenTrajectory):
             Path to vasprun.xml
         cache : Optional[Path], optional
             Path to cache data for vasprun.xml
+        constant_lattice : bool
+            Whether the lattice changes during the simulation,
+            such as in an NPT MD simulation.
         **kwargs : dict
             Optional arguments passed to [pymatgen.io.vasp.outputs.Vasprun][]
 
@@ -203,7 +207,7 @@ class Trajectory(PymatgenTrajectory):
 
         obj = cls.from_structures(
             run.structures,
-            constant_lattice=True,
+            constant_lattice=constant_lattice,
             time_step=run.parameters['POTIM'] * 1e-15,
             metadata=metadata,
         )
