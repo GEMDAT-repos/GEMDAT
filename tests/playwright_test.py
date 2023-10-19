@@ -30,9 +30,7 @@ def before_module():
     p.kill()
 
 
-pytest.mark.skip(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/173')
-
-
+@pytest.mark.skip(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/173')
 def test_gemdash(page: Page):
     # Goto web page
     page.goto(BASE_URL)
