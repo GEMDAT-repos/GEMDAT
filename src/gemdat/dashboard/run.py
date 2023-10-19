@@ -123,7 +123,7 @@ with col3:
     st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
               value=f'{metrics.tracer_conductivity(z_ion=1, dimensions=3):g}')
 
-tab1, tab2 = st.tabs(['Default plots', 'RDF plots'])
+tab1, tab2, tab3 = st.tabs(['Default plots', 'RDF plots', 'Density plots'])
 
 sites_structure = load_known_material(sites_filename, supercell=supercell)
 
@@ -210,3 +210,26 @@ if do_rdf:
         for num, col in enumerate(st.columns(number_of_cols)):
             for figure in rdf_figures[num::number_of_cols]:
                 col.pyplot(figure)
+
+with tab3:
+    from gemdat.volume import trajectory_to_volume
+
+    st.title('Density plots')
+
+    with st.form('density form'):
+        density_resolution = st.number_input('Density resolution (Å)',
+                                             min_value=0.1,
+                                             value=0.3,
+                                             step=0.05)
+
+        density_submit = st.form_submit_button('Generate density')
+
+    if density_submit:
+        vol = trajectory_to_volume(
+            trajectory=diff_trajectory,
+            resolution=density_resolution,
+        )
+
+        structure = vol.to_structure()
+        chart = plots.density(vol, structure)
+        st.plotly_chart(chart)
