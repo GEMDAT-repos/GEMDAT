@@ -71,7 +71,8 @@ def plot_points(points: np.ndarray,
     point_size : int, optional
         Size of the points
     """
-    colors = px.colors.qualitative.G10
+    colors_by_site = {site: px.colors.qualitative.G10[i] for i, site in enumerate(np.unique(np.array(labels)))}
+    colors = list(map(colors_by_site.get, labels))
 
     assert len(points) == len(labels)
 
@@ -158,7 +159,7 @@ def plot_volume(
                       showlegend=False))
 
 
-def density(vol: Volume, structure: Structure) -> go.Figure:
+def density(vol: Volume, structure = None) -> go.Figure:
     """Create density plot from volume and structure.
 
     Uses plotly as plotting backend.
@@ -167,7 +168,7 @@ def density(vol: Volume, structure: Structure) -> go.Figure:
     ---------
     vol : Volume
         Input volume
-    structure : Structure
+    structure : Structure, optional
         Input structure
 
     Returns
@@ -175,12 +176,13 @@ def density(vol: Volume, structure: Structure) -> go.Figure:
     fig : go.Figure
         Output as plotly figure
     """
-    lattice = structure.lattice
+    lattice = vol.lattice
 
     fig = go.Figure()
 
     plot_lattice_vectors(lattice, fig=fig)
-    plot_points(structure.cart_coords, structure.labels, fig=fig)
+    if structure:
+        plot_points(lattice.get_cartesian_coords(structure.frac_coords), structure.labels, fig=fig)
     plot_volume(vol, fig=fig)
 
     fig.update_layout(title='Density',
