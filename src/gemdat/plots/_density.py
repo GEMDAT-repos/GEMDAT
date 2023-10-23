@@ -182,14 +182,13 @@ def density(vol: Volume, structure: Structure) -> go.Figure:
     plot_lattice_vectors(lattice, fig=fig)
     plot_points(structure.cart_coords, structure.labels, fig=fig)
     plot_volume(vol, fig=fig)
-
     fig.update_layout(title='Density',
                       scene={
                           'aspectmode': 'manual',
                           'aspectratio': {
-                              'x': 2,
-                              'y': 1,
-                              'z': 1
+                              'x': structure.lattice.a,
+                              'y': structure.lattice.b,
+                              'z': structure.lattice.c,
                           },
                           'xaxis_title': 'X (Angstrom)',
                           'yaxis_title': 'Y (Angstrom)',
@@ -221,9 +220,9 @@ def density(vol: Volume, structure: Structure) -> go.Figure:
                               'z': 0
                           },
                           'eye': {
-                              'x': -1,
-                              'y': 1,
-                              'z': -0.6
+                              'x': -structure.lattice.a * 0.5,
+                              'y': -structure.lattice.b * 2,
+                              'z': structure.lattice.c * 1.5,
                           }
                       })
 
