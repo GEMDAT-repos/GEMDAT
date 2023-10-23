@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import plotly.graph_objects as go
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
 from pymatgen.core import Structure
@@ -171,9 +172,9 @@ with tab1:
     diff_trajectory = trajectory.filter(diffusing_element)
 
     figures = (
-        plots.displacement_per_element(trajectory=trajectory),
+        plots.displacement_per_element2(trajectory=trajectory),
         plots.displacement_per_site(trajectory=diff_trajectory),
-        plots.displacement_histogram(trajectory=diff_trajectory),
+        plots.displacement_histogram2(trajectory=trajectory),
         plots.frequency_vs_occurence(trajectory=diff_trajectory),
         plots.vibrational_amplitudes(trajectory=diff_trajectory),
         plots.jumps_vs_distance(sites=sites),
@@ -185,7 +186,10 @@ with tab1:
     # automagically divide the plots over the number of columns
     for num, col in enumerate(st.columns(number_of_cols)):
         for figure in figures[num::number_of_cols]:
-            col.pyplot(figure)
+            if isinstance(figure, go.Figure):
+                col.plotly_chart(figure, use_container_width=True)
+            else:
+                col.pyplot(figure)
 
 
 def _sites_hash_func(obj: SitesData) -> tuple[Any, Any, Any]:

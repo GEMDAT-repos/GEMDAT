@@ -4,7 +4,9 @@ from __future__ import annotations
 from ._density import density
 from ._displacements import (
     displacement_histogram,
+    displacement_histogram2,
     displacement_per_element,
+    displacement_per_element2,
     displacement_per_site,
 )
 from ._jumps import (
@@ -24,7 +26,9 @@ __all__ = [
     'density',
     'displacement_per_site',
     'displacement_per_element',
+    'displacement_per_element2',
     'displacement_histogram',
+    'displacement_histogram2',
     'frequency_vs_occurence',
     'vibrational_amplitudes',
     'jumps_vs_distance',
