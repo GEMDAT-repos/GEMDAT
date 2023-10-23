@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -151,13 +152,40 @@ def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
     return fig
 
 
-def displacement_histogram2(trajectory: Trajectory) -> go.Figure:
+def _trajectory_to_dataframe(trajectory: Trajectory) -> pd.DataFrame:
+    """_trajectory_to_dataframe.
+
+    Parameters
+    ----------
+    trajectory : Trajectory
+        trajectory
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    data = []
+    for specie, distance in zip(
+            trajectory.species,
+            trajectory.distances_from_base_position()[:, -1]):
+        data.append((specie, round(distance)))
+
+    df = pd.DataFrame(columns=['Element', 'Displacement'], data=data)
+    df = df.groupby(['Displacement', 'Element'
+                     ]).size().reset_index().rename(columns={0: 'count'})
+    return df
+
+
+def displacement_histogram2(trajectory: Trajectory,
+                            n_parts: Optional[int] = None) -> go.Figure:
     """Plot histogram of total displacement at final timestep.
 
     Parameters
     ----------
     trajectory : Trajectory
         Input trajectory, i.e. for the diffusing atom
+    nparts : Optional[int]
+        Plot error bars by dividing data into n parts
 
     Returns
     -------
@@ -165,28 +193,49 @@ def displacement_histogram2(trajectory: Trajectory) -> go.Figure:
         Output figure
     """
 
-    defaultdict(list)
+    if not n_parts:
+        df = _trajectory_to_dataframe(trajectory)
 
-    species = trajectory.species
+        fig = px.bar(df,
+                     x='Displacement',
+                     y='count',
+                     color='Element',
+                     barmode='stack')
 
-    data = []
-    for specie, distance in zip(
-            species,
-            trajectory.distances_from_base_position()[:, -1]):
-        data.append((specie, round(distance)))
+        fig.update_layout(title='Displacement per element',
+                          xaxis_title='Displacement (Angstrom)',
+                          yaxis_title='Nr. of atoms')
+    else:
 
-    df = pd.DataFrame(columns=['Element', 'Displacement'], data=data)
-    df = df.groupby(['Displacement', 'Element'
-                     ]).size().reset_index().rename(columns={0: 'count'})
+        all_df = []
+        interval = np.linspace(0, len(trajectory) - 1, n_parts + 1)
+        trajectories = [
+            trajectory[int(interval[i]):int(interval[i + 1])]
+            for i in range(n_parts)
+        ]
+        for trajectory in trajectories:
 
-    fig = px.bar(df,
-                 x='Displacement',
-                 y='count',
-                 color='Element',
-                 barmode='stack')
+            df = _trajectory_to_dataframe(trajectory)
+            all_df.append(df)
 
-    fig.update_layout(title='Displacement per element',
-                      xaxis_title='Displacement (Angstrom)',
-                      yaxis_title='Nr. of atoms')
+        all_df = pd.concat(all_df)
 
+        # Get the mean and standard deviation
+        grouped = all_df.groupby(['Displacement', 'Element'])
+        mean = grouped.mean().reset_index().rename(columns={'count': 'mean'})
+        std = grouped.std().reset_index().rename(columns={'count': 'std'})
+        df = mean.merge(std, how='inner')
+
+        fig = px.bar(df,
+                     x='Displacement',
+                     y='mean',
+                     color='Element',
+                     error_y='std',
+                     barmode='group')
+
+        fig.update_layout(
+            title=
+            f'Displacement per element after {int(interval[1]-interval[0])} timesteps',
+            xaxis_title='Displacement (Angstrom)',
+            yaxis_title='Nr. of atoms')
     return fig

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import plotly.graph_objects as go
@@ -90,9 +90,17 @@ with st.sidebar:
                                        value=1,
                                        label_visibility='collapsed')))
 
+    st.markdown('## Enable Error Analysis')
+    do_error = st.checkbox('Error Analysis')
+    n_parts: Optional[int] = None
+    if do_error:
+        with st.sidebar:
+            n_parts = int(
+                st.number_input('Number of parts to divide trajectory in',
+                                value=10))
+
     st.markdown('## Radial distribution function')
     do_rdf = st.checkbox('Plot RDFs')
-
     if do_rdf:
         with st.sidebar:
             max_dist_rdf = st.number_input(
@@ -174,7 +182,7 @@ with tab1:
     figures = (
         plots.displacement_per_element2(trajectory=trajectory),
         plots.displacement_per_site(trajectory=diff_trajectory),
-        plots.displacement_histogram2(trajectory=trajectory),
+        plots.displacement_histogram2(trajectory=trajectory, n_parts=n_parts),
         plots.frequency_vs_occurence(trajectory=diff_trajectory),
         plots.vibrational_amplitudes(trajectory=diff_trajectory),
         plots.jumps_vs_distance(sites=sites),
