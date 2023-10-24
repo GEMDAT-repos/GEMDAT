@@ -71,17 +71,13 @@ def plot_points(points: np.ndarray,
     point_size : int, optional
         Size of the points
     """
-    colors_by_site = {
-        site: px.colors.qualitative.G10[i]
-        for i, site in enumerate(np.unique(np.array(labels)))
-    }
-    colors = list(map(colors_by_site.get, labels))
-
     assert len(points) == len(labels)
 
+    colors = dict(zip(labels, px.colors.qualitative.G10))
+
     for i, (x, y, z) in enumerate(points):
-        color = colors[i % len(colors)]
         label = labels[i]
+        color = colors[label]
 
         fig.add_trace(
             go.Scatter3d(x=[x],
