@@ -46,6 +46,10 @@ class SitesData:
         n_parts : int, optional
             Number of parts to divide transitions into for statistics
         """
+        if not trajectory.constant_lattice:
+            raise ValueError(
+                'Trajectory must have constant lattice for site analysis.')
+
         self.n_parts = n_parts
 
         self.floating_specie = floating_specie

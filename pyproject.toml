@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 [project]
 name = "GEMDAT"
-version = "0.9.2"
+version = "0.9.3"
 description = "Generalized Molecular Dynamics Analysis Tool"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -104,7 +104,9 @@ select = [
 line-length = 110
 
 [tool.ruff.isort]
+known-first-party=["gemdat"]
 known-third-party = ["pymatgen"]
+required-imports = ["from __future__ import annotations"]
 
 [tool.mypy]
 files = ["src", "tests"]

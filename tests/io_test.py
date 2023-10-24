@@ -1,5 +1,8 @@
-from gemdat.io import get_list_of_known_materials, load_known_material
+from __future__ import annotations
+
 from pymatgen.core import Structure
+
+from gemdat.io import get_list_of_known_materials, load_known_material
 
 
 def test_load_known_material():

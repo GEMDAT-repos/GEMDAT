@@ -87,7 +87,7 @@ class Volume:
         Parameters
         ----------
         pad : int
-            Extend the volume by this number of voxels by wrapping around. This finding
+            Extend the volume by this number of voxels by wrapping around. This helps finding
             maxima for blobs sitting at the edge of the unit cell.
         remove_outside : bool
             If True, remove peaks outside the lattice. Only applicable

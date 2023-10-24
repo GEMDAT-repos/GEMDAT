@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import numpy as np
 import pytest
-from gemdat.trajectory import Trajectory
 from pymatgen.core import Species
+
+from gemdat.trajectory import Trajectory
 
 
 def pytest_addoption(parser):

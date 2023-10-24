@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -11,6 +14,7 @@ from gemdat.rdf import radial_distribution
 from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
+from gemdat.volume import Volume
 
 st.set_page_config(
     page_title='Gemdat dashboard',
@@ -121,7 +125,7 @@ with col3:
     st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
               value=f'{metrics.tracer_conductivity(z_ion=1, dimensions=3):g}')
 
-tab1, tab2 = st.tabs(['Default plots', 'RDF plots'])
+tab1, tab2, tab3 = st.tabs(['Default plots', 'RDF plots', 'Density plots'])
 
 sites_structure = load_known_material(sites_filename, supercell=supercell)
 
@@ -139,6 +143,10 @@ def _structure_hash_func(obj: Structure) -> dict:
 
 def _trajectory_hash_func(obj: Trajectory) -> np.ndarray:
     return obj.positions
+
+
+def _volume_hash_func(obj: Volume) -> np.ndarray:
+    return obj.data
 
 
 @st.cache_data(hash_funcs={
@@ -208,3 +216,80 @@ if do_rdf:
         for num, col in enumerate(st.columns(number_of_cols)):
             for figure in rdf_figures[num::number_of_cols]:
                 col.pyplot(figure)
+
+with tab3:
+    from gemdat.volume import trajectory_to_volume
+
+    st.title('Density plots')
+
+    col1, col2 = st.columns(2)
+
+    col1.write('Density')
+    density_resolution = col1.number_input(
+        'Resolution (Å)',
+        min_value=0.1,
+        value=0.3,
+        step=0.05,
+        help='Minimum resolution for the voxels in Ångstrom')
+
+    col2.write('Peak finding')
+    background_level = col2.number_input(
+        'Background level',
+        min_value=0.0,
+        max_value=1.0,
+        value=0.1,
+        step=0.05,
+        help=
+        'Fraction of the maximum volume value to set as the minimum value for peak segmentation.'
+    )
+
+    pad = col2.number_input(
+        'Padding',
+        min_value=0,
+        value=3,
+        step=1,
+        help=
+        ('Extend the volume by this number of voxels by wrapping around. This helps finding '
+         'maxima for blobs sitting at the edge of the unit cell.'))
+
+    @st.cache_data(hash_funcs={Trajectory: _trajectory_hash_func})
+    def _generate_density(**kwargs):
+        return trajectory_to_volume(**kwargs)
+
+    @st.cache_data(hash_funcs={Volume: _volume_hash_func})
+    def _generate_structure(vol, **kwargs):
+        return vol.to_structure(**kwargs)
+
+    @st.cache_data(hash_funcs={
+        Volume: _volume_hash_func,
+        Structure: _structure_hash_func
+    })
+    def _density_plot(**kwargs):
+        return plots.density(**kwargs)
+
+    if st.checkbox('Generate density'):
+        vol = _generate_density(
+            trajectory=diff_trajectory,
+            resolution=density_resolution,
+        )
+
+        structure = _generate_structure(
+            vol,
+            background_level=background_level,
+            pad=pad,
+        )
+
+        chart = _density_plot(vol=vol, structure=structure)
+
+        st.plotly_chart(chart)
+
+        col1, col2 = st.columns((8, 2))
+
+        outputfile = col1.text_input(
+            'Filename',
+            trajectory_location.with_name('volume.vasp'),
+            label_visibility='collapsed')
+
+        if col2.button('Save volume', type='primary'):
+            vol.to_vasp_volume(structure=structure, filename=outputfile)
+            st.success(f'Saved to {Path(outputfile).absolute()}')

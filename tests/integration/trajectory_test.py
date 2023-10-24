@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from math import isclose
 
 import numpy as np
 import pytest
+from pymatgen.core import Structure
+
 from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.volume import trajectory_to_volume
-from pymatgen.core import Structure
 
 
 @pytest.fixture

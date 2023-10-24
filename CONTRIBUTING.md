@@ -33,7 +33,7 @@ Typically this means:
 5. Pushing the code back to Github
 6. [Create a new Pull Request](https://help.github.com/articles/creating-a-pull-request/)
 
-One of the code owners will review your code and request changes if needed. Once your changes have been approved, your contributions will become part of *duqtools*. 🎉
+One of the code owners will review your code and request changes if needed. Once your changes have been approved, your contributions will become part of *GEMDAT*. 🎉
 
 ## Getting started with development
 
@@ -50,7 +50,7 @@ git clone https://github.com/GEMDAT-repos/GEMDAT gemdat
 Install using `virtualenv`:
 
 ```console
-cd duqtools
+cd gemdat
 python3 -m venv env
 source env/bin/activate
 python3 -m pip install -e .[develop]
@@ -67,7 +67,7 @@ pip install -e .[develop]
 
 ### Running tests
 
-Duqtools uses [pytest](https://docs.pytest.org/en/latest/) to run the tests. You can run the tests for yourself using:
+GEMDAT uses [pytest](https://docs.pytest.org/en/latest/) to run the tests. You can run the tests for yourself using:
 
 ```console
 pytest
