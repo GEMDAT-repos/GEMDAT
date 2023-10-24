@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 
 import numpy as np
 import plotly.express as px
@@ -71,13 +71,13 @@ def plot_points(points: np.ndarray,
     point_size : int, optional
         Size of the points
     """
-    colors = px.colors.qualitative.G10
-
     assert len(points) == len(labels)
 
+    colors = dict(zip(labels, px.colors.qualitative.G10))
+
     for i, (x, y, z) in enumerate(points):
-        color = colors[i % len(colors)]
         label = labels[i]
+        color = colors[label]
 
         fig.add_trace(
             go.Scatter3d(x=[x],
@@ -158,7 +158,7 @@ def plot_volume(
                       showlegend=False))
 
 
-def density(vol: Volume, structure: Structure) -> go.Figure:
+def density(vol: Volume, structure: Optional[Structure] = None) -> go.Figure:
     """Create density plot from volume and structure.
 
     Uses plotly as plotting backend.
@@ -167,7 +167,7 @@ def density(vol: Volume, structure: Structure) -> go.Figure:
     ---------
     vol : Volume
         Input volume
-    structure : Structure
+    structure : Structure, optional
         Input structure
 
     Returns
@@ -175,13 +175,16 @@ def density(vol: Volume, structure: Structure) -> go.Figure:
     fig : go.Figure
         Output as plotly figure
     """
-    lattice = structure.lattice
-
     fig = go.Figure()
 
-    plot_lattice_vectors(lattice, fig=fig)
-    plot_points(structure.cart_coords, structure.labels, fig=fig)
+    plot_lattice_vectors(vol.lattice, fig=fig)
     plot_volume(vol, fig=fig)
+
+    if structure:
+        if structure.lattice == vol.lattice:
+            plot_points(structure.cart_coords, structure.labels, fig=fig)
+        else:
+            plot_structure(structure, fig=fig)
 
     fig.update_layout(title='Density',
                       scene={
@@ -191,9 +194,9 @@ def density(vol: Volume, structure: Structure) -> go.Figure:
                               'y': 1,
                               'z': 1
                           },
-                          'xaxis_title': 'X (Angstrom)',
-                          'yaxis_title': 'Y (Angstrom)',
-                          'zaxis_title': 'Z (Angstrom)'
+                          'xaxis_title': 'X (Ångstrom)',
+                          'yaxis_title': 'Y (Ångstrom)',
+                          'zaxis_title': 'Z (Ångstrom)'
                       },
                       legend={
                           'orientation': 'h',
