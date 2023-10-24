@@ -288,6 +288,16 @@ class Volume:
 
         return structure
 
+    def get_free_energy(
+        self,
+        kBT,
+        **kwargs,
+    ) -> np.ndarray:
+        """Estimate the free energy from volume."""
+        prob = self.data / self.data.sum()
+        free_energy = -kBT * np.log(prob)
+        return np.nan_to_num(free_energy)
+
 
 def trajectory_to_volume(
     trajectory: Trajectory,

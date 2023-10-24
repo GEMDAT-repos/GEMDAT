@@ -14,6 +14,10 @@ from ._jumps import (
     jumps_vs_distance,
     jumps_vs_time,
 )
+from ._paths import (
+    energy_along_path,
+    path_on_grid,
+)
 from ._rdf import radial_distribution
 from ._vibration import (
     frequency_vs_occurence,
@@ -33,4 +37,6 @@ __all__ = [
     'jumps_3d',
     'jumps_3d_animation',
     'radial_distribution',
+    'energy_along_path',
+    'path_on_grid',
 ]

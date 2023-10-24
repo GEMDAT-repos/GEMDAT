@@ -3,6 +3,7 @@ sites."""
 
 from __future__ import annotations
 
+import heapq
 import typing
 
 import numpy as np
@@ -401,3 +402,198 @@ def _calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
     occupancy = dict(zip(unq, counts))
     occupancy.pop(NOSITE, None)
     return occupancy
+
+
+def dijkstra_path(
+    grid: np.ndarray,
+    start: tuple,
+    end: tuple,
+    max_energy_threshold=1e20,
+    diagonal=True
+) -> typing.Union[typing.Optional[np.ndarray], typing.Optional[float],
+                  typing.Optional[tuple]]:
+    """Calculate the shortest cost-effective path from start to end using
+    Dijkstra's algorithm.
+
+    Parameters
+    ----------
+    grid : np.ndarray
+        Energy grid that will be used to calculate the shortest path
+    start : np.ndarray
+        Coordinates of the starting point
+    end: np.ndarray
+        Coordinates of the ending point
+    max_energy_threshold : float, optional
+        Maximum energy threshold for the path to be considered valid
+    diagonal : bool
+        If True, allows diagonal grid moves
+
+    Returns
+    -------
+    path: list[np.ndarray]
+        List of coordinates of the path
+    path_energy: float
+        Energy of the path
+    """
+
+    def wrap_pbc(coord, size):
+        # Wrap around the coordinate if it goes beyond the PBC.
+        return coord % size
+
+    # Define possible movements in 3D space
+    if not diagonal:
+        # If the diagonals are not allowed, there are only 6 possible directions).
+        movements = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1),
+                     (0, 0, -1)]
+    else:
+        movements = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1),
+                     (0, 0, -1),
+                     (1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0), (1, 0, 1),
+                     (-1, 0, -1), (1, 0, -1), (-1, 0, 1), (0, 1, 1),
+                     (0, -1, -1), (0, 1, -1), (0, -1, 1), (1, 1, 1),
+                     (-1, -1, -1), (1, -1, -1), (-1, 1, 1)]
+
+    # Create a 3D array to store the minimum energy required to reach each point.
+    min_energy = np.inf * np.ones_like(grid)
+
+    # Create a 3D array to store the previous node for backtracking the path.
+    prev_node = np.full(grid.shape, None, dtype=object)
+
+    # Initialize the start point with zero energy.
+    min_energy[start] = 0
+
+    # Create a priority queue to explore points in order of minimum energy.
+    #pq: typing.List[typing.Tuple[float, np.ndarray]] = [(0.0, start)]
+    pq = [(0.0, start)]
+
+    while pq:
+        energy, current_node = heapq.heappop(pq)
+
+        if current_node == end:
+            # Reconstruct the path and its energy.
+            path_energy = []
+            path_nodes = []
+            while current_node is not None:
+                path_nodes.append(current_node)
+                if prev_node[current_node] is not None:
+                    path_energy.append(grid[current_node])
+                current_node = prev_node[current_node]
+            path_nodes.reverse()
+            path_energy.reverse()
+            return path_nodes, path_energy
+
+        if energy > min_energy[current_node]:
+            continue
+
+        for move in movements:
+            neighbor = tuple(
+                wrap_pbc(np.array(current_node) + np.array(move), grid.shape))
+
+            if 0 <= neighbor[0] < grid.shape[0] and 0 <= neighbor[
+                    1] < grid.shape[1] and 0 <= neighbor[2] < grid.shape[2]:
+                # Ignore the grid neighbors that have too much energy.
+                if grid[neighbor] >= 0 and grid[
+                        neighbor] < max_energy_threshold:
+                    new_energy = min_energy[current_node] + grid[neighbor]
+                    if new_energy < min_energy[neighbor]:
+                        min_energy[neighbor] = new_energy
+                        prev_node[neighbor] = current_node
+                        heapq.heappush(pq, (new_energy, neighbor))
+
+    return None, None  # If no path is found
+
+
+## *** The function below uses scipy to find the optimal path, but it is ~100 times slower than the above one.
+## *** If we want to use scipy, fix this otherwise remove.
+#from scipy.sparse import csr_matrix
+#from scipy.sparse.csgraph import dijkstra
+#def dijkstra_scipy(grid: np.ndarray,
+#                   start: np.ndarray,
+#                   end: np.ndarray,
+#                   max_energy_threshold=1e20) -> typing.Union[list, list]:
+#    def wrap_pbc(coord, size):
+#        return coord % size
+#
+#    movements = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+#
+#    # Create a sparse graph to represent the 3D grid.
+#    num_nodes = np.prod(grid.shape)
+#    row, col, data = [], [], []
+#    for i in range(grid.shape[0]):
+#        for j in range(grid.shape[1]):
+#            for k in range(grid.shape[2]):
+#                current_node = (i, j, k)
+#                current_index = np.ravel_multi_index(current_node, grid.shape)
+#                for move in movements:
+#                    neighbor_node = tuple(wrap_pbc(np.array(current_node) + np.array(move), grid.shape))
+#                    neighbor_index = np.ravel_multi_index(neighbor_node, grid.shape)
+#                    cost = grid[neighbor_node]
+#                    if cost >= 0 and cost < max_energy_threshold:
+#                        row.append(current_index)
+#                        col.append(neighbor_index)
+#                        data.append(cost)
+#
+#    graph = csr_matrix((data, (row, col)), shape=(num_nodes, num_nodes))
+#
+#    # Find the shortest path using scipy.
+#    start_index = np.ravel_multi_index(start, grid.shape)
+#    end_index = np.ravel_multi_index(end, grid.shape)
+#    shortest_path = dijkstra(csgraph=graph, indices=start_index, directed=False)
+#
+#    # Reconstruct the path and its energy.
+#    path = [end]
+#    path_energy = []
+#    current_index = end_index
+#    while current_index != start_index:
+#        neighbors = np.where(graph[current_index].data > 0)
+#        neighbor_indices = graph[current_index].indices[neighbors]
+#        min_neighbor_index = np.argmin(shortest_path[neighbor_indices])
+#        min_neighbor = np.unravel_index(neighbor_indices[min_neighbor_index], grid.shape)
+#        path_energy.append(grid[min_neighbor])
+#        path.append(min_neighbor)
+#        current_index = neighbor_indices[min_neighbor_index]
+#    path.reverse()
+#    path_energy.reverse()
+#
+#    return path, path_energy
+
+
+def direct_path(grid: np.ndarray, start: tuple,
+                end: tuple) -> typing.Union[tuple, np.ndarray]:
+    """Calculate the shortest path from start to end points.
+
+    Parameters
+    ----------
+    grid : np.ndarray
+        Energy grid that will be used to calculate the shortest path
+    start : np.ndarray
+        Coordinates of the starting point
+    end: np.ndarray
+        Coordinates of the ending point
+
+    Returns
+    -------
+    path: list
+        List of coordinates of the path
+    path_energy: list
+        Energy along the path
+    """
+
+    def wrap_around(coord, size):
+        return coord % size
+
+    path = [start]
+    current_position = start
+    energy_cost = []
+
+    while current_position != end:
+        next_position = tuple(
+            wrap_around(
+                np.array(current_position) +
+                np.sign(np.array(end) - np.array(current_position)),
+                grid.shape))
+        path.append(next_position)
+        energy_cost.append(grid[next_position])
+        current_position = next_position
+
+    return path, np.nan_to_num(energy_cost)
