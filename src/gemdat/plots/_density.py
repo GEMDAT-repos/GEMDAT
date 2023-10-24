@@ -190,9 +190,9 @@ def density(vol: Volume, structure: Optional[Structure] = None) -> go.Figure:
                       scene={
                           'aspectmode': 'manual',
                           'aspectratio': {
-                              'x': structure.lattice.a,
-                              'y': structure.lattice.b,
-                              'z': structure.lattice.c,
+                              'x': vol.lattice.a,
+                              'y': vol.lattice.b,
+                              'z': vol.lattice.c,
                           },
                           'xaxis_title': 'X (Ångstrom)',
                           'yaxis_title': 'Y (Ångstrom)',
@@ -213,20 +213,10 @@ def density(vol: Volume, structure: Optional[Structure] = None) -> go.Figure:
                           't': 0
                       },
                       scene_camera={
-                          'up': {
-                              'x': 0,
-                              'y': 0,
-                              'z': 1
-                          },
-                          'center': {
-                              'x': 0,
-                              'y': 0,
-                              'z': 0
-                          },
                           'eye': {
-                              'x': -structure.lattice.a * 0.5,
-                              'y': -structure.lattice.b * 2,
-                              'z': structure.lattice.c * 1.5,
+                              'x': -vol.lattice.a * 0.5,
+                              'y': -vol.lattice.b * 2,
+                              'z': vol.lattice.c * 1.5,
                           }
                       })
 
