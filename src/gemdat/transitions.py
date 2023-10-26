@@ -410,8 +410,9 @@ def dijkstra_path(
     end: tuple,
     max_energy_threshold=1e20,
     diagonal=True
-) -> typing.Union[typing.Optional[np.ndarray], typing.Optional[float],
-                  typing.Optional[tuple]]:
+    #) -> typing.Optional[typing.Union[typing.Optional[np.ndarray], typing.
+    #                                  Optional[float], typing.Optional[tuple]]]:
+) -> typing.Union[list, list]:
     """Calculate the shortest cost-effective path from start to end using
     Dijkstra's algorithm.
 
@@ -432,8 +433,8 @@ def dijkstra_path(
     -------
     path: list[np.ndarray]
         List of coordinates of the path
-    path_energy: float
-        Energy of the path
+    path_energy: list[float]
+        Energy along the path
     """
 
     def wrap_pbc(coord, size):
@@ -455,22 +456,17 @@ def dijkstra_path(
 
     # Create a 3D array to store the minimum energy required to reach each point.
     min_energy = np.inf * np.ones_like(grid)
-
     # Create a 3D array to store the previous node for backtracking the path.
     prev_node = np.full(grid.shape, None, dtype=object)
-
     # Initialize the start point with zero energy.
     min_energy[start] = 0
-
     # Create a priority queue to explore points in order of minimum energy.
-    #pq: typing.List[typing.Tuple[float, np.ndarray]] = [(0.0, start)]
     pq = [(0.0, start)]
 
     while pq:
         energy, current_node = heapq.heappop(pq)
 
         if current_node == end:
-            # Reconstruct the path and its energy.
             path_energy = []
             path_nodes = []
             while current_node is not None:
@@ -500,66 +496,11 @@ def dijkstra_path(
                         prev_node[neighbor] = current_node
                         heapq.heappush(pq, (new_energy, neighbor))
 
-    return None, None  # If no path is found
-
-
-## *** The function below uses scipy to find the optimal path, but it is ~100 times slower than the above one.
-## *** If we want to use scipy, fix this otherwise remove.
-#from scipy.sparse import csr_matrix
-#from scipy.sparse.csgraph import dijkstra
-#def dijkstra_scipy(grid: np.ndarray,
-#                   start: np.ndarray,
-#                   end: np.ndarray,
-#                   max_energy_threshold=1e20) -> typing.Union[list, list]:
-#    def wrap_pbc(coord, size):
-#        return coord % size
-#
-#    movements = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
-#
-#    # Create a sparse graph to represent the 3D grid.
-#    num_nodes = np.prod(grid.shape)
-#    row, col, data = [], [], []
-#    for i in range(grid.shape[0]):
-#        for j in range(grid.shape[1]):
-#            for k in range(grid.shape[2]):
-#                current_node = (i, j, k)
-#                current_index = np.ravel_multi_index(current_node, grid.shape)
-#                for move in movements:
-#                    neighbor_node = tuple(wrap_pbc(np.array(current_node) + np.array(move), grid.shape))
-#                    neighbor_index = np.ravel_multi_index(neighbor_node, grid.shape)
-#                    cost = grid[neighbor_node]
-#                    if cost >= 0 and cost < max_energy_threshold:
-#                        row.append(current_index)
-#                        col.append(neighbor_index)
-#                        data.append(cost)
-#
-#    graph = csr_matrix((data, (row, col)), shape=(num_nodes, num_nodes))
-#
-#    # Find the shortest path using scipy.
-#    start_index = np.ravel_multi_index(start, grid.shape)
-#    end_index = np.ravel_multi_index(end, grid.shape)
-#    shortest_path = dijkstra(csgraph=graph, indices=start_index, directed=False)
-#
-#    # Reconstruct the path and its energy.
-#    path = [end]
-#    path_energy = []
-#    current_index = end_index
-#    while current_index != start_index:
-#        neighbors = np.where(graph[current_index].data > 0)
-#        neighbor_indices = graph[current_index].indices[neighbors]
-#        min_neighbor_index = np.argmin(shortest_path[neighbor_indices])
-#        min_neighbor = np.unravel_index(neighbor_indices[min_neighbor_index], grid.shape)
-#        path_energy.append(grid[min_neighbor])
-#        path.append(min_neighbor)
-#        current_index = neighbor_indices[min_neighbor_index]
-#    path.reverse()
-#    path_energy.reverse()
-#
-#    return path, path_energy
+    return [[], []]
 
 
 def direct_path(grid: np.ndarray, start: tuple,
-                end: tuple) -> typing.Union[tuple, np.ndarray]:
+                end: tuple) -> typing.Union[list, list]:
     """Calculate the shortest path from start to end points.
 
     Parameters
@@ -573,9 +514,9 @@ def direct_path(grid: np.ndarray, start: tuple,
 
     Returns
     -------
-    path: list
+    path: list[np.ndarray]
         List of coordinates of the path
-    path_energy: list
+    path_energy: list[float]
         Energy along the path
     """
 
@@ -596,4 +537,103 @@ def direct_path(grid: np.ndarray, start: tuple,
         energy_cost.append(grid[next_position])
         current_position = next_position
 
-    return path, np.nan_to_num(energy_cost)
+    return [path, list(np.nan_to_num(energy_cost))]
+
+
+def find_best_perc_path(
+        F: np.ndarray,
+        peaks: np.ndarray,
+        percolate_x=True,
+        percolate_y=False,
+        percolate_z=False) -> typing.Union[float, tuple, tuple, np.ndarray]:
+    """Calculate the best percolating path.
+
+    Parameters
+    ----------
+    F : np.ndarray
+        Energy grid that will be used to calculate the shortest path
+    peaks : np.ndarray
+        List of the peaks that correspond to high probability regions
+    percolate_x : bool
+        If True, consider paths that percolate along the x dimension
+    percolate_y : bool
+        If True, consider paths that percolate along the y dimension
+    percolate_z : bool
+        If True, consider paths that percolate along the z dimension
+
+    Returns
+    -------
+    total_energy_cost: float
+        Total energy cost of the best percolating path
+    best_starting_point: tuple
+        Coordinates of the starting site where the best percolating path was found
+    best_perc_path: list
+        List of coordinates of the path
+    best_perc_path_energy: list
+        Energy along the path
+    """
+    X_real, Y_real, Z_real = F.shape
+
+    # Find percolation using virtual images along the required dimensions
+    if not (percolate_x + percolate_y + percolate_z):
+        print('Warning: percolation is not defined')
+        return None, None, None
+    if percolate_x:
+        extended_F = np.empty((2 * X_real, Y_real, Z_real), dtype=F.dtype)
+        extended_F[:X_real, :, :] = F
+        extended_F[X_real:, :, :] = F
+        F = extended_F
+    if percolate_y:
+        extended_F = np.empty((X_real, 2 * Y_real, Z_real), dtype=F.dtype)
+        extended_F[:, :Y_real, :] = F
+        extended_F[:, Y_real:, :] = F
+        F = extended_F
+    if percolate_z:
+        extended_F = np.empty((X_real, Y_real, 2 * Z_real), dtype=F.dtype)
+        extended_F[:, :, :Z_real] = F
+        extended_F[:, :, Z_real:] = F
+        F = extended_F
+    X, Y, Z = F.shape
+
+    # Find the lowest cost path that percolates along the x dimension
+    total_energy_cost = float('inf')
+    best_starting_point = None
+    best_perc_path = []
+
+    # Iterate only over the peaks that have not been part of a percolating path
+    peaks_mask = np.zeros(peaks.shape[0], dtype=bool)
+    remaining_peaks = len(peaks)
+
+    for counter, starting_point in enumerate(peaks):
+        if peaks_mask[counter]:
+            continue
+
+        # Get the end point which is a periodic image of the peak
+        end_point = (starting_point[0] + (1 + X_real) * percolate_x,
+                     starting_point[1] + (1 + Y_real) * percolate_y,
+                     starting_point[2] + (1 + Z_real) * percolate_z)
+
+        # Use Dijkstra's algorithm to find the best path
+        path, path_energy = dijkstra_path(F,
+                                          tuple(starting_point),
+                                          tuple(end_point),
+                                          max_energy_threshold=1e6)
+
+        if path:
+            # Calculate the path cost
+            path_cost = np.sum(path_energy)
+
+            # Remove all the peaks that have been part of the path
+            peaks_mask[counter] = True
+            for mask in range(counter + 1, len(peaks)):
+                if not peaks_mask[mask] and tuple(peaks[mask]) in path:
+                    peaks_mask[mask] = True
+                    remaining_peaks -= 1
+
+            if path_cost < total_energy_cost:
+                total_energy_cost = path_cost
+                best_starting_point = starting_point
+                best_perc_path = path
+                best_perc_path_energy = path_energy
+
+    return total_energy_cost, best_starting_point, best_perc_path, best_perc_path_energy
