@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -177,14 +176,14 @@ def _trajectory_to_dataframe(trajectory: Trajectory) -> pd.DataFrame:
 
 
 def displacement_histogram2(trajectory: Trajectory,
-                            n_parts: Optional[int] = None) -> go.Figure:
+                            n_parts: int = 1) -> go.Figure:
     """Plot histogram of total displacement at final timestep.
 
     Parameters
     ----------
     trajectory : Trajectory
         Input trajectory, i.e. for the diffusing atom
-    nparts : Optional[int]
+    nparts : int
         Plot error bars by dividing data into n parts
 
     Returns
@@ -193,7 +192,7 @@ def displacement_histogram2(trajectory: Trajectory,
         Output figure
     """
 
-    if not n_parts:
+    if n_parts == 1:
         df = _trajectory_to_dataframe(trajectory)
 
         fig = px.bar(df,

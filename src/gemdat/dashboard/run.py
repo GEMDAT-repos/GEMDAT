@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import plotly.graph_objects as go
@@ -92,7 +92,7 @@ with st.sidebar:
 
     st.markdown('## Enable Error Analysis')
     do_error = st.checkbox('Error Analysis')
-    n_parts: Optional[int] = None
+    n_parts: int = 1
     if do_error:
         with st.sidebar:
             n_parts = int(
@@ -174,7 +174,7 @@ with tab1:
             structure=sites_structure,
             trajectory=trajectory,
             floating_specie=diffusing_element,
-            n_parts=10,
+            n_parts=n_parts,
         )
 
     diff_trajectory = trajectory.filter(diffusing_element)
@@ -186,6 +186,7 @@ with tab1:
         plots.frequency_vs_occurence(trajectory=diff_trajectory),
         plots.vibrational_amplitudes(trajectory=diff_trajectory),
         plots.jumps_vs_distance(sites=sites),
+        plots.jumps_vs_distance2(sites=sites, n_parts=n_parts),
         plots.jumps_vs_time(sites=sites),
         plots.collective_jumps(sites=sites),
         plots.jumps_3d(sites=sites),

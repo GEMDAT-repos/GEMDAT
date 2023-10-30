@@ -14,6 +14,7 @@ from ._jumps import (
     jumps_3d,
     jumps_3d_animation,
     jumps_vs_distance,
+    jumps_vs_distance2,
     jumps_vs_time,
 )
 from ._rdf import radial_distribution
@@ -32,6 +33,7 @@ __all__ = [
     'frequency_vs_occurence',
     'vibrational_amplitudes',
     'jumps_vs_distance',
+    'jumps_vs_distance2',
     'jumps_vs_time',
     'collective_jumps',
     'jumps_3d',
