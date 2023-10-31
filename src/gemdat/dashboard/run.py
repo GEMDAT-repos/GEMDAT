@@ -184,7 +184,6 @@ with tab1:
         plots.displacement_per_site(trajectory=diff_trajectory),
         plots.displacement_histogram2(trajectory=trajectory, n_parts=n_parts),
         plots.frequency_vs_occurence(trajectory=diff_trajectory),
-        plots.vibrational_amplitudes(trajectory=diff_trajectory),
         plots.vibrational_amplitudes2(trajectory=diff_trajectory,
                                       n_parts=n_parts),
         plots.jumps_vs_distance2(sites=sites, n_parts=n_parts),
