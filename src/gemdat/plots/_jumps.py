@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from matplotlib import colormaps
 from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
-    import plotly.graph_objects as go
 
     from gemdat import SitesData
 
@@ -164,6 +164,66 @@ def jumps_vs_time(*, sites: SitesData, binsize: int = 500) -> plt.Figure:
     ax.set(title='Jumps vs. time',
            xlabel='Time (steps)',
            ylabel='Number of jumps')
+
+    return fig
+
+
+def jumps_vs_time2(*,
+                   sites: SitesData,
+                   bins: Optional[int] = None,
+                   n_parts: int = 1) -> go.Figure:
+    """Plot jumps vs. distance histogram.
+
+    Parameters
+    ----------
+    sites : SitesData
+        Input sites data
+    bins : int, optional
+        Number of bins
+    n_parts : int
+        Number of parts for error analysis
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Output figure
+    """
+
+    if not bins:
+        bins = 8
+
+    maxlen = len(sites.trajectory) / n_parts
+    binsize = maxlen / bins + 1
+    data = []
+
+    for transitions_part in sites.transitions.split(n_parts=n_parts,
+                                                    n_steps=len(
+                                                        sites.trajectory)):
+        data.append(
+            np.histogram(transitions_part.events[:, 4],
+                         bins=bins,
+                         range=(0., maxlen))[0])
+
+    df = pd.DataFrame(data=data)
+    columns = [binsize / 2 + binsize * col for col in range(bins)]
+
+    mean = [df[col].mean() for col in df.columns]
+    std = [df[col].std() for col in df.columns]
+
+    df = pd.DataFrame(data=zip(columns, mean, std),
+                      columns=['time', 'count', 'std'])
+    df['specie'] = sites.floating_specie
+
+    if n_parts > 1:
+        fig = px.bar(df, x='time', y='count', color='specie', error_y='std')
+    else:
+        fig = px.bar(df, x='time', y='count', color='specie')
+
+    fig.update_layout(bargap=0.2)
+
+    fig.update_layout(title='Jumps vs. time',
+                      xaxis_title='Time (steps)',
+                      yaxis_title='Number of jumps')
 
     return fig
 

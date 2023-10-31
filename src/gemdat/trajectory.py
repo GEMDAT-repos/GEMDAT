@@ -9,7 +9,7 @@ import pickle
 import xml.etree.ElementTree as ET
 from itertools import compress
 from pathlib import Path
-from typing import Collection, Optional
+from typing import Collection, List, Optional
 
 import numpy as np
 from pymatgen.core import Lattice
@@ -361,3 +361,22 @@ class Trajectory(PymatgenTrajectory):
                               lattice=self.get_lattice(),
                               metadata=self.metadata,
                               time_step=self.time_step)
+
+    def split(self, n_parts: int) -> List[Trajectory]:
+        """Split the trajectory in n similar parts.
+
+        Parameters
+        ----------
+        n_parts : int
+            n_parts
+
+        Returns
+        -------
+        List[Trajectory]
+        """
+
+        interval = np.linspace(0, len(self) - 1, n_parts + 1)
+        subtrajectories = [
+            self[int(interval[i]):int(interval[i + 1])] for i in range(n_parts)
+        ]
+        return subtrajectories

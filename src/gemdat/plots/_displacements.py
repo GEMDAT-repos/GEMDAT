@@ -208,10 +208,8 @@ def displacement_histogram2(trajectory: Trajectory,
 
         all_df = []
         interval = np.linspace(0, len(trajectory) - 1, n_parts + 1)
-        trajectories = [
-            trajectory[int(interval[i]):int(interval[i + 1])]
-            for i in range(n_parts)
-        ]
+        trajectories = trajectory.split(n_parts)
+
         for trajectory in trajectories:
 
             df = _trajectory_to_dataframe(trajectory)
