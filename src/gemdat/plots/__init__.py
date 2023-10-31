@@ -22,6 +22,7 @@ from ._rdf import radial_distribution
 from ._vibration import (
     frequency_vs_occurence,
     vibrational_amplitudes,
+    vibrational_amplitudes2,
 )
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     'displacement_histogram2',
     'frequency_vs_occurence',
     'vibrational_amplitudes',
+    'vibrational_amplitudes2',
     'jumps_vs_distance',
     'jumps_vs_distance2',
     'jumps_vs_time',

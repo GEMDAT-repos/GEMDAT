@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -170,7 +170,7 @@ def jumps_vs_time(*, sites: SitesData, binsize: int = 500) -> plt.Figure:
 
 def jumps_vs_time2(*,
                    sites: SitesData,
-                   bins: Optional[int] = None,
+                   bins: int = 8,
                    n_parts: int = 1) -> go.Figure:
     """Plot jumps vs. distance histogram.
 
@@ -188,9 +188,6 @@ def jumps_vs_time2(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-
-    if not bins:
-        bins = 8
 
     maxlen = len(sites.trajectory) / n_parts
     binsize = maxlen / bins + 1
