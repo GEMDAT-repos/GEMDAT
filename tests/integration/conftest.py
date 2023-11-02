@@ -6,6 +6,7 @@ import pytest
 
 from gemdat.io import load_known_material
 from gemdat.rdf import radial_distribution
+from gemdat.shape import ShapeAnalyzer
 from gemdat.sites import SitesData
 from gemdat.trajectory import Trajectory
 
@@ -57,3 +58,18 @@ def vasp_rdf_data(vasp_traj, structure):
     )
 
     return rdfs
+
+
+@pytest.fixture(scope='module')
+def vasp_shape_data(vasp_traj):
+    trajectory = vasp_traj[-1000:]
+    trajectory.filter('Li')
+
+    # shape analysis needs structure without supercell
+    structure = load_known_material('argyrodite')
+
+    sa = ShapeAnalyzer.from_structure(structure)
+
+    shapes = sa.analyze_trajectory(trajectory, supercell=(2, 1, 1))
+
+    return shapes

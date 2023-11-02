@@ -152,8 +152,8 @@ class ShapeAnalyzer:
         return cart_coords
 
     def analyze_trajectory(self,
-                           *,
                            trajectory: Trajectory,
+                           *,
                            supercell: None
                            | tuple[float, float, float] = None,
                            threshold: float = 1.0) -> list[ShapeData]:
@@ -197,8 +197,8 @@ class ShapeAnalyzer:
         return self.analyze_positions(positions=positions, threshold=threshold)
 
     def analyze_positions(self,
-                          *,
                           positions: np.ndarray,
+                          *,
                           threshold: float = 1.0) -> list[ShapeData]:
         """Perform shape analysis on array of fractional coordinates.
 
