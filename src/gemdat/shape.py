@@ -134,14 +134,9 @@ class ShapeAnalyzer:
             # same sphere around coordr
             offsets = np.digitize(close - sym_coords, bins=[0.5, -0.4999999
                                                             ]) - 1
-
             close += offsets
 
             inversed = op.inverse.operate_multi(close)
-
-            print(f'size: {len(inversed)}', end=', ')
-            print(
-                'mean: {: .3f} {: .3f} {: .3f}'.format(*inversed.mean(axis=0)))
 
             cluster.append(inversed)
 
@@ -223,8 +218,6 @@ class ShapeAnalyzer:
         shapes = []
 
         for site in self.unique_sites:
-            print(f'\n{site.label}: {site.frac_coords}\n')
-
             eqv_coords = self.find_equivalent_positions(site=site,
                                                         positions=positions,
                                                         threshold=threshold)
