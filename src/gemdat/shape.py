@@ -11,69 +11,46 @@ from .trajectory import Trajectory
 from .utils import warn_lattice_not_close
 
 
-def plot_shape(shape: ShapeData, bins: int = 50):
-    import matplotlib.pyplot as plt
-
-    x_labels = ('X / Å', 'Y / Å', 'Z / Å')
-    y_labels = ('Y / Å', 'Z / Å', 'X / Å')
-
-    fig, axes = plt.subplots(nrows=2,
-                             ncols=3,
-                             sharex=True,
-                             figsize=(12, 5),
-                             gridspec_kw={'height_ratios': (4, 1)})
-    fig.tight_layout()
-
-    distances = np.sum(shape.coords**2, axis=1)**0.5
-
-    msd = np.mean(distances**2)
-    std = np.std(distances**2)
-    title = f'{shape.name}: MSD = {msd:.3f}$~Å^2$, std = {std:.3f}'
-
-    axes[0, 1].set_title(title)
-
-    for i, (x, y) in enumerate(
-        ((shape.x, shape.y), (shape.y, shape.z), (shape.z, shape.x))):
-        ax0 = axes[0, i]
-        ax1 = axes[1, i]
-
-        ax0.hist2d(x=x, y=y, bins=bins)
-        ax0.set_ylabel(y_labels[i])
-
-        circle = plt.Circle((0, 0), msd, color='r', linestyle='--', fill=False)
-        ax0.add_patch(circle)
-
-        ax0.scatter(x=[0], y=[0], color='r', marker='.')
-        ax0.axis('equal')
-
-        ax1.hist(x=x, bins=bins, density=True)
-        ax1.set_xlabel(x_labels[i])
-        ax1.set_ylabel('density')
-
-    fig.tight_layout()
-
-
 @dataclass
 class ShapeData:
+    """Data class for storing shape data.
+
+    Parameters
+    ----------
+    name : str
+        Name or label for associated with this shape
+    coords : np.ndarray
+        (n, 3) coordinate array in cartesian system
+    """
     name: str
     coords: np.ndarray
 
     @property
     def x(self):
+        """Return x coordinates."""
         return self.coords[:, 0]
 
     @property
     def y(self):
+        """Return y coordinates."""
         return self.coords[:, 1]
 
     @property
     def z(self):
+        """Return z coordinates."""
         return self.coords[:, 2]
 
 
 class ShapeAnalyzer:
 
     def __init__(self, symmetrized_structure: SymmetrizedStructure):
+        """Takes a symmetrized structure to set up the site analyzer.
+
+        Parameters
+        ----------
+        symmetrized_structure : SymmetrizedStructure
+            Input structure, must be symmetrized.
+        """
         self.unique_sites = [
             sites[0] for sites in symmetrized_structure.equivalent_sites
         ]
@@ -82,56 +59,69 @@ class ShapeAnalyzer:
 
     @classmethod
     def from_structure(cls, structure: Structure):
+        """Contstruct instance from [Structure][pymatgen.core.Structure].
+
+        The input structure is symmetrized using
+        [SpacegroupAnalyzer][pymatgen.symmetry.analyzer.SpacegroupAnalyzer].
+
+        Parameters
+        ----------
+        structure : Structure
+            Input structure
+        """
         sga = SpacegroupAnalyzer(structure)
         symmetrized_structure = sga.get_symmetrized_structure()
         return cls(symmetrized_structure=symmetrized_structure)
-
-    def _positions_from_trajectory(self,
-                                   trajectory: Trajectory,
-                                   *,
-                                   supercell: None
-                                   | tuple[float, float, float] = None):
-        """Lattices must be similar.
-
-        Supercell is used to fold trajectory positions into same
-        lattice.
-        """
-        test_lattice = trajectory.get_lattice(0)
-        positions = trajectory.positions.reshape(-1, 3)
-
-        if supercell is not None:
-            scale_arr = np.array(supercell)
-
-            scale_matrix = (1 / scale_arr) * np.eye(3)
-            test_lattice = Lattice(np.dot(scale_matrix, test_lattice.matrix))
-
-            positions = np.mod(positions, 1 / scale_arr) * scale_arr
-
-        warn_lattice_not_close(self.lattice, test_lattice)
-
-        self.positions = positions
 
     def find_equivalent_positions(self,
                                   *,
                                   site: PeriodicSite,
                                   positions: np.ndarray,
-                                  threshold: float = 1.0):
+                                  threshold: float = 1.0) -> np.ndarray:
+        """Cluster all symmetrically equivalent positions within sphere around
+        `site`.
+
+        All equivalent positions are transformed back to the identity symmetry
+        operation.
+
+        Algorithm:
+        - For every symmetry operation
+            - Apply next symmetry operation to site coords
+            - Find all positions within threshold distance
+            - Copy and map points back to asymmetric unit (reverse symmetry op)
+            - Subtract site coords (center on site)
+
+        Parameters
+        ----------
+        site : PeriodicSite
+            This site acts as the cluster center.
+        positions : np.ndarray
+            Positions to sample from.
+        threshold : float, optional
+            Cluster symmetrically equivalent positions
+            within this distance from the given `site`.
+
+        Returns
+        -------
+        centered : np.ndarray
+            Clustered positions centered on `site` in Cartesian coordinate system
+        """
         lattice = self.lattice
         symops = self.symops
-        unq_coord = site.frac_coords
+        site_coords = site.frac_coords
         cluster = []
 
         for op in symops:
-            cluster_coord = op.operate(unq_coord)
-            dists = lattice.get_all_distances(cluster_coord, positions)
+            sym_coords = op.operate(site_coords)
+            dists = lattice.get_all_distances(sym_coords, positions)
 
             sel = dists < threshold
             close = positions[sel.flatten()]
 
             # digitize differences to move all close positions to
-            # same sphere around cluster center
-            offsets = np.digitize(close - cluster_coord,
-                                  bins=[0.5, -0.4999999]) - 1
+            # same sphere around coordr
+            offsets = np.digitize(close - sym_coords, bins=[0.5, -0.4999999
+                                                            ]) - 1
 
             close += offsets
 
@@ -143,10 +133,11 @@ class ShapeAnalyzer:
 
             cluster.append(inversed)
 
-        centered = np.vstack(cluster) - unq_coord
+        centered = np.vstack(cluster) - site_coords
 
         # convert to cartesian
-        return self.lattice.get_cartesian_coords(centered)
+        cart_coords = self.lattice.get_cartesian_coords(centered)
+        return cart_coords
 
     def analyze_trajectory(self,
                            *,
@@ -154,10 +145,29 @@ class ShapeAnalyzer:
                            supercell: None
                            | tuple[float, float, float] = None,
                            threshold: float = 1.0) -> list[ShapeData]:
-        """Lattices must be similar.
+        """Perform shape analysis on trajectory.
 
-        Supercell is used to fold trajectory positions into same
-        lattice.
+        Similar to [analyze_positions()][ShapeAnalyzer.analyze_positions]. Handles
+        coordinate conversion it trajectory is a supercell of the structure used to
+        instantiate this class. The trajectory lattice must be similar or a
+        supercell thereof.
+
+        Parameters
+        ----------
+        trajectory : Trajectory
+            Input trajectory.
+        supercell : None | tuple[float, float, float], optional
+            If the trajectory is in a supercell of the input structure,
+            the given supercell used to fold trajectory positions into same
+            lattice.
+        threshold : float, optional
+            Cluster symmetrically equivalent positions
+            within this distance from [unique_sites][ShapeAnalyzer.unique_sites].
+
+        Returns
+        -------
+        shapes : list[ShapeData]
+            Output shapes
         """
         test_lattice = trajectory.get_lattice(0)
         positions = trajectory.positions.reshape(-1, 3)
@@ -178,6 +188,26 @@ class ShapeAnalyzer:
                           *,
                           positions: np.ndarray,
                           threshold: float = 1.0) -> list[ShapeData]:
+        """Perform shape analysis on array of fractional coordinates.
+
+        Parameters
+        ----------
+        positions : np.ndarray
+            (n, 3) input array fractional coordinates. These must correspond to
+            the same lattice as the structure used to instantiate this class.
+        supercell : None | tuple[float, float, float], optional
+            If the trajectory is in a supercell of the input structure,
+            the given supercell used to fold trajectory positions into same
+            lattice.
+        threshold : float, optional
+            Cluster symmetrically equivalent positions
+            within this distance from [unique_sites][ShapeAnalyzer.unique_sites].
+
+        Returns
+        -------
+        shapes : list[ShapeData]
+            Output shapes
+        """
         shapes = []
 
         for site in self.unique_sites:
