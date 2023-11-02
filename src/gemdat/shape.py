@@ -20,10 +20,14 @@ class ShapeData:
     name : str
         Name or label for associated with this shape
     coords : np.ndarray
-        (n, 3) coordinate array in cartesian system
+        (n, 3) coordinate array in cartesian system (Å)
     """
     name: str
     coords: np.ndarray
+
+    def distances(self) -> np.ndarray:
+        """Return distances from origin in Å."""
+        return np.linalg.norm(self.coords, axis=1)
 
     @property
     def x(self):
@@ -42,6 +46,14 @@ class ShapeData:
 
 
 class ShapeAnalyzer:
+    """The goal for this class is to have a generalized algorithm that for all
+    symmetrically equivalent cluster centers, finds nearest atoms from
+    trajectory or other list of positions, and transforms them back to the
+    asymmetric unit.
+
+    Combining symmetrically equivalent coordinates helps the statistics
+    for performing shape analysis.
+    """
 
     def __init__(self, symmetrized_structure: SymmetrizedStructure):
         """Takes a symmetrized structure to set up the site analyzer.

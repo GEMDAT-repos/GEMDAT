@@ -34,10 +34,10 @@ def shape(shape: ShapeData, bins: int | Sequence[float] = 50) -> plt.Figure:
                              figsize=(12, 5),
                              gridspec_kw={'height_ratios': (4, 1)})
 
-    distances = np.sum(shape.coords**2, axis=1)**0.5
+    distances_sq = shape.distances()**2
 
-    msd = np.mean(distances**2)
-    std = np.std(distances**2)
+    msd = np.mean(distances_sq)
+    std = np.std(distances_sq)
     title = f'{shape.name}: MSD = {msd:.3f}$~Å^2$, std = {std:.3f}'
 
     axes[0, 1].set_title(title)
