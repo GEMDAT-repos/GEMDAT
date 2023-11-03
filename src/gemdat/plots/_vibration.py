@@ -122,11 +122,11 @@ def vibrational_amplitudes2(*,
         for trajectory in trajectories
     ]
 
-    max_amp = max(max(metric) for metric in metrics))
-    min_amp = min(min(metric) for metric in metrics))
-    
+    max_amp = max(max(metric) for metric in metrics)
+    min_amp = min(min(metric) for metric in metrics)
+
     max_amp = max(abs(min_amp), max_amp)
-    min_amp = -max_val
+    min_amp = -max_amp
 
     data = []
 
@@ -134,16 +134,16 @@ def vibrational_amplitudes2(*,
         data.append(
             np.histogram(metric,
                          bins=bins,
-                         range=(minamp, maxamp),
+                         range=(min_amp, max_amp),
                          density=True)[0])
 
     df = pd.DataFrame(data=data)
 
     # offset to middle of bar
-    offset = (maxamp - minamp) / (bins * 2)
+    offset = (max_amp - min_amp) / (bins * 2)
 
-    columns = np.linspace(minamp + offset,
-                          maxamp + offset,
+    columns = np.linspace(min_amp + offset,
+                          max_amp + offset,
                           bins,
                           endpoint=False)
 
@@ -158,7 +158,7 @@ def vibrational_amplitudes2(*,
     else:
         fig = px.bar(df, x='amplitude', y='count', error_y='std')
 
-    x = np.linspace(minamp, maxamp, 100)
+    x = np.linspace(min_amp, max_amp, 100)
     y_gauss = stats.norm.pdf(x, 0, single_metrics.vibration_amplitude())
     fig.add_trace(go.Scatter(x=x, y=y_gauss, name='Fitted Gaussian'))
 
