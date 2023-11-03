@@ -122,10 +122,11 @@ def vibrational_amplitudes2(*,
         for trajectory in trajectories
     ]
 
-    maxamp = max(map(lambda metric: max(metric), metrics))
-    minamp = min(map(lambda metric: min(metric), metrics))
-    maxamp = max(abs(minamp), maxamp)
-    minamp = -maxamp
+    max_amp = max(max(metric) for metric in metrics))
+    min_amp = min(min(metric) for metric in metrics))
+    
+    max_amp = max(abs(min_amp), max_amp)
+    min_amp = -max_val
 
     data = []
 
