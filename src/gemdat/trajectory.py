@@ -9,7 +9,7 @@ import pickle
 import xml.etree.ElementTree as ET
 from itertools import compress
 from pathlib import Path
-from typing import Collection, List, Optional
+from typing import Collection, Optional
 
 import numpy as np
 from pymatgen.core import Lattice
