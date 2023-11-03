@@ -216,9 +216,8 @@ def jumps_vs_time2(*,
     else:
         fig = px.bar(df, x='time', y='count', color='specie')
 
-    fig.update_layout(bargap=0.2)
-
-    fig.update_layout(title='Jumps vs. time',
+    fig.update_layout(bargap=0.2,
+                      title='Jumps vs. time',
                       xaxis_title='Time (steps)',
                       yaxis_title='Number of jumps')
 
