@@ -211,8 +211,10 @@ def jumps_vs_time2(*,
                       columns=['time', 'count', 'std'])
     df['specie'] = sites.floating_specie
 
-    error_y = 'std' if n_parts else None
-    fig = px.bar(df, x='time', y='count', color='specie', error_y=error_y)
+    if n_parts > 1:
+        fig = px.bar(df, x='time', y='count', color='specie', error_y='std')
+    else:
+        fig = px.bar(df, x='time', y='count', color='specie')
 
     fig.update_layout(bargap=0.2)
 
