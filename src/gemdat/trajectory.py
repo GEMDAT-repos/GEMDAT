@@ -7,7 +7,7 @@ import hashlib
 import json
 import pickle
 import xml.etree.ElementTree as ET
-from itertools import compress
+from itertools import compress, pairwise
 from pathlib import Path
 from typing import Collection, Optional
 
@@ -361,3 +361,22 @@ class Trajectory(PymatgenTrajectory):
                               lattice=self.get_lattice(),
                               metadata=self.metadata,
                               time_step=self.time_step)
+
+    def split(self, n_parts: int) -> list[Trajectory]:
+        """Split the trajectory in n similar parts.
+
+        Parameters
+        ----------
+        n_parts : int
+            n_parts
+
+        Returns
+        -------
+        List[Trajectory]
+        """
+
+        interval = np.linspace(0, len(self) - 1, n_parts + 1, dtype=int)
+        subtrajectories = [
+            self[start:stop] for start, stop in pairwise(interval)
+        ]
+        return subtrajectories
