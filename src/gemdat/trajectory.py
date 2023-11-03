@@ -7,7 +7,7 @@ import hashlib
 import json
 import pickle
 import xml.etree.ElementTree as ET
-from itertools import compress
+from itertools import compress, pairwise
 from pathlib import Path
 from typing import Collection, Optional
 
