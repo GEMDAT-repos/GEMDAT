@@ -362,7 +362,7 @@ class Trajectory(PymatgenTrajectory):
                               metadata=self.metadata,
                               time_step=self.time_step)
 
-    def split(self, n_parts: int) -> List[Trajectory]:
+    def split(self, n_parts: int) -> list[Trajectory]:
         """Split the trajectory in n similar parts.
 
         Parameters
