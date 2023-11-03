@@ -375,8 +375,8 @@ class Trajectory(PymatgenTrajectory):
         List[Trajectory]
         """
 
-        interval = np.linspace(0, len(self) - 1, n_parts + 1)
+        interval = np.linspace(0, len(self) - 1, n_parts + 1, dtype=int)
         subtrajectories = [
-            self[int(interval[i]):int(interval[i + 1])] for i in range(n_parts)
+            self[start:stop] for start, stop in pairwise(interval)
         ]
         return subtrajectories
