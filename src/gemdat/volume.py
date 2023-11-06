@@ -291,9 +291,19 @@ class Volume:
     def get_free_energy(
         self,
         kBT,
-        **kwargs,
     ) -> np.ndarray:
-        """Estimate the free energy from volume."""
+        """Estimate the free energy from volume.
+
+        Parameters
+        ----------
+        kBT : float
+            The temperature of the thermostat
+
+        Returns
+        -------
+        free_energy : ndarray
+            Free energy on the voxel grid
+        """
         prob = self.data / self.data.sum()
         free_energy = -kBT * np.log(prob)
         return np.nan_to_num(free_energy)

@@ -3,9 +3,9 @@ sites."""
 
 from __future__ import annotations
 
-import heapq
 import typing
 
+import networkx as nx
 import numpy as np
 from MDAnalysis.lib.pkdtree import PeriodicKDTree
 from pymatgen.core import Structure
@@ -404,26 +404,34 @@ def _calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
     return occupancy
 
 
-def dijkstra_path(
-    grid: np.ndarray,
-    start: tuple,
-    end: tuple,
-    max_energy_threshold=1e20,
-    diagonal=True
-    #) -> typing.Optional[typing.Union[typing.Optional[np.ndarray], typing.
-    #                                  Optional[float], typing.Optional[tuple]]]:
-) -> typing.Union[list, list]:
-    """Calculate the shortest cost-effective path from start to end using
-    Dijkstra's algorithm.
+def wrap_pbc(coord: np.ndarray, size: tuple) -> tuple:
+    """Wraps coordinates in periodic boundaries.
 
     Parameters
     ----------
-    grid : np.ndarray
-        Energy grid that will be used to calculate the shortest path
-    start : np.ndarray
-        Coordinates of the starting point
-    end: np.ndarray
-        Coordinates of the ending point
+    coord: np.ndarray
+        Coordinates of one or multiple sites
+    size: tuple
+        Boudnary size
+
+    Returns:
+    -------
+    wrapped_coord: tuple
+        Coordinates inside the PBC
+    """
+    wrapped_coord = tuple(coord % size)
+    return wrapped_coord
+
+
+def free_energy_graph(F: np.ndarray,
+                      max_energy_threshold=1e20,
+                      diagonal=True) -> nx.Graph:
+    """Compute the graph of the free energy for networkx functions.
+
+    Parameters
+    ----------
+    F : np.ndarray
+        Free energy on the 3d grid
     max_energy_threshold : float, optional
         Maximum energy threshold for the path to be considered valid
     diagonal : bool
@@ -431,19 +439,12 @@ def dijkstra_path(
 
     Returns
     -------
-    path: list[np.ndarray]
-        List of coordinates of the path
-    path_energy: list[float]
-        Energy along the path
+    G : nx.Graph
+        Graph of free energy
     """
-
-    def wrap_pbc(coord, size):
-        # Wrap around the coordinate if it goes beyond the PBC.
-        return coord % size
 
     # Define possible movements in 3D space
     if not diagonal:
-        # If the diagonals are not allowed, there are only 6 possible directions).
         movements = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1),
                      (0, 0, -1)]
     else:
@@ -454,53 +455,22 @@ def dijkstra_path(
                      (0, -1, -1), (0, 1, -1), (0, -1, 1), (1, 1, 1),
                      (-1, -1, -1), (1, -1, -1), (-1, 1, 1)]
 
-    # Create a 3D array to store the minimum energy required to reach each point.
-    min_energy = np.inf * np.ones_like(grid)
-    # Create a 3D array to store the previous node for backtracking the path.
-    prev_node = np.full(grid.shape, None, dtype=object)
-    # Initialize the start point with zero energy.
-    min_energy[start] = 0
-    # Create a priority queue to explore points in order of minimum energy.
-    pq = [(0.0, start)]
-
-    while pq:
-        energy, current_node = heapq.heappop(pq)
-
-        if current_node == end:
-            path_energy = []
-            path_nodes = []
-            while current_node is not None:
-                path_nodes.append(current_node)
-                if prev_node[current_node] is not None:
-                    path_energy.append(grid[current_node])
-                current_node = prev_node[current_node]
-            path_nodes.reverse()
-            path_energy.reverse()
-            return path_nodes, path_energy
-
-        if energy > min_energy[current_node]:
-            continue
-
+    G = nx.Graph()
+    for i in range(F.shape[0]):
+        for j in range(F.shape[1]):
+            for k in range(F.shape[2]):
+                if F[i, j, k] >= 0 and F[i, j, k] < max_energy_threshold:
+                    G.add_node((i, j, k), energy=F[i, j, k])
+    for i, j, k in G.nodes:
         for move in movements:
-            neighbor = tuple(
-                wrap_pbc(np.array(current_node) + np.array(move), grid.shape))
-
-            if 0 <= neighbor[0] < grid.shape[0] and 0 <= neighbor[
-                    1] < grid.shape[1] and 0 <= neighbor[2] < grid.shape[2]:
-                # Ignore the grid neighbors that have too much energy.
-                if grid[neighbor] >= 0 and grid[
-                        neighbor] < max_energy_threshold:
-                    new_energy = min_energy[current_node] + grid[neighbor]
-                    if new_energy < min_energy[neighbor]:
-                        min_energy[neighbor] = new_energy
-                        prev_node[neighbor] = current_node
-                        heapq.heappush(pq, (new_energy, neighbor))
-
-    return [[], []]
+            neighbor = wrap_pbc(np.array((i, j, k)) + np.array(move), F.shape)
+            if neighbor in G.nodes:
+                G.add_edge((i, j, k), neighbor, weight=F[neighbor])
+    return G
 
 
-def direct_path(grid: np.ndarray, start: tuple,
-                end: tuple) -> typing.Union[list, list]:
+def straight_path(grid: np.ndarray, start: tuple,
+                  end: tuple) -> typing.Union[list, list]:
     """Calculate the shortest path from start to end points.
 
     Parameters
@@ -520,16 +490,13 @@ def direct_path(grid: np.ndarray, start: tuple,
         Energy along the path
     """
 
-    def wrap_around(coord, size):
-        return coord % size
-
     path = [start]
     current_position = start
     energy_cost = []
 
     while current_position != end:
         next_position = tuple(
-            wrap_around(
+            wrap_pbc(
                 np.array(current_position) +
                 np.sign(np.array(end) - np.array(current_position)),
                 grid.shape))
@@ -538,6 +505,40 @@ def direct_path(grid: np.ndarray, start: tuple,
         current_position = next_position
 
     return [path, list(np.nan_to_num(energy_cost))]
+
+
+def optimal_path(
+    F_graph: nx.Graph,
+    start: tuple,
+    end: tuple,
+) -> typing.Union[list, list]:
+    """Calculate the shortest cost-effective path from start to end using
+    Networkx library.
+
+    Parameters
+    ----------
+    F_graph : nx.Graph
+        Graph of the free energy
+    start : tuple
+        Coordinates of the starting point
+    end: tuple
+        Coordinates of the ending point
+
+    Returns
+    -------
+    path: list[tuple]
+        List of coordinates of the path
+    path_energy: list[float]
+        Energy along the path
+    """
+
+    optimal_path = nx.shortest_path(F_graph,
+                                    source=start,
+                                    target=end,
+                                    weight='weight')
+    path_energy = [F_graph.nodes[node]['energy'] for node in optimal_path]
+
+    return [optimal_path, path_energy]
 
 
 def find_best_perc_path(
@@ -595,6 +596,9 @@ def find_best_perc_path(
         F = extended_F
     X, Y, Z = F.shape
 
+    # Get F on a graph
+    F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
+
     # Find the lowest cost path that percolates along the x dimension
     total_energy_cost = float('inf')
     best_starting_point = None
@@ -609,15 +613,16 @@ def find_best_perc_path(
             continue
 
         # Get the end point which is a periodic image of the peak
-        end_point = (starting_point[0] + (1 + X_real) * percolate_x,
-                     starting_point[1] + (1 + Y_real) * percolate_y,
-                     starting_point[2] + (1 + Z_real) * percolate_z)
+        end_point = (starting_point[0] + X_real * percolate_x,
+                     starting_point[1] + Y_real * percolate_y,
+                     starting_point[2] + Z_real * percolate_z)
 
         # Use Dijkstra's algorithm to find the best path
-        path, path_energy = dijkstra_path(F,
-                                          tuple(starting_point),
-                                          tuple(end_point),
-                                          max_energy_threshold=1e6)
+        path, path_energy = optimal_path(
+            F_graph,
+            tuple(starting_point),
+            tuple(end_point),
+        )
 
         if path:
             # Calculate the path cost
