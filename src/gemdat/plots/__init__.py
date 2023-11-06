@@ -17,6 +17,7 @@ from ._jumps import (
 from ._paths import (
     energy_along_path,
     path_on_grid,
+    path_on_landscape,
 )
 from ._rdf import radial_distribution
 from ._vibration import (
@@ -39,4 +40,5 @@ __all__ = [
     'radial_distribution',
     'energy_along_path',
     'path_on_grid',
+    'path_on_landscape',
 ]

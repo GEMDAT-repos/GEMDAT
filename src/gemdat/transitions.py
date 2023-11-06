@@ -404,7 +404,7 @@ def _calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
     return occupancy
 
 
-def wrap_pbc(coord: np.ndarray, size: tuple) -> tuple:
+def _wrap_pbc(coord: np.ndarray, size: tuple) -> tuple:
     """Wraps coordinates in periodic boundaries.
 
     Parameters
@@ -463,48 +463,10 @@ def free_energy_graph(F: np.ndarray,
                     G.add_node((i, j, k), energy=F[i, j, k])
     for i, j, k in G.nodes:
         for move in movements:
-            neighbor = wrap_pbc(np.array((i, j, k)) + np.array(move), F.shape)
+            neighbor = _wrap_pbc(np.array((i, j, k)) + np.array(move), F.shape)
             if neighbor in G.nodes:
                 G.add_edge((i, j, k), neighbor, weight=F[neighbor])
     return G
-
-
-def straight_path(grid: np.ndarray, start: tuple,
-                  end: tuple) -> typing.Union[list, list]:
-    """Calculate the shortest path from start to end points.
-
-    Parameters
-    ----------
-    grid : np.ndarray
-        Energy grid that will be used to calculate the shortest path
-    start : np.ndarray
-        Coordinates of the starting point
-    end: np.ndarray
-        Coordinates of the ending point
-
-    Returns
-    -------
-    path: list[np.ndarray]
-        List of coordinates of the path
-    path_energy: list[float]
-        Energy along the path
-    """
-
-    path = [start]
-    current_position = start
-    energy_cost = []
-
-    while current_position != end:
-        next_position = tuple(
-            wrap_pbc(
-                np.array(current_position) +
-                np.sign(np.array(end) - np.array(current_position)),
-                grid.shape))
-        path.append(next_position)
-        energy_cost.append(grid[next_position])
-        current_position = next_position
-
-    return [path, list(np.nan_to_num(energy_cost))]
 
 
 def optimal_path(
@@ -580,17 +542,20 @@ def find_best_perc_path(
         print('Warning: percolation is not defined')
         return None, None, None
     if percolate_x:
-        extended_F = np.empty((2 * X_real, Y_real, Z_real), dtype=F.dtype)
+        extended_F = np.empty((2 * F.shape[0], F.shape[1], F.shape[2]),
+                              dtype=F.dtype)
         extended_F[:X_real, :, :] = F
         extended_F[X_real:, :, :] = F
         F = extended_F
     if percolate_y:
-        extended_F = np.empty((X_real, 2 * Y_real, Z_real), dtype=F.dtype)
+        extended_F = np.empty((F.shape[0], 2 * F.shape[1], F.shape[2]),
+                              dtype=F.dtype)
         extended_F[:, :Y_real, :] = F
         extended_F[:, Y_real:, :] = F
         F = extended_F
     if percolate_z:
-        extended_F = np.empty((X_real, Y_real, 2 * Z_real), dtype=F.dtype)
+        extended_F = np.empty((F.shape[0], F.shape[1], 2 * F.shape[2]),
+                              dtype=F.dtype)
         extended_F[:, :, :Z_real] = F
         extended_F[:, :, Z_real:] = F
         F = extended_F
@@ -617,28 +582,30 @@ def find_best_perc_path(
                      starting_point[1] + Y_real * percolate_y,
                      starting_point[2] + Z_real * percolate_z)
 
-        # Use Dijkstra's algorithm to find the best path
-        path, path_energy = optimal_path(
-            F_graph,
-            tuple(starting_point),
-            tuple(end_point),
-        )
+        # Find the shortest percolating path through this peak
+        try:
+            path, path_energy = optimal_path(
+                F_graph,
+                tuple(starting_point),
+                tuple(end_point),
+            )
+        except nx.NetworkXNoPath:
+            continue
 
-        if path:
-            # Calculate the path cost
-            path_cost = np.sum(path_energy)
+        # Calculate the path cost
+        path_cost = np.sum(path_energy)
 
-            # Remove all the peaks that have been part of the path
-            peaks_mask[counter] = True
-            for mask in range(counter + 1, len(peaks)):
-                if not peaks_mask[mask] and tuple(peaks[mask]) in path:
-                    peaks_mask[mask] = True
-                    remaining_peaks -= 1
+        # Remove all the peaks that have been part of the path
+        peaks_mask[counter] = True
+        for mask in range(counter + 1, len(peaks)):
+            if not peaks_mask[mask] and tuple(peaks[mask]) in path:
+                peaks_mask[mask] = True
+                remaining_peaks -= 1
 
-            if path_cost < total_energy_cost:
-                total_energy_cost = path_cost
-                best_starting_point = starting_point
-                best_perc_path = path
-                best_perc_path_energy = path_energy
+        if path_cost < total_energy_cost:
+            total_energy_cost = path_cost
+            best_starting_point = starting_point
+            best_perc_path = path
+            best_perc_path_energy = path_energy
 
     return total_energy_cost, best_starting_point, best_perc_path, best_perc_path_energy
