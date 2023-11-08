@@ -569,13 +569,7 @@ def find_best_perc_path(
     best_starting_point = None
     best_perc_path = []
 
-    # Iterate only over the peaks that have not been part of a percolating path
-    peaks_mask = np.zeros(peaks.shape[0], dtype=bool)
-    remaining_peaks = len(peaks)
-
-    for counter, starting_point in enumerate(peaks):
-        if peaks_mask[counter]:
-            continue
+    for starting_point in peaks:
 
         # Get the end point which is a periodic image of the peak
         end_point = (starting_point[0] + X_real * percolate_x,
@@ -594,13 +588,6 @@ def find_best_perc_path(
 
         # Calculate the path cost
         path_cost = np.sum(path_energy)
-
-        # Remove all the peaks that have been part of the path
-        peaks_mask[counter] = True
-        for mask in range(counter + 1, len(peaks)):
-            if not peaks_mask[mask] and tuple(peaks[mask]) in path:
-                peaks_mask[mask] = True
-                remaining_peaks -= 1
 
         if path_cost < total_energy_cost:
             total_energy_cost = path_cost
