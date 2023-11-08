@@ -572,6 +572,7 @@ def find_best_perc_path(
     total_energy_cost = float('inf')
     best_starting_point = None
     best_perc_path = []
+    best_perc_path_energy = total_energy_cost
 
     for starting_point in peaks:
 
