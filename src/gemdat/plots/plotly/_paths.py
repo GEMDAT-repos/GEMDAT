@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
 
-from gemdat.plots import density
 from gemdat.volume import Structure, Volume
+
+from ._density import density
 
 
 def energy_along_path(*, energy_path: list) -> plt.Figure:

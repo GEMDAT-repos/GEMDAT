@@ -1,12 +1,6 @@
 """This module contains all the plots that Gemdat can generate."""
 from __future__ import annotations
 
-from ._paths import (
-    energy_along_path,
-    path_on_grid,
-    path_on_landscape,
-)
-
 # Matplotlib plots
 from .matplotlib._displacements import displacement_per_site
 from .matplotlib._jumps import (
@@ -26,6 +20,11 @@ from .plotly._displacements import (
 from .plotly._jumps import (
     jumps_vs_distance,
     jumps_vs_time,
+)
+from .plotly._paths import (
+    energy_along_path,
+    path_on_grid,
+    path_on_landscape,
 )
 from .plotly._vibration import vibrational_amplitudes
 
