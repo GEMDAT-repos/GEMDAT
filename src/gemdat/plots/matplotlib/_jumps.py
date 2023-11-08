@@ -9,6 +9,7 @@ from matplotlib import colormaps
 from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
+
     from gemdat import SitesData
 
 

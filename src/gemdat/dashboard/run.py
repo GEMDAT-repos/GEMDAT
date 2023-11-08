@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import plotly.graph_objects as go
 import streamlit as st
 from _shared import add_sidebar_logo, get_trajectory_location
 from pymatgen.core import Structure
@@ -70,28 +71,38 @@ with st.sidebar:
     sites_filename = str(
         st.selectbox('Load sites from known material', KNOWN_MATERIALS))
 
-    st.markdown('Supercell (x,y,z)')
-    col1, col2, col3 = st.columns(3)
-    supercell = (int(
-        col1.number_input('supercell x',
-                          min_value=1,
-                          value=1,
-                          label_visibility='collapsed',
-                          help=None)),
-                 int(
-                     col2.number_input('supercell y',
-                                       min_value=1,
-                                       value=1,
-                                       label_visibility='collapsed')),
-                 int(
-                     col3.number_input('supercell z',
-                                       min_value=1,
-                                       value=1,
-                                       label_visibility='collapsed')))
+    manual_supercell = st.checkbox('Manual Supercell')
+    if manual_supercell:
+        st.markdown('Supercell (x,y,z)')
+        col1, col2, col3 = st.columns(3)
+        supercell = (int(
+            col1.number_input('supercell x',
+                              min_value=1,
+                              value=1,
+                              label_visibility='collapsed',
+                              help=None)),
+                     int(
+                         col2.number_input('supercell y',
+                                           min_value=1,
+                                           value=1,
+                                           label_visibility='collapsed')),
+                     int(
+                         col3.number_input('supercell z',
+                                           min_value=1,
+                                           value=1,
+                                           label_visibility='collapsed')))
+
+    st.markdown('## Enable Error Analysis')
+    do_error = st.checkbox('Error Analysis')
+    n_parts: int = 1
+    if do_error:
+        with st.sidebar:
+            n_parts = int(
+                st.number_input('Number of parts to divide trajectory in',
+                                value=10))
 
     st.markdown('## Radial distribution function')
     do_rdf = st.checkbox('Plot RDFs')
-
     if do_rdf:
         with st.sidebar:
             max_dist_rdf = st.number_input(
@@ -127,7 +138,14 @@ with col3:
 
 tab1, tab2, tab3 = st.tabs(['Default plots', 'RDF plots', 'Density plots'])
 
-sites_structure = load_known_material(sites_filename, supercell=supercell)
+if manual_supercell:
+    sites_structure = load_known_material(sites_filename, supercell=supercell)
+else:
+    sites_structure = load_known_material(sites_filename)
+    zipped_parameters = zip(trajectory.get_lattice().abc,
+                            sites_structure.lattice.parameters)
+    supercell = [round(a / b) for a, b in zipped_parameters]  # type: ignore
+    sites_structure.make_supercell(supercell)
 
 if not is_lattice_similar(trajectory.get_lattice(), sites_structure):
     st.error('Lattices are not similar!')
@@ -165,7 +183,7 @@ with tab1:
             structure=sites_structure,
             trajectory=trajectory,
             floating_specie=diffusing_element,
-            n_parts=10,
+            n_parts=n_parts,
         )
 
     diff_trajectory = trajectory.filter(diffusing_element)
@@ -173,11 +191,12 @@ with tab1:
     figures = (
         plots.displacement_per_element(trajectory=trajectory),
         plots.displacement_per_site(trajectory=diff_trajectory),
-        plots.displacement_histogram(trajectory=diff_trajectory),
+        plots.displacement_histogram(trajectory=trajectory, n_parts=n_parts),
         plots.frequency_vs_occurence(trajectory=diff_trajectory),
-        plots.vibrational_amplitudes(trajectory=diff_trajectory),
-        plots.jumps_vs_distance(sites=sites),
-        plots.jumps_vs_time(sites=sites),
+        plots.vibrational_amplitudes(trajectory=diff_trajectory,
+                                     n_parts=n_parts),
+        plots.jumps_vs_distance(sites=sites, n_parts=n_parts),
+        plots.jumps_vs_time(sites=sites, n_parts=n_parts),
         plots.collective_jumps(sites=sites),
         plots.jumps_3d(sites=sites),
     )
@@ -185,7 +204,10 @@ with tab1:
     # automagically divide the plots over the number of columns
     for num, col in enumerate(st.columns(number_of_cols)):
         for figure in figures[num::number_of_cols]:
-            col.pyplot(figure)
+            if isinstance(figure, go.Figure):
+                col.plotly_chart(figure, use_container_width=True)
+            else:
+                col.pyplot(figure)
 
 
 def _sites_hash_func(obj: SitesData) -> tuple[Any, Any, Any]:

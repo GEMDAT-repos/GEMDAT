@@ -180,7 +180,7 @@ def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
     -------
     events : np.ndarray
         Output array with transition events.
-        Contains 5 columns: atom index, time start, time stop, site start, site stop
+        Contains 5 columns: atom index, site start, site, stop, time start, time stop
     """
     events = []
 
@@ -377,6 +377,10 @@ def _split_transitions_events(events: np.ndarray,
     sorted_transitions = events[events[:, col].argsort()]
 
     parts = np.array_split(sorted_transitions, splits)
+
+    # Normalize parts to zero time index
+    for offset, part in zip(bins[:-1], parts):
+        part[:, 3:5] -= offset
 
     if len(parts) < n_parts:
         raise ValueError(
