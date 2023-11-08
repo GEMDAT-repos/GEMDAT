@@ -60,6 +60,14 @@ def test_volume_to_structure_cluster(vasp_vol):
 
 
 @pytest.vaspxml_available  # type: ignore
+def test_volume_get_free_energy(vasp_vol):
+    free_energy = vasp_vol.get_free_energy(kBT=1)
+    assert isclose(np.min(free_energy), 7.1239783874)
+    assert isclose(np.average(free_energy[free_energy < 10**10]),
+                   10.215400139366)
+
+
+@pytest.vaspxml_available  # type: ignore
 def test_tracer(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
     metrics = SimulationMetrics(diff_trajectory)
