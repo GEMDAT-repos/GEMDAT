@@ -10,7 +10,7 @@ def test_shape(vasp_shape_data):
 
     for shape in vasp_shape_data:
         assert isinstance(shape, ShapeData)
-        assert shape.name == '48h'
+        assert shape.name == 'Li'
         assert shape.coords.shape == (76610, 3)
 
         # coords may not exceed threshold

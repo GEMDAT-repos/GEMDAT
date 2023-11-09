@@ -72,7 +72,7 @@ class ShapeAnalyzer:
     def __repr__(self):
 
         def to_str(x):
-            return f"{x:>10.6f}"
+            return f'{x:>10.6f}'
 
         out = [
             self.__class__.__name__, 'Spacegroup',
@@ -80,7 +80,7 @@ class ShapeAnalyzer:
             'Lattice',
             f"    abc   : {' '.join(to_str(val) for val in self.lattice.abc)}",
             f"    angles: {' '.join(to_str(val) for val in self.lattice.angles)}",
-            f"Unique sites ({len(self.unique_sites)})"
+            f'Unique sites ({len(self.unique_sites)})'
         ]
         for site in self.unique_sites:
             out.append(f'    {site!r}')
