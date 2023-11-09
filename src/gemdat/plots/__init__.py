@@ -8,6 +8,10 @@ from .matplotlib._jumps import (
     jumps_3d,
     jumps_3d_animation,
 )
+from .matplotlib._paths import (
+    energy_along_path,
+    path_on_grid,
+)
 from .matplotlib._rdf import radial_distribution
 from .matplotlib._vibration import frequency_vs_occurence
 
@@ -21,11 +25,7 @@ from .plotly._jumps import (
     jumps_vs_distance,
     jumps_vs_time,
 )
-from .plotly._paths import (
-    energy_along_path,
-    path_on_grid,
-    path_on_landscape,
-)
+from .plotly._paths import path_on_landscape
 from .plotly._vibration import vibrational_amplitudes
 
 __all__ = [

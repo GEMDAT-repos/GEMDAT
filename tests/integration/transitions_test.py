@@ -4,7 +4,7 @@ from math import isclose
 
 import pytest
 
-from gemdat.transitions import find_best_perc_path
+from gemdat.path import find_best_perc_path
 from gemdat.volume import trajectory_to_volume
 
 
@@ -17,10 +17,13 @@ def vasp_full_vol(vasp_full_traj):
 
 @pytest.vaspxml_available  # type: ignore
 def test_transitions_find_best_perc_path(vasp_full_vol):
-    F = vasp_full_vol.get_free_energy(kBT=650.0)
+    F = vasp_full_vol.get_free_energy(temperature=650.0)
     peaks = vasp_full_vol.find_peaks()
-    total_energy_cost, starting_point, best_perc_path, best_perc_path_energy = find_best_perc_path(
-        F, peaks, percolate_x=True, percolate_y=False, percolate_z=False)
+    path = find_best_perc_path(F,
+                               peaks,
+                               percolate_x=True,
+                               percolate_y=False,
+                               percolate_z=False)
 
-    assert isclose(total_energy_cost, 422323.40024684614)
-    assert (starting_point == [30, 23, 14]).all()
+    assert isclose(sum(path.energy), 422323.40024684614)
+    assert path.sites[0] == (30, 23, 14)

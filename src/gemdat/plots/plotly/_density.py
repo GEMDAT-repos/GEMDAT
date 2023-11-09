@@ -158,9 +158,7 @@ def plot_volume(
                       showlegend=False))
 
 
-def density(vol: Volume,
-            structure: Optional[Structure] = None,
-            as_probability: bool = False) -> go.Figure:
+def density(vol: Volume, structure: Optional[Structure] = None) -> go.Figure:
     """Create density plot from volume and structure.
 
     Uses plotly as plotting backend.
@@ -171,8 +169,6 @@ def density(vol: Volume,
         Input volume
     structure : Structure, optional
         Input structure
-    as_probability : bool
-        Plot as probability
 
     Returns
     -------
@@ -182,8 +178,6 @@ def density(vol: Volume,
     fig = go.Figure()
 
     plot_lattice_vectors(vol.lattice, fig=fig)
-    if as_probability:
-        vol.data = vol.data / vol.data.sum()
     plot_volume(vol, fig=fig)
 
     if structure:

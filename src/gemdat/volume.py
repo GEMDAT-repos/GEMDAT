@@ -288,16 +288,21 @@ class Volume:
 
         return structure
 
+    def to_probability(self, ) -> Volume:
+        """Normalize the volume to use it as a probability."""
+        self.data = self.data / self.data.sum()
+        return self
+
     def get_free_energy(
         self,
-        kBT,
+        temperature: float,
     ) -> np.ndarray:
         """Estimate the free energy from volume.
 
         Parameters
         ----------
-        kBT : float
-            The temperature of the thermostat
+        temperature : float
+            The temperature of the simulation
 
         Returns
         -------
@@ -305,7 +310,7 @@ class Volume:
             Free energy on the voxel grid
         """
         prob = self.data / self.data.sum()
-        free_energy = -kBT * np.log(prob)
+        free_energy = -temperature * np.log(prob)
         return np.nan_to_num(free_energy)
 
 
