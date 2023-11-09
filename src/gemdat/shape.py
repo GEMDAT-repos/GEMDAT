@@ -67,7 +67,25 @@ class ShapeAnalyzer:
             sites[0] for sites in symmetrized_structure.equivalent_sites
         ]
         self.lattice = symmetrized_structure.lattice
-        self.symops = symmetrized_structure.spacegroup
+        self.spacegroup = symmetrized_structure.spacegroup
+
+    def __repr__(self):
+
+        def to_str(x):
+            return f"{x:>10.6f}"
+
+        out = [
+            self.__class__.__name__, 'Spacegroup',
+            f'    {self.spacegroup.int_symbol} ({self.spacegroup.int_number})',
+            'Lattice',
+            f"    abc   : {' '.join(to_str(val) for val in self.lattice.abc)}",
+            f"    angles: {' '.join(to_str(val) for val in self.lattice.angles)}",
+            f"Unique sites ({len(self.unique_sites)})"
+        ]
+        for site in self.unique_sites:
+            out.append(f'    {site!r}')
+
+        return '\n    '.join(out)
 
     @classmethod
     def from_structure(cls, structure: Structure):
@@ -119,11 +137,11 @@ class ShapeAnalyzer:
             Clustered positions centered on `site` in Cartesian coordinate system
         """
         lattice = self.lattice
-        symops = self.symops
+        spacegroup = self.spacegroup
         site_coords = site.frac_coords
         cluster = []
 
-        for op in symops:
+        for op in spacegroup:
             sym_coords = op.operate(site_coords)
             dists = lattice.get_all_distances(sym_coords, positions)
 
