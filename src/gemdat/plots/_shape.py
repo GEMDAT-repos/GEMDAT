@@ -61,3 +61,5 @@ def shape(shape: ShapeData, bins: int | Sequence[float] = 50) -> plt.Figure:
         ax1.set_ylabel('density')
 
     fig.tight_layout()
+
+    return fig
