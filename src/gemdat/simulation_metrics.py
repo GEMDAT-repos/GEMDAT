@@ -4,6 +4,7 @@ from trajectories."""
 from __future__ import annotations
 
 import typing
+from typing import Sequence
 
 import numpy as np
 from pymatgen.core.units import FloatWithUnit
@@ -20,7 +21,7 @@ class SimulationMetrics:
     """Class for calculating different metrics and properties from a molecular
     dynamics simulation."""
 
-    def __init__(self, trajectory: Trajectory):
+    def __init__(self, trajectories: Sequence[Trajectory]):
         """Initialize class.
 
         Parameters
@@ -28,7 +29,7 @@ class SimulationMetrics:
         trajectory: Trajectory
             Input trajectory
         """
-        self.trajectory = trajectory
+        self.trajectories = trajectories
 
     @weak_lru_cache()
     def speed(self) -> np.ndarray:
@@ -41,8 +42,12 @@ class SimulationMetrics:
         speed : np.ndarray
             Output array with speeds
         """
-        distances = self.trajectory.distances_from_base_position()
-        return np.diff(distances, prepend=0)
+        speeds = []
+        for trajectory in self.trajectories:
+            distances = trajectory.distances_from_base_position()
+            speeds.append(np.diff(distances, prepend=0))
+        speeds = np.array(speeds)
+        return (np.mean(speeds, axis=0), np.std(speeds,axis=0))
 
     @weak_lru_cache()
     def particle_density(self) -> FloatWithUnit:
