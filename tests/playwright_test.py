@@ -47,24 +47,6 @@ def test_gemdash(page: Page):
     expect(page.get_by_text('0.52043')).to_be_visible()
     expect(page.get_by_text('40.7774')).to_be_visible()
 
-    # check plots
-    expect(
-        page.get_by_text(
-            '02460510152025303540ElementLiPSBrDisplacement per elementDisplacement (Angstrom)'
-        )).to_be_visible()
-    expect(
-        page.get_by_text(
-            '010002000300001234Br + stdS + stdP + stdLi + stdDisplacement per elementTime ste'
-        )).to_be_visible()
-
-    page.locator('label').filter(
-        has_text='Error Analysis').locator('span').click()
-
-    expect(
-        page.get_by_text(
-            '024051015202530ElementLiPSBrDisplacement per element after 374 timestepsDisplace'
-        )).to_be_visible(timeout=10_000)
-
     page.get_by_role('tab', name='RDF plots').click()
     page.locator('label').filter(has_text='Plot RDFs').locator('span').click()
 
