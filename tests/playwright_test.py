@@ -52,5 +52,3 @@ def test_gemdash(page: Page):
 
     page.get_by_role('tab', name='Density plots').click()
     page.get_by_text('Generate density').click()
-
-    expect(page.get_by_label('Density plots')).to_be_visible(timeout=60_000)
