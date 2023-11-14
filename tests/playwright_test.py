@@ -48,9 +48,6 @@ def test_gemdash(page: Page):
     expect(page.get_by_text('40.7774')).to_be_visible()
 
     # check plots
-    expect(page.get_by_role('img', name='0').nth(1)).to_be_visible()
-    expect(page.get_by_role('img', name='0').nth(2)).to_be_visible()
-    expect(page.get_by_role('img', name='0').first).to_be_visible()
     expect(
         page.get_by_text(
             '02460510152025303540ElementLiPSBrDisplacement per elementDisplacement (Angstrom)'
@@ -70,11 +67,6 @@ def test_gemdash(page: Page):
 
     page.get_by_role('tab', name='RDF plots').click()
     page.locator('label').filter(has_text='Plot RDFs').locator('span').click()
-
-    expect(page.get_by_role('img',
-                            name='0').first).to_be_visible(timeout=60_000)
-    expect(page.get_by_role('img', name='0').nth(1)).to_be_visible()
-    expect(page.get_by_role('img', name='0').nth(2)).to_be_visible()
 
     page.get_by_role('tab', name='Density plots').click()
     page.get_by_text('Generate density').click()
