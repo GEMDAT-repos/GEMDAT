@@ -51,4 +51,3 @@ def test_gemdash(page: Page):
     page.locator('label').filter(has_text='Plot RDFs').locator('span').click()
 
     page.get_by_role('tab', name='Density plots').click()
-    page.get_by_text('Generate density').click()
