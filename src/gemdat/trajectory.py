@@ -362,7 +362,9 @@ class Trajectory(PymatgenTrajectory):
                               metadata=self.metadata,
                               time_step=self.time_step)
 
-    def split(self, n_parts: int, equal_parts: bool = False) -> list[Trajectory]:
+    def split(self,
+              n_parts: int,
+              equal_parts: bool = False) -> list[Trajectory]:
         """Split the trajectory in n similar parts.
 
         Parameters
@@ -387,10 +389,12 @@ class Trajectory(PymatgenTrajectory):
 
             # Get the smallest size
             for start, stop in pairwise(interval):
-                size = stop - start 
-                minsize = min(minsize,size)
+                size = stop - start
+                minsize = min(minsize, size)
 
             # Trim all subtrajectories
-            subtrajectories = [trajectory[0:minsize] for trajectory in subtrajectories]
+            subtrajectories = [
+                trajectory[0:minsize] for trajectory in subtrajectories
+            ]
 
         return subtrajectories

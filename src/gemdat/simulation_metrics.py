@@ -4,7 +4,6 @@ from trajectories."""
 from __future__ import annotations
 
 import typing
-from typing import Sequence
 
 import numpy as np
 from pymatgen.core.units import FloatWithUnit
@@ -21,7 +20,7 @@ class SimulationMetrics:
     """Class for calculating different metrics and properties from a molecular
     dynamics simulation."""
 
-    def __init__(self, trajectories: Sequence[Trajectory]):
+    def __init__(self, trajectory: Trajectory):
         """Initialize class.
 
         Parameters
@@ -29,7 +28,7 @@ class SimulationMetrics:
         trajectory: Trajectory
             Input trajectory
         """
-        self.trajectories = trajectories
+        self.trajectory = trajectory
 
     @weak_lru_cache()
     def speed(self) -> np.ndarray:
@@ -42,12 +41,8 @@ class SimulationMetrics:
         speed : np.ndarray
             Output array with speeds
         """
-        speeds = []
-        for trajectory in self.trajectories:
-            distances = trajectory.distances_from_base_position()
-            speeds.append(np.diff(distances, prepend=0))
-        speeds = np.array(speeds)
-        return (np.mean(speeds, axis=0), np.std(speeds,axis=0))
+        distances = self.trajectory.distances_from_base_position()
+        return np.diff(distances, prepend=0)
 
     @weak_lru_cache()
     def particle_density(self) -> FloatWithUnit:
@@ -192,3 +187,114 @@ class SimulationMetrics:
             amplitudes.extend([np.sum(array) for array in subarrays])
 
         return np.asarray(amplitudes)
+
+
+class SimulationMetricsStd:
+    """Class for calculating different metrics and properties from a molecular
+    dynamics simulation.
+
+    Calculates the mean and standard deviation for a given list of
+    trajectories
+    """
+
+    def __init__(self, trajectories: list[Trajectory]):
+        """Initialize class.
+
+        Parameters
+        ----------
+        trajectories: list[Trajectory]
+            Input trajectories
+        """
+        self.metrics = [
+            SimulationMetrics(trajectory) for trajectory in trajectories
+        ]
+
+    def speed(self) -> tuple[np.ndarray, np.ndarray]:
+        """Calculate mean speed and standard deviations.
+
+        Corresponds to change in distance from the base position.
+
+        Returns
+        -------
+        speed_mean, speed_std : tuple[np.ndarray, np.ndarray]
+            Output arrays with speeds
+        """
+        speeds = [metric.speed() for metric in self.metrics]
+        return (np.mean(speeds, axis=0), np.std(speeds, axis=0))
+
+    def tracer_diffusivity(
+            self, *, dimensions: int) -> tuple[FloatWithUnit, FloatWithUnit]:
+        """Calculate tracer diffusivity.
+
+        Defined as: MSD / (2*dimensions*time)
+
+        Parameters
+        ----------
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        tracer_diffusivity_mean, tracer_diffusivity_std : tuple[FloatWithUnit, FloatWithUnit]
+            Tracer diffusivity in $m^2/s$, mean and standard deviation
+        """
+        diffusivities = [
+            metric.tracer_diffusivity(dimensions=dimensions)
+            for metric in self.metrics
+        ]
+        mean_diffusivities = FloatWithUnit(np.mean(diffusivities), 'm^2 s^-1')
+        std_diffusivities = FloatWithUnit(np.std(diffusivities), 'm^2 s^-1')
+        return (mean_diffusivities, std_diffusivities)
+
+    def tracer_conductivity(
+            self, *, z_ion: int,
+            dimensions: int) -> tuple[FloatWithUnit, FloatWithUnit]:
+        """Return tracer conductivity as S/m.
+
+        Defined as: elementary_charge^2 * charge_ion^2 * diffusivity *
+            particle_density / (k_B * T)
+
+        Parameters
+        ----------
+        z_ion : int
+            Charge of the ion
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        tracer_conductivities_mean, tracer_conductivities_std : tuple[FloatWithUnit,FloatWithUnit]
+            Tracer conductivities in $S/m$, mean and standard deviation
+        """
+        conductivities = [
+            metric.tracer_conductivity(z_ion=z_ion, dimensions=dimensions)
+            for metric in self.metrics
+        ]
+        mean_conductivities = FloatWithUnit(np.mean(conductivities), 'S m^-1')
+        std_conductivities = FloatWithUnit(np.std(conductivities), 'S m^-1')
+        return (mean_conductivities, std_conductivities)
+
+    def vibration_amplitude(self) -> tuple[FloatWithUnit, FloatWithUnit]:
+        """Calculate vibration amplitude.
+
+        Returns
+        -------
+        vibration_amp_mean, vibration_amp_std : tuple[FloatWithUnit, FloatWithUnit]
+            Vibration amplitude in $Å$, mean and standard deviation
+        """
+        vibes = [metric.vibration_amplitude() for metric in self.metrics]
+        mean_vibes = FloatWithUnit(np.mean(vibes), 'ang')
+        standard_vibes = FloatWithUnit(np.std(vibes),
+                                       'ang')  # Standard deviation
+        return (mean_vibes, standard_vibes)
+
+    def amplitudes(self) -> tuple[np.ndarray, np.ndarray]:
+        """Calculate vibration amplitudes.
+
+        Returns
+        -------
+        amplitudes_mean, amplitudes_std : tuple[np.ndarray, np.ndarray]
+            Output array of vibration amplitudes, mean and standard deviation
+        """
+        amplitudes = [metric.amplitudes() for metric in self.metrics]
+        return (np.mean(amplitudes, axis=0), np.std(amplitudes, axis=0))
