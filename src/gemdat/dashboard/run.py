@@ -12,7 +12,7 @@ from pymatgen.core import Structure
 from gemdat import SitesData, __version__, plots
 from gemdat.io import get_list_of_known_materials, load_known_material
 from gemdat.rdf import radial_distribution
-from gemdat.simulation_metrics import SimulationMetrics
+from gemdat.simulation_metrics import SimulationMetrics, SimulationMetricsStd
 from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
 from gemdat.volume import Volume
@@ -115,6 +115,8 @@ number_of_cols = 3  # Number of figure columns
 trajectory = trajectory[equilibration_steps:]
 diff_trajectory = trajectory.filter('Li')
 metrics = SimulationMetrics(diff_trajectory)
+metrics_std = SimulationMetricsStd(
+    diff_trajectory.split(n_parts, equal_parts=True))
 
 col1, col2, col3 = st.columns(3)
 
@@ -124,7 +126,7 @@ with col1:
     st.metric('Attempt frequency ($\\mathrm{s^{-1}}$)',
               value=f'{attempt_freq:g}')
     st.metric('Vibration amplitude ($\\mathrm{Å}$)',
-              value=f'{metrics.vibration_amplitude():g}')
+              value=f'{metrics_std.vibration_amplitude():g}')
 with col2:
     st.metric('Particle density ($\\mathrm{m^{-3}}$)',
               value=f'{metrics.particle_density():g}')
@@ -132,9 +134,10 @@ with col2:
               value=f'{metrics.mol_per_liter():g}')
 with col3:
     st.metric('Tracer diffusivity ($\\mathrm{m^2/s}$)',
-              value=f'{metrics.tracer_diffusivity(dimensions=3):g}')
-    st.metric('Tracer conductivity ($\\mathrm{S/m}$)',
-              value=f'{metrics.tracer_conductivity(z_ion=1, dimensions=3):g}')
+              value=f'{metrics_std.tracer_diffusivity(dimensions=3):g}')
+    st.metric(
+        'Tracer conductivity ($\\mathrm{S/m}$)',
+        value=f'{metrics_std.tracer_conductivity(z_ion=1, dimensions=3):g}')
 
 tab1, tab2, tab3 = st.tabs(['Default plots', 'RDF plots', 'Density plots'])
 

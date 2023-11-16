@@ -6,6 +6,7 @@ from __future__ import annotations
 import typing
 
 import numpy as np
+import uncertainties as u
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 
@@ -222,8 +223,7 @@ class SimulationMetricsStd:
         speeds = [metric.speed() for metric in self.metrics]
         return (np.mean(speeds, axis=0), np.std(speeds, axis=0))
 
-    def tracer_diffusivity(
-            self, *, dimensions: int) -> tuple[FloatWithUnit, FloatWithUnit]:
+    def tracer_diffusivity(self, *, dimensions: int) -> u.ufloat:
         """Calculate tracer diffusivity.
 
         Defined as: MSD / (2*dimensions*time)
@@ -235,7 +235,7 @@ class SimulationMetricsStd:
 
         Returns
         -------
-        tracer_diffusivity_mean, tracer_diffusivity_std : tuple[FloatWithUnit, FloatWithUnit]
+        tracer_diffusivity : u.ufloat
             Tracer diffusivity in $m^2/s$, mean and standard deviation
         """
         diffusivities = [
@@ -244,11 +244,9 @@ class SimulationMetricsStd:
         ]
         mean_diffusivities = FloatWithUnit(np.mean(diffusivities), 'm^2 s^-1')
         std_diffusivities = FloatWithUnit(np.std(diffusivities), 'm^2 s^-1')
-        return (mean_diffusivities, std_diffusivities)
+        return u.ufloat(mean_diffusivities, std_diffusivities)
 
-    def tracer_conductivity(
-            self, *, z_ion: int,
-            dimensions: int) -> tuple[FloatWithUnit, FloatWithUnit]:
+    def tracer_conductivity(self, *, z_ion: int, dimensions: int) -> u.ufloat:
         """Return tracer conductivity as S/m.
 
         Defined as: elementary_charge^2 * charge_ion^2 * diffusivity *
@@ -263,7 +261,7 @@ class SimulationMetricsStd:
 
         Returns
         -------
-        tracer_conductivities_mean, tracer_conductivities_std : tuple[FloatWithUnit,FloatWithUnit]
+        tracer_conductivities : u.ufloat
             Tracer conductivities in $S/m$, mean and standard deviation
         """
         conductivities = [
@@ -272,9 +270,9 @@ class SimulationMetricsStd:
         ]
         mean_conductivities = FloatWithUnit(np.mean(conductivities), 'S m^-1')
         std_conductivities = FloatWithUnit(np.std(conductivities), 'S m^-1')
-        return (mean_conductivities, std_conductivities)
+        return u.ufloat(mean_conductivities, std_conductivities)
 
-    def vibration_amplitude(self) -> tuple[FloatWithUnit, FloatWithUnit]:
+    def vibration_amplitude(self) -> u.ufloat:
         """Calculate vibration amplitude.
 
         Returns
@@ -286,7 +284,7 @@ class SimulationMetricsStd:
         mean_vibes = FloatWithUnit(np.mean(vibes), 'ang')
         standard_vibes = FloatWithUnit(np.std(vibes),
                                        'ang')  # Standard deviation
-        return (mean_vibes, standard_vibes)
+        return u.ufloat(mean_vibes, standard_vibes)
 
     def amplitudes(self) -> tuple[np.ndarray, np.ndarray]:
         """Calculate vibration amplitudes.

@@ -20,13 +20,13 @@ def test_tracer_metrics_std(trajectory):
     diff_trajectory = trajectory.filter('B')
     metrics = SimulationMetricsStd(diff_trajectory.split(2, equal_parts=True))
 
-    td_mean, td_std = metrics.tracer_diffusivity(dimensions=3)
-    assert np.isclose(td_mean, np.array([3.334e-23]))
-    assert np.isclose(td_std, np.array([2.77555756e-17]))
+    td = metrics.tracer_diffusivity(dimensions=3)
+    assert np.isclose(td.n, np.array([3.334e-23]))
+    assert np.isclose(td.s, np.array([2.77555756e-17]))
 
-    tc_mean, tc_std = metrics.tracer_conductivity(z_ion=1, dimensions=3)
-    assert np.isclose(tc_mean, np.array([05.038e-10]))
-    assert np.isclose(tc_std, np.array([2.77555756e-17]))
+    tc = metrics.tracer_conductivity(z_ion=1, dimensions=3)
+    assert np.isclose(tc.n, np.array([05.038e-10]))
+    assert np.isclose(tc.s, np.array([2.77555756e-17]))
 
 
 def test_vibration_metrics(trajectory):
