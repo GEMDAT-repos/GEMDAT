@@ -40,12 +40,12 @@ def test_gemdash(page: Page):
     page.get_by_label('filename').press('Enter')
 
     # check values
-    expect(page.get_by_text('1.57061e-09')).to_be_visible(timeout=60_000)
-    expect(page.get_by_text('110.322')).to_be_visible()
+    expect(page.get_by_text('(8.5+/-0.9)e+12')).to_be_visible(timeout=60_000)
+    expect(page.get_by_text('0.520307+/-0')).to_be_visible()
     expect(page.get_by_text('2.45567e+28')).to_be_visible()
-    expect(page.get_by_text('(8.5+/-0.9)e+12')).to_be_visible()
-    expect(page.get_by_text('0.52043')).to_be_visible()
     expect(page.get_by_text('40.7774')).to_be_visible()
+    expect(page.get_by_text('(1.566+/-0)e-09')).to_be_visible()
+    expect(page.get_by_text('109.999+/-0')).to_be_visible()
 
     page.get_by_role('tab', name='RDF plots').click()
     page.locator('label').filter(has_text='Plot RDFs').locator('span').click()
