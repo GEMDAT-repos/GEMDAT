@@ -30,6 +30,12 @@ def vasp_traj():
 
 
 @pytest.fixture(scope='module')
+def vasp_full_traj():
+    trajectory = Trajectory.from_vasprun(VASP_XML)
+    return trajectory
+
+
+@pytest.fixture(scope='module')
 def structure():
     return load_known_material('argyrodite', supercell=(2, 1, 1))
 
