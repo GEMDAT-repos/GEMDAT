@@ -85,13 +85,15 @@ def free_energy_graph(F: np.ndarray,
     """
 
     # Define possible movements in 3D space
-    movements = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1),
-                 (0, 0, -1)]
+    movements = np.array([(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0),
+                          (0, 0, 1), (0, 0, -1)])
     if diagonal:
-        movements.extend([(1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0),
-                          (1, 0, 1), (-1, 0, -1), (1, 0, -1), (-1, 0, 1),
-                          (0, 1, 1), (0, -1, -1), (0, 1, -1), (0, -1, 1),
-                          (1, 1, 1), (-1, -1, -1), (1, -1, -1), (-1, 1, 1)])
+        movements = np.append(movements, [(1, 1, 0), (-1, -1, 0), (1, -1, 0),
+                                          (-1, 1, 0), (1, 0, 1), (-1, 0, -1),
+                                          (1, 0, -1), (-1, 0, 1), (0, 1, 1),
+                                          (0, -1, -1), (0, 1, -1), (0, -1, 1),
+                                          (1, 1, 1), (-1, -1, -1), (1, -1, -1),
+                                          (-1, 1, 1)])
 
     G = nx.Graph()
     for index, Fi in np.ndenumerate(F):
@@ -99,7 +101,7 @@ def free_energy_graph(F: np.ndarray,
             G.add_node(index, energy=Fi)
     for node in G.nodes:
         for move in movements:
-            neighbor = tuple(_wrap_pbc(node + np.array(move), F.shape))
+            neighbor = tuple((node + np.array(move)) % F.shape)
             if neighbor in G.nodes:
                 G.add_edge(node, neighbor, weight=F[neighbor])
 
