@@ -45,25 +45,6 @@ class Pathway:
         return self
 
 
-def _wrap_pbc(coord: np.ndarray, size: tuple) -> np.ndarray:
-    """Wraps coordinates in periodic boundaries.
-
-    Parameters
-    ----------
-    coord: np.ndarray
-        Coordinates of one or multiple sites
-    size: tuple
-        Boundary size
-
-    Returns:
-    -------
-    wrapped_coord: np.ndarray
-        Coordinates inside the PBC
-    """
-    wrapped_coord = coord % size
-    return wrapped_coord
-
-
 def free_energy_graph(F: np.ndarray,
                       max_energy_threshold: float = 1e20,
                       diagonal: bool = True) -> nx.Graph:
@@ -88,12 +69,13 @@ def free_energy_graph(F: np.ndarray,
     movements = np.array([(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0),
                           (0, 0, 1), (0, 0, -1)])
     if diagonal:
-        movements = np.append(movements, [(1, 1, 0), (-1, -1, 0), (1, -1, 0),
-                                          (-1, 1, 0), (1, 0, 1), (-1, 0, -1),
-                                          (1, 0, -1), (-1, 0, 1), (0, 1, 1),
-                                          (0, -1, -1), (0, 1, -1), (0, -1, 1),
-                                          (1, 1, 1), (-1, -1, -1), (1, -1, -1),
-                                          (-1, 1, 1)])
+        diagonal_movements = np.array([(1, 1, 0), (-1, -1, 0), (1, -1, 0),
+                                       (-1, 1, 0), (1, 0, 1), (-1, 0, -1),
+                                       (1, 0, -1), (-1, 0, 1), (0, 1, 1),
+                                       (0, -1, -1), (0, 1, -1), (0, -1, 1),
+                                       (1, 1, 1), (-1, -1, -1), (1, -1, -1),
+                                       (-1, 1, 1)])
+        movements = np.vstack((movements, diagonal_movements))
 
     G = nx.Graph()
     for index, Fi in np.ndenumerate(F):
@@ -101,7 +83,7 @@ def free_energy_graph(F: np.ndarray,
             G.add_node(index, energy=Fi)
     for node in G.nodes:
         for move in movements:
-            neighbor = tuple((node + np.array(move)) % F.shape)
+            neighbor = tuple((node + move) % F.shape)
             if neighbor in G.nodes:
                 G.add_edge(node, neighbor, weight=F[neighbor])
 
