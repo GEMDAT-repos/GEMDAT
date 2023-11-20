@@ -14,15 +14,15 @@ from ._jumps import (
     jumps_vs_distance,
     jumps_vs_time,
 )
+from ._paths import (
+    energy_along_path,
+    path_on_grid,
+)
 from ._rdf import radial_distribution
 from ._shape import shape
 from ._vibration import (
     frequency_vs_occurence,
     vibrational_amplitudes,
-)
-from .matplotlib._paths import (
-    energy_along_path,
-    path_on_grid,
 )
 
 __all__ = [
