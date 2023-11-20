@@ -73,7 +73,10 @@ def plot_points(points: np.ndarray,
     """
     assert len(points) == len(labels)
 
-    colors = dict(zip(labels, px.colors.qualitative.G10))
+    colors = {
+        label: px.colors.sample_colorscale('rainbow', [i / (len(labels) - 1)])
+        for i, label in enumerate(labels)
+    }
 
     for i, (x, y, z) in enumerate(points):
         label = labels[i]

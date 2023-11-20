@@ -10,6 +10,7 @@ from ._jumps import (
     jumps_vs_distance,
     jumps_vs_time,
 )
+from ._paths import path_on_landscape
 from ._vibration import vibrational_amplitudes
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     'displacement_per_element',
     'jumps_vs_distance',
     'jumps_vs_time',
+    'path_on_landscape',
     'vibrational_amplitudes',
 ]

@@ -5,9 +5,11 @@ from __future__ import annotations
 from .matplotlib import (
     collective_jumps,
     displacement_per_site,
+    energy_along_path,
     frequency_vs_occurence,
     jumps_3d,
     jumps_3d_animation,
+    path_on_grid,
     radial_distribution,
     shape,
 )
@@ -36,4 +38,7 @@ __all__ = [
     'radial_distribution',
     'shape',
     'vibrational_amplitudes',
+    'energy_along_path',
+    'path_on_grid',
+    'path_on_landscape',
 ]

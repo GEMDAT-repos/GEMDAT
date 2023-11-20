@@ -6,6 +6,7 @@ from __future__ import annotations
 import typing
 
 import numpy as np
+import uncertainties as u
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 
@@ -187,3 +188,111 @@ class SimulationMetrics:
             amplitudes.extend([np.sum(array) for array in subarrays])
 
         return np.asarray(amplitudes)
+
+
+class SimulationMetricsStd:
+    """Class for calculating different metrics and properties from a molecular
+    dynamics simulation.
+
+    Calculates the mean and standard deviation for a given list of
+    trajectories
+    """
+
+    def __init__(self, trajectories: list[Trajectory]):
+        """Initialize class.
+
+        Parameters
+        ----------
+        trajectories: list[Trajectory]
+            Input trajectories
+        """
+        self.metrics = [
+            SimulationMetrics(trajectory) for trajectory in trajectories
+        ]
+
+    def speed(self) -> tuple[np.ndarray, np.ndarray]:
+        """Calculate mean speed and standard deviations.
+
+        Corresponds to change in distance from the base position.
+
+        Returns
+        -------
+        speed_mean, speed_std : tuple[np.ndarray, np.ndarray]
+            Output arrays with speeds
+        """
+        speeds = [metric.speed() for metric in self.metrics]
+        return (np.mean(speeds, axis=0), np.std(speeds, axis=0))
+
+    def tracer_diffusivity(self, *, dimensions: int) -> u.ufloat:
+        """Calculate tracer diffusivity.
+
+        Defined as: MSD / (2*dimensions*time)
+
+        Parameters
+        ----------
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        tracer_diffusivity : u.ufloat
+            Tracer diffusivity in $m^2/s$, mean and standard deviation
+        """
+        diffusivities = [
+            metric.tracer_diffusivity(dimensions=dimensions)
+            for metric in self.metrics
+        ]
+        mean_diffusivities = FloatWithUnit(np.mean(diffusivities), 'm^2 s^-1')
+        std_diffusivities = FloatWithUnit(np.std(diffusivities), 'm^2 s^-1')
+        return u.ufloat(mean_diffusivities, std_diffusivities)
+
+    def tracer_conductivity(self, *, z_ion: int, dimensions: int) -> u.ufloat:
+        """Return tracer conductivity as S/m.
+
+        Defined as: elementary_charge^2 * charge_ion^2 * diffusivity *
+            particle_density / (k_B * T)
+
+        Parameters
+        ----------
+        z_ion : int
+            Charge of the ion
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        tracer_conductivities : u.ufloat
+            Tracer conductivities in $S/m$, mean and standard deviation
+        """
+        conductivities = [
+            metric.tracer_conductivity(z_ion=z_ion, dimensions=dimensions)
+            for metric in self.metrics
+        ]
+        mean_conductivities = FloatWithUnit(np.mean(conductivities), 'S m^-1')
+        std_conductivities = FloatWithUnit(np.std(conductivities), 'S m^-1')
+        return u.ufloat(mean_conductivities, std_conductivities)
+
+    def vibration_amplitude(self) -> u.ufloat:
+        """Calculate vibration amplitude.
+
+        Returns
+        -------
+        vibration_amp_mean, vibration_amp_std : tuple[FloatWithUnit, FloatWithUnit]
+            Vibration amplitude in $Å$, mean and standard deviation
+        """
+        vibes = [metric.vibration_amplitude() for metric in self.metrics]
+        mean_vibes = FloatWithUnit(np.mean(vibes), 'ang')
+        standard_vibes = FloatWithUnit(np.std(vibes),
+                                       'ang')  # Standard deviation
+        return u.ufloat(mean_vibes, standard_vibes)
+
+    def amplitudes(self) -> tuple[np.ndarray, np.ndarray]:
+        """Calculate vibration amplitudes.
+
+        Returns
+        -------
+        amplitudes_mean, amplitudes_std : tuple[np.ndarray, np.ndarray]
+            Output array of vibration amplitudes, mean and standard deviation
+        """
+        amplitudes = [metric.amplitudes() for metric in self.metrics]
+        return (np.mean(amplitudes, axis=0), np.std(amplitudes, axis=0))
