@@ -44,6 +44,11 @@ class Pathway:
 
         return self
 
+    @property
+    def cost(self) -> float:
+        """Calculate the path cost."""
+        return np.sum(self.energy)
+
 
 def free_energy_graph(F: np.ndarray,
                       max_energy_threshold: float = 1e20,
@@ -158,17 +163,19 @@ def find_best_perc_path(F: np.ndarray,
 
     # Tile the grind in the percolation directions
     F = np.tile(F, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
-    X, Y, Z = F.shape
 
     # Get F on a graph
     F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
 
     # Find the lowest cost path that percolates along the x dimension
-    total_energy_cost = float('inf')
+    best_cost = float('inf')
+
     # reaching the percolating image
     image = tuple(
         x * px
         for x, px in zip(xyz_real, (percolate_x, percolate_y, percolate_z)))
+
+    best_path = Pathway([], [])
 
     for starting_point in peaks:
 
@@ -185,11 +192,10 @@ def find_best_perc_path(F: np.ndarray,
         except nx.NetworkXNoPath:
             continue
 
-        # Calculate the path cost
-        path_cost = np.sum(path.energy)
+        cost = path.cost
 
-        if path_cost < total_energy_cost:
-            total_energy_cost = path_cost
-            best_percolating_path = path
+        if cost < best_cost:
+            best_cost = cost
+            best_path = path
 
-    return best_percolating_path
+    return best_path
