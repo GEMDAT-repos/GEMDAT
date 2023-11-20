@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from math import isclose
 
+import numpy as np
 import pytest
 
 from gemdat.path import find_best_perc_path
@@ -16,14 +17,15 @@ def vasp_full_vol(vasp_full_traj):
 
 
 @pytest.vaspxml_available  # type: ignore
-def test_transitions_find_best_perc_path(vasp_full_vol):
+def test_find_best_perc_path(vasp_full_vol):
     F = vasp_full_vol.get_free_energy(temperature=650.0)
-    peaks = vasp_full_vol.find_peaks()
+    peaks = np.array([[30, 23, 14], [35, 2, 7]])
+
     path = find_best_perc_path(F,
                                peaks,
                                percolate_x=True,
                                percolate_y=False,
                                percolate_z=False)
 
-    assert isclose(sum(path.energy), 422323.40024684614)
-    assert path.sites[0] == (30, 23, 14)
+    assert isclose(path.cost, 422323.40024684614)
+    assert path.start_site == (30, 23, 14)

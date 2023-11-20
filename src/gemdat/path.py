@@ -3,36 +3,28 @@ between sites."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import networkx as nx
 import numpy as np
 
 
+@dataclass
 class Pathway:
     """Container class for paths between sites.
 
     Attributes
     ----------
     path: list[tuple]
-        List of coordinates of the path
+        List of coordinates of the sites definint the path
     path_energy: list[float]
-        Energy along the path
+        List of the energy along the path
     """
+    sites: list[tuple[int, int, int]]
+    energy: list[float]
 
-    def __init__(self, sites: list[tuple], energy: list[float]):
-        """Store event data for jumps and transitions between sites.
-
-        Parameters
-        ----------
-        sites: list[tuple]
-            List of coordinates of the sites definint the path
-        energy: list[float]
-            List of the energy along the path
-        """
-        self.sites = sites
-        self.energy = energy
-
-    def wrap(self, F: np.ndarray) -> Pathway:
-        """Wrap path in periodic boundary conditions.
+    def wrap(self, F: np.ndarray):
+        """Wrap path in periodic boundary conditions in-place.
 
         Parameters
         ----------
@@ -42,7 +34,20 @@ class Pathway:
         X, Y, Z = F.shape
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
 
-        return self
+    @property
+    def cost(self) -> float:
+        """Calculate the path cost."""
+        return np.sum(self.energy)
+
+    @property
+    def start_site(self) -> tuple[int, int, int]:
+        """Return first site."""
+        return self.sites[0]
+
+    @property
+    def end_site(self) -> tuple[int, int, int]:
+        """Return end site."""
+        return self.sites[-1]
 
 
 def free_energy_graph(F: np.ndarray,
@@ -158,17 +163,18 @@ def find_best_perc_path(F: np.ndarray,
 
     # Tile the grind in the percolation directions
     F = np.tile(F, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
-    X, Y, Z = F.shape
 
     # Get F on a graph
     F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
 
-    # Find the lowest cost path that percolates along the x dimension
-    total_energy_cost = float('inf')
     # reaching the percolating image
     image = tuple(
         x * px
         for x, px in zip(xyz_real, (percolate_x, percolate_y, percolate_z)))
+
+    # Find the lowest cost path that percolates along the x dimension
+    best_cost = float('inf')
+    best_path = Pathway([], [])
 
     for starting_point in peaks:
 
@@ -185,11 +191,10 @@ def find_best_perc_path(F: np.ndarray,
         except nx.NetworkXNoPath:
             continue
 
-        # Calculate the path cost
-        path_cost = np.sum(path.energy)
+        cost = path.cost
 
-        if path_cost < total_energy_cost:
-            total_energy_cost = path_cost
-            best_percolating_path = path
+        if cost < best_cost:
+            best_cost = cost
+            best_path = path
 
-    return best_percolating_path
+    return best_path
