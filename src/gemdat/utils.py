@@ -1,6 +1,8 @@
 """This module connects generally useful utilties."""
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 from pymatgen.core import Lattice, Structure
 from scipy import signal
@@ -117,3 +119,11 @@ def is_lattice_similar(a: Lattice | Structure,
             return False
 
     return True
+
+
+def warn_lattice_not_close(a: Lattice, b: Lattice):
+    """Raises a userwarning if lattices are not close."""
+    if not is_lattice_similar(a, b):
+        warnings.warn(
+            'Lattices are not similar.'
+            f'a: {a.parameters}, b: {b.parameters}', UserWarning)

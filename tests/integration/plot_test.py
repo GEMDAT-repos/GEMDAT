@@ -61,5 +61,13 @@ def test_jumps_3d_animation(vasp_sites):
 
 @image_comparison2(baseline_images=['rdf1', 'rdf2', 'rdf3'])
 def test_rdf(vasp_rdf_data):
+    assert len(vasp_rdf_data) == 3
     for rdfs in vasp_rdf_data.values():
         plots.radial_distribution(rdfs)
+
+
+@image_comparison2(baseline_images=['shape'])
+def test_shape(vasp_shape_data):
+    assert len(vasp_shape_data) == 1
+    for shape in vasp_shape_data:
+        plots.shape(shape)
