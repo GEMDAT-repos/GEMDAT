@@ -50,7 +50,7 @@ def shape(shape: ShapeData, bins: int | Sequence[float] = 50) -> plt.Figure:
         ax0.hist2d(x=x, y=y, bins=bins)
         ax0.set_ylabel(y_labels[i])
 
-        circle = plt.Circle((0, 0), msd, color='r', linestyle='--', fill=False)
+        circle = plt.Circle((0, 0), np.mean(shape.distances()), color='r', linestyle='--', fill=False)
         ax0.add_patch(circle)
 
         ax0.scatter(x=[0], y=[0], color='r', marker='.')
