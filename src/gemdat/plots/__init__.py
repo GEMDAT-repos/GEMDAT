@@ -21,6 +21,7 @@ from .plotly import (
     displacement_per_element,
     jumps_vs_distance,
     jumps_vs_time,
+    path_on_landscape,
     vibrational_amplitudes,
 )
 
