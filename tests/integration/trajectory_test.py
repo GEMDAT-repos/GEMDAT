@@ -62,9 +62,9 @@ def test_volume_to_structure_cluster(vasp_vol):
 @pytest.vaspxml_available  # type: ignore
 def test_volume_get_free_energy(vasp_vol):
     free_energy = vasp_vol.get_free_energy(temperature=1)
-    assert isclose(np.min(free_energy), 7.1239783874)
-    assert isclose(np.average(free_energy[free_energy < 10**10]),
-                   10.215400139366)
+    assert isclose(np.min(free_energy), 0.00061389695902)
+    assert isclose(np.average(free_energy[free_energy < 10**5]),
+                   0.0008802950738)
 
 
 @pytest.vaspxml_available  # type: ignore

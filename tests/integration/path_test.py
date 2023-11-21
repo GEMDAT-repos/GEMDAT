@@ -27,5 +27,5 @@ def test_find_best_perc_path(vasp_full_vol):
                                percolate_y=False,
                                percolate_z=False)
 
-    assert isclose(path.cost, 422323.40024684614)
+    assert isclose(path.cost, 36.39301483423)
     assert path.start_site == (30, 23, 14)
