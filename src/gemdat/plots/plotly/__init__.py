@@ -5,6 +5,7 @@ from ._density import density
 from ._displacements import (
     displacement_histogram,
     displacement_per_element,
+    msd_per_element,
 )
 from ._jumps import (
     jumps_vs_distance,
@@ -17,6 +18,7 @@ __all__ = [
     'density',
     'displacement_histogram',
     'displacement_per_element',
+    'msd_per_element',
     'jumps_vs_distance',
     'jumps_vs_time',
     'path_on_landscape',
