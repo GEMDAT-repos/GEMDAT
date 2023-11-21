@@ -18,9 +18,9 @@ __all__ = [
     'density',
     'displacement_histogram',
     'displacement_per_element',
-    'msd_per_element',
     'jumps_vs_distance',
     'jumps_vs_time',
+    'msd_per_element',
     'path_on_landscape',
     'vibrational_amplitudes',
 ]
