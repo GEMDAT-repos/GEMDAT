@@ -236,7 +236,8 @@ class SitesData:
 
             part_time = self.trajectory.total_time / n_parts
 
-            atom_percentage = np.array([part[site_start] for part in self.atom_locations_parts])
+            atom_percentage = np.array(
+                [part[site_start] for part in self.atom_locations_parts])
 
             denom = atom_percentage * self.n_floating * part_time
 
