@@ -5,6 +5,7 @@ from __future__ import annotations
 from ._displacements import (
     displacement_histogram,
     displacement_per_element,
+    msd_per_element,
     displacement_per_site,
 )
 from ._jumps import (
@@ -29,6 +30,7 @@ __all__ = [
     'collective_jumps',
     'displacement_histogram',
     'displacement_per_element',
+    'msd_per_element',
     'displacement_per_site',
     'energy_along_path',
     'frequency_vs_occurence',
