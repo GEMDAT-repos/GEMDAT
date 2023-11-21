@@ -67,6 +67,7 @@ def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
 
     return fig
 
+
 def msd_per_element(*, trajectory: Trajectory) -> plt.Figure:
     """Plot mean squared displacement per element.
 
@@ -102,6 +103,7 @@ def msd_per_element(*, trajectory: Trajectory) -> plt.Figure:
            ylabel='MSD (Angstrom$^2$)')
 
     return fig
+
 
 def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
     """Plot histogram of total displacement at final timestep.
