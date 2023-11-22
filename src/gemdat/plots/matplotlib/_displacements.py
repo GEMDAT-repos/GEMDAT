@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import defaultdict
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -44,8 +46,6 @@ def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    from collections import defaultdict
-
     grouped = defaultdict(list)
 
     species = trajectory.species
@@ -81,8 +81,6 @@ def msd_per_element(*, trajectory: Trajectory) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    from collections import defaultdict
-
     grouped = defaultdict(list)
 
     species = trajectory.species
