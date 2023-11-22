@@ -92,32 +92,16 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
 
     for symbol, sq_distances in grouped.items():
         mean_sq_disp = np.mean(sq_distances, axis=0)
-        std_disp = np.std(sq_distances, axis=0)
         fig.add_trace(
             go.Scatter(y=mean_sq_disp,
-                       name=symbol + ' + std',
+                       name=symbol,
                        mode='lines',
                        line={'width': 3},
                        legendgroup=symbol))
-        fig.add_trace(
-            go.Scatter(y=mean_sq_disp + std_disp,
-                       name=symbol + ' + std',
-                       mode='lines',
-                       line={'width': 0},
-                       legendgroup=symbol,
-                       showlegend=False))
-        fig.add_trace(
-            go.Scatter(y=mean_sq_disp - std_disp,
-                       name=symbol + ' + std',
-                       mode='lines',
-                       line={'width': 0},
-                       legendgroup=symbol,
-                       showlegend=False,
-                       fill='tonexty'))
 
     fig.update_layout(title='Mean squared displacement per element',
                       xaxis_title='Time step',
-                      yaxis_title='MSD (Angstrom$^2$)')
+                      yaxis_title='MSD (Angstrom<sup>2</sup>)')
 
     return fig
 
