@@ -22,6 +22,7 @@ from .plotly import (
     jumps_vs_distance,
     jumps_vs_time,
     msd_per_element,
+    path_on_landscape,
     vibrational_amplitudes,
 )
 
@@ -37,6 +38,7 @@ __all__ = [
     'jumps_vs_distance',
     'jumps_vs_time',
     'msd_per_element',
+    'path_on_landscape',
     'radial_distribution',
     'shape',
     'vibrational_amplitudes',
