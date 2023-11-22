@@ -11,6 +11,7 @@ import scipy.ndimage as ndi
 from pymatgen.core import Structure
 from pymatgen.io.vasp import VolumetricData
 from rich.progress import track
+from scipy.constants import physical_constants
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
 
@@ -310,7 +311,8 @@ class Volume:
             Free energy in eV on the voxel grid
         """
         prob = self.data / self.data.sum()
-        free_energy = -temperature * 8.61733326e-5 * np.log(prob)
+        free_energy = -temperature * physical_constants[
+            'Boltzmann constant in eV/K'][0] * np.log(prob)
         return np.nan_to_num(free_energy)
 
 
