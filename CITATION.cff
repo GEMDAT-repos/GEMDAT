@@ -20,6 +20,10 @@ authors:
     family-names: Lavrinenko
     affiliation: Delft University of Technology
     orcid: 'https://orcid.org/0000-0001-9863-8325'
+  - given-names: Simone
+    family-names: Ciarella
+    affiliation: Netherlands eScience Center
+    orcid: 'https://orcid.org/0000-0002-9247-139X'
 repository-code: 'https://github.com/GEMDAT-repos/GEMDAT'
 url: 'https://gemdat.readthedocs.io'
 abstract: >-
