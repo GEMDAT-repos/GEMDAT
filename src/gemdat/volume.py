@@ -307,10 +307,10 @@ class Volume:
         Returns
         -------
         free_energy : ndarray
-            Free energy on the voxel grid
+            Free energy in eV on the voxel grid
         """
         prob = self.data / self.data.sum()
-        free_energy = -temperature * np.log(prob)
+        free_energy = -temperature * 8.61733326e-5 * np.log(prob)
         return np.nan_to_num(free_energy)
 
 

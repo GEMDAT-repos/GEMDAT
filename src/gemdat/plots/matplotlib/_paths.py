@@ -21,7 +21,7 @@ def energy_along_path(*, path: Pathway) -> plt.Figure:
     fig, ax = plt.subplots()
 
     ax.plot(range(len(path.energy)), path.energy, marker='o', color='r')
-    ax.set(xlabel='Step', ylabel='Energy')
+    ax.set(xlabel='Step', ylabel='Free energy [eV]')
 
     return fig
 
