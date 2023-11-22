@@ -66,6 +66,46 @@ def displacement_per_element(*, trajectory: Trajectory) -> go.Figure:
     return fig
 
 
+def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
+    """Plot mean squared displacement per element.
+
+    Parameters
+    ----------
+    trajectory : Trajectory
+        Input trajectory
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Output figure
+    """
+
+    fig = go.Figure()
+
+    grouped = defaultdict(list)
+
+    species = trajectory.species
+
+    for sp, distances in zip(species,
+                             trajectory.distances_from_base_position()):
+        grouped[sp.symbol].append(distances**2)
+
+    for symbol, sq_distances in grouped.items():
+        mean_sq_disp = np.mean(sq_distances, axis=0)
+        fig.add_trace(
+            go.Scatter(y=mean_sq_disp,
+                       name=symbol,
+                       mode='lines',
+                       line={'width': 3},
+                       legendgroup=symbol))
+
+    fig.update_layout(title='Mean squared displacement per element',
+                      xaxis_title='Time step',
+                      yaxis_title='MSD (Angstrom<sup>2</sup>)')
+
+    return fig
+
+
 def _trajectory_to_dataframe(trajectory: Trajectory) -> pd.DataFrame:
     """_trajectory_to_dataframe.
 

@@ -6,6 +6,7 @@ from ._displacements import (
     displacement_histogram,
     displacement_per_element,
     displacement_per_site,
+    msd_per_element,
 )
 from ._jumps import (
     collective_jumps,
@@ -36,6 +37,7 @@ __all__ = [
     'jumps_3d_animation',
     'jumps_vs_distance',
     'jumps_vs_time',
+    'msd_per_element',
     'path_on_grid',
     'radial_distribution',
     'shape',

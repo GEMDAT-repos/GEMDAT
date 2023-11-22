@@ -193,6 +193,7 @@ with tab1:
 
     figures = (
         plots.displacement_per_element(trajectory=trajectory),
+        plots.msd_per_element(trajectory=trajectory),
         plots.displacement_per_site(trajectory=diff_trajectory),
         plots.displacement_histogram(trajectory=trajectory, n_parts=n_parts),
         plots.frequency_vs_occurence(trajectory=diff_trajectory),
