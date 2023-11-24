@@ -21,7 +21,20 @@ def energy_along_path(*, path: Pathway) -> plt.Figure:
     fig, ax = plt.subplots()
 
     ax.plot(range(len(path.energy)), path.energy, marker='o', color='r')
-    ax.set(xlabel='Step', ylabel='Free energy [eV]')
+    ax.set(ylabel='Free energy [eV]')
+    if path.nearest_peak:
+        # Remove repeated labels that would bloat the figure
+        clean_xlabel = [
+            path.nearest_peak[i]
+            if path.nearest_peak[i] != path.nearest_peak[i - 1] else ''
+            for i in range(len(path.nearest_peak))
+        ]
+        non_empty_ticks = [
+            i for i, label in enumerate(clean_xlabel) if label != ''
+        ]
+        ax.set_xticks(non_empty_ticks)
+        ax.set_xticklabels([clean_xlabel[i] for i in non_empty_ticks],
+                           rotation=45)
 
     return fig
 

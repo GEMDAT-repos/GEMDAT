@@ -29,3 +29,12 @@ def test_find_best_perc_path(vasp_full_vol):
 
     assert isclose(path.cost, 36.39301483423)
     assert path.start_site == (30, 23, 14)
+
+
+@pytest.vaspxml_available  # type: ignore
+def test_precompute_nearest_peak(vasp_full_vol):
+    peaks = np.array([[30, 30, 30], [31, 30, 30]])
+    peaks_map = vasp_full_vol.precompute_nearest_peaks(peaks)
+
+    assert peaks_map.get(tuple((35, 3, 3))) == (31, 30, 30)
+    assert peaks_map.get(tuple((64, 3, 3))) == (30, 30, 30)

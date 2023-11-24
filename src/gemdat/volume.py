@@ -11,6 +11,7 @@ import scipy.ndimage as ndi
 from pymatgen.core import Structure
 from pymatgen.io.vasp import VolumetricData
 from rich.progress import track
+from scipy.spatial import cKDTree
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
 
@@ -120,6 +121,42 @@ class Volume:
             coords = coords[c0 & c1 & c2]
 
         return coords[:, 0:3].astype(int)
+
+    def precompute_nearest_peaks(self, peaks: np.ndarray):
+        """Find the nearest peaks of each voxel using a KD-tree.
+
+        Parameters
+        ----------
+        peaks : np.ndarray
+            List of the peaks that correspond to high probability regions
+
+        Returns
+        -------
+        nearest_peak_map : dict
+            Dictionary that maps each voxel to the nearest peak
+        """
+        # In order to accomodate the periodicity, I have to add the images of the peaks
+        periodic_peaks = []
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                for dz in [-1, 0, 1]:
+                    periodic_peaks.extend(peaks + np.array(self.data.shape) *
+                                          np.array([dx, dy, dz]))
+
+        kd_tree = cKDTree(periodic_peaks)
+        nearest_peak_map = {}
+        possible_sites = np.array(
+            np.meshgrid(*[range(dim) for dim in self.data.shape])).T.reshape(
+                -1, len(self.data.shape))
+
+        for site in possible_sites:
+            nearest_peak_index = kd_tree.query(site)[1]
+
+            # Query the KD-tree to find the index of the nearest peak, and wrap its coordinates
+            nearest_peak_map[tuple(site)] = tuple(
+                periodic_peaks[nearest_peak_index] % self.data.shape)
+
+        return nearest_peak_map
 
     def to_vasp_volume(self, structure: Structure, *,
                        filename: Optional[str]) -> VolumetricData:

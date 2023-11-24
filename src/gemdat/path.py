@@ -16,12 +16,15 @@ class Pathway:
     Attributes
     ----------
     path: list[tuple]
-        List of coordinates of the sites definint the path
+        List of coordinates of the sites defining the path
     path_energy: list[float]
         List of the energy along the path
+    nearest_peak: list[tuple]
+        List of coordinates of the closest peak to the path site
     """
     sites: list[tuple[int, int, int]]
     energy: list[float]
+    nearest_peak: list[tuple[int, int, int]]
 
     def wrap(self, F: np.ndarray):
         """Wrap path in periodic boundary conditions in-place.
@@ -33,6 +36,16 @@ class Pathway:
         """
         X, Y, Z = F.shape
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
+
+    def path_label(self, peaks_map: dict):
+        """Find the nearest peak to the path sites.
+
+        Parameters
+        ----------
+        peaks_map : dict
+            Dictionary of the closest peak to each coordinate point
+        """
+        self.nearest_peak = [peaks_map.get(site, None) for site in self.sites]
 
     @property
     def cost(self) -> float:
@@ -124,7 +137,7 @@ def optimal_path(
                                     weight='weight')
     path_energy = [F_graph.nodes[node]['energy'] for node in optimal_path]
 
-    path = Pathway(optimal_path, path_energy)
+    path = Pathway(optimal_path, path_energy, [])
 
     return path
 
@@ -159,7 +172,7 @@ def find_best_perc_path(F: np.ndarray,
     # Find percolation using virtual images along the required dimensions
     if not any([percolate_x, percolate_y, percolate_z]):
         print('Warning: percolation is not defined')
-        return Pathway([], [])
+        return Pathway([], [], [])
 
     # Tile the grind in the percolation directions
     F = np.tile(F, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
@@ -174,7 +187,7 @@ def find_best_perc_path(F: np.ndarray,
 
     # Find the lowest cost path that percolates along the x dimension
     best_cost = float('inf')
-    best_path = Pathway([], [])
+    best_path = Pathway([], [], [])
 
     for starting_point in peaks:
 
