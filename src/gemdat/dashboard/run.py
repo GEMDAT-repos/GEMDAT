@@ -18,9 +18,6 @@ from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
 from gemdat.volume import Volume
 
-if len(argv) > 1:
-    filename = argv[1]
-
 st.set_page_config(
     page_title='Gemdat dashboard',
     layout='wide',
@@ -42,7 +39,10 @@ add_sidebar_logo()
 KNOWN_MATERIALS = get_list_of_known_materials()
 
 with st.sidebar:
-    trajectory_location = get_trajectory_location(filename)
+    if len(argv) > 1:
+        trajectory_location = get_trajectory_location(argv[1])
+    else:
+        trajectory_location = get_trajectory_location()
 
 
 @st.cache_data
