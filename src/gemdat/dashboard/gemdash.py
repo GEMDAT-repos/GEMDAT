@@ -24,7 +24,7 @@ def gemdash():
                         default=0,
                         help='specify twice to print streamlit help')
 
-    arguments = parser.parse_args(sys.argv[1:])
+    arguments, _ = parser.parse_known_args(sys.argv[1:])
     if arguments.help == 1:
         parser.print_help()
         return
