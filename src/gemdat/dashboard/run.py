@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from sys import argv
 from typing import Any
 
 import numpy as np
@@ -16,6 +17,9 @@ from gemdat.simulation_metrics import SimulationMetrics, SimulationMetricsStd
 from gemdat.trajectory import Trajectory
 from gemdat.utils import is_lattice_similar
 from gemdat.volume import Volume
+
+if len(argv) > 1:
+    filename = argv[1]
 
 st.set_page_config(
     page_title='Gemdat dashboard',
@@ -38,7 +42,7 @@ add_sidebar_logo()
 KNOWN_MATERIALS = get_list_of_known_materials()
 
 with st.sidebar:
-    trajectory_location = get_trajectory_location()
+    trajectory_location = get_trajectory_location(filename)
 
 
 @st.cache_data
