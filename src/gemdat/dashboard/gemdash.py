@@ -15,7 +15,8 @@ def gemdash():
         prog='gemdash',
         add_help=False,
         description='Streamlit dashboard for easily visualizing gemdat data')
-    parser.add_argument('filename',
+    parser.add_argument('--file',
+                        '-f',
                         nargs='?',
                         default='vasprun.xml',
                         help='File to load in gemdash')
@@ -24,10 +25,12 @@ def gemdash():
                         default=0,
                         help='specify twice to print streamlit help')
 
-    arguments, _ = parser.parse_known_args(sys.argv[1:])
+    arguments, unknown = parser.parse_known_args(sys.argv[1:])
     if arguments.help == 1:
         parser.print_help()
         return
+    if arguments.help == 2:
+        unknown.append('--help')
 
     run_file = str(dashboard_directory / 'run.py')
 
@@ -37,9 +40,9 @@ def gemdash():
         *('--theme.primaryColor', 'e03c31'),
         *('--theme.secondaryBackgroundColor', 'bcd9ec'),
         *('--browser.gatherUsageStats', 'false'),
-        *sys.argv[1:],
+        *unknown,
         '--',
-        arguments.filename,
+        *('--file', arguments.file),
     ]
 
     main()

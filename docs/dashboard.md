@@ -20,20 +20,19 @@ VASP_XML=./path/to/vasprun.xml gemdash
 
 It is also possible to specify the file that you want to load via the commandline:
 ```
-gemdash newrun/vasprun.xml
+gemdash --file newrun/vasprun.xml
 ```
 
 The options of gemdat can be listed with `gemdash --help`:
 ```
-usage: gemdash [--help] [filename]
+usage: gemdash [--file [FILE]] [--help]
 
 Streamlit dashboard for easily visualizing gemdat data
 
-positional arguments:
-  filename  File to load in gemdash
-
 options:
-  --help    specify twice to print streamlit help
+  --file [FILE], -f [FILE]
+                        File to load in gemdash
+  --help                specify twice to print streamlit help
 ```
 
 !!! note
