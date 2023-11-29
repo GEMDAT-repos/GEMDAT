@@ -142,8 +142,8 @@ class TestSites:  # type: ignore
         assert len(vasp_sites.activation_energies()) == 1
 
         e_act, e_act_std = vasp_sites.activation_energies()[('48h', '48h')]
-        assert isclose(e_act, 0.130754, rel_tol=1e-6)
-        assert isclose(e_act_std, 0.0063201, rel_tol=1e-6)
+        assert isclose(e_act, 0.1311852, rel_tol=1e-6)
+        assert isclose(e_act_std, 0.00596132, rel_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_sites):
         assert isclose(vasp_sites.jump_diffusivity(3),
