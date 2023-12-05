@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
+from sys import argv
 from typing import Any
 
 import numpy as np
@@ -35,10 +37,18 @@ st.set_page_config(
 
 add_sidebar_logo()
 
+# Check gemdash.py for the more complete parser
+parser = argparse.ArgumentParser()
+parser.add_argument('--file', nargs='?')
+arguments, _ = parser.parse_known_args(argv[1:])
+
 KNOWN_MATERIALS = get_list_of_known_materials()
 
 with st.sidebar:
-    trajectory_location = get_trajectory_location()
+    if arguments.file is not None:
+        trajectory_location = get_trajectory_location(arguments.file)
+    else:
+        trajectory_location = get_trajectory_location()
 
 
 @st.cache_data
