@@ -5,6 +5,7 @@ from math import isclose
 import numpy as np
 import pytest
 
+from gemdat.io import load_known_material
 from gemdat.path import find_best_perc_path
 from gemdat.volume import trajectory_to_volume
 
@@ -32,9 +33,14 @@ def test_find_best_perc_path(vasp_full_vol):
 
 
 @pytest.vaspxml_available  # type: ignore
-def test_precompute_nearest_peak(vasp_full_vol):
-    peaks = np.array([[30, 30, 30], [31, 30, 30]])
-    peaks_map = vasp_full_vol.precompute_nearest_peaks(peaks)
+def test_nearest_structure_reference(vasp_full_vol):
+    structure = load_known_material('argyrodite')
+    nearest_structure_map = vasp_full_vol.nearest_structure_reference(
+        structure)
 
-    assert peaks_map.get(tuple((35, 3, 3))) == (31, 30, 30)
-    assert peaks_map.get(tuple((64, 3, 3))) == (30, 30, 30)
+    assert nearest_structure_map[(0, 0, 0)] == 21
+    assert nearest_structure_map[(14.7, 0.8999999999999999,
+                                  0.8999999999999999)] == 9
+    assert nearest_structure_map[(18.3, 0.8999999999999999, 9.6)] == 37
+    assert (18.3, 0.899999999999999, 9.6) not in nearest_structure_map
+    assert len(nearest_structure_map) == 71874

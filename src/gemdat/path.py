@@ -7,6 +7,9 @@ from dataclasses import dataclass
 
 import networkx as nx
 import numpy as np
+from pymatgen.core import Structure
+
+from gemdat.volume import Volume
 
 
 @dataclass
@@ -15,16 +18,34 @@ class Pathway:
 
     Attributes
     ----------
-    path: list[tuple]
-        List of coordinates of the sites defining the path
-    path_energy: list[float]
+    sites: list[tuple]
+        List of voxel coordinates of the sites defining the path
+    cart_sites: list[tuple]
+        List of cartesian coordinates of the sites defining the path
+    energy: list[float]
         List of the energy along the path
-    nearest_peak: list[tuple]
-        List of coordinates of the closest peak to the path site
+    nearest_structure_coord: list[np.ndarray]
+        List of cartesian coordinates of the closest site of the reference structure
+    nearest_structure_label: list[str]
+        List of the label of the closest site of the reference structure
     """
     sites: list[tuple[int, int, int]]
+    cart_sites: list[tuple[float, float, float]]
     energy: list[float]
-    nearest_peak: list[tuple[int, int, int]]
+    nearest_structure_coord: list[np.ndarray]
+    nearest_structure_label: list[str]
+
+    def cartesian_path(self, vol: Volume):
+        """Convert voxel coordinates to cartesian coordinates.
+
+        Parameters
+        ----------
+        vol : Volume
+            Volume object containing the grid information
+        """
+        self.cart_sites = [
+            tuple(np.asarray(site) * vol.resolution) for site in self.sites
+        ]
 
     def wrap(self, F: np.ndarray):
         """Wrap path in periodic boundary conditions in-place.
@@ -37,15 +58,28 @@ class Pathway:
         X, Y, Z = F.shape
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
 
-    def path_label(self, peaks_map: dict):
-        """Find the nearest peak to the path sites.
+    def path_over_structure(self, structure: Structure, structure_map: dict):
+        """Find the nearest site of the structure to the path sites.
 
         Parameters
         ----------
-        peaks_map : dict
-            Dictionary of the closest peak to each coordinate point
+        structure : Structure
+            Reference structure
+        structure_map : dict
+            Dictionary of the closest site of the structure to each coordinate point
         """
-        self.nearest_peak = [peaks_map.get(site, None) for site in self.sites]
+        if not self.cart_sites:
+            raise ValueError(
+                'Cartesian coordinates of the path sites are not defined')
+
+        self.nearest_structure_label = [
+            structure.labels[structure_map.get(site, None)]
+            for site in self.cart_sites
+        ]
+        self.nearest_structure_coord = [
+            structure.cart_coords[structure_map.get(site, None)]
+            for site in self.cart_sites
+        ]
 
     @property
     def cost(self) -> float:
@@ -137,7 +171,7 @@ def optimal_path(
                                     weight='weight')
     path_energy = [F_graph.nodes[node]['energy'] for node in optimal_path]
 
-    path = Pathway(optimal_path, path_energy, [])
+    path = Pathway(optimal_path, [], path_energy, [], [])
 
     return path
 
@@ -172,7 +206,7 @@ def find_best_perc_path(F: np.ndarray,
     # Find percolation using virtual images along the required dimensions
     if not any([percolate_x, percolate_y, percolate_z]):
         print('Warning: percolation is not defined')
-        return Pathway([], [], [])
+        return Pathway([], [], [], [], [])
 
     # Tile the grind in the percolation directions
     F = np.tile(F, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
@@ -187,7 +221,7 @@ def find_best_perc_path(F: np.ndarray,
 
     # Find the lowest cost path that percolates along the x dimension
     best_cost = float('inf')
-    best_path = Pathway([], [], [])
+    best_path = Pathway([], [], [], [], [])
 
     for starting_point in peaks:
 

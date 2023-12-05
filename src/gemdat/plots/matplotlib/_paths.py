@@ -18,16 +18,17 @@ def energy_along_path(*, path: Pathway) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 5))
 
     ax.plot(range(len(path.energy)), path.energy, marker='o', color='r')
     ax.set(ylabel='Free energy [eV]')
-    if path.nearest_peak:
+    if path.nearest_structure_label:
         # Remove repeated labels that would bloat the figure
         clean_xlabel = [
-            path.nearest_peak[i]
-            if path.nearest_peak[i] != path.nearest_peak[i - 1] else ''
-            for i in range(len(path.nearest_peak))
+            f'{", ".join([f"{coord:.1f}" for coord in path.nearest_structure_coord[i]])}'
+            if (path.nearest_structure_coord[i]
+                != path.nearest_structure_coord[i - 1]).any() else ''
+            for i in range(len(path.sites))
         ]
         non_empty_ticks = [
             i for i, label in enumerate(clean_xlabel) if label != ''
@@ -35,6 +36,19 @@ def energy_along_path(*, path: Pathway) -> plt.Figure:
         ax.set_xticks(non_empty_ticks)
         ax.set_xticklabels([clean_xlabel[i] for i in non_empty_ticks],
                            rotation=45)
+        # and add on top the site labels
+        clean_xlabel_up = [
+            f'{path.nearest_structure_label[i]}' if
+            (path.nearest_structure_coord[i]
+             != path.nearest_structure_coord[i - 1]).any() else ''
+            for i in range(len(path.sites))
+        ]
+        ax_up = ax.twiny()
+        ax_up.set_xlim(ax.get_xlim())
+        ax_up.set_xticks(non_empty_ticks)
+        ax_up.set_xticklabels([clean_xlabel_up[i] for i in non_empty_ticks],
+                              rotation=45)
+        ax_up.get_yaxis().set_visible(False)
 
     return fig
 

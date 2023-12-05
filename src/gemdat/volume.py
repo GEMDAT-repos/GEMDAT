@@ -122,41 +122,50 @@ class Volume:
 
         return coords[:, 0:3].astype(int)
 
-    def precompute_nearest_peaks(self, peaks: np.ndarray):
-        """Find the nearest peaks of each voxel using a KD-tree.
+    def nearest_structure_reference(self, structure: Structure):
+        """Find distance and index of the nearest site of the structure for
+        each voxel using a KD-tree.
 
         Parameters
         ----------
-        peaks : np.ndarray
-            List of the peaks that correspond to high probability regions
+        structure : pymatgen.core.structure.Structure
+            Structure of the material to use as reference for nearest site
 
         Returns
         -------
-        nearest_peak_map : dict
-            Dictionary that maps each voxel to the nearest peak
+        nearest_structure_map : dict
+            Dictionary that maps each voxel to the index of the nearest site of the structure
         """
-        # In order to accomodate the periodicity, I have to add the images of the peaks
-        periodic_peaks = []
+        # In order to accomodate the periodicity, include the images of the structure sites
+        periodic_structure = []
+        periodic_ids = []
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
                 for dz in [-1, 0, 1]:
-                    periodic_peaks.extend(peaks + np.array(self.data.shape) *
-                                          np.array([dx, dy, dz]))
+                    periodic_structure.extend(
+                        structure.cart_coords + np.array([
+                            self.lattice.a * dx, self.lattice.b *
+                            dy, self.lattice.c * dz
+                        ]) * self.resolution)
+                    # store the id of the site in the original structure
+                    periodic_ids.extend(
+                        [i for i in range(len(structure.cart_coords))])
+        # Create a KD-tree from the structure
+        kd_tree = cKDTree(periodic_structure)
 
-        kd_tree = cKDTree(periodic_peaks)
-        nearest_peak_map = {}
+        nearest_structure_map = {}
         possible_sites = np.array(
             np.meshgrid(*[range(dim) for dim in self.data.shape])).T.reshape(
-                -1, len(self.data.shape))
+                -1, len(self.data.shape)) * self.resolution
 
         for site in possible_sites:
-            nearest_peak_index = kd_tree.query(site)[1]
+            # Query the KD-tree to find the index of the nearest periodic site
+            nearest_structure_index = kd_tree.query(site)[1]
+            # store the index of the corrisponding site in the original structure
+            nearest_structure_map[tuple(
+                site)] = periodic_ids[nearest_structure_index]
 
-            # Query the KD-tree to find the index of the nearest peak, and wrap its coordinates
-            nearest_peak_map[tuple(site)] = tuple(
-                periodic_peaks[nearest_peak_index] % self.data.shape)
-
-        return nearest_peak_map
+        return nearest_structure_map
 
     def to_vasp_volume(self, structure: Structure, *,
                        filename: Optional[str]) -> VolumetricData:
