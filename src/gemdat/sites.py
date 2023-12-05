@@ -229,14 +229,15 @@ class SitesData:
 
         temperature = self.trajectory.metadata['temperature']
 
-        for i, site_pair in enumerate(self.site_pairs):
+        for site_pair in self.site_pairs:
             site_start, site_stop = site_pair
 
             n_jumps = np.array([part[site_pair] for part in self.jumps_parts])
 
             part_time = self.trajectory.total_time / n_parts
 
-            atom_percentage = self.atom_locations_parts[i][site_start]
+            atom_percentage = np.array(
+                [part[site_start] for part in self.atom_locations_parts])
 
             denom = atom_percentage * self.n_floating * part_time
 
