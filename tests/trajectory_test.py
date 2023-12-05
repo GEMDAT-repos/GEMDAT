@@ -9,8 +9,11 @@ from gemdat.trajectory import Trajectory
 
 def test_trajectory(trajectory):
     assert isinstance(trajectory, Trajectory)
-    assert trajectory.species == [Species('B'), Species('C')]
-    assert trajectory.positions.shape == (5, 2, 3)
+    assert trajectory.species == [
+        Species('B'), Species('Si'),
+        Species('S'), Species('C')
+    ]
+    assert trajectory.positions.shape == (5, 4, 3)
     assert trajectory.metadata == {'temperature': 123}
 
 
@@ -19,7 +22,7 @@ def test_slice(trajectory):
 
     assert isinstance(sliced, Trajectory)
     assert sliced.species == trajectory.species
-    assert sliced.positions.shape == (3, 2, 3)
+    assert sliced.positions.shape == (3, 4, 3)
     assert sliced.metadata == trajectory.metadata
 
 
@@ -55,6 +58,7 @@ def test_caching(trajectory, tmpdir):
 
 
 def test_displacements_property(trajectory):
+    trajectory = trajectory.filter(['B', 'C'])
     trajectory.to_positions()
 
     assert_allclose(trajectory.displacements, [
@@ -71,13 +75,14 @@ def test_displacements_property(trajectory):
 def test_positions_property(trajectory):
     trajectory.to_displacements()
 
-    assert_allclose(trajectory.positions, [
-        [[0.2, 0.0, 0.0], [0.0, 0.0, 0.5]],
-        [[0.4, 0.0, 0.0], [0.0, 0.0, 0.5]],
-        [[0.6, 0.0, 0.0], [0.0, 0.0, 0.5]],
-        [[0.8, 0.0, 0.0], [0.0, 0.0, 0.5]],
-        [[0.1, 0.0, 0.0], [0.0, 0.0, 0.5]],
-    ])
+    assert_allclose(
+        trajectory.filter(['B', 'S']).positions, [
+            [[0.2, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.4, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.6, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.8, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.1, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        ])
 
     assert not trajectory.coords_are_displacement
 
@@ -96,7 +101,7 @@ def test_drift_correction(trajectory):
 
 
 def test_distances_from_base_position(trajectory):
-    distances = trajectory.distances_from_base_position()
+    distances = trajectory.filter(['B', 'Si']).distances_from_base_position()
     assert_allclose(distances, [
         [0.0, 0.2, 0.4, 0.6, 0.9],
         [0.0, 0.0, 0.0, 0.0, 0.0],
@@ -104,7 +109,7 @@ def test_distances_from_base_position(trajectory):
 
 
 def test_cumulative_displacements(trajectory):
-    displacements = trajectory.cumulative_displacements
+    displacements = trajectory.filter(['B', 'C']).cumulative_displacements
     assert_allclose(displacements, [
         [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
         [[0.2, 0.0, 0.0], [0.0, 0.0, 0.0]],
@@ -112,3 +117,12 @@ def test_cumulative_displacements(trajectory):
         [[0.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
         [[0.9, 0.0, 0.0], [0.0, 0.0, 0.0]],
     ])
+
+
+def test_filter_similar_names(trajectory):
+    subtrajectory = trajectory.filter('Si')
+    assert subtrajectory.species == [Species('Si')]
+    subtrajectory = trajectory.filter(['S', 'Si'])
+    assert subtrajectory.species == [Species('Si'), Species('S')]
+    subtrajectory = trajectory.filter('S')
+    assert subtrajectory.species == [Species('S')]
