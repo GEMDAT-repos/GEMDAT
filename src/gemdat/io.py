@@ -1,12 +1,11 @@
 """This module contains functions to read and write data."""
 from __future__ import annotations
 
+import warnings
 from importlib.resources import files
 from pathlib import Path
 
 from pymatgen.core import Structure
-from pymatgen.io import cif
-from pymatgen.io.cif import CifWriter
 
 DATA = Path(files('gemdat') / 'data')  # type: ignore
 
@@ -31,8 +30,8 @@ def write_cif(structure: Structure, filename: Path | str):
     filename : Path | str
         Filename to write to
     """
-    cif_path = Path(filename).with_suffix('.cif')
-    CifWriter(structure).write_file(cif_path)
+    filename = Path(filename).with_suffix('.cif')
+    structure.to_file(filename)
 
 
 def read_cif(filename: Path | str) -> Structure:
@@ -49,8 +48,11 @@ def read_cif(filename: Path | str) -> Structure:
     structure : pymatgen.core.structure.Structure
         Output structure
     """
-    cifdata = cif.CifParser(filename)
-    structure = cifdata.get_structures(primitive=False)[0]
+    with warnings.catch_warnings():
+        # Hide warning from https://github.com/materialsproject/pymatgen/pull/3419
+        warnings.simplefilter('ignore')
+        structure = Structure.from_file(filename, primitive=False)
+
     return structure
 
 
