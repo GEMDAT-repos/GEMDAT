@@ -46,14 +46,11 @@ jobs:
       - name: Install dependencies
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
         run: |
-          python -m pip install -e .[develop,gemdash]
-
-      - name: Ensure browser is installed
-        run: python -m playwright install chromium
+          python -m pip install -e .[develop]
 
       - name: Test with pytest
         run: |
-          coverage run -p -m pytest --dashboard
+          coverage run -p -m pytest
 
       - name: Combine
         run: |

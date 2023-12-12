@@ -7,18 +7,6 @@ from pymatgen.core import Species
 from gemdat.trajectory import Trajectory
 
 
-def pytest_addoption(parser):
-    """Add options to pytest."""
-    parser.addoption('--dashboard',
-                     action='store_true',
-                     default=False,
-                     help='Run dashboard workflow tests')
-
-
-def pytest_configure(config):
-    pytest.skip_dashboard = not config.getoption('--dashboard')
-
-
 @pytest.fixture()
 def trajectory():
     coords = np.array([
