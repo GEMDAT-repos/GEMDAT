@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Collection
 
 import numpy as np
 from pymatgen.core import Lattice, PeriodicSite, Structure
+from pymatgen.symmetry import SpaceGroup
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.symmetry.structure import SymmetrizedStructure
 
@@ -55,19 +57,23 @@ class ShapeAnalyzer:
     for performing shape analysis.
     """
 
-    def __init__(self, symmetrized_structure: SymmetrizedStructure):
-        """Takes a symmetrized structure to set up the site analyzer.
+    def __init__(self, *, sites: Collection[PeriodicSite], lattice: Lattice,
+                 spacegroup: SpaceGroup):
+        """Set up shape analyzer from a collection of unique periodic sites,
+        the lattice, and spacegroup.
 
         Parameters
         ----------
-        symmetrized_structure : SymmetrizedStructure
-            Input structure, must be symmetrized.
+        sites : Collection[PeriodicSite]
+            Collection of sites to cluster around
+        lattice : Lattice
+            Input lattice
+        spacegroup : SpaceGroup
+            Input spacegroup
         """
-        self.unique_sites = [
-            sites[0] for sites in symmetrized_structure.equivalent_sites
-        ]
-        self.lattice = symmetrized_structure.lattice
-        self.spacegroup = symmetrized_structure.spacegroup
+        self.sites = sites
+        self.lattice = lattice
+        self.spacegroup = spacegroup
 
     def __repr__(self):
 
@@ -80,18 +86,36 @@ class ShapeAnalyzer:
             'Lattice',
             f"    abc   : {' '.join(to_str(val) for val in self.lattice.abc)}",
             f"    angles: {' '.join(to_str(val) for val in self.lattice.angles)}",
-            f'Unique sites ({len(self.unique_sites)})'
+            f'Unique sites ({len(self.sites)})'
         ]
-        for site in self.unique_sites:
+        for site in self.sites:
             out.append(f'    {site!r}')
 
         return '\n    '.join(out)
 
     @classmethod
-    def from_structure(cls, structure: Structure):
-        """Contstruct instance from [Structure][pymatgen.core.Structure].
+    def from_symmetrized_structure(cls, structure: SymmetrizedStructure):
+        """Construct instance from [SymmetrizedStructure][pymatgen.symmetry.str
+        ucture.SymmetrizedStructure].
 
-        The input structure is symmetrized using
+        The input structure is already symmetrized using
+        [SpacegroupAnalyzer][pymatgen.symmetry.analyzer.SpacegroupAnalyzer].
+
+        Parameters
+        ----------
+        structure : SymmetrizedStructure
+            Input symmetrized structure structure
+        """
+        unique_sites = [sites[0] for sites in structure.equivalent_sites]
+        lattice = structure.lattice
+        spacegroup = structure.spacegroup
+        return cls(sites=unique_sites, lattice=lattice, spacegroup=spacegroup)
+
+    @classmethod
+    def from_structure(cls, structure: Structure):
+        """Construct instance from [Structure][pymatgen.core.Structure].
+
+        The input structure will be symmetrized using
         [SpacegroupAnalyzer][pymatgen.symmetry.analyzer.SpacegroupAnalyzer].
 
         Parameters
@@ -101,7 +125,7 @@ class ShapeAnalyzer:
         """
         sga = SpacegroupAnalyzer(structure)
         symmetrized_structure = sga.get_symmetrized_structure()
-        return cls(symmetrized_structure=symmetrized_structure)
+        return cls.from_symmetrized_structure(structure=symmetrized_structure)
 
     def find_equivalent_positions(self,
                                   *,
@@ -235,7 +259,7 @@ class ShapeAnalyzer:
         """
         shapes = []
 
-        for site in self.unique_sites:
+        for site in self.sites:
             eqv_coords = self.find_equivalent_positions(site=site,
                                                         positions=positions,
                                                         threshold=threshold)
