@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Collection
+from typing import TYPE_CHECKING, Collection
 
 import numpy as np
-from pymatgen.core import Lattice, PeriodicSite, Structure
-from pymatgen.symmetry import SpaceGroup
+from pymatgen.core import Lattice
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from pymatgen.symmetry.structure import SymmetrizedStructure
 
 from .trajectory import Trajectory
 from .utils import warn_lattice_not_close
+
+if TYPE_CHECKING:
+    from pymatgen.core import PeriodicSite, Structure
+    from pymatgen.symmetry.groups import SpaceGroup
+    from pymatgen.symmetry.structure import SymmetrizedStructure
 
 
 @dataclass
