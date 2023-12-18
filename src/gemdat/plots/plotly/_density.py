@@ -116,6 +116,7 @@ def plot_volume(
     volume: Volume,
     *,
     fig: go.Figure,
+    lattice: Lattice | None = None,
     colors: list[str] = ['red', 'yellow', 'cyan'],
     isovals: list[float] = [0.25, 0.10, 0.007],
     alphavals: list[float] = [0.6, 0.3, 0.15],
@@ -128,6 +129,8 @@ def plot_volume(
         Input volume
     fig : go.Figure
         Plotly figure to add traces too
+    lattice : Lattice | None
+        Use this lattice instead of `Volume.lattice`
     colors : list[str], optional
         Adjust colors as needed. Length of color, isovals and alphavals must match
     isovals : list[float], optional
@@ -135,6 +138,9 @@ def plot_volume(
     alphavals : list[float], optional
         Adjust transparency as needed
     """
+    if lattice is None:
+        lattice = volume.lattice
+
     data = volume.data
     data = gaussian_filter(data, sigma=1.0)
 
@@ -146,7 +152,7 @@ def plot_volume(
 
         # Transform verts to cartesian system
         verts = (verts + 0.5) / np.array(data.shape)
-        cart_verts = volume.lattice.get_cartesian_coords(verts)
+        cart_verts = lattice.get_cartesian_coords(verts)
 
         fig.add_trace(
             go.Mesh3d(x=cart_verts[:, 0],
@@ -161,7 +167,9 @@ def plot_volume(
                       showlegend=False))
 
 
-def density(vol: Volume, structure: Optional[Structure] = None) -> go.Figure:
+def density(vol: Volume,
+            structure: Optional[Structure] = None,
+            force_lattice: Lattice | None = None) -> go.Figure:
     """Create density plot from volume and structure.
 
     Uses plotly as plotting backend.
@@ -172,6 +180,9 @@ def density(vol: Volume, structure: Optional[Structure] = None) -> go.Figure:
         Input volume
     structure : Structure, optional
         Input structure
+    force_lattice : Lattice | None
+        Plot volume and structure using this lattice as a basis. Overrides the default, which is to
+        use `vol.lattice` and `structure.lattice` where applicable.
 
     Returns
     -------
@@ -180,12 +191,19 @@ def density(vol: Volume, structure: Optional[Structure] = None) -> go.Figure:
     """
     fig = go.Figure()
 
-    plot_lattice_vectors(vol.lattice, fig=fig)
-    plot_volume(vol, fig=fig)
+    if force_lattice:
+        lattice = force_lattice
+    else:
+        lattice = vol.lattice
+
+    plot_lattice_vectors(lattice, fig=fig)
+    plot_volume(vol, lattice=lattice, fig=fig)
 
     if structure:
-        if structure.lattice == vol.lattice:
-            plot_points(structure.cart_coords, structure.labels, fig=fig)
+        if force_lattice:
+            plot_points(lattice.get_cartesian_coords(structure.frac_coords),
+                        structure.labels,
+                        fig=fig)
         else:
             plot_structure(structure, fig=fig)
 
