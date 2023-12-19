@@ -4,6 +4,7 @@ sites."""
 from __future__ import annotations
 
 import typing
+from typing import Optional
 
 import numpy as np
 from MDAnalysis.lib.pkdtree import PeriodicKDTree
@@ -57,6 +58,7 @@ class Transitions:
         trajectory: Trajectory,
         structure: Structure,
         floating_specie: str,
+        site_radius: Optional[float] = None,
     ) -> Transitions:
         """Compute transitions for floating specie from trajectory and
         structure with known sites.
@@ -69,14 +71,19 @@ class Transitions:
             Input structure with known sites
         floating_specie : str
             Name of the floating specie to calculate transitions for
+        site_radius: Optional[float]
+            A custom site size to use for determining if an atom is at a site
         """
         diff_trajectory = trajectory.filter(floating_specie)
         vibration_amplitude = SimulationMetrics(
             diff_trajectory).vibration_amplitude()
 
-        dist_close = _dist_close(trajectory=trajectory,
-                                 structure=structure,
-                                 vibration_amplitude=vibration_amplitude)
+        if site_radius is None:
+            dist_close = _dist_close(trajectory=trajectory,
+                                     structure=structure,
+                                     vibration_amplitude=vibration_amplitude)
+        else:
+            dist_close = site_radius
 
         states = _calculate_atom_states(structure=structure,
                                         trajectory=diff_trajectory,

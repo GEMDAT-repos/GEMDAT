@@ -4,6 +4,7 @@ import typing
 import warnings
 from collections import Counter, defaultdict
 from math import ceil
+from typing import Optional
 
 import numpy as np
 from pymatgen.core import Structure
@@ -32,6 +33,7 @@ class SitesData:
         trajectory: Trajectory,
         floating_specie: str,
         n_parts: int = 10,
+        site_radius: Optional[float] = None,
     ):
         """Contain sites and jumps data.
 
@@ -45,6 +47,9 @@ class SitesData:
             Name of the floating or diffusing specie
         n_parts : int, optional
             Number of parts to divide transitions into for statistics
+        site_radius: Optional[float]
+            if set it fixes the site_radius instead of determining it
+            dynamically
         """
         if not trajectory.constant_lattice:
             raise ValueError(
@@ -63,7 +68,8 @@ class SitesData:
         self.transitions = Transitions.from_trajectory(
             structure=structure,
             trajectory=trajectory,
-            floating_specie=floating_specie)
+            floating_specie=floating_specie,
+            site_radius=site_radius)
 
         self.set_split(n_parts)
 
@@ -287,7 +293,7 @@ class SitesData:
         Returns
         -------
         jumps : dict[tuple[str, str], int]
-            Dictionary with number of jumpst per sites combination
+            Dictionary with number of jumps per sites combination
         """
         labels = self.site_labels
         jumps = Counter([(labels[i], labels[j])
