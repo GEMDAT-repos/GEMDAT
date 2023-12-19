@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Callable, Collection, Sequence
 import numpy as np
 from pymatgen.core import Lattice, PeriodicSite
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from scipy import ndimage as ndi
 
 from .trajectory import Trajectory
 from .utils import warn_lattice_not_close
@@ -27,9 +26,12 @@ class ShapeData:
         Name or label for associated with this shape
     coords : np.ndarray
         (n, 3) coordinate array in cartesian system (Å)
+    radius : float
+        Maximum distance from center (Å)
     """
     name: str
     coords: np.ndarray
+    radius: float
 
     def distances(self) -> np.ndarray:
         """Return distances from origin in Å."""
@@ -50,34 +52,16 @@ class ShapeData:
         """Return z coordinates."""
         return self.coords[:, 2]
 
-    def coord_center(self, n_bins: int = 100) -> tuple[float, float, float]:
-        """Find center of cluster of coordinates using histogram analysis.
-
-        Parameters
-        ----------
-        n_bins : int, optional
-            Number of bins for histogram.
+    def centroid(self) -> np.ndarray:
+        """Find centroid (center of mass) for given set of coordinates.
 
         Returns
         -------
-        center : np.ndarray
+        centroid : np.ndarray
             Center of coordinates.
         """
-        z = int(n_bins / 10)
-
-        hist, (edges_x, edges_y,
-               edges_z) = np.histogramdd(self.coords,
-                                         bins=[n_bins, n_bins, n_bins])
-
-        blurred = ndi.gaussian_filter(hist, z)
-
-        offset_x, offset_y, offset_z = np.unravel_index(
-            blurred.argmax(), blurred.shape)
-
-        center = float(edges_x[offset_x]), float(edges_y[offset_y]), float(
-            edges_z[offset_z], )
-
-        return center
+        centroid = np.mean(self.coords, axis=0)
+        return centroid
 
 
 class ShapeAnalyzer:
@@ -297,7 +281,9 @@ class ShapeAnalyzer:
                                                         positions=positions,
                                                         threshold=threshold)
 
-            shape = ShapeData(name=site.label, coords=eqv_coords)
+            shape = ShapeData(name=site.label,
+                              coords=eqv_coords,
+                              radius=threshold)
 
             shapes.append(shape)
 
@@ -348,7 +334,7 @@ class ShapeAnalyzer:
         func : None | Callable, optional
             Specify function to calculate offsets in Cartesian setting.
             Must take `Shape` as its only argument.
-            If None, use `Shape.coord_center()` to determine offsets.
+            If None, use `Shape.centroid()` to determine offsets.
         """
         offsets = []
 
@@ -356,7 +342,7 @@ class ShapeAnalyzer:
             if func:
                 offset = func(shape)
             else:
-                offset = shape.coord_center()
+                offset = shape.centroid()
 
             offsets.append(offset)
 
