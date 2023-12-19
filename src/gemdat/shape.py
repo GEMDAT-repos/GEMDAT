@@ -360,7 +360,19 @@ class ShapeAnalyzer:
 
         self.shift_sites(offsets=offsets, coords_are_cartesian=True)
 
-    def get_structure(self) -> SymmetrizedStructure:
-        """Retrieve structure from this object."""
+    def to_structure(self) -> Structure:
+        """Retrieve structure from this object.
 
-        ...
+        Returns
+        -------
+        structure : Structure
+            Pymatgen structure object
+        """
+        structure = Structure.from_spacegroup(
+            sg=self.spacegroup.int_number,
+            lattice=self.lattice,
+            species=[site.specie for site in self.sites],
+            coords=[site.frac_coords for site in self.sites],
+            labels=[site.label for site in self.sites],
+        )
+        return structure
