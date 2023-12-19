@@ -339,6 +339,8 @@ class ShapeAnalyzer:
                        func: None | Callable = None):
         """Optimize unique sites from shape objects.
 
+        Note: This function does not take into account special positions.
+
         Parameters
         ----------
         shapes : Sequence[Shape]
