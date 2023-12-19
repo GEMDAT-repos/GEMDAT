@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Sequence, TYPE_CHECKING, Collection
+from typing import TYPE_CHECKING, Callable, Collection, Sequence
 
 import numpy as np
-from pymatgen.core import Lattice
+from pymatgen.core import Lattice, PeriodicSite
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from scipy import ndimage as ndi
 
@@ -12,7 +12,7 @@ from .trajectory import Trajectory
 from .utils import warn_lattice_not_close
 
 if TYPE_CHECKING:
-    from pymatgen.core import PeriodicSite, Structure
+    from pymatgen.core import Structure
     from pymatgen.symmetry.groups import SpaceGroup
     from pymatgen.symmetry.structure import SymmetrizedStructure
 
@@ -75,7 +75,7 @@ class ShapeData:
             blurred.argmax(), blurred.shape)
 
         center = float(edges_x[offset_x]), float(edges_y[offset_y]), float(
-            edges_z[offset_z])
+            edges_z[offset_z], )
 
         return center
 
@@ -318,7 +318,7 @@ class ShapeAnalyzer:
         """
         new_sites = []
 
-        for site, offset in zip(self.unique_sites, offsets):
+        for site, offset in zip(self.sites, offsets):
             if offset is None:
                 new_sites.append(site)
                 continue
@@ -332,7 +332,7 @@ class ShapeAnalyzer:
                                     label=site.label)
             new_sites.append(new_site)
 
-        self.unique_sites = new_sites
+        self.sites = new_sites
 
     def optimize_sites(self,
                        shapes: Sequence[ShapeData],
@@ -344,7 +344,8 @@ class ShapeAnalyzer:
         shapes : Sequence[Shape]
             List of input shapes. These must match `self.unique_sites`
         func : None | Callable, optional
-            Specify function to calculate offsets. Must take `Shape` as its only argument.
+            Specify function to calculate offsets in Cartesian setting.
+            Must take `Shape` as its only argument.
             If None, use `Shape.coord_center()` to determine offsets.
         """
         offsets = []
@@ -357,8 +358,9 @@ class ShapeAnalyzer:
 
             offsets.append(offset)
 
-        self.shift_sites(offsets=offsets)
+        self.shift_sites(offsets=offsets, coords_are_cartesian=True)
 
     def get_structure(self) -> SymmetrizedStructure:
         """Retrieve structure from this object."""
+
         ...
