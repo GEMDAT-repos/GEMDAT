@@ -186,20 +186,28 @@ def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
     -------
     events : np.ndarray
         Output array with transition events.
-        Contains 5 columns: atom index, site start, site, stop, time start, time stop
+        Contains 5 columns: atom index, site start, site stop, time start, time stop
     """
     events = []
 
     for atom_index, atom_site in enumerate(atom_sites.T):
 
-        # Indices when atom jumps to new or back to same site
-        i, = np.nonzero((atom_site != np.roll(atom_site, shift=1))
-                        & (atom_site >= 0))
+        # Indices when atom jumps in or out of site
+        i, = np.nonzero((atom_site != np.roll(atom_site, shift=1)))
 
-        # Log transition events
-        i_event = np.nonzero(atom_site[i] != np.roll(atom_site[i], shift=-1))
-        time_start = i[i_event]
-        time_stop = np.roll(i, shift=-1)[i_event]
+        # Indices of i when atom jumps to a site
+        ii, = np.nonzero(atom_site[i] != -1)
+
+        # Log transition events to different site
+        ii_event, = np.nonzero(
+            atom_site[i[ii]] != np.roll(atom_site[i[ii]], shift=-1))
+
+        # Drop last event (side effect of np.roll)
+        ii_event = ii_event[:-1]
+
+        # Select the timestep just before the transition out of the site
+        time_start = i[ii[ii_event] + 1] - 1
+        time_stop = i[np.roll(ii, shift=-1)[ii_event]]
         transitions = np.vstack([
             np.ones_like(time_start) * atom_index,
             atom_site[time_start],
@@ -208,8 +216,6 @@ def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
             time_stop,
         ]).T
 
-        # Drop last event (side effect of np.roll)
-        transitions = transitions[:-1]
         events.append(transitions)
 
     return np.vstack(events)
