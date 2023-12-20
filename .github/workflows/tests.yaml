@@ -66,13 +66,13 @@ jobs:
           coverage report >> $GITHUB_STEP_SUMMARY
           echo $'\n```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Make coverage badge
-        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == '3.10' }}
-        uses: schneegans/dynamic-badges-action@v1.6.0
+      - name: Make badge
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: 330d6e711de3420b7503d54756dc011c
-          filename: covbadge.json
+          filename: covbadge.svg
           label: Coverage
           message: ${{ env.total }}%
           minColorRange: 50
