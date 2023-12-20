@@ -5,10 +5,12 @@ from pathlib import Path
 import pytest
 
 from gemdat.io import load_known_material
+from gemdat.jumps import Jumps
 from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
 from gemdat.sites import SitesData
 from gemdat.trajectory import Trajectory
+from gemdat.transitions import Transitions
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
 VASP_XML = DATA_DIR / 'short_simulation' / 'vasprun.xml'
@@ -47,6 +49,15 @@ def vasp_sites(vasp_traj, structure):
                       trajectory=vasp_traj,
                       floating_specie='Li')
     return sites
+
+
+@pytest.fixture(scope='module')
+def vasp_jumps(vasp_traj, vasp_sites, structure):
+    transitions = Transitions.from_trajectory(trajectory=vasp_traj,
+                                              structure=structure,
+                                              floating_specie='Li')
+    jumps = Jumps(transitions=transitions, sites=vasp_sites)
+    return jumps
 
 
 @pytest.fixture(scope='module')
