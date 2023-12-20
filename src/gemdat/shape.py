@@ -294,21 +294,26 @@ class ShapeAnalyzer:
         return shapes
 
     def shift_sites(self,
-                    offsets: Sequence[None | Sequence[float]],
-                    coords_are_cartesian: bool = True):
-        """Shift `.unique_sites` by given offsets.
+                    vectors: Sequence[None | Sequence[float]],
+                    coords_are_cartesian: bool = True) -> ShapeAnalyzer:
+        """Shift `.unique_sites` by given vectors.
 
         Parameters
         ----------
-        offsets : Sequence[None | Sequence[float, float, float]]
-            List of offsets matching the sites.
+        vectors : Sequence[None | Sequence[float, float, float]]
+            List of vectors matching the sites.
             If None, do not shift this site.
         coords_are_cartesian : bool, optional
-            It true, offsets are cartesian, if false, fractional.
+            It true, vectors are cartesian, if false, fractional.
+
+        Returns
+        -------
+        shape_analyzer : ShapeAnalyzer
+            Shape analyzer with shifted sites.
         """
         new_sites = []
 
-        for site, offset in zip(self.sites, offsets):
+        for site, offset in zip(self.sites, vectors):
             if offset is None:
                 new_sites.append(site)
                 continue
@@ -322,11 +327,13 @@ class ShapeAnalyzer:
                                     label=site.label)
             new_sites.append(new_site)
 
-        self.sites = new_sites
+        return ShapeAnalyzer(sites=new_sites,
+                             spacegroup=self.spacegroup,
+                             lattice=self.lattice)
 
     def optimize_sites(self,
                        shapes: Sequence[ShapeData],
-                       func: None | Callable = None):
+                       func: None | Callable = None) -> ShapeAnalyzer:
         """Optimize unique sites from shape objects.
 
         Note: This function does not take into account special positions.
@@ -339,18 +346,23 @@ class ShapeAnalyzer:
             Specify function to calculate offsets in Cartesian setting.
             Must take `Shape` as its only argument.
             If None, use `Shape.centroid()` to determine offsets.
+
+        Returns
+        -------
+        shape_analyzer : ShapeAnalyzer
+            Shape analyzer with optimized sites.
         """
-        offsets = []
+        vectors = []
 
         for shape in shapes:
             if func:
-                offset = func(shape)
+                vector = func(shape)
             else:
-                offset = shape.centroid()
+                vector = shape.centroid()
 
-            offsets.append(offset)
+            vectors.append(vector)
 
-        self.shift_sites(offsets=offsets, coords_are_cartesian=True)
+        return self.shift_sites(vectors=vectors, coords_are_cartesian=True)
 
     def to_structure(self) -> Structure:
         """Retrieve structure from this object.
