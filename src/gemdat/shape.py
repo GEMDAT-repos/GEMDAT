@@ -4,14 +4,13 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Collection, Sequence
 
 import numpy as np
-from pymatgen.core import Lattice, PeriodicSite
+from pymatgen.core import Lattice, PeriodicSite, Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from .trajectory import Trajectory
 from .utils import warn_lattice_not_close
 
 if TYPE_CHECKING:
-    from pymatgen.core import Structure
     from pymatgen.symmetry.groups import SpaceGroup
     from pymatgen.symmetry.structure import SymmetrizedStructure
 
@@ -99,7 +98,7 @@ class ShapeAnalyzer:
 
         out = [
             self.__class__.__name__, 'Spacegroup',
-            f'    {self.spacegroup.int_symbol} ({self.spacegroup.int_number})',
+            f'    {self.spacegroup.symbol} ({self.spacegroup.int_number})',
             'Lattice',
             f"    abc   : {' '.join(to_str(val) for val in self.lattice.abc)}",
             f"    angles: {' '.join(to_str(val) for val in self.lattice.angles)}",
