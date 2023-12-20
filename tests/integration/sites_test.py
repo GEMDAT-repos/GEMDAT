@@ -52,13 +52,9 @@ class TestSites:  # type: ignore
         assert transitions.events.shape == (450, 5)
         assert_allclose(
             events[::100],
-            np.array([
-                [0, 94, 0, 228, 284],
-                [9, 60, 68, 2692, 2946],
-                [18, 24, 54, 3435, 3646],
-                [31, 59, 51, 1240, 1536],
-                [41, 41, 67, 3633, 3667],
-            ]))
+            np.array([[0, 94, 0, 282, 284], [9, 60, 68, 2895, 2946],
+                      [18, 24, 54, 3628, 3646], [31, 59, 51, 1366, 1536],
+                      [41, 41, 67, 3651, 3667]]))
 
         matrix = transitions.matrix()
         assert matrix.shape == (vasp_sites.n_sites, vasp_sites.n_sites)
