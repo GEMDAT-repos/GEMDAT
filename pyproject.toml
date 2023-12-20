@@ -51,10 +51,8 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 develop = [
     "coverage[toml]",
     "mypy",
-    "playwright",
     "pre-commit",
     "pytest",
-    "pytest-playwright",
 ]
 
 docs = [
@@ -71,14 +69,6 @@ publishing = [
     "build",
 ]
 
-gemdash = [
-    "uncertainties",
-    "streamlit",
-]
-
-[project.scripts]
-gemdash= "gemdat.dashboard:gemdash"
-
 [tool.setuptools]
 package-dir = {"gemdat" = "src/gemdat" }
 include-package-data = true
@@ -86,7 +76,6 @@ include-package-data = true
 [tool.coverage.run]
 branch = true
 source = ["gemdat"]
-omit = ["*/dashboard/*"]
 
 
 [tool.pytest.ini_options]

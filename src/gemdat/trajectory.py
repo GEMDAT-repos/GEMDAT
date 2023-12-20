@@ -352,6 +352,9 @@ class Trajectory(PymatgenTrajectory):
         trajectory : Trajectory
             Output trajectory with coordinates for selected species only
         """
+        if isinstance(species, str):
+            species = [species]
+
         idx = [sp.symbol in species for sp in self.species]
         new_coords = self.positions[:, idx]
         new_species = list(compress(self.species, idx))
