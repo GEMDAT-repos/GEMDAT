@@ -43,12 +43,18 @@ class Volume:
     voxel_mapping : optional[np.ndarray]
         Integer array that maps `positions` onto
         flattened voxel indices
+    nearest_structure_tree : optional[cKDTree]
+        KD-tree of the volume
+    nearest_structure_map : optional[list[int]]
+        List of ids corresponding to the closest site of the structure
     """
     data: np.ndarray
     lattice: Lattice
     resolution: float | None = None
     positions: np.ndarray | None = None
     voxel_mapping: np.ndarray | None = None
+    nearest_structure_tree: cKDTree | None = None
+    nearest_structure_map: list[int] | None = None
 
     @property
     def normalized_data(self) -> np.ndarray:
@@ -131,42 +137,27 @@ class Volume:
         ----------
         structure : pymatgen.core.structure.Structure
             Structure of the material to use as reference for nearest site
-
-        Returns
-        -------
-        nearest_structure_map : dict
-            Dictionary that maps each voxel to the index of the nearest site of the structure
         """
         # In order to accomodate the periodicity, include the images of the structure sites
         periodic_structure = []
-        periodic_ids = []
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                for dz in [-1, 0, 1]:
-                    periodic_structure.extend(
-                        structure.cart_coords + np.array([
-                            self.lattice.a * dx, self.lattice.b *
-                            dy, self.lattice.c * dz
-                        ]) * self.resolution)
-                    # store the id of the site in the original structure
-                    periodic_ids.extend(
-                        [i for i in range(len(structure.cart_coords))])
+        periodic_ids: list[int] = []
+        images = np.mgrid[-1:2, -1:2, -1:2].reshape(3, -1).T
+        for dx, dy, dz in images:
+            periodic_structure.extend(
+                self.lattice.get_fractional_coords(
+                    structure.cart_coords + np.array([
+                        self.lattice.a * dx, self.lattice.b *
+                        dy, self.lattice.c * dz
+                    ]) * self.resolution))
+
+            # store the id of the site in the original structure
+            periodic_ids.extend(range(len(structure.cart_coords)))
+
         # Create a KD-tree from the structure
         kd_tree = cKDTree(periodic_structure)
 
-        nearest_structure_map = {}
-        possible_sites = np.array(
-            np.meshgrid(*[range(dim) for dim in self.data.shape])).T.reshape(
-                -1, len(self.data.shape)) * self.resolution
-
-        for site in possible_sites:
-            # Query the KD-tree to find the index of the nearest periodic site
-            nearest_structure_index = kd_tree.query(site)[1]
-            # store the index of the corrisponding site in the original structure
-            nearest_structure_map[tuple(
-                site)] = periodic_ids[nearest_structure_index]
-
-        return nearest_structure_map
+        self.nearest_structure_tree = kd_tree
+        self.nearest_structure_map = periodic_ids
 
     def to_vasp_volume(self, structure: Structure, *,
                        filename: Optional[str]) -> VolumetricData:

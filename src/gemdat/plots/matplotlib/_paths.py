@@ -18,35 +18,40 @@ def energy_along_path(*, path: Pathway) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
+    if path.energy is None:
+        raise ValueError('Pathway does not contain energy data')
+    if path.sites is None:
+        raise ValueError('Pathway does not contain site data')
+
     fig, ax = plt.subplots(figsize=(10, 5))
 
     ax.plot(range(len(path.energy)), path.energy, marker='o', color='r')
     ax.set(ylabel='Free energy [eV]')
-    if path.nearest_structure_label:
-        # Remove repeated labels that would bloat the figure
-        clean_xlabel = [
-            f'{", ".join([f"{coord:.1f}" for coord in path.nearest_structure_coord[i]])}'
-            if (path.nearest_structure_coord[i]
-                != path.nearest_structure_coord[i - 1]).any() else ''
-            for i in range(len(path.sites))
-        ]
+    if path.nearest_structure_label is not None and path.nearest_structure_coord is not None:
+        # Create costum labels for the x axis to avoid consecutive repetitions
+        site_xlabel = []
+        sitecoord_xlabel = []
+        for i in range(len(path.sites)):
+            coord = path.nearest_structure_coord[i]
+            # only non repeated labels will get an entry
+            if (coord != path.nearest_structure_coord[i - 1]).any() or i == 0:
+                sitecoord_xlabel.append(
+                    f'{", ".join([f"{coord:.1f}" for coord in coord])}')
+                site_xlabel.append(f'{path.nearest_structure_label[i]}')
+            else:
+                sitecoord_xlabel.append('')
+                site_xlabel.append('')
         non_empty_ticks = [
-            i for i, label in enumerate(clean_xlabel) if label != ''
+            i for i, label in enumerate(sitecoord_xlabel) if label != ''
         ]
         ax.set_xticks(non_empty_ticks)
-        ax.set_xticklabels([clean_xlabel[i] for i in non_empty_ticks],
+        ax.set_xticklabels([sitecoord_xlabel[i] for i in non_empty_ticks],
                            rotation=45)
         # and add on top the site labels
-        clean_xlabel_up = [
-            f'{path.nearest_structure_label[i]}' if
-            (path.nearest_structure_coord[i]
-             != path.nearest_structure_coord[i - 1]).any() else ''
-            for i in range(len(path.sites))
-        ]
         ax_up = ax.twiny()
         ax_up.set_xlim(ax.get_xlim())
         ax_up.set_xticks(non_empty_ticks)
-        ax_up.set_xticklabels([clean_xlabel_up[i] for i in non_empty_ticks],
+        ax_up.set_xticklabels([site_xlabel[i] for i in non_empty_ticks],
                               rotation=45)
         ax_up.get_yaxis().set_visible(False)
 
@@ -66,6 +71,10 @@ def path_on_grid(*, path: Pathway) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
+    if path.energy is None:
+        raise ValueError('Pathway does not contain energy data')
+    if path.sites is None:
+        raise ValueError('Pathway does not contain site data')
 
     # Create a colormap to visualize the path
     colormap = plt.get_cmap()

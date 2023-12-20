@@ -35,7 +35,7 @@ def path_on_landscape(
 
     fig = density(vol.to_probability(), structure)
 
-    path = np.array(path.sites) * vol.resolution
+    path = np.asarray(path.cart_sites)
     x_path, y_path, z_path = path.T
 
     # Color path and endpoints differently

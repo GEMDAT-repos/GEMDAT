@@ -4,6 +4,7 @@ between sites."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import List, Tuple
 
 import networkx as nx
 import numpy as np
@@ -22,6 +23,8 @@ class Pathway:
         List of voxel coordinates of the sites defining the path
     cart_sites: list[tuple]
         List of cartesian coordinates of the sites defining the path
+    frac_sites: list[tuple]
+        List of fractional coordinates of the sites defining the path
     energy: list[float]
         List of the energy along the path
     nearest_structure_coord: list[np.ndarray]
@@ -29,11 +32,13 @@ class Pathway:
     nearest_structure_label: list[str]
         List of the label of the closest site of the reference structure
     """
-    sites: list[tuple[int, int, int]]
-    cart_sites: list[tuple[float, float, float]]
-    energy: list[float]
-    nearest_structure_coord: list[np.ndarray]
-    nearest_structure_label: list[str]
+
+    sites: List[Tuple[int, int, int]] | None = None
+    cart_sites: List[Tuple[float, float, float]] | None = None
+    frac_sites: List[Tuple[float, float, float]] | None = None
+    energy: list[float] | None = None
+    nearest_structure_coord: list[np.ndarray] | None = None
+    nearest_structure_label: list[str] | None = None
 
     def cartesian_path(self, vol: Volume):
         """Convert voxel coordinates to cartesian coordinates.
@@ -43,8 +48,33 @@ class Pathway:
         vol : Volume
             Volume object containing the grid information
         """
-        self.cart_sites = [
-            tuple(np.asarray(site) * vol.resolution) for site in self.sites
+        # Manually get the fractional coordinates of the sites, then use
+        # lattice.get_cartesian_coords and make into tuple
+        self.cart_sites = []
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
+        for site in self.sites:
+            fractional_coords = site / np.asarray(
+                [x // vol.resolution for x in vol.lattice.lengths])
+            cartesian_coords = vol.lattice.get_cartesian_coords(
+                fractional_coords)
+            self.cart_sites.append(tuple(cartesian_coords))
+
+    def fractional_path(self, vol: Volume):
+        """Convert voxel coordinates to fractional coordinates.
+
+        Parameters
+        ----------
+        vol : Volume
+            Volume object containing the grid information
+        """
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
+        # Manually get the fractional coordinates of the sites, then use
+        # lattice.get_fractional_coords and make into tuple
+        self.frac_sites = [
+            tuple(vol.lattice.get_fractional_coords(site))
+            for site in self.sites
         ]
 
     def wrap(self, F: np.ndarray):
@@ -55,45 +85,68 @@ class Pathway:
         F: np.ndarray
             Grid in which the path sites will be wrapped
         """
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
+
         X, Y, Z = F.shape
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
+        if self.cart_sites is not None:
+            self.cart_sites = [(x % X, y % Y, z % Z)
+                               for x, y, z in self.cart_sites]
 
-    def path_over_structure(self, structure: Structure, structure_map: dict):
+    def path_over_structure(self, structure: Structure, vol: Volume):
         """Find the nearest site of the structure to the path sites.
 
         Parameters
         ----------
         structure : Structure
             Reference structure
-        structure_map : dict
-            Dictionary of the closest site of the structure to each coordinate point
+        vol : Volume
+            Volume object that contains the information about the nearest sites of the structure
         """
-        if not self.cart_sites:
-            raise ValueError(
-                'Cartesian coordinates of the path sites are not defined')
 
+        if self.frac_sites is None:
+            raise ValueError(
+                'Fractional coordinates of the path are required.')
+        if vol.nearest_structure_map is None or vol.nearest_structure_tree is None:
+            raise ValueError(
+                'Volume object must have nearest_structure_map and nearest_structure_tree attributes.'
+            )
+
+        # Get the indices of the nearest structure sites to the path sites
+        nearest_structure_indices = [
+            vol.nearest_structure_tree.query(site)[1]
+            for site in self.frac_sites
+        ]
+        # and use it to get its label and coordinates
         self.nearest_structure_label = [
-            structure.labels[structure_map.get(site, None)]
-            for site in self.cart_sites
+            structure.labels[vol.nearest_structure_map[index]]
+            for index in nearest_structure_indices
         ]
         self.nearest_structure_coord = [
-            structure.cart_coords[structure_map.get(site, None)]
-            for site in self.cart_sites
+            structure.cart_coords[vol.nearest_structure_map[index]]
+            for index in nearest_structure_indices
         ]
 
     @property
     def cost(self) -> float:
         """Calculate the path cost."""
+        if self.energy is None:
+            raise ValueError('Energy of the path is required.')
         return np.sum(self.energy)
 
     @property
     def start_site(self) -> tuple[int, int, int]:
         """Return first site."""
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
         return self.sites[0]
 
     @property
     def end_site(self) -> tuple[int, int, int]:
         """Return end site."""
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
         return self.sites[-1]
 
 
@@ -171,7 +224,7 @@ def optimal_path(
                                     weight='weight')
     path_energy = [F_graph.nodes[node]['energy'] for node in optimal_path]
 
-    path = Pathway(optimal_path, [], path_energy, [], [])
+    path = Pathway(sites=optimal_path, energy=path_energy)
 
     return path
 
@@ -206,7 +259,7 @@ def find_best_perc_path(F: np.ndarray,
     # Find percolation using virtual images along the required dimensions
     if not any([percolate_x, percolate_y, percolate_z]):
         print('Warning: percolation is not defined')
-        return Pathway([], [], [], [], [])
+        return Pathway()
 
     # Tile the grind in the percolation directions
     F = np.tile(F, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
@@ -221,7 +274,7 @@ def find_best_perc_path(F: np.ndarray,
 
     # Find the lowest cost path that percolates along the x dimension
     best_cost = float('inf')
-    best_path = Pathway([], [], [], [], [])
+    best_path = Pathway()
 
     for starting_point in peaks:
 
