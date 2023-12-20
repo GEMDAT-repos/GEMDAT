@@ -50,11 +50,13 @@ def test_shape_analyzer(shape_analyzer):
 
 
 def test_shape_analyzer_analyze_positions(shape_analyzer):
-    shapes = shape_analyzer.analyze_positions(np.array([
-        (0.2, 0.2, 0.2),
-        (0.8, 0.8, 0.8),
-    ]),
-                                              threshold=2)
+    shapes = shape_analyzer.analyze_positions(
+        np.array([
+            (0.2, 0.2, 0.2),
+            (0.8, 0.8, 0.8),
+        ]),
+        radius=2,
+    )
 
     assert len(shapes) == 1
 

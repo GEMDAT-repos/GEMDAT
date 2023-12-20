@@ -152,7 +152,7 @@ class ShapeAnalyzer:
                                   *,
                                   site: PeriodicSite,
                                   positions: np.ndarray,
-                                  threshold: float = 1.0) -> np.ndarray:
+                                  radius: float = 1.0) -> np.ndarray:
         """Cluster all symmetrically equivalent positions within sphere around
         `site`.
 
@@ -162,7 +162,7 @@ class ShapeAnalyzer:
         Algorithm:
         - For every symmetry operation
             - Apply next symmetry operation to site coords
-            - Find all positions within threshold distance
+            - Find all positions within threshold radius
             - Copy and map points back to asymmetric unit (reverse symmetry op)
             - Subtract site coords (center on site)
 
@@ -172,7 +172,7 @@ class ShapeAnalyzer:
             This site acts as the cluster center.
         positions : np.ndarray
             Positions to sample from.
-        threshold : float, optional
+        radius : float, optional
             Cluster symmetrically equivalent positions
             within this distance from the given `site`.
 
@@ -190,7 +190,7 @@ class ShapeAnalyzer:
             sym_coords = op.operate(site_coords)
             dists = lattice.get_all_distances(sym_coords, positions)
 
-            sel = dists < threshold
+            sel = dists < radius
             close = positions[sel.flatten()]
 
             # digitize differences to move all close positions to
@@ -214,7 +214,7 @@ class ShapeAnalyzer:
                            *,
                            supercell: None
                            | tuple[float, float, float] = None,
-                           threshold: float = 1.0) -> list[ShapeData]:
+                           radius: float = 1.0) -> list[ShapeData]:
         """Perform shape analysis on trajectory.
 
         Similar to [analyze_positions()][ShapeAnalyzer.analyze_positions]. Handles
@@ -230,7 +230,7 @@ class ShapeAnalyzer:
             If the trajectory is in a supercell of the input structure,
             the given supercell used to fold trajectory positions into same
             lattice.
-        threshold : float, optional
+        radius : float, optional
             Cluster symmetrically equivalent positions
             within this distance from [unique_sites][ShapeAnalyzer.unique_sites].
 
@@ -252,12 +252,12 @@ class ShapeAnalyzer:
 
         warn_lattice_not_close(self.lattice, test_lattice)
 
-        return self.analyze_positions(positions=positions, threshold=threshold)
+        return self.analyze_positions(positions=positions, radius=radius)
 
     def analyze_positions(self,
                           positions: np.ndarray,
                           *,
-                          threshold: float = 1.0) -> list[ShapeData]:
+                          radius: float = 1.0) -> list[ShapeData]:
         """Perform shape analysis on array of fractional coordinates.
 
         Parameters
@@ -269,7 +269,7 @@ class ShapeAnalyzer:
             If the trajectory is in a supercell of the input structure,
             the given supercell used to fold trajectory positions into same
             lattice.
-        threshold : float, optional
+        radius : float, optional
             Cluster symmetrically equivalent positions
             within this distance from [unique_sites][ShapeAnalyzer.unique_sites].
 
@@ -283,11 +283,11 @@ class ShapeAnalyzer:
         for site in self.sites:
             eqv_coords = self.find_equivalent_positions(site=site,
                                                         positions=positions,
-                                                        threshold=threshold)
+                                                        radius=radius)
 
             shape = ShapeData(name=site.label,
                               coords=eqv_coords,
-                              radius=threshold)
+                              radius=radius)
 
             shapes.append(shape)
 
