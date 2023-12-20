@@ -50,11 +50,13 @@ def test_shape_analyzer(shape_analyzer):
 
 
 def test_shape_analyzer_analyze_positions(shape_analyzer):
-    shapes = shape_analyzer.analyze_positions(np.array([
-        (0.2, 0.2, 0.2),
-        (0.8, 0.8, 0.8),
-    ]),
-                                              threshold=2)
+    shapes = shape_analyzer.analyze_positions(
+        np.array([
+            (0.2, 0.2, 0.2),
+            (0.8, 0.8, 0.8),
+        ]),
+        radius=2,
+    )
 
     assert len(shapes) == 1
 
@@ -86,18 +88,18 @@ def test_shape_analyzer_to_structure(shape_analyzer):
 
 
 def test_shape_analyzer_shift_sites(shape_analyzer):
-    shape_analyzer.shift_sites(
-        offsets=[(0.2, 0.2, 0.2)],
+    shifted1 = shape_analyzer.shift_sites(
+        vectors=[(0.2, 0.2, 0.2)],
         coords_are_cartesian=False,
     )
-    site = shape_analyzer.sites[0]
+    site = shifted1.sites[0]
     assert_allclose(site.frac_coords, (0.3, 0.4, 0.5))
 
-    shape_analyzer.shift_sites(
-        offsets=[(-2, -2, -2)],
+    shifted2 = shifted1.shift_sites(
+        vectors=[(-2, -2, -2)],
         coords_are_cartesian=True,
     )
-    site = shape_analyzer.sites[0]
+    site = shifted2.sites[0]
     assert_allclose(site.frac_coords, (0.1, 0.2, 0.3))
 
 
@@ -106,7 +108,7 @@ def test_shape_analyzer_optimize_sites(shape_analyzer):
     assert_allclose(site.frac_coords, (0.1, 0.2, 0.3))
 
     shape = ShapeData(name='test', coords=np.array([[2, 2, 2]]), radius=1)
-    shape_analyzer.optimize_sites((shape, ))
+    shifted = shape_analyzer.optimize_sites((shape, ))
 
-    site = shape_analyzer.sites[0]
+    site = shifted.sites[0]
     assert_allclose(site.frac_coords, (0.3, 0.4, 0.5))
