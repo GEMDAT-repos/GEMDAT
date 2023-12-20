@@ -49,34 +49,28 @@ class TestSites:  # type: ignore
         transitions = vasp_sites.transitions
 
         events = transitions.events
-        assert transitions.events.shape == (450, 5)
+        assert transitions.events.shape == (2105, 4)
         assert_allclose(
-            events[::100],
-            np.array([[0, 94, 0, 282, 284], [9, 60, 68, 2895, 2946],
-                      [18, 24, 54, 3628, 3646], [31, 59, 51, 1366, 1536],
-                      [41, 41, 67, 3651, 3667]]))
+            events[::1000],
+            np.array([[0, 94, -1, 202], [22, 70, -1, 3472], [45, 10, -1,
+                                                             2386]]))
 
         matrix = transitions.matrix()
         assert matrix.shape == (vasp_sites.n_sites, vasp_sites.n_sites)
-        assert matrix.sum() == 450
+        assert matrix.sum() == 2099
         assert_allclose(
             np.argwhere(matrix)[::50],
-            np.array([[0, 94], [26, 10], [48, 32], [74, 8]]))
+            np.array([[0, 95], [49, 95], [95, 5], [95, 55]]))
 
     def test_transitions_parts(self, vasp_sites):
         n_sites = vasp_sites.n_sites
         tp = vasp_sites.transitions_parts
 
         assert tp.shape == (self.n_parts, n_sites, n_sites)
-        assert tp.sum() == 450
+        assert tp.sum() == 2100
         assert_allclose(
-            np.argwhere(tp)[::100],
-            np.array([
-                [0, 2, 66],
-                [2, 43, 51],
-                [5, 4, 90],
-                [7, 23, 31],
-            ]))
+            np.argwhere(tp)[::500],
+            np.array([[0, 0, 95], [4, 23, 95], [8, 28, 95]]))
 
     def test_occupancy(self, vasp_sites):
         occupancy = vasp_sites.transitions.occupancy()
@@ -112,70 +106,79 @@ class TestSites:  # type: ignore
                        rel_tol=1e-4)
 
     def test_atom_locations_parts(self, vasp_sites):
-        assert len(vasp_sites.atom_locations_parts) == self.n_parts
-        assert isclose(vasp_sites.atom_locations_parts[0]['48h'],
+        assert len(vasp_sites.atom_locations_parts()) == self.n_parts
+        assert isclose(vasp_sites.atom_locations_parts()[0]['48h'],
                        0.755111,
                        rel_tol=1e-4)
-        assert isclose(vasp_sites.atom_locations_parts[9]['48h'],
+        assert isclose(vasp_sites.atom_locations_parts()[9]['48h'],
                        0.738444,
                        rel_tol=1e-4)
 
-    def test_n_jumps(self, vasp_sites):
-        assert vasp_sites.n_solo_jumps == 1922
-        assert vasp_sites.n_jumps == 450
-        assert isclose(vasp_sites.solo_fraction, 4.2711, rel_tol=1e-4)
+    def test_n_jumps(self, vasp_jumps):
+        assert vasp_jumps.n_solo_jumps == 1
+        assert vasp_jumps.n_jumps == 462
+        assert isclose(vasp_jumps.solo_fraction, 0.00216, abs_tol=1e-4)
 
-    def test_rates(self, vasp_sites):
-        assert isinstance(vasp_sites.rates(), dict)
-        assert len(vasp_sites.rates()) == 1
+    def test_rates(self, vasp_jumps):
+        rates = vasp_jumps.rates()
+        assert isinstance(rates, dict)
+        assert len(rates) == 1
 
-        rates, rates_std = vasp_sites.rates()[('48h', '48h')]
-        assert isclose(rates, 1249999999999.9998)
-        assert isclose(rates_std, 137337009020.29002)
+        rates, rates_std = rates[('48h', '48h')]
+        assert isclose(rates, 1174999999999.9998)
+        assert isclose(rates_std, 90769080986.31458)
 
-    def test_activation_energies(self, vasp_sites):
-        assert isinstance(vasp_sites.activation_energies(), dict)
-        assert len(vasp_sites.activation_energies()) == 1
+    def test_activation_energies(self, vasp_jumps, vasp_sites):
+        activation_energies = vasp_jumps.activation_energies()
 
-        e_act, e_act_std = vasp_sites.activation_energies()[('48h', '48h')]
-        assert isclose(e_act, 0.1311852, rel_tol=1e-6)
-        assert isclose(e_act_std, 0.00596132, rel_tol=1e-6)
+        assert isinstance(activation_energies, dict)
+        assert len(activation_energies) == 1
 
-    def test_jump_diffusivity(self, vasp_sites):
-        assert isclose(vasp_sites.jump_diffusivity(3),
-                       9.220713700212185e-09,
+        e_act, e_act_std = activation_energies[('48h', '48h')]
+
+        assert isclose(e_act, 0.134486260, abs_tol=1e-4)
+        assert isclose(e_act_std, .00405951, abs_tol=1e-6)
+
+    def test_jump_diffusivity(self, vasp_jumps):
+        assert isclose(vasp_jumps.jump_diffusivity(3),
+                       9.484382424533019e-09,
                        rel_tol=1e-6)
 
-    def test_correlation_factor(self, vasp_sites):
+    def test_correlation_factor(self, vasp_sites, vasp_jumps):
         tracer_diff = vasp_sites.metrics.tracer_diffusivity(dimensions=3)
-        correlation_factor = tracer_diff / vasp_sites.jump_diffusivity(
+        correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(
             dimensions=3)
-        assert isclose(correlation_factor, 0.1703355120150192, rel_tol=1e-6)
+        assert isclose(correlation_factor, 0.1656001328253986, rel_tol=1e-6)
 
-    def test_collective(self, vasp_sites):
-        collective = vasp_sites.collective()
+    def test_collective(self, vasp_jumps):
+        collective = vasp_jumps.collective()
         cc = collective.collective
 
-        assert len(cc) == 1280
-        assert cc[::1000] == [(158, 384), (33, 113)]
+        assert len(cc) == 1587
+        assert cc[1000][0]['start site'] == 23
+        assert cc[1000][1]['start site'] == 95
 
-    def test_coll_jumps(self, vasp_sites):
-        collective = vasp_sites.collective()
+    def test_coll_jumps(self, vasp_jumps):
+        collective = vasp_jumps.collective()
         coll_jumps = collective.coll_jumps
 
-        assert len(coll_jumps) == 1280
-        assert coll_jumps[::1000] == [((74, 8), (41, 67)), ((6, 88), (62, 18))]
+        assert len(coll_jumps) == 1587
+        assert coll_jumps[::1000] == [((74, 8), (41, 67)),
+                                      ((23, 31), (95, 79))]
 
-    def test_collective_matrix(self, vasp_sites):
-        collective = vasp_sites.collective()
+    def test_collective_matrix(self, vasp_jumps):
+        collective = vasp_jumps.collective()
         matrix = collective.matrix()
         assert matrix.shape == (1, 1)
-        assert matrix[0, 0] == 1280
+        assert matrix[0, 0] == 1587
 
-    def test_multiple_collective(self, vasp_sites):
-        collective = vasp_sites.collective()
-        mc = collective.multiple_collective()
-        assert mc.shape == (2112, )
-        assert mc.sum() == 434227
-        assert_allclose(mc[::250],
-                        np.array([0, 50, 98, 137, 187, 232, 284, 347, 420]))
+    def test_multiple_collective(self, vasp_jumps):
+        collective = vasp_jumps.collective()
+        jumps, counts = collective.multiple_collective()
+        assert jumps.shape == (1261, 2)
+        assert counts.sum() == 1587
+        assert np.all(jumps[::250][:3] == np.array([[(0, 94), (
+            2, 58)], [(9, 17), (64, 42)], [(20, 56), (64, 42)]],
+                                                   dtype=[('start',
+                                                           int), ('stop',
+                                                                  int)]))

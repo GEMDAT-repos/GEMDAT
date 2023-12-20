@@ -4,9 +4,11 @@ sites."""
 from __future__ import annotations
 
 import typing
+from itertools import pairwise
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 from MDAnalysis.lib.pkdtree import PeriodicKDTree
 from pymatgen.core import Structure
 
@@ -35,7 +37,9 @@ class Transitions:
         Assingn NOSITE if the atom is in transition
     """
 
-    def __init__(self, events: np.ndarray, states: np.ndarray, n_sites: int):
+    def __init__(self, events: pd.DataFrame, states: np.ndarray,
+                 trajectory: Trajectory, structure: Structure,
+                 _dist_close: float, n_sites: int):
         """Store event data for jumps and transitions between sites.
 
         Parameters
@@ -50,6 +54,9 @@ class Transitions:
         self.states = states
         self.events = events
         self.n_sites = n_sites
+        self.trajectory = trajectory
+        self._dist_close = _dist_close
+        self.structure = structure
 
     @classmethod
     def from_trajectory(
@@ -90,9 +97,12 @@ class Transitions:
                                         dist_close=dist_close)
         events = _calculate_transition_events(atom_sites=states)
 
-        obj = cls(events=events, states=states, n_sites=len(structure))
-
-        obj._dist_close = dist_close  # type: ignore
+        obj = cls(events=events,
+                  states=states,
+                  structure=structure,
+                  trajectory=trajectory,
+                  _dist_close=dist_close,
+                  n_sites=len(structure))
 
         return obj
 
@@ -158,23 +168,34 @@ class Transitions:
         """
         split_states = np.array_split(self.states, n_parts)
         split_events = _split_transitions_events(self.events, n_steps, n_parts)
+        split_trajectory = self.trajectory.split(n_parts)
 
         kwargs_list = []
 
-        for states, events in zip(split_states, split_events):
+        for states, events, trajectory in zip(split_states, split_events,
+                                              split_trajectory):
             kwargs_list.append({
                 'states': states,
                 'events': events,
                 'n_sites': self.n_sites,
+                'trajectory': trajectory,
+                'structure': self.structure,
+                '_dist_close': self._dist_close,
             })
 
-        return [
+        parts = [
             self.__class__(**kwargs)  # type: ignore
             for kwargs in kwargs_list
         ]
 
+        for part in parts:
+            part._dist_close = self._dist_close  # type: ignore
+            part.trajectory = self.trajectory
+            part.structure = self.structure
+        return parts
 
-def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
+
+def _calculate_transition_events(*, atom_sites: np.ndarray) -> pd.DataFrame:
     """Find transitions between sites.
 
     Parameters
@@ -184,7 +205,7 @@ def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
 
     Returns
     -------
-    events : np.ndarray
+    events : pd.DataFrame
         Output array with transition events.
         Contains 5 columns: atom index, site start, site stop, time start, time stop
     """
@@ -193,32 +214,28 @@ def _calculate_transition_events(*, atom_sites: np.ndarray) -> np.ndarray:
     for atom_index, atom_site in enumerate(atom_sites.T):
 
         # Indices when atom jumps in or out of site
-        i, = np.nonzero((atom_site != np.roll(atom_site, shift=1)))
+        i, = np.nonzero((atom_site != np.roll(atom_site, shift=-1)))
 
-        # Indices of i when atom jumps to a site
-        ii, = np.nonzero(atom_site[i] != -1)
-
-        # Log transition events to different site
-        ii_event, = np.nonzero(
-            atom_site[i[ii]] != np.roll(atom_site[i[ii]], shift=-1))
-
-        # Drop last event (side effect of np.roll)
-        ii_event = ii_event[:-1]
+        # Drop last event if it is on the last timestep (side effect of np.roll)
+        if i[-1] == len(atom_site) - 1:
+            i = i[:-1]
 
         # Select the timestep just before the transition out of the site
-        time_start = i[ii[ii_event] + 1] - 1
-        time_stop = i[np.roll(ii, shift=-1)[ii_event]]
+        time = i
         transitions = np.vstack([
-            np.ones_like(time_start) * atom_index,
-            atom_site[time_start],
-            atom_site[time_stop],
-            time_start,
-            time_stop,
+            np.ones_like(time) * atom_index,
+            atom_site[time],
+            atom_site[time + 1],
+            time,
         ]).T
 
         events.append(transitions)
 
-    return np.vstack(events)
+    events = np.vstack(events)
+    events = pd.DataFrame(
+        data=events,
+        columns=['atom index', 'start site', 'destination site', 'time'])
+    return events
 
 
 def _dist_close(trajectory: Trajectory, structure: Structure,
@@ -331,13 +348,13 @@ def _calculate_atom_states(
     return np.hstack(atom_sites)
 
 
-def _calculate_transitions_matrix(events: np.ndarray,
+def _calculate_transitions_matrix(events: pd.DataFrame,
                                   n_sites: int) -> np.ndarray:
     """Convert list of transition events to dense transitions matrix.
 
     Parameters
     ----------
-    events : np.ndarray
+    events : pd.DataFrame
         Input array with transition events
     n_sites : int
         Number of jump sites for diffusing element. This defines the shape of the output matrix.
@@ -347,11 +364,8 @@ def _calculate_transitions_matrix(events: np.ndarray,
     np.ndarray
         Square matrix with number of each transitions
     """
-    start_col = 1  # transition starts
-    stop_col = 2  # transition stop
-
     transitions = np.zeros((n_sites, n_sites), dtype=int)
-    idx, counts = np.unique(events[:, [start_col, stop_col]],
+    idx, counts = np.unique(events[['start site', 'destination site']],
                             return_counts=True,
                             axis=0)
     start_idx, stop_idx = idx.T
@@ -359,9 +373,11 @@ def _calculate_transitions_matrix(events: np.ndarray,
     return transitions
 
 
-def _split_transitions_events(events: np.ndarray,
+def _split_transitions_events(events: pd.DataFrame,
                               n_steps: int,
-                              n_parts=10) -> list[np.ndarray]:
+                              n_parts=10,
+                              split_key='time',
+                              dependent_keys='time') -> list[np.ndarray]:
     """Split list of transition events into equal parts in time.
 
     Parameters
@@ -372,6 +388,10 @@ def _split_transitions_events(events: np.ndarray,
         Number of time steps
     n_parts : int, optional
         Number of parts to split into
+    split_key : str, optional
+        Key on which to digitize dataframe
+    depenent_keys: str | List[str]
+        keys to normalize after split
 
     Returns
     -------
@@ -379,24 +399,21 @@ def _split_transitions_events(events: np.ndarray,
         Sorted list of transition events split into equal parts.
         The first dimension corresponds to `n_parts`.
     """
-    col = 4
+    if len(events) < n_parts:
+        raise ValueError(
+            f'Not enough transitions per part to split into {n_parts}')
 
     bins = np.linspace(0, n_steps + 1, n_parts + 1, dtype=int)
-    parts = np.digitize(events[:, col], bins=bins)
-    parts = parts[parts.argsort()]
-    splits = np.unique(parts, return_index=True)[1][1:]
 
-    sorted_transitions = events[events[:, col].argsort()]
-
-    parts = np.array_split(sorted_transitions, splits)
+    parts = [
+        events[(events[split_key] >= start)
+               & (events[split_key] < stop)].copy()
+        for start, stop in pairwise(bins)
+    ]
 
     # Normalize parts to zero time index
     for offset, part in zip(bins[:-1], parts):
-        part[:, 3:5] -= offset
-
-    if len(parts) < n_parts:
-        raise ValueError(
-            f'Not enough transitions per part to split into {n_parts}')
+        part[dependent_keys] -= offset
 
     return parts
 
