@@ -1,6 +1,6 @@
 [![Documentation Status](https://readthedocs.org/projects/gemdat/badge/?version=latest)](https://gemdat.readthedocs.io/en/latest/?badge=latest)
 [![Tests for GEMDAT](https://github.com/GEMDAT-repos/GEMDAT/actions/workflows/tests.yaml/badge.svg)](https://github.com/GEMDAT-repos/GEMDAT/actions/workflows/tests.yaml)
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/v1kko/330d6e711de3420b7503d54756dc011c/raw/covbadge.json)
+![Coverage](https://gist.githubusercontent.com/v1kko/330d6e711de3420b7503d54756dc011c/raw/covbadge.svg)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/gemdat)](https://pypi.org/project/gemdat/)
 [![PyPI](https://img.shields.io/pypi/v/gemdat.svg?style=flat)](https://pypi.org/project/gemdat/)
 
