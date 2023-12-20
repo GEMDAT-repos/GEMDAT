@@ -96,10 +96,15 @@ class ShapeAnalyzer:
         def to_str(x):
             return f'{x:>10.6f}'
 
+        try:
+            # account for api mismatch in SpaceGroup and SpacegroupOperations
+            symbol = self.spacegroup.int_symbol
+        except AttributeError:
+            symbol = self.spacegroup.symbol
+
         out = [
             self.__class__.__name__, 'Spacegroup',
-            f'    {self.spacegroup.symbol} ({self.spacegroup.int_number})',
-            'Lattice',
+            f'    {symbol} ({self.spacegroup.int_number})', 'Lattice',
             f"    abc   : {' '.join(to_str(val) for val in self.lattice.abc)}",
             f"    angles: {' '.join(to_str(val) for val in self.lattice.angles)}",
             f'Unique sites ({len(self.sites)})'
