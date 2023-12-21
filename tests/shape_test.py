@@ -10,14 +10,20 @@ from gemdat.shape import ShapeAnalyzer, ShapeData
 
 
 @pytest.fixture
-def shape():
-    name = 'test'
+def site():
+    latt = Lattice.from_parameters(10, 10, 10, 90, 90, 90)
+    site = PeriodicSite('Si', (0.1, 0.2, 0.3), latt, label='A')
+    return site
+
+
+@pytest.fixture
+def shape(site):
     coords = np.array([
         [0, 3, 4],
         [5, 0, 12],
         [8, 15, 0],
     ])
-    return ShapeData(name=name, coords=coords, radius=20)
+    return ShapeData(site=site, coords=coords, radius=20)
 
 
 def test_distances(shape):
@@ -36,11 +42,9 @@ def test_centroid(shape):
 
 
 @pytest.fixture
-def shape_analyzer():
-    latt = Lattice.from_parameters(10, 10, 10, 90, 90, 90)
+def shape_analyzer(site):
     spgr = SpaceGroup('P-1')
-    site = PeriodicSite('Si', (0.1, 0.2, 0.3), latt, label='A')
-    return ShapeAnalyzer(lattice=latt, sites=[site], spacegroup=spgr)
+    return ShapeAnalyzer(lattice=site.lattice, sites=[site], spacegroup=spgr)
 
 
 def test_shape_analyzer(shape_analyzer):
@@ -107,7 +111,7 @@ def test_shape_analyzer_optimize_sites(shape_analyzer):
     site = shape_analyzer.sites[0]
     assert_allclose(site.frac_coords, (0.1, 0.2, 0.3))
 
-    shape = ShapeData(name='test', coords=np.array([[2, 2, 2]]), radius=1)
+    shape = ShapeData(site=site, coords=np.array([[2, 2, 2]]), radius=1)
     shifted = shape_analyzer.optimize_sites((shape, ))
 
     site = shifted.sites[0]

@@ -28,13 +28,23 @@ class ShapeData:
     radius : float
         Maximum distance from center (Å)
     """
-    name: str
+    site: PeriodicSite
     coords: np.ndarray
     radius: float
 
     def distances(self) -> np.ndarray:
         """Return distances from origin in Å."""
         return np.linalg.norm(self.coords, axis=1)
+
+    @property
+    def origin(self) -> np.ndarray:
+        """Return origin coordinates for site."""
+        return self.site.coords
+
+    @property
+    def name(self) -> str:
+        """Return name of shape."""
+        return self.site.label
 
     @property
     def x(self) -> np.ndarray:
@@ -285,9 +295,11 @@ class ShapeAnalyzer:
                                                         positions=positions,
                                                         radius=radius)
 
-            shape = ShapeData(name=site.label,
-                              coords=eqv_coords,
-                              radius=radius)
+            shape = ShapeData(
+                site=site,
+                coords=eqv_coords,
+                radius=radius,
+            )
 
             shapes.append(shape)
 
