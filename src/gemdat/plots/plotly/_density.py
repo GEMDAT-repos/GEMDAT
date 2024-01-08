@@ -235,7 +235,7 @@ def density(vol: Volume,
                       },
                       scene_camera={
                           'projection': {
-                              'type': "orthographic"
+                              'type': 'orthographic'
                           },
                           'eye': {
                               'x': -vol.lattice.a * 0.5,
