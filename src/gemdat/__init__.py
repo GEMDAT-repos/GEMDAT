@@ -7,7 +7,7 @@ from .sites import SitesData
 from .trajectory import Trajectory
 from .volume import Volume, trajectory_to_volume
 
-__version__ = '0.9.4'
+__version__ = '1.0.0'
 __all__ = [
     'read_cif',
     'load_known_material',
