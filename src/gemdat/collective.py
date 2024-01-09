@@ -32,7 +32,7 @@ class Collective:
                  structure: Structure,
                  lattice: Lattice,
                  max_steps: int,
-                 max_dist: float = 4.5):
+                 max_dist: float = 1):
         """Determine number of jumps which could show collective behaviour.
 
         Parameters
@@ -104,6 +104,7 @@ class Collective:
 
         self.collective = collective
         self.coll_jumps = coll_jumps
+        self.n_coll_jumps = len(events) - self.n_solo_jumps
         self.collective_matrix = collective_matrix
 
     @weak_lru_cache()

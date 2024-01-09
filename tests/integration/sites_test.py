@@ -115,9 +115,9 @@ class TestSites:  # type: ignore
                        rel_tol=1e-4)
 
     def test_n_jumps(self, vasp_jumps):
-        assert vasp_jumps.n_solo_jumps == 1
+        assert vasp_jumps.n_solo_jumps == 450
         assert vasp_jumps.n_jumps == 462
-        assert isclose(vasp_jumps.solo_fraction, 0.00216, abs_tol=1e-4)
+        assert isclose(vasp_jumps.solo_fraction, 0.974026, abs_tol=1e-4)
 
     def test_rates(self, vasp_jumps):
         rates = vasp_jumps.rates()
@@ -125,8 +125,8 @@ class TestSites:  # type: ignore
         assert len(rates) == 1
 
         rates, rates_std = rates[('48h', '48h')]
-        assert isclose(rates, 1174999999999.9998)
-        assert isclose(rates_std, 90769080986.31458)
+        assert isclose(rates, 542307692307.69226)
+        assert isclose(rates_std, 41893421993.683655)
 
     def test_activation_energies(self, vasp_jumps, vasp_sites):
         activation_energies = vasp_jumps.activation_energies()
@@ -136,49 +136,50 @@ class TestSites:  # type: ignore
 
         e_act, e_act_std = activation_energies[('48h', '48h')]
 
-        assert isclose(e_act, 0.134486260, abs_tol=1e-4)
+        assert isclose(e_act, 0.1744591, abs_tol=1e-4)
         assert isclose(e_act_std, .00405951, abs_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_jumps):
         assert isclose(vasp_jumps.jump_diffusivity(3),
-                       9.484382424533019e-09,
+                       4.377407272861394e-09,
                        rel_tol=1e-6)
 
     def test_correlation_factor(self, vasp_sites, vasp_jumps):
         tracer_diff = vasp_sites.metrics.tracer_diffusivity(dimensions=3)
         correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(
             dimensions=3)
-        assert isclose(correlation_factor, 0.1656001328253986, rel_tol=1e-6)
+        assert isclose(correlation_factor, 0.3588002877883636, rel_tol=1e-6)
 
     def test_collective(self, vasp_jumps):
         collective = vasp_jumps.collective()
         cc = collective.collective
 
-        assert len(cc) == 1587
-        assert cc[1000][0]['start site'] == 23
-        assert cc[1000][1]['start site'] == 95
+        assert len(cc) == 6
+        assert cc[3][0]['start site'] == 60
+        assert cc[3][1]['start site'] == 68
 
     def test_coll_jumps(self, vasp_jumps):
         collective = vasp_jumps.collective()
         coll_jumps = collective.coll_jumps
-
-        assert len(coll_jumps) == 1587
-        assert coll_jumps[::1000] == [((74, 8), (41, 67)),
-                                      ((23, 31), (95, 79))]
+        assert len(coll_jumps) == 6
+        assert vasp_jumps.n_jumps == collective.n_solo_jumps + collective.n_coll_jumps
+        assert coll_jumps == [((49, 31), (33, 49)), ((54, 38), (24, 54)),
+                              ((42, 75), (64, 42)), ((60, 36), (68, 60)),
+                              ((36, 52), (80, 36)), ((2, 58), (92, 2))]
 
     def test_collective_matrix(self, vasp_jumps):
         collective = vasp_jumps.collective()
         matrix = collective.matrix()
         assert matrix.shape == (1, 1)
-        assert matrix[0, 0] == 1587
+        assert matrix[0, 0] == 6
 
     def test_multiple_collective(self, vasp_jumps):
         collective = vasp_jumps.collective()
         jumps, counts = collective.multiple_collective()
-        assert jumps.shape == (1261, 2)
-        assert counts.sum() == 1587
-        assert np.all(jumps[::250][:3] == np.array([[(0, 94), (
-            2, 58)], [(9, 17), (64, 42)], [(20, 56), (64, 42)]],
-                                                   dtype=[('start',
-                                                           int), ('stop',
-                                                                  int)]))
+        assert jumps.shape == (6, 2)
+        assert counts.sum() == 6
+        assert np.all(
+            jumps == np.array([[(2, 58), (92, 2)], [(24, 54), (
+                54, 38)], [(33, 49), (49, 31)], [(36, 52), (
+                    80, 36)], [(42, 75), (64, 42)], [(60, 36), (68, 60)]],
+                              dtype=[('start', '<i8'), ('stop', '<i8')]))

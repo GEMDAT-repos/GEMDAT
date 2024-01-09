@@ -130,7 +130,7 @@ class Jumps:
                                              n_sites=self.transitions.n_sites)
 
     @weak_lru_cache()
-    def collective(self, max_dist: float = 4.5) -> Collective:
+    def collective(self, max_dist: float = 1) -> Collective:
         """Calculate collective jumps.
 
         Parameters
