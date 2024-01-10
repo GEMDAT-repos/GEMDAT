@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from gemdat.io import load_known_material
+from gemdat.path import find_best_perc_path
 from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
 from gemdat.sites import SitesData
 from gemdat.trajectory import Trajectory
+from gemdat.volume import trajectory_to_volume
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
 VASP_XML = DATA_DIR / 'short_simulation' / 'vasprun.xml'
@@ -79,3 +82,22 @@ def vasp_shape_data(vasp_traj):
     shapes = sa.analyze_trajectory(trajectory, supercell=(2, 1, 1))
 
     return shapes
+
+
+@pytest.fixture(scope='module')
+def vasp_full_vol(vasp_full_traj):
+    trajectory = vasp_full_traj
+    diff_trajectory = trajectory.filter('Li')
+    return trajectory_to_volume(trajectory=diff_trajectory, resolution=0.3)
+
+
+@pytest.fixture(scope='module')
+def vasp_full_path(vasp_full_vol):
+    F = vasp_full_vol.get_free_energy(temperature=650.0)
+    peaks = np.array([[30, 23, 14], [35, 2, 7]])
+    path = find_best_perc_path(F,
+                               peaks,
+                               percolate_x=True,
+                               percolate_y=False,
+                               percolate_z=False)
+    return path
