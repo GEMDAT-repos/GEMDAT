@@ -169,7 +169,7 @@ class TestSites:  # type: ignore
 
     def test_collective_matrix(self, vasp_jumps):
         collective = vasp_jumps.collective()
-        matrix = collective.matrix()
+        labels, matrix = collective.matrix()
         assert matrix.shape == (1, 1)
         assert matrix[0, 0] == 6
 
