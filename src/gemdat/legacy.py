@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import matplotlib.pyplot as plt
 
-from gemdat import SitesData, load_known_material, plots
+from gemdat import Jumps, SitesData, Transitions, load_known_material, plots
 from gemdat.rdf import radial_distribution
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume
@@ -95,18 +95,23 @@ def analyse_md(
         n_parts=nr_parts,
     )
 
+    transitions = Transitions.from_trajectory(trajectory=trajectory,
+                                              structure=sites_structure,
+                                              floating_specie='Li')
+    jumps = Jumps(sites=sites_structure, transitions=transitions)
+
     plots.displacement_per_element(trajectory=trajectory)
     plots.displacement_per_site(trajectory=diff_trajectory)
     plots.displacement_histogram(trajectory=diff_trajectory)
     plots.frequency_vs_occurence(trajectory=diff_trajectory)
     plots.vibrational_amplitudes(trajectory=diff_trajectory)
-    plots.jumps_vs_distance(sites=sites, jump_res=jump_res)
-    plots.jumps_vs_time(sites=sites)
-    plots.collective_jumps(sites=sites)
-    plots.jumps_3d(sites=sites)
+    plots.jumps_vs_distance(jumps=jumps, jump_res=jump_res)
+    plots.jumps_vs_time(jumps=jumps)
+    plots.collective_jumps(jumps=jumps)
+    plots.jumps_3d(jumps=jumps)
 
     _tmp = plots.jumps_3d_animation(  # Assignment needed to not desctruct animation before plt.show()
-        sites=sites,
+        jumps=jumps,
         t_start=start_end[0],
         t_stop=start_end[1],
         skip=nr_steps_frame,

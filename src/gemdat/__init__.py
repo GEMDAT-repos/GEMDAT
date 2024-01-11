@@ -6,6 +6,7 @@ from .shape import ShapeAnalyzer
 from .simulation_metrics import SimulationMetrics
 from .sites import SitesData
 from .trajectory import Trajectory
+from .transitions import Transitions
 from .volume import Volume, trajectory_to_volume
 
 __version__ = '1.0.0'
@@ -17,6 +18,7 @@ __all__ = [
     'SitesData',
     'Trajectory',
     'trajectory_to_volume',
+    'Transitions',
     'Volume',
     'Jumps',
 ]
