@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .io import load_known_material, read_cif
+from .jumps import Jumps
 from .shape import ShapeAnalyzer
 from .simulation_metrics import SimulationMetrics
 from .sites import SitesData
@@ -17,4 +18,5 @@ __all__ = [
     'Trajectory',
     'trajectory_to_volume',
     'Volume',
+    'Jumps',
 ]

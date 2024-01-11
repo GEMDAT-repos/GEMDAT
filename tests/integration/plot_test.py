@@ -35,28 +35,28 @@ def test_vibrational_amplitudes(vasp_traj):
 
 
 @image_comparison2(baseline_images=['jumps_vs_distance'])
-def test_jumps_vs_distance(vasp_sites):
-    plots.jumps_vs_distance(sites=vasp_sites)
+def test_jumps_vs_distance(vasp_jumps):
+    plots.jumps_vs_distance(jumps=vasp_jumps)
 
 
 @image_comparison2(baseline_images=['jumps_vs_time'])
-def test_jumps_vs_time(vasp_sites):
-    plots.jumps_vs_time(sites=vasp_sites)
+def test_jumps_vs_time(vasp_jumps):
+    plots.jumps_vs_time(jumps=vasp_jumps)
 
 
 @image_comparison2(baseline_images=['collective_jumps'])
-def test_collective_jumps(vasp_sites):
-    plots.collective_jumps(sites=vasp_sites)
+def test_collective_jumps(vasp_jumps):
+    plots.collective_jumps(jumps=vasp_jumps)
 
 
 @image_comparison2(baseline_images=['jumps_3d'])
-def test_jumps_3d(vasp_sites):
-    plots.jumps_3d(sites=vasp_sites)
+def test_jumps_3d(vasp_jumps):
+    plots.jumps_3d(jumps=vasp_jumps)
 
 
 @image_comparison2(baseline_images=['jumps_3d_animation'])
-def test_jumps_3d_animation(vasp_sites):
-    plots.jumps_3d_animation(sites=vasp_sites, t_start=1000, t_stop=1001)
+def test_jumps_3d_animation(vasp_jumps):
+    plots.jumps_3d_animation(jumps=vasp_jumps, t_start=1000, t_stop=1001)
 
 
 @image_comparison2(baseline_images=['rdf1', 'rdf2', 'rdf3'])

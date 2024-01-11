@@ -10,12 +10,12 @@ from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
 
-    from gemdat import SitesData
+    from gemdat import Jumps
 
 
 def jumps_vs_distance(
     *,
-    sites: SitesData,
+    jumps: Jumps,
     jump_res: float = 0.1,
 ) -> plt.Figure:
     """Plot jumps vs. distance histogram.
@@ -32,9 +32,9 @@ def jumps_vs_distance(
     fig : matplotlib.figure.Figure
         Output figure
     """
-    structure = sites.structure
+    structure = jumps.sites.structure
 
-    trajectory = sites.trajectory
+    trajectory = jumps.sites.trajectory
     lattice = trajectory.get_lattice()
 
     pdist = lattice.get_all_distances(structure.frac_coords,
@@ -46,7 +46,7 @@ def jumps_vs_distance(
     counts = np.zeros_like(x)
 
     bin_idx = np.digitize(pdist, bins=x)
-    for idx, n in zip(bin_idx.flatten(), sites.transitions.matrix().flatten()):
+    for idx, n in zip(bin_idx.flatten(), jumps.matrix().flatten()):
         counts[idx] += n
 
     fig, ax = plt.subplots()
@@ -60,8 +60,8 @@ def jumps_vs_distance(
     return fig
 
 
-def jumps_vs_time(*, sites: SitesData, binsize: int = 500) -> plt.Figure:
-    """Plot jumps vs. distance histogram.
+def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> plt.Figure:
+    """Plot jumps vs. time histogram.
 
     Parameters
     ----------
@@ -75,14 +75,15 @@ def jumps_vs_time(*, sites: SitesData, binsize: int = 500) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    trajectory = sites.trajectory
+
+    trajectory = jumps.sites.trajectory
 
     n_steps = len(trajectory)
     bins = np.arange(0, n_steps + binsize, binsize)
 
     fig, ax = plt.subplots()
 
-    ax.hist(sites.transitions.events[:, 4], bins=bins, width=0.8 * binsize)
+    ax.hist(jumps.as_dataframe()['stop time'], bins=bins, width=0.8 * binsize)
 
     ax.set(title='Jumps vs. time',
            xlabel='Time (steps)',
@@ -91,7 +92,7 @@ def jumps_vs_time(*, sites: SitesData, binsize: int = 500) -> plt.Figure:
     return fig
 
 
-def collective_jumps(*, sites: SitesData) -> plt.Figure:
+def collective_jumps(*, jumps: Jumps) -> plt.Figure:
     """Plot collective jumps per jump-type combination.
 
     Parameters
@@ -106,12 +107,12 @@ def collective_jumps(*, sites: SitesData) -> plt.Figure:
     """
     fig, ax = plt.subplots()
 
-    mat = ax.imshow(sites.collective().matrix())
+    mat = ax.imshow(jumps.collective().matrix())
 
-    ticks = range(len(sites.jump_names))
+    ticks = range(len(jumps.jump_names))
 
-    ax.set_xticks(ticks, labels=sites.jump_names, rotation=90)
-    ax.set_yticks(ticks, labels=sites.jump_names)
+    ax.set_xticks(ticks, labels=jumps.jump_names, rotation=90)
+    ax.set_yticks(ticks, labels=jumps.jump_names)
 
     fig.colorbar(mat, ax=ax)
 
@@ -120,7 +121,7 @@ def collective_jumps(*, sites: SitesData) -> plt.Figure:
     return fig
 
 
-def jumps_3d(*, sites: SitesData) -> plt.Figure:
+def jumps_3d(*, jumps: Jumps) -> plt.Figure:
     """Plot jumps in 3D.
 
     Parameters
@@ -133,7 +134,8 @@ def jumps_3d(*, sites: SitesData) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    trajectory = sites.trajectory
+    trajectory = jumps.sites.trajectory
+    structure = jumps.sites.structure
 
     class LabelItems:
 
@@ -144,13 +146,13 @@ def jumps_3d(*, sites: SitesData) -> plt.Figure:
         def items(self):
             yield from zip(self.labels, self.coords)
 
-    coords = sites.structure.frac_coords
+    coords = structure.frac_coords
     lattice = trajectory.get_lattice()
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    site_labels = LabelItems(sites.site_labels, coords)
+    site_labels = LabelItems(jumps.sites.site_labels, coords)
 
     xyz_labels = LabelItems('OABC', [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1],
                                      [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]])
@@ -164,9 +166,7 @@ def jumps_3d(*, sites: SitesData) -> plt.Figure:
     plotter.plot_points(coords, lattice=lattice, ax=ax)
 
     for i, j in zip(*np.triu_indices(len(coords), k=1)):
-        count = sites.transitions.matrix()[i,
-                                           j] + sites.transitions.matrix()[j,
-                                                                           i]
+        count = jumps.matrix()[i, j] + jumps.matrix()[j, i]
         if count == 0:
             continue
 
@@ -175,9 +175,11 @@ def jumps_3d(*, sites: SitesData) -> plt.Figure:
 
         lw = 1 + np.log(count)
 
-        _, image = lattice.get_distance_and_image(coord_i, coord_j)
+        length, image = lattice.get_distance_and_image(coord_i, coord_j)
 
         # NOTE: might need to plot `line = [coord_i - image, coord_j]` as well
+        if np.any(image != 0):
+            continue
         line = [coord_i, coord_j + image]
 
         plotter.plot_path(line,
@@ -206,7 +208,7 @@ def jumps_3d(*, sites: SitesData) -> plt.Figure:
 
 def jumps_3d_animation(
     *,
-    sites: SitesData,
+    jumps: Jumps,
     t_start: int,
     t_stop: int,
     decay: float = 0.05,
@@ -238,7 +240,7 @@ def jumps_3d_animation(
     minwidth = 0.2
     maxwidth = 5.0
 
-    trajectory = sites.trajectory
+    trajectory = jumps.sites.trajectory
 
     class LabelItems:
 
@@ -249,7 +251,7 @@ def jumps_3d_animation(
         def items(self):
             yield from zip(self.labels, self.coords)
 
-    coords = sites.structure.frac_coords
+    coords = jumps.sites.structure.frac_coords
     lattice = trajectory.get_lattice()
 
     color_from = colormaps['Set1'].colors  # type: ignore
@@ -278,12 +280,11 @@ def jumps_3d_animation(
                         edgecolor='black')
     points = ax.collections
 
-    time_col = 4
-    event_order = sites.transitions.events[:, time_col].argsort()
+    events = jumps.as_dataframe().sort_values('start time', ignore_index=True)
 
-    events = sites.transitions.events[event_order]
-
-    for _, site_i, site_j, *_ in events:
+    for _, event in events.iterrows():
+        site_i = event['start site']
+        site_j = event['destination site']
 
         coord_i = coords[site_i]
         coord_j = coords[site_j]
@@ -314,20 +315,24 @@ def jumps_3d_animation(
     def update(frame_no):
         t_frame = t_start + (frame_no * skip)
 
-        for i, (atom, frm, to, _, t_jump) in enumerate(events):
-            if t_jump > t_frame:
+        for i, event in events.iterrows():
+
+            if event['start time'] > t_frame:
                 break
 
-            lw = max(maxwidth - decay * (t_frame - t_jump), minwidth)
+            lw = max(maxwidth - decay * (t_frame - event['start time']),
+                     minwidth)
 
             line = lines[i]
             line.set_color('red')
             line.set_linewidth(lw)
 
-            points[frm].set_facecolor(color_from[atom % len(color_from)])
-            points[to].set_facecolor(color_to[atom % len(color_to)])
+            points[event['start site']].set_facecolor(
+                color_from[event['atom index'] % len(color_from)])
+            points[event['destination site']].set_facecolor(
+                color_to[event['atom index'] % len(color_to)])
 
-        ax.set_title(f'T: {t_frame} | Next jump: {t_jump}')
+        ax.set_title(f'T: {t_frame} | Next jump: {event["start time"]}')
 
     n_frames = int((t_stop - t_start) / skip)
 

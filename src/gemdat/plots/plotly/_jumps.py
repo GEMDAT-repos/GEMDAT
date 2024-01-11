@@ -9,11 +9,11 @@ import plotly.graph_objects as go
 
 if TYPE_CHECKING:
 
-    from gemdat import SitesData
+    from gemdat import Jumps
 
 
 def jumps_vs_distance(*,
-                      sites: SitesData,
+                      jumps: Jumps,
                       jump_res: float = 0.1,
                       n_parts: int = 1) -> go.Figure:
     """Plot jumps vs. distance histogram.
@@ -32,6 +32,7 @@ def jumps_vs_distance(*,
     fig : plotly.graph_objects.Figure
         Output figure
     """
+    sites = jumps.sites
     structure = sites.structure
     trajectory = sites.trajectory
     lattice = trajectory.get_lattice()
@@ -45,9 +46,7 @@ def jumps_vs_distance(*,
 
     bin_idx = np.digitize(pdist, bins=x)
     data = []
-    for transitions_part in sites.transitions.split(n_parts=n_parts,
-                                                    n_steps=len(
-                                                        sites.trajectory)):
+    for transitions_part in jumps.split(n_parts=n_parts):
         counts = np.zeros_like(x)
         for idx, n in zip(bin_idx.flatten(),
                           transitions_part.matrix().flatten()):
@@ -87,7 +86,7 @@ def jumps_vs_distance(*,
 
 
 def jumps_vs_time(*,
-                  sites: SitesData,
+                  jumps: Jumps,
                   bins: int = 8,
                   n_parts: int = 1) -> go.Figure:
     """Plot jumps vs. distance histogram.
@@ -106,16 +105,15 @@ def jumps_vs_time(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
+    sites = jumps.sites
 
     maxlen = len(sites.trajectory) / n_parts
     binsize = maxlen / bins + 1
     data = []
 
-    for transitions_part in sites.transitions.split(n_parts=n_parts,
-                                                    n_steps=len(
-                                                        sites.trajectory)):
+    for jumps_part in jumps.split(n_parts=n_parts):
         data.append(
-            np.histogram(transitions_part.events[:, 4],
+            np.histogram(jumps_part.as_dataframe()['start time'],
                          bins=bins,
                          range=(0., maxlen))[0])
 
