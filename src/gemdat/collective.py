@@ -108,7 +108,7 @@ class Collective:
         self.collective_matrix = collective_matrix
 
     @weak_lru_cache()
-    def matrix(self) -> np.ndarray:
+    def matrix(self) -> tuple[list, np.ndarray]:
         """Collective jumps matrix.
 
         Returns
@@ -137,7 +137,7 @@ class Collective:
 
             collective_matrix[i, j] += 1
 
-        return collective_matrix
+        return site_pairs, collective_matrix
 
     @weak_lru_cache()
     def multiple_collective(self) -> Tuple[np.ndarray, np.ndarray]:

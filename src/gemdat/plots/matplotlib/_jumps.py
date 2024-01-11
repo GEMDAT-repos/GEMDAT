@@ -106,13 +106,14 @@ def collective_jumps(*, jumps: Jumps) -> plt.Figure:
         Output figure
     """
     fig, ax = plt.subplots()
+    labels, matrix = jumps.collective().matrix()
 
-    mat = ax.imshow(jumps.collective().matrix())
+    mat = ax.imshow(matrix)
 
-    ticks = range(len(jumps.jump_names))
+    ticks = range(len(labels))
 
-    ax.set_xticks(ticks, labels=jumps.jump_names, rotation=90)
-    ax.set_yticks(ticks, labels=jumps.jump_names)
+    ax.set_xticks(ticks, labels=labels, rotation=90)
+    ax.set_yticks(ticks, labels=labels)
 
     fig.colorbar(mat, ax=ax)
 
