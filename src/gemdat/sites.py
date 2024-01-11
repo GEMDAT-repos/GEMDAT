@@ -383,7 +383,7 @@ def _calculate_site_occupancy(
         counts[label].append(v)
 
     site_occupancies = {
-        k: sum(v) / n_steps * labels.count(k) 
+        k: sum(v) / (n_steps * labels.count(k))
         for k, v in counts.items()
     }
 
