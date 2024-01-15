@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from math import ceil
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,16 @@ from .sites import SitesData
 from .transitions import Transitions, _calculate_transitions_matrix
 
 
-def _generic_transitions_to_jumps(transitions, minimal_timestep_for_residence):
+def _generic_transitions_to_jumps(transitions, minimal_residence: int):
+    """Generic function to convert transitions to jumps.
+
+    Parameters
+    ----------
+    transitions :
+        transitions
+    minimal_residence : int
+        minimal residence time of an atom on a destination site to count as a jump
+    """
     events = transitions.events.copy()
     events['start time'] = events['time'].copy()
     events['stop time'] = events['time'] + 1
@@ -24,12 +33,25 @@ def _generic_transitions_to_jumps(transitions, minimal_timestep_for_residence):
 
     jumps = []
     fromevent = None
+    candidate_jump = None
 
     # Only take jumps which hit the inner radius
     for _, event in events.iterrows():
         if fromevent is not None:
             if fromevent['atom index'] != event['atom index']:
                 fromevent = None
+
+        if candidate_jump is not None:
+            if candidate_jump['atom index'] != event['atom index']:
+                jumps.append(candidate_jump)
+                candidate_jump = None
+            elif event['start time'] - candidate_jump[
+                    'stop time'] >= minimal_residence:
+                jumps.append(candidate_jump)
+                candidate_jump = None
+            elif candidate_jump['destination site'] != event[
+                    'destination site']:
+                candidate_jump = None
 
         if event['start site'] != -1:
             if event['start site'] != event['destination site']:
@@ -44,7 +66,10 @@ def _generic_transitions_to_jumps(transitions, minimal_timestep_for_residence):
             event['start site'] = fromevent['start site']
             event['start time'] = fromevent['start time']
             fromevent = None
-            jumps.append(event)
+            candidate_jump = event
+    if candidate_jump is not None:
+        jumps.append(candidate_jump)
+
     jumps = pd.DataFrame(data=jumps)
 
     # remove jumps where start == destination
@@ -61,15 +86,34 @@ class Jumps:
     def __init__(self,
                  transitions: Transitions,
                  sites: SitesData,
-                 minimal_timestep_for_residence: int = 1,
-                 conversion_method=_generic_transitions_to_jumps):
+                 conversion_method: Callable[
+                     [Transitions, int],
+                     pd.DataFram] = _generic_transitions_to_jumps,
+                 *,
+                 minimal_residence: int = 0):
+        """__init__.
+
+        Parameters
+        ----------
+        transitions : Transitions
+            transitions
+        sites : SitesData
+            sites
+        conversion_method :
+        conversion_method : Callable[Transitions,int]:
+            conversion method that translates the Transitions into Jumps,
+            second parameter is the minimal_residence parameter
+        minimal_residence : int
+            minimal residence time of an atom on a destination site to
+            count as a jump, passed through to conversion method
+        """
         self.transitions = transitions
         self.sites = sites
         self.conversion_method = conversion_method
-        self.jumps = conversion_method(transitions,
-                                       minimal_timestep_for_residence)
+        self.jumps = conversion_method(transitions, minimal_residence)
 
     def as_dataframe(self):
+        """as_dataframe."""
         return self.jumps
 
     @property
