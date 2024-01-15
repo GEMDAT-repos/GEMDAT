@@ -16,27 +16,34 @@ from .sites import SitesData
 from .transitions import Transitions, _calculate_transitions_matrix
 
 
-def _generic_transitions_to_jumps(transitions):
+def _generic_transitions_to_jumps(transitions, minimal_timestep_for_residence):
     events = transitions.events.copy()
     events['start time'] = events['time'].copy()
     events['stop time'] = events['time'] + 1
     del events['time']
 
     jumps = []
-    curevent = None
+    fromevent = None
 
-    # remove the 'void' between jumps
+    # Only take jumps which hit the inner radius
     for _, event in events.iterrows():
-        if event['start site'] == -1:
-            if curevent is not None:
-                if curevent['atom index'] == event['atom index']:
-                    event['start site'] = curevent['start site']
-                    event['start time'] = curevent['start time']
-                    jumps.append(event)
-            curevent = None
-        elif event['destination site'] == -1:
-            curevent = event
-        else:
+        if fromevent is not None:
+            if fromevent['atom index'] != event['atom index']:
+                fromevent = None
+
+        if event['start site'] != -1:
+            if event['start site'] != event['destination site']:
+                fromevent = event
+
+        if fromevent is not None:
+            if fromevent['start site'] == event['destination site']:
+                fromevent = None
+                continue
+            if event['destination inner site'] == -1:
+                continue
+            event['start site'] = fromevent['start site']
+            event['start time'] = fromevent['start time']
+            fromevent = None
             jumps.append(event)
     jumps = pd.DataFrame(data=jumps)
 
@@ -54,11 +61,13 @@ class Jumps:
     def __init__(self,
                  transitions: Transitions,
                  sites: SitesData,
+                 minimal_timestep_for_residence: int = 1,
                  conversion_method=_generic_transitions_to_jumps):
         self.transitions = transitions
         self.sites = sites
         self.conversion_method = conversion_method
-        self.jumps = conversion_method(transitions)
+        self.jumps = conversion_method(transitions,
+                                       minimal_timestep_for_residence)
 
     def as_dataframe(self):
         return self.jumps
