@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from gemdat.io import load_known_material
-from gemdat.path import find_best_perc_path
+from gemdat.path import find_best_perc_path, free_energy_graph
 from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
 from gemdat.sites import SitesData
@@ -101,3 +101,11 @@ def vasp_full_path(vasp_full_vol):
                                percolate_y=False,
                                percolate_z=False)
     return path
+
+
+@pytest.fixture(scope='module')
+def vasp_F_graph(vasp_full_vol):
+    F = vasp_full_vol.get_free_energy(temperature=650.0)
+    F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
+
+    return F_graph
