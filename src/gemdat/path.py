@@ -192,15 +192,14 @@ def free_energy_graph(F: np.ndarray,
             if neighbor in G.nodes:
                 exp_n_energy = np.exp(F[neighbor])
                 if exp_n_energy < max_energy_threshold:
-                    G.add_edge(node,
-                               neighbor,
-                               weight=F[neighbor],
-                               weight_exp=exp_n_energy)
+                    weight_exp=exp_n_energy
                 else:
-                    G.add_edge(node,
+                    weight_exp=max_energy_threshold
+                
+                G.add_edge(node,
                                neighbor,
                                weight=F[neighbor],
-                               weight_exp=max_energy_threshold)
+                               weight_exp=weight_exp)
 
     return G
 
