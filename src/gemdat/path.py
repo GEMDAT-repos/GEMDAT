@@ -245,7 +245,7 @@ def optimal_path(
         method='dijkstra'
         if method == 'dijkstra-exp' or method == 'minmax-energy' else method)
 
-    if method == 'dijkstra' or method == 'bellman-ford' or method == 'dijkstra-exp':
+    if method in ('dijkstra', 'bellman-ford', 'dijkstra-exp'):
 
         path_energy = [F_graph.nodes[node]['energy'] for node in optimal_path]
         path = Pathway(sites=optimal_path, energy=path_energy)
