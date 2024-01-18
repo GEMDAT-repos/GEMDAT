@@ -4,7 +4,7 @@ between sites."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Literal, Tuple
 
 import networkx as nx
 import numpy as np
@@ -190,18 +190,31 @@ def free_energy_graph(F: np.ndarray,
         for move in movements:
             neighbor = tuple((node + move) % F.shape)
             if neighbor in G.nodes:
-                G.add_edge(node, neighbor, weight=F[neighbor])
+                exp_n_energy = np.exp(F[neighbor])
+                if exp_n_energy < max_energy_threshold:
+                    weight_exp = exp_n_energy
+                else:
+                    weight_exp = max_energy_threshold
+
+                G.add_edge(node,
+                           neighbor,
+                           weight=F[neighbor],
+                           weight_exp=weight_exp)
 
     return G
+
+
+_PATHFINDING_METHODS = Literal['dijkstra', 'bellman-ford', 'minmax-energy',
+                               'dijkstra-exp']
 
 
 def optimal_path(
     F_graph: nx.Graph,
     start: tuple,
     end: tuple,
+    method: _PATHFINDING_METHODS = 'dijkstra',
 ) -> Pathway:
-    """Calculate the shortest cost-effective path from start to end using
-    Networkx library.
+    """Calculate the shortest cost-effective path using the desired method.
 
     Parameters
     ----------
@@ -211,6 +224,12 @@ def optimal_path(
         Coordinates of the starting point
     end: tuple
         Coordinates of the ending point
+    method : str
+        Method used to calculate the shortest path. Options are:
+        - 'dijkstra': Dijkstra's algorithm
+        - 'bellman-ford': Bellman-Ford algorithm
+        - 'minmax-energy': Minmax energy algorithm
+        - 'dijkstra-exp': Dijkstra's algorithm with exponential weights
 
     Returns
     -------
@@ -218,15 +237,70 @@ def optimal_path(
         Optimal path on the graph between start and end
     """
 
-    optimal_path = nx.shortest_path(F_graph,
-                                    source=start,
-                                    target=end,
-                                    weight='weight')
+    optimal_path = nx.shortest_path(
+        F_graph,
+        source=start,
+        target=end,
+        weight='weight_exp' if method == 'dijkstra-exp' else 'weight',
+        method='dijkstra' if method in ('dijkstra-exp',
+                                        'minmax-energy') else method)
+
+    if method == 'minmax-energy':
+        optimal_path = _optimal_path_minmax_energy(F_graph, start, end,
+                                                   optimal_path)
+    elif method not in ('dijkstra', 'bellman-ford', 'dijkstra-exp'):
+        raise ValueError(f'Unknown method {method}')
+
     path_energy = [F_graph.nodes[node]['energy'] for node in optimal_path]
-
     path = Pathway(sites=optimal_path, energy=path_energy)
-
     return path
+
+
+def _optimal_path_minmax_energy(F_graph: nx.Graph, start: tuple, end: tuple,
+                                optimal_path: list) -> list:
+    """Find the optimal path that has the minimum maximum-energy.
+
+    Parameters
+    ----------
+    F_graph : nx.Graph
+        Graph of the free energy
+    start : tuple
+        Coordinates of the starting point
+    end: tuple
+        Coordinates of the ending point
+    optimal_path : list
+        List of the nodes of the optimal path
+
+    Returns
+    -------
+    optimal_path: list
+        Optimal path on the graph between start and end
+    """
+
+    max_energy = max([F_graph.nodes[node]['energy'] for node in optimal_path])
+    minmax_energy = max_energy
+    pruned_F_graph = F_graph.copy()
+
+    while minmax_energy <= max_energy:
+        # Find the node of the path with the highest energy
+        max_node = max(optimal_path, key=lambda x: F_graph.nodes[x]['energy'])
+        # remove this node from the graph
+        pruned_F_graph.remove_node(max_node)
+        # recompute the path
+        pruned_path = nx.shortest_path(
+            pruned_F_graph,
+            source=start,
+            target=end,
+            weight='weight',
+        )
+        minmax_energy = max(
+            [F_graph.nodes[node]['energy'] for node in pruned_path])
+
+        if minmax_energy < max_energy:
+            optimal_path = pruned_path
+            max_energy = minmax_energy
+
+    return optimal_path
 
 
 def find_best_perc_path(F: np.ndarray,

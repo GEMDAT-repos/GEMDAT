@@ -5,6 +5,41 @@ from math import isclose
 import pytest
 
 from gemdat.io import load_known_material
+from gemdat.path import optimal_path
+
+
+@pytest.vaspxml_available  # type: ignore
+def test_optimal_path(vasp_full_vol, vasp_F_graph):
+
+    path1 = optimal_path(
+        vasp_F_graph,
+        (22, 11, 32),
+        (65, 28, 28),
+        'dijkstra',
+    )
+    path2 = optimal_path(
+        vasp_F_graph,
+        (22, 11, 32),
+        (65, 23, 13),
+        'bellman-ford',
+    )
+    path3 = optimal_path(
+        vasp_F_graph,
+        (50, 6, 21),
+        (63, 23, 21),
+        'dijkstra-exp',
+    )
+    path4 = optimal_path(
+        vasp_F_graph,
+        (27, 17, 10),
+        (65, 14, 22),
+        'minmax-energy',
+    )
+
+    assert isclose(sum(path1.energy), 28.785557644725507)
+    assert isclose(sum(path2.energy), 31.335762384379574)
+    assert isclose(sum(path3.energy), 13.135771541467623)
+    assert isclose(sum(path4.energy), 23.981504037937647)
 
 
 @pytest.vaspxml_available  # type: ignore
