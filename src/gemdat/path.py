@@ -243,7 +243,7 @@ def optimal_path(
         target=end,
         weight='weight_exp' if method == 'dijkstra-exp' else 'weight',
         method='dijkstra'
-        if method == 'dijkstra-exp' or method == 'minmax-energy' else method)
+        if method in ('dijkstra-exp', 'minmax-energy') else method)
 
     if method in ('dijkstra', 'bellman-ford', 'dijkstra-exp'):
 
