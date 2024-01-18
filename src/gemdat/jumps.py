@@ -37,10 +37,14 @@ def _generic_transitions_to_jumps(transitions, minimal_residence: int):
 
     # Only take jumps which hit the inner radius
     for _, event in events.iterrows():
+        # If we are jumping, but we go to the next atom index, reset
         if fromevent is not None:
             if fromevent['atom index'] != event['atom index']:
                 fromevent = None
 
+        # If we have a candidate jump, we must make sure it remains on the site
+        # for minimal_residence timesteps, this is that check, add it to the jumps
+        # if it passes
         if candidate_jump is not None:
             if candidate_jump['atom index'] != event['atom index']:
                 jumps.append(candidate_jump)
@@ -53,10 +57,13 @@ def _generic_transitions_to_jumps(transitions, minimal_residence: int):
                     'destination site']:
                 candidate_jump = None
 
+        # Specify the start of a jump if we encounter one
         if event['start site'] != -1:
             if event['start site'] != event['destination site']:
                 fromevent = event
 
+        # Check if we have a candidate jump to the inner site
+        # (only residence time still has to be checked)
         if fromevent is not None:
             if fromevent['start site'] == event['destination site']:
                 fromevent = None
@@ -67,6 +74,8 @@ def _generic_transitions_to_jumps(transitions, minimal_residence: int):
             event['start time'] = fromevent['start time']
             fromevent = None
             candidate_jump = event
+
+    # Also add a last candidate jump (if there is one
     if candidate_jump is not None:
         jumps.append(candidate_jump)
 
@@ -78,6 +87,8 @@ def _generic_transitions_to_jumps(transitions, minimal_residence: int):
 
     # remove old index
     del jumps['index']
+    del jumps['start inner site']
+    del jumps['destination inner site']
     return jumps
 
 

@@ -19,9 +19,9 @@ class TestSites:  # type: ignore
         jumps = Jumps(transitions=transitions, sites=vasp_sites)
 
         assert len(jumps.jumps) == 256
-        assert np.all(jumps.jumps[::100].to_numpy() == np.array(
-            [[0, 94, 0, -1, 0, 282, 303], [16, 64, 42, -1, 42, 2106, 2179],
-             [35, 77, 15, -1, 15, 2559, 2603]]))
+        assert np.all(jumps.jumps[::100].to_numpy() == np.array([[
+            0, 94, 0, 282, 303
+        ], [16, 64, 42, 2106, 2179], [35, 77, 15, 2559, 2603]]))
 
     def test_minimal_residency(self, vasp_traj, vasp_sites, structure):
         transitions = Transitions.from_trajectory(trajectory=vasp_traj,
@@ -32,6 +32,6 @@ class TestSites:  # type: ignore
                       minimal_residence=3)
 
         assert len(jumps.jumps) == 457
-        assert np.all(jumps.jumps[::200].to_numpy() == np.array(
-            [[0, 94, 0, -1, 0, 282, 284], [18, 54, 24, -1, 24, 3336, 3368],
-             [41, 67, 41, -1, 41, 2886, 2893]]))
+        assert np.all(jumps.jumps[::200].to_numpy() == np.array([[
+            0, 94, 0, 282, 284
+        ], [18, 54, 24, 3336, 3368], [41, 67, 41, 2886, 2893]]))
