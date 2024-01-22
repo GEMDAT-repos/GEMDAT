@@ -199,10 +199,6 @@ class Transitions:
             for kwargs in kwargs_list
         ]
 
-        for part in parts:
-            part._dist_close = self._dist_close  # type: ignore
-            part.trajectory = self.trajectory
-            part.structure = self.structure
         return parts
 
 
