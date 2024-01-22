@@ -298,7 +298,7 @@ class Jumps:
         ]
 
     @weak_lru_cache()
-    def jumps_cnt_parts(self, n_parts) -> list[Counter]:
+    def jumps_counter_parts(self, n_parts) -> list[Counter]:
         """Return [jump counters][gemdat.sites.SitesData.jumps] per part."""
 
         return [part.jumps_cnt() for part in self.split(n_parts)]
