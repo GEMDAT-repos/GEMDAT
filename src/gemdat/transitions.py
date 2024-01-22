@@ -37,7 +37,7 @@ class Transitions:
         Assingn NOSITE if the atom is in transition
     """
 
-    def __init__(self, events: pd.DataFrame, states: np.ndarray,
+    def __init__(self, *, events: pd.DataFrame, states: np.ndarray,
                  inner_states: np.ndarray, trajectory: Trajectory,
                  structure: Structure, _dist_close: float, n_sites: int):
         """Store event data for jumps and transitions between sites.
