@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import typing
 from itertools import pairwise
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,7 @@ class Transitions:
 
     def __init__(self, *, events: pd.DataFrame, states: np.ndarray,
                  inner_states: np.ndarray, trajectory: Trajectory,
-                 structure: Structure, _dist_close: float, n_sites: int):
+                 structure: Structure, dist_close: float, n_sites: int):
         """Store event data for jumps and transitions between sites.
 
         Parameters
@@ -50,6 +50,12 @@ class Transitions:
             Input states
         inner_states : np.ndarray
             Input states for inner sites
+        trajectory : Trajectory
+            Trajectory used for calculation of events
+        structure : Structure
+            Structure used for calculation of events
+        dist_close: float
+            Custom diameter of all sites
         n_sites : int
             Total number of sites
         """
@@ -58,7 +64,7 @@ class Transitions:
         self.events = events
         self.n_sites = n_sites
         self.trajectory = trajectory
-        self._dist_close = _dist_close
+        self.dist_close = dist_close
         self.structure = structure
 
     @classmethod
@@ -96,11 +102,15 @@ class Transitions:
         else:
             dist_close = site_radius
 
-        states, inner_states = _calculate_atom_states(
+        states = _calculate_atom_states(structure=structure,
+                                        trajectory=diff_trajectory,
+                                        dist_close=dist_close)
+        inner_states = _calculate_atom_states(
             structure=structure,
             trajectory=diff_trajectory,
             dist_close=dist_close,
             site_inner_fraction=site_inner_fraction)
+
         events = _calculate_transition_events(atom_sites=states,
                                               atom_inner_sites=inner_states)
 
@@ -109,7 +119,7 @@ class Transitions:
                   inner_states=inner_states,
                   structure=structure,
                   trajectory=trajectory,
-                  _dist_close=dist_close,
+                  dist_close=dist_close,
                   n_sites=len(structure))
 
         return obj
@@ -191,7 +201,7 @@ class Transitions:
                 'n_sites': self.n_sites,
                 'trajectory': trajectory,
                 'structure': self.structure,
-                '_dist_close': self._dist_close,
+                'dist_close': self.dist_close,
             })
 
         parts = [
@@ -318,8 +328,8 @@ def _calculate_atom_states(
     structure: Structure,
     trajectory: Trajectory,
     dist_close: float,
-    site_inner_fraction: float,
-) -> Tuple[np.ndarray, np.ndarray]:
+    site_inner_fraction: float = 1.,
+) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
 
     Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
@@ -340,7 +350,7 @@ def _calculate_atom_states(
 
     Returns
     -------
-    _calculate_atom_states : np.ndarray, np.ndarray
+    _calculate_atom_states : np.ndarray
         Output array with site locations for each atom at each time step [time, atom].
         The value corresponds to the index in the `site_coords`.
         -1 indicates that atom is not at any site.
@@ -358,15 +368,13 @@ def _calculate_atom_states(
     site_coords_tree.set_coords(site_cart_coords, cutoff=dist_close)
 
     atom_sites = []
-    atom_inner_sites = []
 
     for atom_index, atom_coords in enumerate(
             trajectory.positions.swapaxes(0, 1)):
 
         # index and distance of nearest site
         atom_cart_coords = np.dot(atom_coords, lattice.matrix)
-        site_index = site_coords_tree.search_tree(atom_cart_coords, dist_close)
-        inner_site_index = site_coords_tree.search_tree(
+        site_index = site_coords_tree.search_tree(
             atom_cart_coords, dist_close * site_inner_fraction)
 
         # construct mapping
@@ -375,12 +383,7 @@ def _calculate_atom_states(
             atom_site[index] = site
         atom_sites.append(atom_site)
 
-        atom_inner_site = np.full((atom_coords.shape[0], 1), NOSITE)
-        for index, site in inner_site_index:
-            atom_inner_site[index] = site
-        atom_inner_sites.append(atom_inner_site)
-
-    return (np.hstack(atom_sites), np.hstack(atom_inner_sites))
+    return np.hstack(atom_sites)
 
 
 def _calculate_transitions_matrix(events: pd.DataFrame,

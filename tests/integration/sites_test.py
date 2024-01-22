@@ -23,7 +23,7 @@ class TestSites:  # type: ignore
 
         transitions = vasp_sites.transitions
 
-        assert isclose(transitions._dist_close, 0.9284961123176741)
+        assert isclose(transitions.dist_close, 0.9284961123176741)
 
         slice_ = np.s_[::1000, ::24]
 
@@ -169,7 +169,7 @@ class TestSites:  # type: ignore
 
     def test_collective_matrix(self, vasp_jumps):
         collective = vasp_jumps.collective()
-        labels, matrix = collective.matrix()
+        matrix = collective.site_pair_count_matrix()
         assert matrix.shape == (1, 1)
         assert matrix[0, 0] == 6
 

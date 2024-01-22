@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from math import ceil
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import pandas as pd
@@ -15,8 +15,13 @@ from .simulation_metrics import SimulationMetrics
 from .sites import SitesData
 from .transitions import Transitions, _calculate_transitions_matrix
 
+if TYPE_CHECKING:
+    from mypy_extensions import DefaultNamedArg
 
-def _generic_transitions_to_jumps(transitions, minimal_residence: int):
+
+def _generic_transitions_to_jumps(transitions: Transitions,
+                                  *,
+                                  minimal_residence: int = 0) -> pd.DataFrame:
     """Generic function to convert transitions to jumps.
 
     Parameters
@@ -27,9 +32,8 @@ def _generic_transitions_to_jumps(transitions, minimal_residence: int):
         minimal residence time of an atom on a destination site to count as a jump
     """
     events = transitions.events.copy()
-    events['start time'] = events['time'].copy()
     events['stop time'] = events['time'] + 1
-    del events['time']
+    events = events.rename(columns={'time': 'start time'})
 
     jumps = []
     fromevent = None
@@ -98,36 +102,36 @@ class Jumps:
                  transitions: Transitions,
                  sites: SitesData,
                  conversion_method: Callable[
-                     [Transitions, int],
-                     pd.DataFram] = _generic_transitions_to_jumps,
+                     [Transitions,
+                      DefaultNamedArg(int, 'minimal_residence')],
+                     pd.DataFrame] = _generic_transitions_to_jumps,
                  *,
                  minimal_residence: int = 0):
         """
-
         Parameters
         ----------
         transitions : Transitions
-            transitions
+            pymatgen transitions in which to calculate jumps
         sites : SitesData
-            sites
-        conversion_method :
-        conversion_method : Callable[Transitions,int]:
+            which sites are used in calculating transitions, used for statistics
+        conversion_method : Callable[[Transitions,int], pd.DataFrame]:
             conversion method that translates the Transitions into Jumps,
             second parameter is the minimal_residence parameter
         minimal_residence : int
-            minimal residence time of an atom on a destination site to
-            count as a jump, passed through to conversion method
+            minimal residence, number of timesteps that an atom needs to reside
+            on a destination site to count as a jump, passed through to conversion
+            method
         """
         self.transitions = transitions
         self.sites = sites
         self.conversion_method = conversion_method
-        self.data = conversion_method(transitions, minimal_residence)
-
+        self.data = conversion_method(transitions,
+                                      minimal_residence=minimal_residence)
 
     @property
     def n_jumps(self) -> int:
         """Return total number of jumps."""
-        return len(self.jumps)
+        return len(self.data)
 
     @property
     def n_solo_jumps(self) -> int:
@@ -187,7 +191,7 @@ class Jumps:
         transitions_matrix : np.ndarray
             Square matrix with number of each transitions
         """
-        return _calculate_transitions_matrix(self.jumps,
+        return _calculate_transitions_matrix(self.data,
                                              n_sites=self.transitions.n_sites)
 
     @weak_lru_cache()
@@ -239,12 +243,12 @@ class Jumps:
         temperature = trajectory.metadata['temperature']
 
         atom_locations_parts = self.sites.atom_locations_parts()
-        jumps_cnt_parts = self.jumps_cnt_parts(self.sites.n_parts)
+        parts = self.jumps_counter_parts(self.sites.n_parts)
 
         for site_pair in self.sites.site_pairs:
             site_start, site_stop = site_pair
 
-            n_jumps = np.array([part[site_pair] for part in jumps_cnt_parts])
+            n_jumps = np.array([part[site_pair] for part in parts])
 
             part_time = trajectory.total_time / self.sites.n_parts
 
@@ -277,8 +281,7 @@ class Jumps:
         """
         labels = self.transitions.structure.labels
         jumps = Counter([(labels[i], labels[j]) for _, (
-            i, j) in self.jumps[['start site', 'destination site']].iterrows()
-                         ])
+            i, j) in self.data[['start site', 'destination site']].iterrows()])
         return jumps
 
     def split(self, n_parts) -> list[Jumps]:
@@ -314,7 +317,7 @@ class Jumps:
         """
         rates: dict[tuple[str, str], tuple[float, float]] = {}
 
-        parts = self.jumps_cnt_parts(self.sites.n_parts)
+        parts = self.jumps_counter_parts(self.sites.n_parts)
 
         for site_pair in self.sites.site_pairs:
             n_jumps = [part[site_pair] for part in parts]

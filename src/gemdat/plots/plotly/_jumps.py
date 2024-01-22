@@ -113,7 +113,7 @@ def jumps_vs_time(*,
 
     for jumps_part in jumps.split(n_parts=n_parts):
         data.append(
-            np.histogram(jumps_part.as_dataframe()['start time'],
+            np.histogram(jumps_part.data['start time'],
                          bins=bins,
                          range=(0., maxlen))[0])
 

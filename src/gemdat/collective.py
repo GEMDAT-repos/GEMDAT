@@ -3,7 +3,7 @@ behaviour."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 from pymatgen.core import Lattice, Structure
@@ -63,7 +63,7 @@ class Collective:
         max_steps = self.max_steps
         max_dist = self.max_dist
 
-        events = self.jumps.as_dataframe()
+        events = self.jumps.data
         events = events.sort_values(['stop time', 'start time'],
                                     ignore_index=True)
 
@@ -105,26 +105,22 @@ class Collective:
         self.collective = collective
         self.coll_jumps = coll_jumps
         self.n_coll_jumps = len(events) - self.n_solo_jumps
-        self.collective_matrix = collective_matrix
 
     @weak_lru_cache()
-    def matrix(self) -> tuple[list, np.ndarray]:
+    def site_pair_count_matrix(self) -> np.ndarray:
         """Collective jumps matrix.
 
         Returns
         -------
-        collective_matrix : np.ndarray
+        site_pair_count_matrix : np.ndarray
             Matrix where all types of jumps combinations are counted
         """
         labels = self.structure.labels
         coll_jumps = self.coll_jumps
+        site_pairs = self.site_pair_count_matrix_labels()
 
-        site_pairs = list({(label1, label2)
-                           for label1 in labels
-                           for label2 in labels})
-
-        collective_matrix = np.zeros((len(site_pairs), len(site_pairs)),
-                                     dtype=int)
+        site_pair_count_matrix = np.zeros((len(site_pairs), len(site_pairs)),
+                                          dtype=int)
 
         for ((start_i, stop_i), (start_j, stop_j)) in coll_jumps:
             name_start_i = labels[start_i]
@@ -135,9 +131,16 @@ class Collective:
             i = site_pairs.index((name_start_i, name_stop_i))
             j = site_pairs.index((name_start_j, name_stop_j))
 
-            collective_matrix[i, j] += 1
+            site_pair_count_matrix[i, j] += 1
 
-        return site_pairs, collective_matrix
+        return site_pair_count_matrix
+
+    @weak_lru_cache()
+    def site_pair_count_matrix_labels(self) -> list:
+        labels = self.structure.labels
+        return list({(label1, label2)
+                     for label1 in labels
+                     for label2 in labels})
 
     @weak_lru_cache()
     def multiple_collective(self) -> tuple[np.ndarray, np.ndarray]:

@@ -83,7 +83,7 @@ def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> plt.Figure:
 
     fig, ax = plt.subplots()
 
-    ax.hist(jumps.as_dataframe()['stop time'], bins=bins, width=0.8 * binsize)
+    ax.hist(jumps.data['stop time'], bins=bins, width=0.8 * binsize)
 
     ax.set(title='Jumps vs. time',
            xlabel='Time (steps)',
@@ -281,7 +281,7 @@ def jumps_3d_animation(
                         edgecolor='black')
     points = ax.collections
 
-    events = jumps.as_dataframe().sort_values('start time', ignore_index=True)
+    events = jumps.data.sort_values('start time', ignore_index=True)
 
     for _, event in events.iterrows():
         site_i = event['start site']

@@ -18,8 +18,8 @@ class TestSites:  # type: ignore
                                                   site_inner_fraction=0.5)
         jumps = Jumps(transitions=transitions, sites=vasp_sites)
 
-        assert len(jumps.jumps) == 256
-        assert np.all(jumps.jumps[::100].to_numpy() == np.array([[
+        assert len(jumps.data) == 256
+        assert np.all(jumps.data[::100].to_numpy() == np.array([[
             0, 94, 0, 282, 303
         ], [16, 64, 42, 2106, 2179], [35, 77, 15, 2559, 2603]]))
 
@@ -31,7 +31,7 @@ class TestSites:  # type: ignore
                       sites=vasp_sites,
                       minimal_residence=3)
 
-        assert len(jumps.jumps) == 457
-        assert np.all(jumps.jumps[::200].to_numpy() == np.array([[
+        assert len(jumps.data) == 457
+        assert np.all(jumps.data[::200].to_numpy() == np.array([[
             0, 94, 0, 282, 284
         ], [18, 54, 24, 3336, 3368], [41, 67, 41, 2886, 2893]]))
