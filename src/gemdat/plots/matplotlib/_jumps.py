@@ -106,7 +106,8 @@ def collective_jumps(*, jumps: Jumps) -> plt.Figure:
         Output figure
     """
     fig, ax = plt.subplots()
-    labels, matrix = jumps.collective().matrix()
+    matrix = jumps.collective().site_pair_count_matrix()
+    labels = jumps.collective().site_pair_count_matrix_labels()
 
     mat = ax.imshow(matrix)
 
