@@ -267,7 +267,7 @@ class Jumps:
 
         return e_act
 
-    def jumps_cnt(self) -> Counter:
+    def jumps_counter(self) -> Counter:
         """Calculate number of jumps between sites.
 
         Returns
