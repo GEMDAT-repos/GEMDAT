@@ -123,9 +123,6 @@ class Jumps:
         self.conversion_method = conversion_method
         self.jumps = conversion_method(transitions, minimal_residence)
 
-    def as_dataframe(self):
-        """as_dataframe."""
-        return self.jumps
 
     @property
     def n_jumps(self) -> int:
