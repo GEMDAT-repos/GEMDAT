@@ -140,7 +140,7 @@ class Collective:
         return site_pairs, collective_matrix
 
     @weak_lru_cache()
-    def multiple_collective(self) -> Tuple[np.ndarray, np.ndarray]:
+    def multiple_collective(self) -> tuple[np.ndarray, np.ndarray]:
         """Find jumps that occur collectively multiple times.
 
         returns collective jumps and their occurence
