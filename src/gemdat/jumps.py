@@ -281,7 +281,7 @@ class Jumps:
                          ])
         return jumps
 
-    def split(self, n_parts) -> list[Any]:
+    def split(self, n_parts) -> list[Jumps]:
         """Split the jumps into parts.
 
         Returns
