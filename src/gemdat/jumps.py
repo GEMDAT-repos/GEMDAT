@@ -102,7 +102,7 @@ class Jumps:
                      pd.DataFram] = _generic_transitions_to_jumps,
                  *,
                  minimal_residence: int = 0):
-        """__init__.
+        """
 
         Parameters
         ----------
