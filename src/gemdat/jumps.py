@@ -121,7 +121,7 @@ class Jumps:
         self.transitions = transitions
         self.sites = sites
         self.conversion_method = conversion_method
-        self.jumps = conversion_method(transitions, minimal_residence)
+        self.data = conversion_method(transitions, minimal_residence)
 
 
     @property
