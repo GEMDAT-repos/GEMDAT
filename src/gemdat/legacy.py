@@ -136,6 +136,7 @@ def analyse_md(
     if calc_rdfs:
         rdf_data = radial_distribution(
             sites=sites,
+            transitions=transitions,
             max_dist=rdf_max_dist,
             resolution=rdf_res,
         )
