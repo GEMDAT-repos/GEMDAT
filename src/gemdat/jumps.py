@@ -242,7 +242,8 @@ class Jumps:
 
         temperature = trajectory.metadata['temperature']
 
-        atom_locations_parts = self.sites.atom_locations_parts()
+        atom_locations_parts = self.sites.atom_locations_parts(
+            self.transitions)
         parts = self.jumps_counter_parts(self.sites.n_parts)
 
         for site_pair in self.sites.site_pairs:
@@ -292,9 +293,7 @@ class Jumps:
         jumps : list[Jumps]
         """
 
-        parts = self.transitions.split(n_parts,
-                                       n_steps=len(
-                                           self.transitions.trajectory))
+        parts = self.transitions.split(n_parts)
 
         return [
             Jumps(part, self.sites, self.conversion_method) for part in parts

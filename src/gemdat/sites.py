@@ -56,27 +56,13 @@ class SitesData:
 
         self.floating_specie = floating_specie
         self.structure = structure
+
+        # TODO, these do not belong in this class, move them out
         self.trajectory = trajectory
-        self.diff_trajectory = trajectory.filter(floating_specie)
+        self.diff_trajectory = trajectory.filter(self.floating_specie)
         self.metrics = SimulationMetrics(self.diff_trajectory)
 
         self.warn_if_lattice_not_similar()
-
-        self.transitions = Transitions.from_trajectory(
-            structure=structure,
-            trajectory=trajectory,
-            floating_specie=floating_specie,
-            site_radius=site_radius)
-
-        self.set_split(n_parts)
-
-    def set_split(self, n_parts: int):
-        """Set number to split transitions into for statistics.
-
-        Sets [SitesData.parts][gemdat.sites.SitesData].
-        """
-        self.parts = self.transitions.split(n_parts,
-                                            n_steps=len(self.trajectory))
 
     @property
     def site_coords(self) -> np.ndarray:
@@ -96,6 +82,7 @@ class SitesData:
     @property
     def n_floating(self) -> int:
         """Return number of floating species."""
+
         return len(self.diff_trajectory.species)
 
     def warn_if_lattice_not_similar(self):
@@ -114,26 +101,20 @@ class SitesData:
         site_pairs = product(labels, repeat=2)
         return [pair for pair in site_pairs]  # type: ignore
 
-    @property
-    def transitions_parts(self) -> np.ndarray:
-        """Return stacked array from
-        [part.matrix()][gemdat.transitions.Transitions.matrix]"""
-        return np.stack([part.matrix() for part in self.parts])
-
-    @property
-    def occupancy_parts(self) -> list[dict[int, int]]:
+    def occupancy_parts(self,
+                        transitions: Transitions) -> list[dict[int, int]]:
         """Return [occupancy arrays][gemdat.transitions.Transitions.occupancy]
         from parts."""
-        return [part.occupancy() for part in self.parts]
+        return [part.occupancy() for part in transitions.split(self.n_parts)]
 
-    @property
-    def site_occupancy_parts(self) -> list[dict[str, float]]:
+    def site_occupancy_parts(
+            self, transitions: Transitions) -> list[dict[str, float]]:
         """Return [site occupancy][gemdat.sites.SitesData.site_occupancy] dicts
         per part."""
         labels = self.site_labels
         n_steps = len(self.trajectory)
 
-        parts = self.parts
+        parts = transitions.split(self.n_parts)
 
         return [
             _calculate_site_occupancy(occupancy=part.occupancy(),
@@ -143,16 +124,17 @@ class SitesData:
         ]
 
     @weak_lru_cache()
-    def atom_locations_parts(self) -> list[dict[str, float]]:
+    def atom_locations_parts(
+            self, transitions: Transitions) -> list[dict[str, float]]:
         """Return [atom locations][gemdat.sites.SitesData.atom_locations] dicts
         per part."""
         multiplier = self.n_sites / self.n_floating
         return [{
             k: v * multiplier
             for k, v in part.items()
-        } for part in self.site_occupancy_parts]
+        } for part in self.site_occupancy_parts(transitions)]
 
-    def site_occupancy(self):
+    def site_occupancy(self, transitions: Transitions):
         """Calculate percentage occupancy per unique site.
 
         Returns
@@ -162,12 +144,11 @@ class SitesData:
         """
         labels = self.site_labels
         n_steps = len(self.trajectory)
-        return _calculate_site_occupancy(
-            occupancy=self.transitions.occupancy(),
-            labels=labels,
-            n_steps=n_steps)
+        return _calculate_site_occupancy(occupancy=transitions.occupancy(),
+                                         labels=labels,
+                                         n_steps=n_steps)
 
-    def atom_locations(self):
+    def atom_locations(self, transitions):
         """Calculate fraction of time atoms spent at a type of site.
 
         Returns
@@ -176,7 +157,10 @@ class SitesData:
             Return dict with the fraction of time atoms spent at a site
         """
         multiplier = self.n_sites / self.n_floating
-        return {k: v * multiplier for k, v in self.site_occupancy().items()}
+        return {
+            k: v * multiplier
+            for k, v in self.site_occupancy(transitions).items()
+        }
 
 
 def _calculate_site_occupancy(

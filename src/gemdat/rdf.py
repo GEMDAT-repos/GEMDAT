@@ -96,6 +96,7 @@ class RDFData:
 def radial_distribution(
     *,
     sites: SitesData,
+    transitions: Transitions,
     max_dist: float = 5.0,
     resolution: float = 0.1,
 ) -> dict[str, list[RDFData]]:
@@ -105,6 +106,8 @@ def radial_distribution(
     ----------
     sites : SitesData
         Input sites data
+    transitions: Transitions
+        Input transitions data, (used only for site occupancy)
     max_dist : float, optional
         Max distance for rdf calculation
     resolution : float, optional
@@ -123,7 +126,7 @@ def radial_distribution(
     sp_coords = sites.diff_trajectory.positions
 
     states2str = _get_states(sites.site_labels)
-    states_array = _get_states_array(sites.transitions, sites.site_labels)
+    states_array = _get_states_array(transitions, sites.site_labels)
     symbol_indices = _get_symbol_indices(structure)
 
     bins = np.arange(0, max_dist + resolution, resolution)

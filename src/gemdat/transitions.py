@@ -38,8 +38,9 @@ class Transitions:
     """
 
     def __init__(self, *, events: pd.DataFrame, states: np.ndarray,
-                 inner_states: np.ndarray, trajectory: Trajectory,
-                 structure: Structure, dist_close: float, n_sites: int):
+                 inner_states: np.ndarray, structure: Structure,
+                 dist_close: float, n_sites: int, n_steps: int,
+                 trajectory: Trajectory):
         """Store event data for jumps and transitions between sites.
 
         Parameters
@@ -50,22 +51,25 @@ class Transitions:
             Input states
         inner_states : np.ndarray
             Input states for inner sites
-        trajectory : Trajectory
-            Trajectory used for calculation of events
         structure : Structure
             Structure used for calculation of events
         dist_close: float
             Custom diameter of all sites
         n_sites : int
             Total number of sites
+        n_steps: int
+            Number of steps in trajectory
+        trajectory : Trajectory
+            Trajectory from which transitions are generated
         """
         self.states = states
         self.inner_states = inner_states
         self.events = events
         self.n_sites = n_sites
-        self.trajectory = trajectory
+        self.n_steps = n_steps
         self.dist_close = dist_close
         self.structure = structure
+        self.trajectory = trajectory
 
     @classmethod
     def from_trajectory(
@@ -118,9 +122,10 @@ class Transitions:
                   states=states,
                   inner_states=inner_states,
                   structure=structure,
-                  trajectory=trajectory,
                   dist_close=dist_close,
-                  n_sites=len(structure))
+                  n_steps=len(trajectory),
+                  n_sites=len(structure),
+                  trajectory=trajectory)
 
         return obj
 
@@ -171,7 +176,7 @@ class Transitions:
         """
         return _calculate_occupancy(self.states)
 
-    def split(self, n_parts: int = 10, *, n_steps: int) -> list[Transitions]:
+    def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
 
         Parameters
@@ -186,21 +191,27 @@ class Transitions:
         """
         split_states = np.array_split(self.states, n_parts)
         split_inner_states = np.array_split(self.inner_states, n_parts)
-        split_events = _split_transitions_events(self.events, n_steps, n_parts)
+        split_events = _split_transitions_events(self.events, self.n_steps,
+                                                 n_parts)
+
+        bins = np.linspace(0, self.n_steps + 1, n_parts + 1, dtype=int)
+        steps = [bins[i + 1] - bins[i] for i in range(n_parts)]
+
         split_trajectory = self.trajectory.split(n_parts)
 
         kwargs_list = []
 
-        for states, inner_states, events, trajectory in zip(
-                split_states, split_inner_states, split_events,
+        for states, inner_states, events, step, trajectory in zip(
+                split_states, split_inner_states, split_events, steps,
                 split_trajectory):
             kwargs_list.append({
                 'states': states,
                 'inner_states': inner_states,
                 'events': events,
                 'n_sites': self.n_sites,
-                'trajectory': trajectory,
+                'n_steps': step,
                 'structure': self.structure,
+                'trajectory': trajectory,
                 'dist_close': self.dist_close,
             })
 

@@ -52,16 +52,21 @@ def vasp_sites(vasp_traj, structure):
 
 
 @pytest.fixture(scope='module')
-def vasp_jumps(vasp_traj, vasp_sites, structure):
+def vasp_transitions(vasp_traj, structure):
     transitions = Transitions.from_trajectory(trajectory=vasp_traj,
                                               structure=structure,
                                               floating_specie='Li')
-    jumps = Jumps(transitions=transitions, sites=vasp_sites)
+    return transitions
+
+
+@pytest.fixture(scope='module')
+def vasp_jumps(vasp_transitions, vasp_sites):
+    jumps = Jumps(transitions=vasp_transitions, sites=vasp_sites)
     return jumps
 
 
 @pytest.fixture(scope='module')
-def vasp_rdf_data(vasp_traj, structure):
+def vasp_rdf_data(vasp_traj, structure, vasp_transitions):
     # Shorten trajectory for faster test
     trajectory = vasp_traj[-1000:]
 
@@ -71,6 +76,7 @@ def vasp_rdf_data(vasp_traj, structure):
 
     rdfs = radial_distribution(
         sites=sites,
+        transitions=vasp_transitions,
         max_dist=5,
     )
 
