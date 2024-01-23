@@ -10,7 +10,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from MDAnalysis.lib.pkdtree import PeriodicKDTree
-from pymatgen.core import Composition, Structure
+from pymatgen.core import Structure
 
 from .caching import weak_lru_cache
 from .simulation_metrics import SimulationMetrics
@@ -175,18 +175,19 @@ class Transitions:
             Structure with occupancies set on the sites.
         """
         structure = self.structure
+        states = self.states
 
-        total_occupancy = _calculate_occupancy(self.states)
+        unq, counts = np.unique(states, return_counts=True)
+        counts = counts / len(states)
+        occupancies = dict(zip(unq, counts))
 
-        compositions = []
-
-        for i, total_occupancy in total_occupancy.items():
-            compositions.append(
-                Composition({structure[i].specie.name: total_occupancy}))
+        species = [{
+            site.specie.name: occupancies.get(i, 1)
+        } for i, site in enumerate(structure)]
 
         return Structure(
             lattice=structure.lattice,
-            species=compositions,
+            species=species,
             coords=structure.frac_coords,
             site_properties=structure.site_properties,
             labels=structure.labels,
@@ -480,23 +481,3 @@ def _split_transitions_events(events: pd.DataFrame,
         part[dependent_keys] -= offset
 
     return parts
-
-
-def _calculate_occupancy(states: np.ndarray) -> dict[int, float]:
-    """Calculate fractional occupancy per site.
-
-    Parameters
-    ----------
-    states : np.ndarray
-        Input array with atom states
-
-    Returns
-    -------
-    occupancy : dict[int, float]
-        For each site, calculate the fractional occupancy
-    """
-    unq, counts = np.unique(states, return_counts=True)
-    counts /= len(states)
-    occupancy = dict(zip(unq, counts))
-    occupancy.pop(NOSITE, None)
-    return occupancy
