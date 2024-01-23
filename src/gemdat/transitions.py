@@ -10,7 +10,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from MDAnalysis.lib.pkdtree import PeriodicKDTree
-from pymatgen.core import Structure
+from pymatgen.core import Composition, Structure
 
 from .caching import weak_lru_cache
 from .simulation_metrics import SimulationMetrics
@@ -166,15 +166,31 @@ class Transitions:
         """
         return ffill(self.states, fill_val=NOSITE, axis=0)
 
-    def occupancy(self) -> dict[int, int]:
+    def occupancy(self) -> Structure:
         """Calculate occupancy per site.
 
         Returns
         -------
-        occupancy : dict[int, int]
-            For each site, count for how many time steps it is occupied by an atom
+        structure : Structure
+            Structure with occupancies set on the sites.
         """
-        return _calculate_occupancy(self.states)
+        structure = self.structure
+
+        total_occupancy = _calculate_occupancy(self.states)
+
+        compositions = []
+
+        for i, total_occupancy in total_occupancy.items():
+            compositions.append(
+                Composition({structure[i].specie.name: total_occupancy}))
+
+        return Structure(
+            lattice=structure.lattice,
+            species=compositions,
+            coords=structure.frac_coords,
+            site_properties=structure.site_properties,
+            labels=structure.labels,
+        )
 
     def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
@@ -466,20 +482,21 @@ def _split_transitions_events(events: pd.DataFrame,
     return parts
 
 
-def _calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
-    """Calculate occupancy per site.
+def _calculate_occupancy(states: np.ndarray) -> dict[int, float]:
+    """Calculate fractional occupancy per site.
 
     Parameters
     ----------
-    atom_sites : np.ndarray
-        Input array with atom sites
+    states : np.ndarray
+        Input array with atom states
 
     Returns
     -------
-    occupancy : dict[int, int]
-        For each site, count for how many time steps it is occupied by an atom
+    occupancy : dict[int, float]
+        For each site, calculate the fractional occupancy
     """
-    unq, counts = np.unique(atom_sites, return_counts=True)
+    unq, counts = np.unique(states, return_counts=True)
+    counts /= len(states)
     occupancy = dict(zip(unq, counts))
     occupancy.pop(NOSITE, None)
     return occupancy
