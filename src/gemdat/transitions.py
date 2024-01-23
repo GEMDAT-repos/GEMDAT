@@ -365,7 +365,6 @@ def _calculate_atom_states(
         Output array with site locations for each atom at each time step [time, atom].
         The value corresponds to the index in the `site_coords`.
         -1 indicates that atom is not at any site.
-        The second array is the same, but for inner sites
     """
     # Unit cell parameters
     lattice = trajectory.get_lattice()
