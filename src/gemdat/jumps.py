@@ -39,7 +39,6 @@ def _generic_transitions_to_jumps(transitions: Transitions,
     fromevent = None
     candidate_jump = None
 
-    # Only take jumps which hit the inner radius
     for _, event in events.iterrows():
         # If we are jumping, but we go to the next atom index, reset
         if fromevent is not None:
@@ -57,6 +56,7 @@ def _generic_transitions_to_jumps(transitions: Transitions,
                     'stop time'] >= minimal_residence:
                 jumps.append(candidate_jump)
                 candidate_jump = None
+                fromevent = None
             elif candidate_jump['destination site'] != event[
                     'destination site']:
                 candidate_jump = None
@@ -66,18 +66,28 @@ def _generic_transitions_to_jumps(transitions: Transitions,
             if event['start site'] != event['destination site']:
                 fromevent = event
 
-        # Check if we have a candidate jump to the inner site
-        # (only residence time still has to be checked)
         if fromevent is not None:
+            # if we jump back, remove fromevent
             if fromevent['start site'] == event['destination site']:
                 fromevent = None
+                candidate_jump = None
                 continue
-            if event['destination inner site'] == -1:
+
+            # Check if jump to the inner site, add it to the jumps immediately
+            if event['destination inner site'] != -1:
+                event['start site'] = fromevent['start site']
+                event['start time'] = fromevent['start time']
+                fromevent = None
+                candidate_jump = None
+                jumps.append(event)
                 continue
-            event['start site'] = fromevent['start site']
-            event['start time'] = fromevent['start time']
-            fromevent = None
-            candidate_jump = event
+
+            # If we enter another site, create a candidate jump
+            if candidate_jump is None:
+                if event['destination site'] != -1:
+                    event['start site'] = fromevent['start site']
+                    event['start time'] = fromevent['start time']
+                    candidate_jump = event
 
     # Also add a last candidate jump (if there is one
     if candidate_jump is not None:
