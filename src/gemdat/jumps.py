@@ -227,7 +227,8 @@ class Jumps:
 
     @weak_lru_cache()
     def activation_energies(
-            self, n_parts: int) -> dict[tuple[str, str], tuple[float, float]]:
+            self,
+            n_parts: int = 10) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate activation energies for jumps (UNITS?).
 
         Returns
@@ -305,7 +306,7 @@ class Jumps:
 
     @weak_lru_cache()
     def rates(self,
-              n_parts: int) -> dict[tuple[str, str], tuple[float, float]]:
+              n_parts: int = 10) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate jump rates (total jumps / second).
 
         Returns

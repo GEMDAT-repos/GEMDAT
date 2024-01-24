@@ -366,7 +366,7 @@ class Trajectory(PymatgenTrajectory):
                               time_step=self.time_step)
 
     def split(self,
-              n_parts: int,
+              n_parts: int = 10,
               equal_parts: bool = False) -> list[Trajectory]:
         """Split the trajectory in n similar parts.
 
@@ -381,7 +381,6 @@ class Trajectory(PymatgenTrajectory):
         -------
         List[Trajectory]
         """
-
         interval = np.linspace(0, len(self) - 1, n_parts + 1, dtype=int)
         subtrajectories = [
             self[start:stop] for start, stop in pairwise(interval)
