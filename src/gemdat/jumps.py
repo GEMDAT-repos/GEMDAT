@@ -254,7 +254,7 @@ class Jumps:
         for site_pair in self.sites.site_pairs:
             site_start, site_stop = site_pair
 
-            n_jumps = np.array([part[site_pair] for part in parts])
+            n_jumps = np.array([part[site_pair] for part in jump_counter_parts])
 
             part_time = trajectory.total_time / n_parts
 
