@@ -10,6 +10,7 @@ from math import isclose
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
+from pymatgen.core import Structure
 
 
 @pytest.vaspxml_available
@@ -71,17 +72,28 @@ class TestSites:  # type: ignore
             np.array([[0, 0, 95], [4, 23, 95], [8, 28, 95]]))
 
     def test_occupancy(self, vasp_transitions):
-        occupancy = vasp_transitions.occupancy()
-        assert len(occupancy) == 95
-        assert sum(occupancy.values()) == 137026
-        assert list(occupancy.values())[::20] == [1704, 971, 351, 1508, 1104]
+        structure = vasp_transitions.occupancy()
+
+        assert len(structure) == 96
+        assert structure[0].species.num_atoms == 0.4544
+        assert structure.composition.num_atoms == 37.54026666666666
 
     def test_occupancy_parts(self, vasp_sites, vasp_transitions):
         parts = vasp_sites.occupancy_parts(vasp_transitions)
+
         assert len(parts) == self.n_parts
-        assert [sum(part.values()) for part in parts] == [
-            13592, 13898, 13819, 14028, 14022, 14470, 13200, 13419, 13286,
-            13292
+        assert all(isinstance(part, Structure) for part in parts)
+
+        assert [part[0].species.num_atoms for part in parts] == [
+            0.14933333333333335, 0.072, 0.7306666666666667, 0.6853333333333333,
+            0.2, 0.616, 0.6133333333333333, 0.6266666666666667,
+            0.6853333333333333, 0.16533333333333333
+        ]
+
+        assert [part.composition.num_atoms for part in parts] == [
+            57.24533333333334, 56.06133333333333, 61.85066666666668,
+            63.40799999999999, 66.39199999999998, 61.58666666666666,
+            57.19999999999999, 58.784, 58.42933333333332, 59.44533333333335
         ]
 
     def test_site_occupancy(self, vasp_sites, vasp_transitions):
