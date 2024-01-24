@@ -193,11 +193,6 @@ class Transitions:
             labels=structure.labels,
         )
 
-    def occupancy_parts(self, n_parts: int) -> list[dict[int, int]]:
-        """Return [occupancy arrays][gemdat.transitions.Transitions.occupancy]
-        from parts."""
-        return [part.occupancy() for part in self.split(n_parts)]
-
     def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
 

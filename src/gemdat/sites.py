@@ -107,11 +107,11 @@ class SitesData:
         compositions_by_label = defaultdict(list)
 
         for site in transitions.occupancy():
-            compositions_by_label[site.label].append(site.composition)
+            compositions_by_label[site.label].append(site.species.num_atoms)
 
         ret = {}
 
         for k, v in compositions_by_label.items():
-            ret[k] = sum(v) * multiplier
+            ret[k] = (sum(v) / len(v)) * multiplier
 
         return ret

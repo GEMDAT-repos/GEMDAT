@@ -10,7 +10,6 @@ from math import isclose
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
-from pymatgen.core import Structure
 
 
 @pytest.vaspxml_available
@@ -78,57 +77,10 @@ class TestSites:  # type: ignore
         assert structure[0].species.num_atoms == 0.4544
         assert structure.composition.num_atoms == 37.54026666666666
 
-    def test_occupancy_parts(self, vasp_sites, vasp_transitions):
-        parts = vasp_sites.occupancy_parts(vasp_transitions)
-
-        assert len(parts) == self.n_parts
-        assert all(isinstance(part, Structure) for part in parts)
-
-        assert [part[0].species.num_atoms for part in parts] == [
-            0.14933333333333335, 0.072, 0.7306666666666667, 0.6853333333333333,
-            0.2, 0.616, 0.6133333333333333, 0.6266666666666667,
-            0.6853333333333333, 0.16533333333333333
-        ]
-
-        assert [part.composition.num_atoms for part in parts] == [
-            57.24533333333334, 56.06133333333333, 61.85066666666668,
-            63.40799999999999, 66.39199999999998, 61.58666666666666,
-            57.19999999999999, 58.784, 58.42933333333332, 59.44533333333335
-        ]
-
-    def test_site_occupancy(self, vasp_sites, vasp_transitions):
-        assert isclose(vasp_sites.site_occupancy(vasp_transitions)['48h'],
-                       0.380628,
-                       rel_tol=1e-4)
-
-    def test_site_occupancy_parts(self, vasp_sites, vasp_transitions):
-        assert len(
-            vasp_sites.site_occupancy_parts(vasp_transitions)) == self.n_parts
-        assert isclose(
-            vasp_sites.site_occupancy_parts(vasp_transitions)[0]['48h'],
-            0.37756,
-            rel_tol=1e-4)
-        assert isclose(
-            vasp_sites.site_occupancy_parts(vasp_transitions)[9]['48h'],
-            0.36922,
-            rel_tol=1e-4)
-
     def test_atom_locations(self, vasp_sites, vasp_transitions):
         assert isclose(vasp_sites.atom_locations(vasp_transitions)['48h'],
-                       0.761255,
+                       0.7820889,
                        rel_tol=1e-4)
-
-    def test_atom_locations_parts(self, vasp_sites, vasp_transitions):
-        assert len(
-            vasp_sites.atom_locations_parts(vasp_transitions)) == self.n_parts
-        assert isclose(
-            vasp_sites.atom_locations_parts(vasp_transitions)[0]['48h'],
-            0.755111,
-            rel_tol=1e-4)
-        assert isclose(
-            vasp_sites.atom_locations_parts(vasp_transitions)[9]['48h'],
-            0.738444,
-            rel_tol=1e-4)
 
     def test_n_jumps(self, vasp_jumps):
         assert vasp_jumps.n_solo_jumps == 450
@@ -136,7 +88,7 @@ class TestSites:  # type: ignore
         assert isclose(vasp_jumps.solo_fraction, 0.974026, abs_tol=1e-4)
 
     def test_rates(self, vasp_jumps):
-        rates = vasp_jumps.rates()
+        rates = vasp_jumps.rates(n_parts=10)
         assert isinstance(rates, dict)
         assert len(rates) == 1
 
@@ -145,15 +97,15 @@ class TestSites:  # type: ignore
         assert isclose(rates_std, 41893421993.683655)
 
     def test_activation_energies(self, vasp_jumps, vasp_sites):
-        activation_energies = vasp_jumps.activation_energies()
+        activation_energies = vasp_jumps.activation_energies(n_parts=10)
 
         assert isinstance(activation_energies, dict)
         assert len(activation_energies) == 1
 
         e_act, e_act_std = activation_energies[('48h', '48h')]
 
-        assert isclose(e_act, 0.1744591, abs_tol=1e-4)
-        assert isclose(e_act_std, .00405951, abs_tol=1e-6)
+        assert isclose(e_act, 0.20223, abs_tol=1e-4)
+        assert isclose(e_act_std, 0.00595, abs_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_jumps):
         assert isclose(vasp_jumps.jump_diffusivity(3),
