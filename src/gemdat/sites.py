@@ -29,7 +29,6 @@ class SitesData:
         structure: Structure,
         trajectory: Trajectory,
         floating_specie: str,
-        n_parts: int = 10,
         site_radius: Optional[float] = None,
     ):
         """Contain sites and jumps data.
@@ -42,8 +41,6 @@ class SitesData:
             Input trajectory
         floating_specie : str
             Name of the floating or diffusing specie
-        n_parts : int, optional
-            Number of parts to divide transitions into for statistics
         site_radius: Optional[float]
             if set it fixes the site_radius instead of determining it
             dynamically
@@ -51,8 +48,6 @@ class SitesData:
         if not trajectory.constant_lattice:
             raise ValueError(
                 'Trajectory must have constant lattice for site analysis.')
-
-        self.n_parts = n_parts
 
         self.floating_specie = floating_specie
         self.structure = structure
@@ -100,12 +95,6 @@ class SitesData:
         labels = self.site_labels
         site_pairs = product(labels, repeat=2)
         return [pair for pair in site_pairs]  # type: ignore
-
-    def occupancy_parts(self,
-                        transitions: Transitions) -> list[dict[int, int]]:
-        """Return [occupancy arrays][gemdat.transitions.Transitions.occupancy]
-        from parts."""
-        return [part.occupancy() for part in transitions.split(self.n_parts)]
 
     def site_occupancy_parts(
             self, transitions: Transitions) -> list[dict[str, float]]:
