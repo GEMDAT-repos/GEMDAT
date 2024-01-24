@@ -9,7 +9,7 @@ from .trajectory import Trajectory
 from .transitions import Transitions
 from .volume import Volume, trajectory_to_volume
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 __all__ = [
     'read_cif',
     'load_known_material',
