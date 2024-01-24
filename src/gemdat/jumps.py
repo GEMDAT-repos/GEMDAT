@@ -249,7 +249,7 @@ class Jumps:
             self.sites.atom_locations(part)
             for part in self.transitions.split(n_parts)
         ]
-        parts = [part.jumps_counter() for part in self.split(n_parts)]
+        jumps_counter_parts = [part.jumps_counter() for part in self.split(n_parts)]
 
         for site_pair in self.sites.site_pairs:
             site_start, site_stop = site_pair
