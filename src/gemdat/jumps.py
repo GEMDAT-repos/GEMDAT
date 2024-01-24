@@ -235,7 +235,7 @@ class Jumps:
         e_act : dict[tuple[str, str], tuple[float, float]]
             Dictionary with jump activation energies and standard deviations between site pairs.
         n_parts : int
-            Number of parts to split transitions into for statistics
+            Number of parts to split transitions/jumps into for statistics
         """
         trajectory = self.transitions.trajectory
         attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
@@ -313,7 +313,7 @@ class Jumps:
         rates : dict[tuple[str, str], tuple[float, float]]
             Dictionary with jump rates and standard deviations between site pairs
         n_parts : int
-            Number of parts to split transitions into for statistics
+            Number of parts to split jumps into for statistics
         """
         rates: dict[tuple[str, str], tuple[float, float]] = {}
 
