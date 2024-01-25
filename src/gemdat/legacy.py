@@ -92,7 +92,6 @@ def analyse_md(
         structure=sites_structure,
         trajectory=trajectory,
         floating_specie=diff_elem,
-        n_parts=nr_parts,
     )
 
     transitions = Transitions.from_trajectory(trajectory=trajectory,
