@@ -249,12 +249,15 @@ class Jumps:
             self.sites.atom_locations(part)
             for part in self.transitions.split(n_parts)
         ]
-        jumps_counter_parts = [part.jumps_counter() for part in self.split(n_parts)]
+        jumps_counter_parts = [
+            part.jumps_counter() for part in self.split(n_parts)
+        ]
 
         for site_pair in self.sites.site_pairs:
             site_start, site_stop = site_pair
 
-            n_jumps = np.array([part[site_pair] for part in jump_counter_parts])
+            n_jumps = np.array(
+                [part[site_pair] for part in jumps_counter_parts])
 
             part_time = trajectory.total_time / n_parts
 
