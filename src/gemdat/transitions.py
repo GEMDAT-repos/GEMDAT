@@ -182,7 +182,7 @@ class Transitions:
         occupancies = dict(zip(unq, counts))
 
         species = [{
-            site.specie.name: occupancies.get(i, 1)
+            site.specie.name: occupancies.get(i, 0)
         } for i, site in enumerate(structure)]
 
         return Structure(

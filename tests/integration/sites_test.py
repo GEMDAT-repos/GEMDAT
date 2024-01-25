@@ -75,7 +75,7 @@ class TestSites:  # type: ignore
 
         assert len(structure) == 96
         assert structure[0].species.num_atoms == 0.4544
-        assert structure.composition.num_atoms == 37.54026666666666
+        assert structure.composition.num_atoms == 36.54026666666665
 
     def test_occupancy_parts(self, vasp_transitions):
         parts = vasp_transitions.split(5)
@@ -86,15 +86,15 @@ class TestSites:  # type: ignore
             0.11066666666666666, 0.708, 0.408, 0.62, 0.42533333333333334
         ]
 
-        values2 = [structure[0].species.num_atoms for structure in structures]
+        values2 = [structure.composition.num_atoms for structure in structures]
         assert values2 == [
-            46.65333333333334, 52.12933333333333, 56.989333333333306,
-            47.49199999999999, 47.437333333333314
+            36.653333333333336, 37.129333333333335, 37.98933333333333,
+            35.49199999999999, 35.43733333333334
         ]
 
     def test_atom_locations(self, vasp_sites, vasp_transitions):
         dct = vasp_sites.atom_locations(vasp_transitions)
-        assert dct == {'48h': 0.7820888888888887}
+        assert dct == {'48h': 0.7612555555555552}
 
     def test_atom_locations_parts(self, vasp_sites, vasp_transitions):
         parts = vasp_transitions.split(5)
@@ -102,19 +102,19 @@ class TestSites:  # type: ignore
 
         assert dcts == [
             {
-                '48h': 0.9719444444444446
+                '48h': 0.7636111111111111
             },
             {
-                '48h': 1.0860277777777776
+                '48h': 0.7735277777777778
             },
             {
-                '48h': 1.1872777777777772
+                '48h': 0.7914444444444443
             },
             {
-                '48h': 0.9894166666666665
+                '48h': 0.7394166666666665
             },
             {
-                '48h': 0.9882777777777774
+                '48h': 0.7382777777777779
             },
         ]
 
@@ -140,8 +140,8 @@ class TestSites:  # type: ignore
 
         e_act, e_act_std = activation_energies[('48h', '48h')]
 
-        assert isclose(e_act, 0.20223, abs_tol=1e-4)
-        assert isclose(e_act_std, 0.00595, abs_tol=1e-6)
+        assert isclose(e_act, 0.17445, abs_tol=1e-4)
+        assert isclose(e_act_std, 0.004059, abs_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_jumps):
         assert isclose(vasp_jumps.jump_diffusivity(3),
