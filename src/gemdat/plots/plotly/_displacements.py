@@ -82,22 +82,17 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
 
     fig = go.Figure()
 
-    grouped = defaultdict(list)
+    species = list(set(trajectory.species))
 
-    species = trajectory.species
+    for sp in species:
+        traj = trajectory.filter(sp.symbol)
 
-    for sp, distances in zip(species,
-                             trajectory.distances_from_base_position()):
-        grouped[sp.symbol].append(distances**2)
-
-    for symbol, sq_distances in grouped.items():
-        mean_sq_disp = np.mean(sq_distances, axis=0)
         fig.add_trace(
-            go.Scatter(y=mean_sq_disp,
-                       name=symbol,
+            go.Scatter(y=traj.mean_squared_displacement().mean(axis=0),
+                       name=sp.symbol,
                        mode='lines',
                        line={'width': 3},
-                       legendgroup=symbol))
+                       legendgroup=sp.symbol))
 
     fig.update_layout(title='Mean squared displacement per element',
                       xaxis_title='Time step',

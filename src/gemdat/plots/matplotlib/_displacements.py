@@ -81,19 +81,15 @@ def msd_per_element(*, trajectory: Trajectory) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    grouped = defaultdict(list)
-
-    species = trajectory.species
-
-    for sp, distances in zip(species,
-                             trajectory.distances_from_base_position()):
-        grouped[sp.symbol].append(distances**2)
+    species = list(set(trajectory.species))
 
     fig, ax = plt.subplots()
 
-    for symbol, sq_distances in grouped.items():
-        mean_sq_disp = np.mean(sq_distances, axis=0)
-        ax.plot(mean_sq_disp, lw=0.3, label=symbol)
+    for sp in species:
+        traj = trajectory.filter(sp.symbol)
+        ax.plot(traj.mean_squared_displacement().mean(axis=0),
+                lw=0.5,
+                label=sp.symbol)
 
     ax.legend()
     ax.set(title='Mean squared displacement per element',

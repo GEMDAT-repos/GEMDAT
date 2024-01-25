@@ -73,3 +73,8 @@ def test_shape(vasp_shape_data):
     assert len(vasp_shape_data) == 1
     for shape in vasp_shape_data:
         plots.shape(shape)
+
+
+@image_comparison2(baseline_images=['msd'])
+def test_msd_per_element(vasp_traj):
+    plots.msd_per_element(trajectory=vasp_traj)
