@@ -77,10 +77,46 @@ class TestSites:  # type: ignore
         assert structure[0].species.num_atoms == 0.4544
         assert structure.composition.num_atoms == 37.54026666666666
 
+    def test_occupancy_parts(self, vasp_transitions):
+        parts = vasp_transitions.split(5)
+        structures = [part.occupancy() for part in parts]
+
+        values1 = [structure[0].species.num_atoms for structure in structures]
+        assert values1 == [
+            0.11066666666666666, 0.708, 0.408, 0.62, 0.42533333333333334
+        ]
+
+        values2 = [structure[0].species.num_atoms for structure in structures]
+        assert values2 == [
+            46.65333333333334, 52.12933333333333, 56.989333333333306,
+            47.49199999999999, 47.437333333333314
+        ]
+
     def test_atom_locations(self, vasp_sites, vasp_transitions):
-        assert isclose(vasp_sites.atom_locations(vasp_transitions)['48h'],
-                       0.7820889,
-                       rel_tol=1e-4)
+        dct = vasp_sites.atom_locations(vasp_transitions)
+        assert dct == {'48h': 0.7820888888888887}
+
+    def test_atom_locations_parts(self, vasp_sites, vasp_transitions):
+        parts = vasp_transitions.split(5)
+        dcts = [vasp_sites.atom_locations(part) for part in parts]
+
+        assert dcts == [
+            {
+                '48h': 0.9719444444444446
+            },
+            {
+                '48h': 1.0860277777777776
+            },
+            {
+                '48h': 1.1872777777777772
+            },
+            {
+                '48h': 0.9894166666666665
+            },
+            {
+                '48h': 0.9882777777777774
+            },
+        ]
 
     def test_n_jumps(self, vasp_jumps):
         assert vasp_jumps.n_solo_jumps == 450
