@@ -115,3 +115,13 @@ def test_vibration_metrics(vasp_traj):
     )
 
     assert np.isclose(metrics.vibration_amplitude(), 0.5204299134264091)
+
+
+@pytest.vaspxml_available  # type: ignore
+def test_msd(vasp_traj):
+    msd = vasp_traj.MSD
+
+    assert msd.shape == (104, 3750)
+    assert np.isclose(msd[10, -1], 0.03396214706964429)
+    assert np.isclose(msd[52, -1], 0.30140820020960746)
+    assert np.isclose(msd[85, -1], 11.927261505164097)

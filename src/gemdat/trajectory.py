@@ -40,6 +40,33 @@ def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
     return np.sqrt(lengths_sq)
 
 
+def _unwrap_pbcs(coords: np.ndarray) -> np.ndarray:
+    """Unwrap coordinates using periodic boundary conditions.
+
+    Parameters
+    ----------
+    coords : np.ndarray
+        Input coordinates
+
+    Returns
+    -------
+    unwrapped_coords : np.ndarray
+        Output coordinates where periodic boundary conditions have been removed
+    """
+    timesteps, nparticles, _ = coords.shape
+    unwrapped_coords = np.copy(coords)
+
+    for particle in range(nparticles):
+        for t in range(1, timesteps):
+            displacement = coords[t, particle] - coords[t - 1, particle]
+            crossed_boundaries = np.abs(displacement) > 0.5
+
+            unwrapped_coords[
+                t:, particle] -= np.sign(displacement) * crossed_boundaries
+
+    return unwrapped_coords
+
+
 class Trajectory(PymatgenTrajectory):
     """Trajectory of sites from a molecular dynamics simulation."""
 
@@ -401,3 +428,51 @@ class Trajectory(PymatgenTrajectory):
             ]
 
         return subtrajectories
+
+    @property
+    def MSD(self) -> np.ndarray:
+        """Computes the mean squared displacement usig fast Fourier transform.
+        The algorithm is described in [https://doi.org/10.1051/sfn/201112010].
+        See also [https://stackoverflow.com/questions/34222272/computing-mean-square-displacement-using-python-and-fft].
+
+        Returns
+        -------
+        MSD : np.ndarray
+            Output array with mean squared displacement per particle
+        """
+        r = self.positions
+        r = _unwrap_pbcs(r)
+
+        lattice = self.get_lattice()
+        r = lattice.get_cartesian_coords(r)
+        pos = np.transpose(r, (1, 0, 2))
+        n_times = pos.shape[1]
+
+        # Autocorrelation term using FFT [https://doi.org/10.1051/sfn/201112010]:
+        # - perform FFT, square it, and then perform inverse FFT
+        fft_result = np.fft.ifft(np.abs(np.fft.fft(pos, n=2 * n_times,
+                                                   axis=-2))**2,
+                                 axis=-2)
+        # - keep only the first n_times elements
+        fft_result = fft_result[:, :n_times, :].real
+        # - sum over the coordinates and divide by the corresponding time window
+        S2 = np.sum(fft_result,
+                    axis=-1) / (n_times - np.arange(n_times)[None, :])
+
+        # Compute the sum of squared displacements
+        D = np.square(pos).sum(axis=-1)
+        D = np.append(D, np.zeros((pos.shape[0], 1)), axis=-1)
+
+        # Compute the first term of the MSD:
+        # - compute 2* the sum of squared positions
+        double_sum_D = 2 * np.sum(D, axis=-1)[:, None]
+        # - compute the cumulative sum of the sum of squares of the positions
+        cumsum_D = np.cumsum(np.insert(D[:, 0:-1], 0, 0, axis=-1) +
+                             np.flip(D, axis=-1),
+                             axis=-1)
+        # - compute the first term in the MSD calculation
+        S1 = (double_sum_D - cumsum_D)[:, :-1] / (n_times -
+                                                  np.arange(n_times)[None, :])
+
+        MSD = S1 - 2 * S2
+        return MSD
