@@ -86,10 +86,7 @@ def msd_per_element(*, trajectory: Trajectory) -> plt.Figure:
     fig, ax = plt.subplots()
 
     for sp in species:
-        if len(species) > 1:
-            traj = trajectory.filter(sp.symbol)
-        else:
-            traj = trajectory
+        traj = trajectory.filter(sp.symbol)
         ax.plot(traj.MSD.mean(axis=0), lw=0.5, label=sp.symbol)
 
     ax.legend()
