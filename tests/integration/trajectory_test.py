@@ -119,7 +119,7 @@ def test_vibration_metrics(vasp_traj):
 
 @pytest.vaspxml_available  # type: ignore
 def test_msd(vasp_traj):
-    msd = vasp_traj.MSD
+    msd = vasp_traj.mean_squared_displacement()
 
     assert msd.shape == (104, 3750)
     assert np.isclose(msd[10, -1], 0.03396214706964429)

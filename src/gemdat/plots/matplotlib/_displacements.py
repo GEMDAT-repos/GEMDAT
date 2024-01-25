@@ -87,7 +87,9 @@ def msd_per_element(*, trajectory: Trajectory) -> plt.Figure:
 
     for sp in species:
         traj = trajectory.filter(sp.symbol)
-        ax.plot(traj.MSD.mean(axis=0), lw=0.5, label=sp.symbol)
+        ax.plot(traj.mean_squared_displacement().mean(axis=0),
+                lw=0.5,
+                label=sp.symbol)
 
     ax.legend()
     ax.set(title='Mean squared displacement per element',

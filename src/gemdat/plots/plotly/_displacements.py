@@ -85,12 +85,10 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
     species = list(set(trajectory.species))
 
     for sp in species:
-        if len(species) > 1:
-            traj = trajectory.filter(sp.symbol)
-        else:
-            traj = trajectory
+        traj = trajectory.filter(sp.symbol)
+
         fig.add_trace(
-            go.Scatter(y=traj.MSD.mean(axis=0),
+            go.Scatter(y=traj.mean_squared_displacement().mean(axis=0),
                        name=sp.symbol,
                        mode='lines',
                        line={'width': 3},
