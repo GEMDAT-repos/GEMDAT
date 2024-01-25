@@ -3,11 +3,15 @@ behaviour."""
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 from pymatgen.core import Lattice, Structure
 
 from .caching import weak_lru_cache
-from .transitions import Transitions
+
+if TYPE_CHECKING:
+    from .jumps import Jumps
 
 
 class Collective:
@@ -24,17 +28,17 @@ class Collective:
     """
 
     def __init__(self,
-                 transitions: Transitions,
+                 jumps: Jumps,
                  structure: Structure,
                  lattice: Lattice,
                  max_steps: int,
-                 max_dist: float = 4.5):
+                 max_dist: float = 1):
         """Determine number of jumps which could show collective behaviour.
 
         Parameters
         ----------
-        transitions : Transitions
-            Input transition events
+        jumps : Jumps
+            Input jump events
         structure : pymatgen.core.structure.Structure
             Structure with list of jump sites
         lattice : pymatgen.core.lattice.Lattice
@@ -44,7 +48,7 @@ class Collective:
         max_dist : float
             Maximum distance for collective motions in Angstrom
         """
-        self.transitions = transitions
+        self.jumps = jumps
         self.structure = structure
         self.lattice = lattice
         self.max_steps = max_steps
@@ -59,66 +63,64 @@ class Collective:
         max_steps = self.max_steps
         max_dist = self.max_dist
 
-        time_col = 4
-        events = self.transitions.events
-        event_order = events[:, time_col].argsort()
+        events = self.jumps.data
+        events = events.sort_values(['stop time', 'start time'],
+                                    ignore_index=True)
 
         coll_jumps = []
         collective = []
+        collective_matrix = np.full((len(events), len(events)), False)
 
-        n_solo_jumps = 0
-
-        for i, event_i in enumerate(event_order[:-1]):
-
-            for j, event_j in enumerate(event_order[i + 1:], start=1):
-
-                atom_i, start_site_i, stop_site_i, _, stop_time_i = events[
-                    event_i]
-                atom_j, start_site_j, stop_site_j, _, stop_time_j = events[
-                    event_j]
-
-                if stop_time_j - stop_time_i > max_steps:
+        # Compare all pairs
+        for i, event_i in events[:-1].iterrows():
+            for j, event_j in events[i + 1:].iterrows():
+                if event_j['start time'] - event_i['stop time'] > max_steps:
                     break
-
-                if atom_i == atom_j:
-                    n_solo_jumps += 1
+                if event_i['start time'] - event_j['stop time'] > max_steps:
+                    continue
+                if event_i['atom index'] == event_j['atom index']:
                     continue
 
-                a = structure.frac_coords[[start_site_i, stop_site_i]]
-                b = structure.frac_coords[[start_site_j, stop_site_j]]
+                a = structure.frac_coords[[
+                    event_i['start site'], event_i['destination site']
+                ]]
+                b = structure.frac_coords[[
+                    event_j['start site'], event_j['destination site']
+                ]]
 
                 dists = lattice.get_all_distances(a, b)
 
                 if np.any(dists < max_dist):
                     collective.append((event_i, event_j))
-                    coll_jumps.append(((start_site_i, stop_site_i),
-                                       (start_site_j, stop_site_j)))
+                    coll_jumps.append(
+                        ((event_i['start site'], event_i['destination site']),
+                         (event_j['start site'], event_j['destination site'])))
+                    collective_matrix[i, j] = True
+                    collective_matrix[j, i] = True
 
-                else:
-                    n_solo_jumps += 1
+        # Get solo jumps from the collective matrix
+        self.n_solo_jumps = len(events) - np.any(collective_matrix,
+                                                 axis=0).sum()
 
         self.collective = collective
         self.coll_jumps = coll_jumps
-        self.n_solo_jumps = n_solo_jumps
+        self.n_coll_jumps = len(events) - self.n_solo_jumps
 
     @weak_lru_cache()
-    def matrix(self) -> np.ndarray:
-        """Calculate collective jumps matrix.
+    def site_pair_count_matrix(self) -> np.ndarray:
+        """Collective jumps matrix.
 
         Returns
         -------
-        collective_matrix : np.ndarray
+        site_pair_count_matrix : np.ndarray
             Matrix where all types of jumps combinations are counted
         """
         labels = self.structure.labels
         coll_jumps = self.coll_jumps
+        site_pairs = self.site_pair_count_matrix_labels()
 
-        site_pairs = list({(label1, label2)
-                           for label1 in labels
-                           for label2 in labels})
-
-        collective_matrix = np.zeros((len(site_pairs), len(site_pairs)),
-                                     dtype=int)
+        site_pair_count_matrix = np.zeros((len(site_pairs), len(site_pairs)),
+                                          dtype=int)
 
         for ((start_i, stop_i), (start_j, stop_j)) in coll_jumps:
             name_start_i = labels[start_i]
@@ -129,24 +131,38 @@ class Collective:
             i = site_pairs.index((name_start_i, name_stop_i))
             j = site_pairs.index((name_start_j, name_stop_j))
 
-            collective_matrix[i, j] += 1
+            site_pair_count_matrix[i, j] += 1
 
-        return collective_matrix
+        return site_pair_count_matrix
 
     @weak_lru_cache()
-    def multiple_collective(self) -> np.ndarray:
+    def site_pair_count_matrix_labels(self) -> list:
+        labels = self.structure.labels
+        return list({(label1, label2)
+                     for label1 in labels
+                     for label2 in labels})
+
+    @weak_lru_cache()
+    def multiple_collective(self) -> tuple[np.ndarray, np.ndarray]:
         """Find jumps that occur collectively multiple times.
 
-        Only returns non-unique jumps
+        returns collective jumps and their occurence
 
         Returns
         -------
-        multiple_collective : np.ndarray
-            Dictionary with indices of sites between which jumps happen and their counts.
+        multiple_collective : np.ndarray, np.ndarray
+            Result of a np.unique on the collective jump pairs
         """
-        collective = self.collective
-        coll_sorted = np.sort(np.array(collective).flatten())
-        difference = np.diff(coll_sorted, prepend=0)
-        multiple_collective = coll_sorted[difference == 0]
+        collective = np.array(dtype=[('start', int), ('stop', int)],
+                              object=[[(event_i['start site'],
+                                        event_i['destination site']),
+                                       (event_j['start site'],
+                                        event_j['destination site'])]
+                                      for event_i, event_j in self.collective])
+        # Sort jumps so equal jumps are orderd similarily
+        collective = np.sort(collective, axis=1)
 
-        return multiple_collective
+        # Counts how often collective jumps occur
+        jumps, counts = np.unique(collective, axis=0, return_counts=True)
+
+        return jumps, counts

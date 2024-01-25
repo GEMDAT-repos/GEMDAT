@@ -6,11 +6,13 @@ import numpy as np
 import pytest
 
 from gemdat.io import load_known_material
+from gemdat.jumps import Jumps
 from gemdat.path import find_best_perc_path, free_energy_graph
 from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
 from gemdat.sites import SitesData
 from gemdat.trajectory import Trajectory
+from gemdat.transitions import Transitions
 from gemdat.volume import trajectory_to_volume
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
@@ -53,7 +55,21 @@ def vasp_sites(vasp_traj, structure):
 
 
 @pytest.fixture(scope='module')
-def vasp_rdf_data(vasp_traj, structure):
+def vasp_transitions(vasp_traj, structure):
+    transitions = Transitions.from_trajectory(trajectory=vasp_traj,
+                                              structure=structure,
+                                              floating_specie='Li')
+    return transitions
+
+
+@pytest.fixture(scope='module')
+def vasp_jumps(vasp_transitions, vasp_sites):
+    jumps = Jumps(transitions=vasp_transitions, sites=vasp_sites)
+    return jumps
+
+
+@pytest.fixture(scope='module')
+def vasp_rdf_data(vasp_traj, structure, vasp_transitions):
     # Shorten trajectory for faster test
     trajectory = vasp_traj[-1000:]
 
@@ -63,6 +79,7 @@ def vasp_rdf_data(vasp_traj, structure):
 
     rdfs = radial_distribution(
         sites=sites,
+        transitions=vasp_transitions,
         max_dist=5,
     )
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 [project]
 name = "GEMDAT"
-version = "0.9.4"
+version = "1.0.1"
 description = "Generalized Molecular Dynamics Analysis Tool"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -49,6 +49,7 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 
 [project.optional-dependencies]
 develop = [
+    "bump-my-version",
     "coverage[toml]",
     "mypy",
     "pre-commit",
@@ -87,7 +88,7 @@ select = [
 	"F",  # Pyflakes
 	"E",  # pycodestyle (error)
 	"W",  # pycodestyle (warning)
-  "I",  # isort
+    "I",  # isort
 ]
 
 line-length = 110
@@ -101,3 +102,21 @@ required-imports = ["from __future__ import annotations"]
 files = ["src", "tests"]
 allow_redefinition = true
 ignore_missing_imports = true
+
+[tool.bumpversion]
+current_version = "1.0.1"
+
+[[tool.bumpversion.files]]
+filename = "src/gemdat/__init__.py"
+search = "__version__ = '{current_version}'"
+replace = "__version__ = '{new_version}'"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "CITATION.cff"
+search = "version: {current_version}"
+replace = "version: {new_version}"
