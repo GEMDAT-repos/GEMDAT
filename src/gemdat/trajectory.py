@@ -429,8 +429,7 @@ class Trajectory(PymatgenTrajectory):
 
         return subtrajectories
 
-    @property
-    def MSD(self) -> np.ndarray:
+    def mean_square_displacement(self) -> np.ndarray:
         """Computes the mean squared displacement usig fast Fourier transform.
         The algorithm is described in [https://doi.org/10.1051/sfn/201112010].
         See also [https://stackoverflow.com/questions/34222272/computing-mean-square-displacement-using-python-and-fft].
