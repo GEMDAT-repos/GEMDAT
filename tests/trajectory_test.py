@@ -126,3 +126,12 @@ def test_filter_similar_names(trajectory):
     assert subtrajectory.species == [Species('Si'), Species('S')]
     subtrajectory = trajectory.filter('S')
     assert subtrajectory.species == [Species('S')]
+
+
+def test_trajectory_extend(trajectory):
+    trajectory.extend(trajectory)
+
+    assert isinstance(trajectory, Trajectory)
+    assert len(trajectory) == 10
+    assert_allclose(trajectory.positions[:, 0, 0],
+                    [0.2, 0.4, 0.6, 0.8, 0.1, 0.2, 0.4, 0.6, 0.8, 0.1])
