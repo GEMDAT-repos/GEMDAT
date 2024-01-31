@@ -75,8 +75,6 @@ def analyse_md(
     -------
     trajectory : Trajectory
         Output trajectory
-    sites : SitesData
-        Output sites data
     """
     trajectory = Trajectory.from_vasprun(vasp_xml)
 
@@ -88,16 +86,11 @@ def analyse_md(
 
     sites_structure = load_known_material(material, supercell=supercell)
 
-    sites = SitesData(
-        structure=sites_structure,
-        trajectory=trajectory,
-        floating_specie=diff_elem,
-    )
-
     transitions = Transitions.from_trajectory(trajectory=trajectory,
                                               structure=sites_structure,
                                               floating_specie='Li')
-    jumps = Jumps(sites=sites_structure, transitions=transitions)
+
+    jumps = Jumps(transitions=transitions)
 
     plots.displacement_per_element(trajectory=trajectory)
     plots.displacement_per_site(trajectory=diff_trajectory)
@@ -134,7 +127,6 @@ def analyse_md(
 
     if calc_rdfs:
         rdf_data = radial_distribution(
-            sites=sites,
             transitions=transitions,
             max_dist=rdf_max_dist,
             resolution=rdf_res,
@@ -142,4 +134,4 @@ def analyse_md(
         for rdfs in rdf_data.values():
             plots.radial_distribution(rdfs)
 
-    return trajectory, sites
+    return trajectory

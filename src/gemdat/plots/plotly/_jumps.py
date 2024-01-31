@@ -32,9 +32,8 @@ def jumps_vs_distance(*,
     fig : plotly.graph_objects.Figure
         Output figure
     """
-    sites = jumps.sites
-    structure = sites.structure
-    trajectory = sites.trajectory
+    structure = jumps.structure
+    trajectory = jumps.trajectory
     lattice = trajectory.get_lattice()
 
     pdist = lattice.get_all_distances(structure.frac_coords,
@@ -62,7 +61,7 @@ def jumps_vs_distance(*,
     std = grouped.std().reset_index().rename(columns={'count': 'std'})
     df = mean.merge(std, how='inner')
 
-    df['specie'] = sites.floating_specie
+    df['specie'] = jumps.floating_specie
 
     if n_parts == 1:
         fig = px.bar(df,
@@ -105,9 +104,7 @@ def jumps_vs_time(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-    sites = jumps.sites
-
-    maxlen = len(sites.trajectory) / n_parts
+    maxlen = len(jumps.trajectory) / n_parts
     binsize = maxlen / bins + 1
     data = []
 
@@ -125,7 +122,7 @@ def jumps_vs_time(*,
 
     df = pd.DataFrame(data=zip(columns, mean, std),
                       columns=['time', 'count', 'std'])
-    df['specie'] = sites.floating_specie
+    df['specie'] = jumps.floating_specie
 
     if n_parts > 1:
         fig = px.bar(df, x='time', y='count', color='specie', error_y='std')

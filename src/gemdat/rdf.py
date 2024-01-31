@@ -125,8 +125,8 @@ def radial_distribution(
     coords = trajectory.positions
     sp_coords = sites.diff_trajectory.positions
 
-    states2str = _get_states(sites.site_labels)
-    states_array = _get_states_array(transitions, sites.site_labels)
+    states2str = _get_states(sites.structure.labels)
+    states_array = _get_states_array(transitions, sites.structure.labels)
     symbol_indices = _get_symbol_indices(structure)
 
     bins = np.arange(0, max_dist + resolution, resolution)

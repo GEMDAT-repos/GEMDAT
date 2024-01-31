@@ -4,6 +4,7 @@ sites."""
 from __future__ import annotations
 
 import typing
+from collections import defaultdict
 from itertools import pairwise
 from typing import Optional
 
@@ -42,28 +43,31 @@ class Transitions:
         *,
         trajectory: Trajectory,
         structure: Structure,
+        floating_specie: str,
+        dist_close: float,
         events: pd.DataFrame,
         states: np.ndarray,
         inner_states: np.ndarray,
-        dist_close: float,
     ):
         """Store event data for jumps and transitions between sites.
 
         Parameters
         ----------
+        trajectory : Trajectory
+            Trajectory of species of interest (e.g. diffusing)
+            for which transitions are generated
+        structure : Structure
+            Structure with known sites used for calculation of events
+        floating_specie : str
+            Name of the floating specie to calculate transitions for
+        dist_close: float
+            Custom diameter of all sites
         events : np.ndarray
             Input events
         states : np.ndarray
             Input states
         inner_states : np.ndarray
             Input states for inner sites
-        structure : Structure
-            Structure with know sites used for calculation of events
-        dist_close: float
-            Custom diameter of all sites
-        trajectory : Trajectory
-            Trajectory of species of interest (e.g. diffusing)
-            for which transitions are generated
         """
         self.structure = structure
         self.trajectory = trajectory
@@ -71,6 +75,23 @@ class Transitions:
         self.states = states
         self.inner_states = inner_states
         self.events = events
+        self.floating_specie = floating_specie
+
+    @property
+    def n_sites(self) -> int:
+        """Return number of sites in structure."""
+        return len(self.structure)
+
+    @property
+    def n_steps(self) -> int:
+        """Return number of steps in trajectory."""
+        return len(self.trajectory)
+
+    @property
+    def n_floating(self) -> int:
+        """Return number of floating species."""
+        base_structure = self.trajectory[0]
+        return int(base_structure.composition[self.floating_specie])
 
     @classmethod
     def from_trajectory(
@@ -123,6 +144,7 @@ class Transitions:
                   states=states,
                   inner_states=inner_states,
                   structure=structure,
+                  floating_specie=floating_specie,
                   dist_close=dist_close,
                   trajectory=diff_trajectory)
 
@@ -212,6 +234,28 @@ class Transitions:
             labels=structure.labels,
         )
 
+    def atom_locations(self):
+        """Calculate fraction of time atoms spent at a type of site.
+
+        Returns
+        -------
+        dict[str, float]
+            Return dict with the fraction of time atoms spent at a site
+        """
+        multiplier = len(self.structure) / self.n_floating
+
+        compositions_by_label = defaultdict(list)
+
+        for site in self.occupancy():
+            compositions_by_label[site.label].append(site.species.num_atoms)
+
+        ret = {}
+
+        for k, v in compositions_by_label.items():
+            ret[k] = (sum(v) / len(v)) * multiplier
+
+        return ret
+
     def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
 
@@ -239,6 +283,7 @@ class Transitions:
                 self.__class__(
                     structure=self.structure,
                     trajectory=split_trajectory[i],
+                    floating_specie=self.floating_specie,
                     dist_close=self.dist_close,
                     states=split_states[i],
                     inner_states=split_inner_states[i],

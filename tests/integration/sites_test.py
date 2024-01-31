@@ -12,15 +12,17 @@ import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
+from gemdat import SimulationMetrics
+
 
 @pytest.vaspxml_available
 class TestSites:  # type: ignore
     n_parts = 10
     diffusing_element = 'Li'
 
-    def test_atom_sites(self, vasp_sites, vasp_traj, vasp_transitions):
+    def test_atom_sites(self, vasp_traj, vasp_transitions):
         n_steps = len(vasp_traj)
-        n_diffusing = vasp_sites.n_floating
+        n_diffusing = 48
 
         assert isclose(vasp_transitions.dist_close, 0.9284961123176741)
 
@@ -51,9 +53,10 @@ class TestSites:  # type: ignore
     def test_n_states(self, vasp_transitions):
         assert vasp_transitions.n_states == 3750
 
-    def test_all_transitions(self, vasp_sites, vasp_transitions):
+    def test_all_transitions_events(self, vasp_transitions):
         events = vasp_transitions.events
 
+        assert isinstance(events, pd.DataFrame)
         assert vasp_transitions.n_events == 2105
         assert vasp_transitions.events.shape == (2105, 6)
         assert_allclose(
@@ -61,15 +64,17 @@ class TestSites:  # type: ignore
             np.array([[0, 94, -1, 94, -1, 202], [22, 70, -1, 70, -1, 3472],
                       [45, 10, -1, 10, -1, 2386]]))
 
+    def test_all_transitions_matrix(self, vasp_transitions):
         matrix = vasp_transitions.matrix()
-        assert matrix.shape == (vasp_sites.n_sites, vasp_sites.n_sites)
+        n_sites = vasp_transitions.n_sites
+        assert matrix.shape == (n_sites, n_sites)
         assert matrix.sum() == 2099
         assert_allclose(
             np.argwhere(matrix)[::50],
             np.array([[0, 95], [49, 95], [95, 5], [95, 55]]))
 
-    def test_transitions_parts(self, vasp_sites, vasp_transitions):
-        n_sites = vasp_sites.n_sites
+    def test_transitions_parts(self, vasp_transitions):
+        n_sites = vasp_transitions.n_sites
         tp = np.stack(
             [part.matrix() for part in vasp_transitions.split(n_parts=10)])
 
@@ -101,13 +106,13 @@ class TestSites:  # type: ignore
             35.49199999999999, 35.43733333333334
         ]
 
-    def test_atom_locations(self, vasp_sites, vasp_transitions):
-        dct = vasp_sites.atom_locations(vasp_transitions)
+    def test_atom_locations(self, vasp_transitions):
+        dct = vasp_transitions.atom_locations()
         assert dct == {'48h': 0.7612555555555552}
 
-    def test_atom_locations_parts(self, vasp_sites, vasp_transitions):
+    def test_atom_locations_parts(self, vasp_transitions):
         parts = vasp_transitions.split(5)
-        dcts = [vasp_sites.atom_locations(part) for part in parts]
+        dcts = [part.atom_locations() for part in parts]
 
         assert dcts == [
             {
@@ -142,7 +147,7 @@ class TestSites:  # type: ignore
         assert isclose(row['rates'], 1174999999999.9998)
         assert isclose(row['std'], 90769080986.31458)
 
-    def test_activation_energies(self, vasp_jumps, vasp_sites):
+    def test_activation_energies(self, vasp_jumps):
         activation_energies = vasp_jumps.activation_energies(n_parts=10)
 
         assert isinstance(activation_energies, pd.DataFrame)
@@ -158,8 +163,10 @@ class TestSites:  # type: ignore
                        9.484382e-09,
                        rel_tol=1e-6)
 
-    def test_correlation_factor(self, vasp_sites, vasp_jumps):
-        tracer_diff = vasp_sites.metrics.tracer_diffusivity(dimensions=3)
+    def test_correlation_factor(self, vasp_traj, vasp_jumps):
+        vasp_diff_traj = vasp_traj.filter('Li')
+        metrics = SimulationMetrics(vasp_diff_traj)
+        tracer_diff = metrics.tracer_diffusivity(dimensions=3)
         correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(
             dimensions=3)
         assert isclose(correlation_factor, 0.165600, rel_tol=1e-6)

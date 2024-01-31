@@ -44,14 +44,6 @@ def structure():
 
 
 @pytest.fixture(scope='module')
-def vasp_sites(vasp_traj, structure):
-    sites = SitesData(structure=structure,
-                      trajectory=vasp_traj,
-                      floating_specie='Li')
-    return sites
-
-
-@pytest.fixture(scope='module')
 def vasp_transitions(vasp_traj, structure):
     transitions = Transitions.from_trajectory(trajectory=vasp_traj,
                                               structure=structure,
@@ -60,9 +52,8 @@ def vasp_transitions(vasp_traj, structure):
 
 
 @pytest.fixture(scope='module')
-def vasp_jumps(vasp_transitions, vasp_sites):
-    jumps = Jumps(transitions=vasp_transitions, sites=vasp_sites)
-    return jumps
+def vasp_jumps(vasp_transitions):
+    return Jumps(transitions=vasp_transitions)
 
 
 @pytest.fixture(scope='module')

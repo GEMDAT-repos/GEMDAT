@@ -22,8 +22,8 @@ def jumps_vs_distance(
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input data
     jump_res : float, optional
         Resolution of the bins in Angstrom
 
@@ -32,9 +32,9 @@ def jumps_vs_distance(
     fig : matplotlib.figure.Figure
         Output figure
     """
-    structure = jumps.sites.structure
+    structure = jumps.structure
 
-    trajectory = jumps.sites.trajectory
+    trajectory = jumps.trajectory
     lattice = trajectory.get_lattice()
 
     pdist = lattice.get_all_distances(structure.frac_coords,
@@ -65,8 +65,8 @@ def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> plt.Figure:
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input data
     binsize : int, optional
         Width of each bin in number of time steps
 
@@ -76,7 +76,7 @@ def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> plt.Figure:
         Output figure
     """
 
-    trajectory = jumps.sites.trajectory
+    trajectory = jumps.trajectory
 
     n_steps = len(trajectory)
     bins = np.arange(0, n_steps + binsize, binsize)
@@ -97,8 +97,8 @@ def collective_jumps(*, jumps: Jumps) -> plt.Figure:
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input data
 
     Returns
     -------
@@ -128,16 +128,16 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input data
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         Output figure
     """
-    trajectory = jumps.sites.trajectory
-    structure = jumps.sites.structure
+    trajectory = jumps.trajectory
+    structure = jumps.structure
 
     class LabelItems:
 
@@ -154,7 +154,7 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    site_labels = LabelItems(jumps.sites.site_labels, coords)
+    site_labels = LabelItems(jumps.structure.labels, coords)
 
     xyz_labels = LabelItems('OABC', [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1],
                                      [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]])
@@ -221,8 +221,8 @@ def jumps_3d_animation(
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input data
     t_start : int
         Time step to start animation (relative to equilibration time)
     t_stop : int
@@ -242,7 +242,7 @@ def jumps_3d_animation(
     minwidth = 0.2
     maxwidth = 5.0
 
-    trajectory = jumps.sites.trajectory
+    trajectory = jumps.trajectory
 
     class LabelItems:
 
@@ -253,7 +253,7 @@ def jumps_3d_animation(
         def items(self):
             yield from zip(self.labels, self.coords)
 
-    coords = jumps.sites.structure.frac_coords
+    coords = jumps.structure.frac_coords
     lattice = trajectory.get_lattice()
 
     color_from = colormaps['Set1'].colors  # type: ignore
@@ -334,7 +334,8 @@ def jumps_3d_animation(
             points[event['destination site']].set_facecolor(
                 color_to[event['atom index'] % len(color_to)])
 
-        ax.set_title(f'T: {t_frame} | Next jump: {event["start time"]}')
+        start_time = event['start time']
+        ax.set_title(f'T: {t_frame} | Next jump: {start_time}')
 
     n_frames = int((t_stop - t_start) / skip)
 
