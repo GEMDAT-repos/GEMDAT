@@ -129,8 +129,9 @@ def test_filter_similar_names(trajectory):
 
 
 def test_trajectory_extend(trajectory):
-    extended = trajectory.extend(trajectory)
+    trajectory.extend(trajectory)
 
-    assert len(extended) == 10
-    assert_allclose(extended.positions[:, 0, 0],
+    assert isinstance(trajectory, Trajectory)
+    assert len(trajectory) == 10
+    assert_allclose(trajectory.positions[:, 0, 0],
                     [0.2, 0.4, 0.6, 0.8, 0.1, 0.2, 0.4, 0.6, 0.8, 0.1])
