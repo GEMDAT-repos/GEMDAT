@@ -8,6 +8,7 @@ from __future__ import annotations
 from math import isclose
 
 import numpy as np
+import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
@@ -125,23 +126,24 @@ class TestSites:  # type: ignore
 
     def test_rates(self, vasp_jumps):
         rates = vasp_jumps.rates(n_parts=10)
-        assert isinstance(rates, dict)
+        assert isinstance(rates, pd.DataFrame)
         assert len(rates) == 1
 
-        rates, rates_std = rates[('48h', '48h')]
-        assert isclose(rates, 542307692307.69226)
-        assert isclose(rates_std, 41893421993.683655)
+        row = rates.loc[('48h', '48h')]
+
+        assert isclose(row['rates'], 542307692307.69226)
+        assert isclose(row['std'], 41893421993.683655)
 
     def test_activation_energies(self, vasp_jumps, vasp_sites):
         activation_energies = vasp_jumps.activation_energies(n_parts=10)
 
-        assert isinstance(activation_energies, dict)
+        assert isinstance(activation_energies, pd.DataFrame)
         assert len(activation_energies) == 1
 
-        e_act, e_act_std = activation_energies[('48h', '48h')]
+        row = activation_energies.loc[('48h', '48h')]
 
-        assert isclose(e_act, 0.17445, abs_tol=1e-4)
-        assert isclose(e_act_std, 0.004059, abs_tol=1e-6)
+        assert isclose(row['energy'], 0.17445, abs_tol=1e-4)
+        assert isclose(row['std'], 0.004059, abs_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_jumps):
         assert isclose(vasp_jumps.jump_diffusivity(3),
