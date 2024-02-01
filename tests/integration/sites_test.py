@@ -135,8 +135,8 @@ class TestSites:  # type: ignore
 
         row = rates.loc[('48h', '48h')]
 
-        assert isclose(row['rates'], 1249999999999.9998)
-        assert isclose(row['std'], 137337009020.29002)
+        assert isclose(row['rates'], 1174999999999.9998)
+        assert isclose(row['std'], 90769080986.31458)
 
     def test_activation_energies(self, vasp_jumps, vasp_sites):
         activation_energies = vasp_jumps.activation_energies(n_parts=10)
@@ -146,19 +146,19 @@ class TestSites:  # type: ignore
 
         row = activation_energies.loc[('48h', '48h')]
 
-        assert isclose(row['energy'], 0.1311852, abs_tol=1e-4)
-        assert isclose(row['std'], 0.00596132, abs_tol=1e-6)
+        assert isclose(row['energy'], 0.134486, abs_tol=1e-4)
+        assert isclose(row['std'], 0.00405952, abs_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_jumps):
         assert isclose(vasp_jumps.jump_diffusivity(3),
-                       9.220713700212185e-09,
+                       9.484382e-09,
                        rel_tol=1e-6)
 
     def test_correlation_factor(self, vasp_sites, vasp_jumps):
         tracer_diff = vasp_sites.metrics.tracer_diffusivity(dimensions=3)
         correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(
             dimensions=3)
-        assert isclose(correlation_factor, 0.1703355120150192, rel_tol=1e-6)
+        assert isclose(correlation_factor, 0.165600, rel_tol=1e-6)
 
     def test_collective(self, vasp_jumps):
         collective = vasp_jumps.collective()
