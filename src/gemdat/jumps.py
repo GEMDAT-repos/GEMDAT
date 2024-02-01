@@ -151,7 +151,7 @@ class Jumps:
     @property
     def n_floating(self) -> int:
         """Return number of floating species."""
-        return len(self.transitions.trajectory.species)
+        return self.transitions.n_floating
 
     @property
     def solo_fraction(self) -> float:

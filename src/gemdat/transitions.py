@@ -129,6 +129,11 @@ class Transitions:
 
         return obj
 
+    @property
+    def n_floating(self) -> int:
+        """Return number of floating species."""
+        return len(self.trajectory.species)
+
     @weak_lru_cache()
     def matrix(self) -> np.ndarray:
         """Convert list of transition events to dense matrix.

@@ -44,6 +44,10 @@ class TestSites:  # type: ignore
         assert_allclose(states_prev[slice_],
                         np.array([[94, -1], [94, 65], [0, 65], [0, 65]]))
 
+    def test_n_floating(self, vasp_transitions):
+        # https://github.com/GEMDAT-repos/GEMDAT/issues/252
+        assert vasp_transitions.n_floating == 48
+
     def test_all_transitions(self, vasp_sites, vasp_transitions):
 
         events = vasp_transitions.events
