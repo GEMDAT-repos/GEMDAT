@@ -48,9 +48,13 @@ class TestSites:  # type: ignore
         # https://github.com/GEMDAT-repos/GEMDAT/issues/252
         assert vasp_transitions.n_floating == 48
 
-    def test_all_transitions(self, vasp_sites, vasp_transitions):
+    def test_n_states(self, vasp_transitions):
+        assert vasp_transitions.n_states == 3750
 
+    def test_all_transitions(self, vasp_sites, vasp_transitions):
         events = vasp_transitions.events
+
+        assert vasp_transitions.n_events == 2105
         assert vasp_transitions.events.shape == (2105, 6)
         assert_allclose(
             events[::1000],

@@ -40,12 +40,12 @@ class Transitions:
     def __init__(
         self,
         *,
+        trajectory: Trajectory,
+        structure: Structure,
         events: pd.DataFrame,
         states: np.ndarray,
         inner_states: np.ndarray,
-        structure: Structure,
         dist_close: float,
-        trajectory: Trajectory,
     ):
         """Store event data for jumps and transitions between sites.
 
@@ -65,12 +65,12 @@ class Transitions:
             Trajectory of species of interest (e.g. diffusing)
             for which transitions are generated
         """
+        self.structure = structure
+        self.trajectory = trajectory
+        self.dist_close = dist_close
         self.states = states
         self.inner_states = inner_states
         self.events = events
-        self.dist_close = dist_close
-        self.structure = structure
-        self.trajectory = trajectory
 
     @classmethod
     def from_trajectory(
@@ -134,13 +134,18 @@ class Transitions:
         return len(self.trajectory.species)
 
     @property
-    def n_steps(self) -> int:
-        """Return number of floating species."""
-        return len(self.trajectory)
+    def n_states(self) -> int:
+        """Return number of states."""
+        return len(self.states)
+
+    @property
+    def n_events(self) -> int:
+        """Return number of events."""
+        return len(self.events)
 
     @property
     def n_sites(self) -> int:
-        """Return number of floating species."""
+        """Return number of sites."""
         return len(self.structure)
 
     @weak_lru_cache()
@@ -217,12 +222,12 @@ class Transitions:
 
         Returns
         -------
-        parts : list[SitesData]
+        parts : list[Transitions]
             List with `Transitions` object for each part
         """
         split_states = np.array_split(self.states, n_parts)
         split_inner_states = np.array_split(self.inner_states, n_parts)
-        split_events = _split_transitions_events(self.events, self.n_steps,
+        split_events = _split_transitions_events(self.events, self.n_states,
                                                  n_parts)
 
         split_trajectory = self.trajectory.split(n_parts)
@@ -442,7 +447,7 @@ def _calculate_transitions_matrix(events: pd.DataFrame,
 
 
 def _split_transitions_events(events: pd.DataFrame,
-                              n_steps: int,
+                              n_states: int,
                               n_parts=10,
                               split_key='time',
                               dependent_keys='time') -> list[np.ndarray]:
@@ -452,8 +457,8 @@ def _split_transitions_events(events: pd.DataFrame,
     ----------
     events : np.ndarray
         Input array with transition events
-    n_steps : int
-        Number of time steps
+    n_states : int
+        Number of states
     n_parts : int, optional
         Number of parts to split into
     split_key : str, optional
@@ -471,7 +476,7 @@ def _split_transitions_events(events: pd.DataFrame,
         raise ValueError(
             f'Not enough transitions per part to split into {n_parts}')
 
-    bins = np.linspace(0, n_steps + 1, n_parts + 1, dtype=int)
+    bins = np.linspace(0, n_states + 1, n_parts + 1, dtype=int)
 
     parts = [
         events[(events[split_key] >= start)
