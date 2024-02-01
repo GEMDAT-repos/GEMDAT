@@ -37,10 +37,16 @@ class Transitions:
         Assingn NOSITE if the atom is in transition
     """
 
-    def __init__(self, *, events: pd.DataFrame, states: np.ndarray,
-                 inner_states: np.ndarray, structure: Structure,
-                 dist_close: float, n_sites: int, n_steps: int,
-                 trajectory: Trajectory):
+    def __init__(
+        self,
+        *,
+        events: pd.DataFrame,
+        states: np.ndarray,
+        inner_states: np.ndarray,
+        structure: Structure,
+        dist_close: float,
+        trajectory: Trajectory,
+    ):
         """Store event data for jumps and transitions between sites.
 
         Parameters
@@ -52,21 +58,16 @@ class Transitions:
         inner_states : np.ndarray
             Input states for inner sites
         structure : Structure
-            Structure used for calculation of events
+            Structure with know sites used for calculation of events
         dist_close: float
             Custom diameter of all sites
-        n_sites : int
-            Total number of sites
-        n_steps: int
-            Number of steps in trajectory
         trajectory : Trajectory
-            Trajectory from which transitions are generated
+            Trajectory of species of interest (e.g. diffusing)
+            for which transitions are generated
         """
         self.states = states
         self.inner_states = inner_states
         self.events = events
-        self.n_sites = n_sites
-        self.n_steps = n_steps
         self.dist_close = dist_close
         self.structure = structure
         self.trajectory = trajectory
@@ -123,8 +124,6 @@ class Transitions:
                   inner_states=inner_states,
                   structure=structure,
                   dist_close=dist_close,
-                  n_steps=len(trajectory),
-                  n_sites=len(structure),
                   trajectory=diff_trajectory)
 
         return obj
@@ -133,6 +132,16 @@ class Transitions:
     def n_floating(self) -> int:
         """Return number of floating species."""
         return len(self.trajectory.species)
+
+    @property
+    def n_steps(self) -> int:
+        """Return number of floating species."""
+        return len(self.trajectory)
+
+    @property
+    def n_sites(self) -> int:
+        """Return number of floating species."""
+        return len(self.structure)
 
     @weak_lru_cache()
     def matrix(self) -> np.ndarray:
@@ -216,31 +225,20 @@ class Transitions:
         split_events = _split_transitions_events(self.events, self.n_steps,
                                                  n_parts)
 
-        bins = np.linspace(0, self.n_steps + 1, n_parts + 1, dtype=int)
-        steps = [bins[i + 1] - bins[i] for i in range(n_parts)]
-
         split_trajectory = self.trajectory.split(n_parts)
 
-        kwargs_list = []
+        parts = []
 
-        for states, inner_states, events, step, trajectory in zip(
-                split_states, split_inner_states, split_events, steps,
-                split_trajectory):
-            kwargs_list.append({
-                'states': states,
-                'inner_states': inner_states,
-                'events': events,
-                'n_sites': self.n_sites,
-                'n_steps': step,
-                'structure': self.structure,
-                'trajectory': trajectory,
-                'dist_close': self.dist_close,
-            })
-
-        parts = [
-            self.__class__(**kwargs)  # type: ignore
-            for kwargs in kwargs_list
-        ]
+        for i in range(n_parts):
+            parts.append(
+                self.__class__(
+                    structure=self.structure,
+                    trajectory=split_trajectory[i],
+                    dist_close=self.dist_close,
+                    states=split_states[i],
+                    inner_states=split_inner_states[i],
+                    events=split_events[i],
+                ))
 
         return parts
 
