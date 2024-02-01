@@ -125,7 +125,7 @@ class Transitions:
                   dist_close=dist_close,
                   n_steps=len(trajectory),
                   n_sites=len(structure),
-                  trajectory=trajectory)
+                  trajectory=diff_trajectory)
 
         return obj
 
