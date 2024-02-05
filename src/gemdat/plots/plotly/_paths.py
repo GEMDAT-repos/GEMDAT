@@ -10,7 +10,7 @@ from ._density import density
 
 
 def path_on_landscape(
-    vol: Volume,
+    volume: Volume,
     path: Pathway,
     structure: Structure,
 ) -> go.Figure:
@@ -20,7 +20,7 @@ def path_on_landscape(
 
     Arguments
     ---------
-    vol : Volume
+    volume : Volume
         Input volume to create the landscape
     path : Pathway
         Pathway to plot
@@ -33,9 +33,9 @@ def path_on_landscape(
         Output as plotly figure
     """
 
-    fig = density(vol.to_probability(), structure)
+    fig = density(volume.to_probability(), structure)
 
-    path = np.asarray(path.cart_sites)
+    path = np.asarray(path.cartesian_path(volume))
     x_path, y_path, z_path = path.T
 
     # Color path and endpoints differently

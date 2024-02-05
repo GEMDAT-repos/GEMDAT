@@ -9,61 +9,69 @@ from gemdat.path import optimal_path
 
 
 @pytest.vaspxml_available  # type: ignore
-def test_optimal_path(vasp_full_vol, vasp_F_graph):
+def test_fractional_coordinates(vasp_path_vol, vasp_full_path):
+    frac_sites = vasp_full_path.fractional_path(vasp_path_vol)
+
+    assert isclose(frac_sites[-1][0], 0.39285714285714285)
+    assert isclose(frac_sites[19][1], 0.7142857142857143)
+    assert isclose(frac_sites[10][2], 0.5714285714285714)
+
+    assert all(element < 1 for element in max(frac_sites))
+    assert all(element > 0 for element in max(frac_sites))
+
+
+@pytest.vaspxml_available  # type: ignore
+def test_optimal_path(vasp_path_vol, vasp_F_graph):
 
     path1 = optimal_path(
         vasp_F_graph,
-        (22, 11, 32),
-        (65, 28, 28),
+        (10, 4, 13),
+        (21, 3, 10),
         'dijkstra',
     )
     path2 = optimal_path(
         vasp_F_graph,
-        (22, 11, 32),
-        (65, 23, 13),
+        (7, 9, 2),
+        (20, 4, 2),
         'bellman-ford',
     )
     path3 = optimal_path(
         vasp_F_graph,
-        (50, 6, 21),
-        (63, 23, 21),
+        (18, 7, 12),
+        (25, 3, 13),
         'dijkstra-exp',
     )
     path4 = optimal_path(
         vasp_F_graph,
-        (27, 17, 10),
-        (65, 14, 22),
+        (3, 3, 6),
+        (0, 9, 4),
         'minmax-energy',
     )
 
-    assert isclose(sum(path1.energy), 28.785557644725507)
-    assert isclose(sum(path2.energy), 31.335762384379574)
-    assert isclose(sum(path3.energy), 13.135771541467623)
-    assert isclose(sum(path4.energy), 23.981504037937647)
+    assert isclose(sum(path1.energy), 5.210130709736149)
+    assert isclose(sum(path2.energy), 5.5363545176821)
+    assert isclose(sum(path3.energy), 5.114620231293609)
+    assert isclose(sum(path4.energy), 2.708267913357463)
 
 
 @pytest.vaspxml_available  # type: ignore
 def test_find_best_perc_path(vasp_full_path):
 
-    assert isclose(vasp_full_path.cost, 36.39301483423)
-    assert vasp_full_path.start_site == (30, 23, 14)
+    assert isclose(vasp_full_path.cost, 11.490420312258468)
+    assert vasp_full_path.start_site == (11, 9, 6)
 
 
 @pytest.vaspxml_available  # type: ignore
 def test_nearest_structure_reference(vasp_full_vol, vasp_full_path):
     structure = load_known_material('argyrodite')
-    vasp_full_vol.nearest_structure_reference(structure)
 
-    vasp_full_path.fractional_path(vasp_full_vol)
-    vasp_full_path.path_over_structure(structure, vasp_full_vol)
+    nearest_structure_label, nearest_structure_coord = vasp_full_path.path_over_structure(
+        structure, vasp_full_vol)
 
-    assert isclose(vasp_full_path.frac_sites[55][0], 5.642595274217675)
-    assert isclose(vasp_full_path.frac_sites[56][2], 2.0049868515758837)
-    assert vasp_full_path.nearest_structure_label[0] == '48h'
-    assert vasp_full_path.nearest_structure_label[10] == '48h'
-    assert isclose(vasp_full_path.nearest_structure_coord[0][1],
-                   9.685823999999998)
-    assert isclose(vasp_full_path.nearest_structure_coord[28][2],
-                   8.107907999999998)
-    assert isclose(vasp_full_path.nearest_structure_coord[-1][-1],
-                   1.816092000000001)
+    assert nearest_structure_label[0] == '48h'
+    assert nearest_structure_label[10] == '48h'
+
+    assert isclose(nearest_structure_coord[0][0], 0.2381760000000003)
+    assert isclose(nearest_structure_coord[0][1], 1.8160919999999998)
+    assert isclose(nearest_structure_coord[20][2], 1.8160920000000003)
+    assert isclose(nearest_structure_coord[-1][-1], 1.816092)

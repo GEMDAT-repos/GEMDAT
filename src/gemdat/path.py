@@ -34,23 +34,24 @@ class Pathway:
     """
 
     sites: List[Tuple[int, int, int]] | None = None
-    cart_sites: List[Tuple[float, float, float]] | None = None
-    frac_sites: List[Tuple[float, float, float]] | None = None
     energy: list[float] | None = None
-    nearest_structure_coord: list[np.ndarray] | None = None
-    nearest_structure_label: list[str] | None = None
 
-    def cartesian_path(self, vol: Volume):
+    def cartesian_path(self, vol: Volume) -> List[Tuple[float, float, float]]:
         """Convert voxel coordinates to cartesian coordinates.
 
         Parameters
         ----------
         vol : Volume
             Volume object containing the grid information
+
+        Returns
+        -------
+        cart_sites: list[tuple]
+            List of cartesian coordinates of the sites defining the path
         """
         # Manually get the fractional coordinates of the sites, then use
         # lattice.get_cartesian_coords and make into tuple
-        self.cart_sites = []
+        cart_sites = []
         if self.sites is None:
             raise ValueError('Voxel coordinates of the path are required.')
         for site in self.sites:
@@ -58,24 +59,31 @@ class Pathway:
                 [x // vol.resolution for x in vol.lattice.lengths])
             cartesian_coords = vol.lattice.get_cartesian_coords(
                 fractional_coords)
-            self.cart_sites.append(tuple(cartesian_coords))
+            cart_sites.append(tuple(cartesian_coords))
+        return cart_sites
 
-    def fractional_path(self, vol: Volume):
+    def fractional_path(self, vol: Volume) -> List[Tuple[float, float, float]]:
         """Convert voxel coordinates to fractional coordinates.
 
         Parameters
         ----------
         vol : Volume
             Volume object containing the grid information
+
+        Returns
+        -------
+        frac_sites: list[tuple]
+            List of fractional coordinates of the sites defining the path
         """
         if self.sites is None:
             raise ValueError('Voxel coordinates of the path are required.')
-        # Manually get the fractional coordinates of the sites, then use
-        # lattice.get_fractional_coords and make into tuple
-        self.frac_sites = [
-            tuple(vol.lattice.get_fractional_coords(site))
-            for site in self.sites
-        ]
+        # Manually get the fractional coordinates of the sites
+        frac_sites = []
+        for site in self.sites:
+            fractional_coords = site / np.asarray(
+                [x // vol.resolution for x in vol.lattice.lengths])
+            frac_sites.append(tuple(fractional_coords))
+        return frac_sites
 
     def wrap(self, F: np.ndarray):
         """Wrap path in periodic boundary conditions in-place.
@@ -90,11 +98,9 @@ class Pathway:
 
         X, Y, Z = F.shape
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
-        if self.cart_sites is not None:
-            self.cart_sites = [(x % X, y % Y, z % Z)
-                               for x, y, z in self.cart_sites]
 
-    def path_over_structure(self, structure: Structure, vol: Volume):
+    def path_over_structure(self, structure: Structure,
+                            vol: Volume) -> Tuple[List[str], List[np.ndarray]]:
         """Find the nearest site of the structure to the path sites.
 
         Parameters
@@ -103,30 +109,34 @@ class Pathway:
             Reference structure
         vol : Volume
             Volume object that contains the information about the nearest sites of the structure
+
+        Returns
+        -------
+        nearest_structure_label: list[str]
+            List of the label of the closest site of the reference structure
+        nearest_structure_coord: list[np.ndarray]
+            List of cartesian coordinates of the closest site of the reference structure
         """
 
-        if self.frac_sites is None:
-            raise ValueError(
-                'Fractional coordinates of the path are required.')
-        if vol.nearest_structure_map is None or vol.nearest_structure_tree is None:
-            raise ValueError(
-                'Volume object must have nearest_structure_map and nearest_structure_tree attributes.'
-            )
+        frac_sites = self.fractional_path(vol)
+        nearest_structure_tree, nearest_structure_map = vol.nearest_structure_reference(
+            structure)
 
         # Get the indices of the nearest structure sites to the path sites
         nearest_structure_indices = [
-            vol.nearest_structure_tree.query(site)[1]
-            for site in self.frac_sites
+            nearest_structure_tree.query(site)[1] for site in frac_sites
         ]
         # and use it to get its label and coordinates
-        self.nearest_structure_label = [
-            structure.labels[vol.nearest_structure_map[index]]
+        nearest_structure_label = [
+            structure.labels[nearest_structure_map[index]]
             for index in nearest_structure_indices
         ]
-        self.nearest_structure_coord = [
-            structure.cart_coords[vol.nearest_structure_map[index]]
+        nearest_structure_coord = [
+            structure.cart_coords[nearest_structure_map[index]]
             for index in nearest_structure_indices
         ]
+
+        return nearest_structure_label, nearest_structure_coord
 
     @property
     def cost(self) -> float:
@@ -304,7 +314,7 @@ def _optimal_path_minmax_energy(F_graph: nx.Graph, start: tuple, end: tuple,
 
 
 def find_best_perc_path(F: np.ndarray,
-                        peaks: np.ndarray,
+                        vol: Volume,
                         percolate_x: bool = True,
                         percolate_y: bool = False,
                         percolate_z: bool = False) -> Pathway:
@@ -314,8 +324,8 @@ def find_best_perc_path(F: np.ndarray,
     ----------
     F : np.ndarray
         Energy grid that will be used to calculate the shortest path
-    peaks : np.ndarray
-        List of the peaks that correspond to high probability regions
+    volume : Volume
+        Volume object containing the grid information
     percolate_x : bool
         If True, consider paths that percolate along the x dimension
     percolate_y : bool
@@ -336,10 +346,13 @@ def find_best_perc_path(F: np.ndarray,
         return Pathway()
 
     # Tile the grind in the percolation directions
-    F = np.tile(F, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
+    F_periodic = np.tile(F,
+                         (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
 
     # Get F on a graph
-    F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
+    F_graph = free_energy_graph(F_periodic,
+                                max_energy_threshold=1e7,
+                                diagonal=True)
 
     # reaching the percolating image
     image = tuple(
@@ -350,6 +363,7 @@ def find_best_perc_path(F: np.ndarray,
     best_cost = float('inf')
     best_path = Pathway()
 
+    peaks = vol.find_peaks()
     for starting_point in peaks:
 
         # Get the end point which is a periodic image of the peak
@@ -370,5 +384,8 @@ def find_best_perc_path(F: np.ndarray,
         if cost < best_cost:
             best_cost = cost
             best_path = path
+
+    # Before returning, wrap the path in the original volume
+    best_path.wrap(F)
 
     return best_path

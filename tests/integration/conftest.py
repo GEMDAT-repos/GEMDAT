@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from gemdat.io import load_known_material
@@ -109,11 +108,17 @@ def vasp_full_vol(vasp_full_traj):
 
 
 @pytest.fixture(scope='module')
-def vasp_full_path(vasp_full_vol):
-    F = vasp_full_vol.get_free_energy(temperature=650.0)
-    peaks = np.array([[30, 23, 14], [35, 2, 7]])
+def vasp_path_vol(vasp_full_traj):
+    trajectory = vasp_full_traj
+    diff_trajectory = trajectory.filter('Li')
+    return trajectory_to_volume(trajectory=diff_trajectory, resolution=0.7)
+
+
+@pytest.fixture(scope='module')
+def vasp_full_path(vasp_path_vol):
+    F = vasp_path_vol.get_free_energy(temperature=650.0)
     path = find_best_perc_path(F,
-                               peaks,
+                               vasp_path_vol,
                                percolate_x=True,
                                percolate_y=False,
                                percolate_z=False)
@@ -121,8 +126,8 @@ def vasp_full_path(vasp_full_vol):
 
 
 @pytest.fixture(scope='module')
-def vasp_F_graph(vasp_full_vol):
-    F = vasp_full_vol.get_free_energy(temperature=650.0)
+def vasp_F_graph(vasp_path_vol):
+    F = vasp_path_vol.get_free_energy(temperature=650.0)
     F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
 
     return F_graph

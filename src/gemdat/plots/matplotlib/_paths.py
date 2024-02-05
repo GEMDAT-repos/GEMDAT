@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
+from pymatgen.core import Structure
 
 from gemdat.path import Pathway
+from gemdat.volume import Volume
 
 
-def energy_along_path(*, path: Pathway) -> plt.Figure:
+def energy_along_path(*, path: Pathway, structure: Structure,
+                      volume: Volume) -> plt.Figure:
     """Plot energy along specified path.
 
     Parameters
@@ -27,49 +30,52 @@ def energy_along_path(*, path: Pathway) -> plt.Figure:
 
     ax.plot(range(len(path.energy)), path.energy, marker='o', color='r')
     ax.set(ylabel='Free energy [eV]')
-    if path.nearest_structure_label is not None and path.nearest_structure_coord is not None:
-        # Create costum labels for the x axis to avoid consecutive repetitions
-        site_xlabel = []
-        sitecoord_xlabel = []
-        for i in range(len(path.sites)):
-            coord = path.nearest_structure_coord[i]
-            # only non repeated labels will get an entry
-            if (coord != path.nearest_structure_coord[i - 1]).any() or i == 0:
-                sitecoord_xlabel.append(
-                    f'{", ".join([f"{coord:.1f}" for coord in coord])}')
-                site_xlabel.append(f'{path.nearest_structure_label[i]}')
-            else:
-                sitecoord_xlabel.append('')
-                site_xlabel.append('')
-        non_empty_ticks = [
-            i for i, label in enumerate(sitecoord_xlabel) if label != ''
-        ]
-        extra_ticks = non_empty_ticks.copy()
-        extra_ticks.append(ax.get_xlim()[1])
-        centered_ticks = [(extra_ticks[i] + extra_ticks[i + 1]) / 2
-                          for i in range(len(extra_ticks) - 1)]
-        ax.set_xticks(centered_ticks)
-        ax.set_xticklabels([sitecoord_xlabel[i] for i in non_empty_ticks],
-                           rotation=45)
-        # Change background color alternatively for different sites
-        for i in range(0, len(non_empty_ticks), 2):
-            if i + 1 < len(non_empty_ticks):
-                ax.axvspan(non_empty_ticks[i],
-                           non_empty_ticks[i + 1],
-                           facecolor='lightgray',
-                           edgecolor='none')
-            else:
-                ax.axvspan(non_empty_ticks[i],
-                           max(non_empty_ticks),
-                           facecolor='lightgray',
-                           edgecolor='none')
-        # and add on top the site labels
-        ax_up = ax.twiny()
-        ax_up.set_xlim(ax.get_xlim())
-        ax_up.set_xticks(centered_ticks)
-        ax_up.set_xticklabels([site_xlabel[i] for i in non_empty_ticks],
-                              rotation=45)
-        ax_up.get_yaxis().set_visible(False)
+
+    nearest_structure_label, nearest_structure_coord = path.path_over_structure(
+        structure, volume)
+
+    # Create costum labels for the x axis to avoid consecutive repetitions
+    site_xlabel = []
+    sitecoord_xlabel = []
+    for i in range(len(path.sites)):
+        coord = nearest_structure_coord[i]
+        # only non repeated labels will get an entry
+        if (coord != nearest_structure_coord[i - 1]).any() or i == 0:
+            sitecoord_xlabel.append(
+                f'{", ".join([f"{coord:.1f}" for coord in coord])}')
+            site_xlabel.append(f'{nearest_structure_label[i]}')
+        else:
+            sitecoord_xlabel.append('')
+            site_xlabel.append('')
+    non_empty_ticks = [
+        i for i, label in enumerate(sitecoord_xlabel) if label != ''
+    ]
+    extra_ticks = non_empty_ticks.copy()
+    extra_ticks.append(ax.get_xlim()[1])
+    centered_ticks = [(extra_ticks[i] + extra_ticks[i + 1]) / 2
+                      for i in range(len(extra_ticks) - 1)]
+    ax.set_xticks(centered_ticks)
+    ax.set_xticklabels([sitecoord_xlabel[i] for i in non_empty_ticks],
+                       rotation=45)
+    # Change background color alternatively for different sites
+    for i in range(0, len(non_empty_ticks), 2):
+        if i + 1 < len(non_empty_ticks):
+            ax.axvspan(non_empty_ticks[i],
+                       non_empty_ticks[i + 1],
+                       facecolor='lightgray',
+                       edgecolor='none')
+        else:
+            ax.axvspan(non_empty_ticks[i],
+                       max(non_empty_ticks),
+                       facecolor='lightgray',
+                       edgecolor='none')
+    # and add on top the site labels
+    ax_up = ax.twiny()
+    ax_up.set_xlim(ax.get_xlim())
+    ax_up.set_xticks(centered_ticks)
+    ax_up.set_xticklabels([site_xlabel[i] for i in non_empty_ticks],
+                          rotation=45)
+    ax_up.get_yaxis().set_visible(False)
 
     return fig
 
