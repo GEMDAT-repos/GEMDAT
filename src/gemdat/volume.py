@@ -143,12 +143,7 @@ class Volume:
         periodic_ids: list[int] = []
         images = np.mgrid[-1:2, -1:2, -1:2].reshape(3, -1).T
         for dx, dy, dz in images:
-            periodic_structure.extend(
-                self.lattice.get_fractional_coords(
-                    structure.cart_coords + np.array([
-                        self.lattice.a * dx, self.lattice.b *
-                        dy, self.lattice.c * dz
-                    ]) * self.resolution))
+            periodic_structure.extend(structure.frac_coords + np.array([dx, dy, dz]))
 
             # store the id of the site in the original structure
             periodic_ids.extend(range(len(structure.cart_coords)))
