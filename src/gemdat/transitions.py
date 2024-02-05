@@ -166,15 +166,32 @@ class Transitions:
         """
         return ffill(self.states, fill_val=NOSITE, axis=0)
 
-    def occupancy(self) -> dict[int, int]:
+    def occupancy(self) -> Structure:
         """Calculate occupancy per site.
 
         Returns
         -------
-        occupancy : dict[int, int]
-            For each site, count for how many time steps it is occupied by an atom
+        structure : Structure
+            Structure with occupancies set on the sites.
         """
-        return _calculate_occupancy(self.states)
+        structure = self.structure
+        states = self.states
+
+        unq, counts = np.unique(states, return_counts=True)
+        counts = counts / len(states)
+        occupancies = dict(zip(unq, counts))
+
+        species = [{
+            site.specie.name: occupancies.get(i, 0)
+        } for i, site in enumerate(structure)]
+
+        return Structure(
+            lattice=structure.lattice,
+            species=species,
+            coords=structure.frac_coords,
+            site_properties=structure.site_properties,
+            labels=structure.labels,
+        )
 
     def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
@@ -464,22 +481,3 @@ def _split_transitions_events(events: pd.DataFrame,
         part[dependent_keys] -= offset
 
     return parts
-
-
-def _calculate_occupancy(atom_sites: np.ndarray) -> dict[int, int]:
-    """Calculate occupancy per site.
-
-    Parameters
-    ----------
-    atom_sites : np.ndarray
-        Input array with atom sites
-
-    Returns
-    -------
-    occupancy : dict[int, int]
-        For each site, count for how many time steps it is occupied by an atom
-    """
-    unq, counts = np.unique(atom_sites, return_counts=True)
-    occupancy = dict(zip(unq, counts))
-    occupancy.pop(NOSITE, None)
-    return occupancy

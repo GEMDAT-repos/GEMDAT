@@ -71,52 +71,52 @@ class TestSites:  # type: ignore
             np.array([[0, 0, 95], [4, 23, 95], [8, 28, 95]]))
 
     def test_occupancy(self, vasp_transitions):
-        occupancy = vasp_transitions.occupancy()
-        assert len(occupancy) == 95
-        assert sum(occupancy.values()) == 137026
-        assert list(occupancy.values())[::20] == [1704, 971, 351, 1508, 1104]
+        structure = vasp_transitions.occupancy()
 
-    def test_occupancy_parts(self, vasp_sites, vasp_transitions):
-        parts = vasp_sites.occupancy_parts(vasp_transitions)
-        assert len(parts) == self.n_parts
-        assert [sum(part.values()) for part in parts] == [
-            13592, 13898, 13819, 14028, 14022, 14470, 13200, 13419, 13286,
-            13292
+        assert len(structure) == 96
+        assert structure[0].species.num_atoms == 0.4544
+        assert structure.composition.num_atoms == 36.54026666666665
+
+    def test_occupancy_parts(self, vasp_transitions):
+        parts = vasp_transitions.split(5)
+        structures = [part.occupancy() for part in parts]
+
+        values1 = [structure[0].species.num_atoms for structure in structures]
+        assert values1 == [
+            0.11066666666666666, 0.708, 0.408, 0.62, 0.42533333333333334
         ]
 
-    def test_site_occupancy(self, vasp_sites, vasp_transitions):
-        assert isclose(vasp_sites.site_occupancy(vasp_transitions)['48h'],
-                       0.380628,
-                       rel_tol=1e-4)
-
-    def test_site_occupancy_parts(self, vasp_sites, vasp_transitions):
-        assert len(
-            vasp_sites.site_occupancy_parts(vasp_transitions)) == self.n_parts
-        assert isclose(
-            vasp_sites.site_occupancy_parts(vasp_transitions)[0]['48h'],
-            0.37756,
-            rel_tol=1e-4)
-        assert isclose(
-            vasp_sites.site_occupancy_parts(vasp_transitions)[9]['48h'],
-            0.36922,
-            rel_tol=1e-4)
+        values2 = [structure.composition.num_atoms for structure in structures]
+        assert values2 == [
+            36.653333333333336, 37.129333333333335, 37.98933333333333,
+            35.49199999999999, 35.43733333333334
+        ]
 
     def test_atom_locations(self, vasp_sites, vasp_transitions):
-        assert isclose(vasp_sites.atom_locations(vasp_transitions)['48h'],
-                       0.761255,
-                       rel_tol=1e-4)
+        dct = vasp_sites.atom_locations(vasp_transitions)
+        assert dct == {'48h': 0.7612555555555552}
 
     def test_atom_locations_parts(self, vasp_sites, vasp_transitions):
-        assert len(
-            vasp_sites.atom_locations_parts(vasp_transitions)) == self.n_parts
-        assert isclose(
-            vasp_sites.atom_locations_parts(vasp_transitions)[0]['48h'],
-            0.755111,
-            rel_tol=1e-4)
-        assert isclose(
-            vasp_sites.atom_locations_parts(vasp_transitions)[9]['48h'],
-            0.738444,
-            rel_tol=1e-4)
+        parts = vasp_transitions.split(5)
+        dcts = [vasp_sites.atom_locations(part) for part in parts]
+
+        assert dcts == [
+            {
+                '48h': 0.7636111111111111
+            },
+            {
+                '48h': 0.7735277777777778
+            },
+            {
+                '48h': 0.7914444444444443
+            },
+            {
+                '48h': 0.7394166666666665
+            },
+            {
+                '48h': 0.7382777777777779
+            },
+        ]
 
     def test_n_jumps(self, vasp_jumps):
         assert vasp_jumps.n_solo_jumps == 450
@@ -124,7 +124,7 @@ class TestSites:  # type: ignore
         assert isclose(vasp_jumps.solo_fraction, 0.974026, abs_tol=1e-4)
 
     def test_rates(self, vasp_jumps):
-        rates = vasp_jumps.rates()
+        rates = vasp_jumps.rates(n_parts=10)
         assert isinstance(rates, dict)
         assert len(rates) == 1
 
@@ -133,15 +133,15 @@ class TestSites:  # type: ignore
         assert isclose(rates_std, 41893421993.683655)
 
     def test_activation_energies(self, vasp_jumps, vasp_sites):
-        activation_energies = vasp_jumps.activation_energies()
+        activation_energies = vasp_jumps.activation_energies(n_parts=10)
 
         assert isinstance(activation_energies, dict)
         assert len(activation_energies) == 1
 
         e_act, e_act_std = activation_energies[('48h', '48h')]
 
-        assert isclose(e_act, 0.1744591, abs_tol=1e-4)
-        assert isclose(e_act_std, .00405951, abs_tol=1e-6)
+        assert isclose(e_act, 0.17445, abs_tol=1e-4)
+        assert isclose(e_act_std, 0.004059, abs_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_jumps):
         assert isclose(vasp_jumps.jump_diffusivity(3),

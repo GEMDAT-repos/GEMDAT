@@ -76,6 +76,11 @@ def test_shape(vasp_shape_data):
         plots.shape(shape)
 
 
+@image_comparison2(baseline_images=['msd'])
+def test_msd_per_element(vasp_traj):
+    plots.msd_per_element(trajectory=vasp_traj)
+
+
 @image_comparison2(baseline_images=['path_energy'])
 def test_path_energy(vasp_full_vol, vasp_full_path):
     structure = load_known_material('argyrodite')

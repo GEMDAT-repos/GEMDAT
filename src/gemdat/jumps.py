@@ -237,13 +237,16 @@ class Jumps:
 
     @weak_lru_cache()
     def activation_energies(
-            self) -> dict[tuple[str, str], tuple[float, float]]:
+            self,
+            n_parts: int = 10) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate activation energies for jumps (UNITS?).
 
         Returns
         -------
         e_act : dict[tuple[str, str], tuple[float, float]]
             Dictionary with jump activation energies and standard deviations between site pairs.
+        n_parts : int
+            Number of parts to split transitions/jumps into for statistics
         """
         trajectory = self.transitions.trajectory
         attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
@@ -252,16 +255,21 @@ class Jumps:
 
         temperature = trajectory.metadata['temperature']
 
-        atom_locations_parts = self.sites.atom_locations_parts(
-            self.transitions)
-        parts = self.jumps_counter_parts(self.sites.n_parts)
+        atom_locations_parts = [
+            self.sites.atom_locations(part)
+            for part in self.transitions.split(n_parts)
+        ]
+        jumps_counter_parts = [
+            part.jumps_counter() for part in self.split(n_parts)
+        ]
 
         for site_pair in self.sites.site_pairs:
             site_start, site_stop = site_pair
 
-            n_jumps = np.array([part[site_pair] for part in parts])
+            n_jumps = np.array(
+                [part[site_pair] for part in jumps_counter_parts])
 
-            part_time = trajectory.total_time / self.sites.n_parts
+            part_time = trajectory.total_time / n_parts
 
             atom_percentage = np.array(
                 [part[site_start] for part in atom_locations_parts])
@@ -310,28 +318,25 @@ class Jumps:
         ]
 
     @weak_lru_cache()
-    def jumps_counter_parts(self, n_parts) -> list[Counter]:
-        """Return [jump counters][gemdat.sites.SitesData.jumps] per part."""
-
-        return [part.jumps_counter() for part in self.split(n_parts)]
-
-    @weak_lru_cache()
-    def rates(self) -> dict[tuple[str, str], tuple[float, float]]:
+    def rates(self,
+              n_parts: int = 10) -> dict[tuple[str, str], tuple[float, float]]:
         """Calculate jump rates (total jumps / second).
 
         Returns
         -------
         rates : dict[tuple[str, str], tuple[float, float]]
             Dictionary with jump rates and standard deviations between site pairs
+        n_parts : int
+            Number of parts to split jumps into for statistics
         """
         rates: dict[tuple[str, str], tuple[float, float]] = {}
 
-        parts = self.jumps_counter_parts(self.sites.n_parts)
+        parts = [part.jumps_counter() for part in self.split(n_parts)]
 
         for site_pair in self.sites.site_pairs:
             n_jumps = [part[site_pair] for part in parts]
 
-            part_time = self.transitions.trajectory.total_time / self.sites.n_parts
+            part_time = self.transitions.trajectory.total_time / n_parts
             denom = self.n_floating * part_time
 
             jump_freq_mean = np.mean(n_jumps) / denom
