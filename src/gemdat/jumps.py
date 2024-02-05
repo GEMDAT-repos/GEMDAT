@@ -151,7 +151,7 @@ class Jumps:
     @property
     def n_floating(self) -> int:
         """Return number of floating species."""
-        return len(self.transitions.trajectory.species)
+        return self.transitions.n_floating
 
     @property
     def solo_fraction(self) -> float:
@@ -236,22 +236,18 @@ class Jumps:
         )
 
     @weak_lru_cache()
-    def activation_energies(
-            self,
-            n_parts: int = 10) -> dict[tuple[str, str], tuple[float, float]]:
+    def activation_energies(self, n_parts: int = 10) -> pd.DataFrame:
         """Calculate activation energies for jumps (UNITS?).
 
         Returns
         -------
-        e_act : dict[tuple[str, str], tuple[float, float]]
-            Dictionary with jump activation energies and standard deviations between site pairs.
-        n_parts : int
-            Number of parts to split transitions/jumps into for statistics
+        df : pd.DataFrame
+            Dataframe with jump activation energies and standard deviations between site pairs.
         """
         trajectory = self.transitions.trajectory
         attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
 
-        e_act = {}
+        dct = {}
 
         temperature = trajectory.metadata['temperature']
 
@@ -285,10 +281,13 @@ class Jumps:
             e_act_arr = -np.log(eff_rate / attempt_freq) * (
                 Boltzmann * temperature) / elementary_charge
 
-            e_act[site_start,
-                  site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
+            dct[site_start, site_stop] = np.mean(e_act_arr), np.std(e_act_arr,
+                                                                    ddof=1)
 
-        return e_act
+        df = pd.DataFrame(dct).T
+        df.columns = ('energy', 'std')
+
+        return df
 
     def jumps_counter(self) -> Counter:
         """Calculate number of jumps between sites.
@@ -318,18 +317,15 @@ class Jumps:
         ]
 
     @weak_lru_cache()
-    def rates(self,
-              n_parts: int = 10) -> dict[tuple[str, str], tuple[float, float]]:
+    def rates(self, n_parts: int = 10) -> pd.DataFrame:
         """Calculate jump rates (total jumps / second).
 
         Returns
         -------
-        rates : dict[tuple[str, str], tuple[float, float]]
-            Dictionary with jump rates and standard deviations between site pairs
-        n_parts : int
-            Number of parts to split jumps into for statistics
+        df : pd.DataFrame
+            Dataframe with jump rates and standard deviations between site pairs
         """
-        rates: dict[tuple[str, str], tuple[float, float]] = {}
+        dct = {}
 
         parts = [part.jumps_counter() for part in self.split(n_parts)]
 
@@ -342,6 +338,9 @@ class Jumps:
             jump_freq_mean = np.mean(n_jumps) / denom
             jump_freq_std = np.std(n_jumps, ddof=1) / denom
 
-            rates[site_pair] = float(jump_freq_mean), float(jump_freq_std)
+            dct[site_pair] = float(jump_freq_mean), float(jump_freq_std)
 
-        return rates
+        df = pd.DataFrame(dct).T
+        df.columns = ('rates', 'std')
+
+        return df

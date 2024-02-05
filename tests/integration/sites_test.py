@@ -8,6 +8,7 @@ from __future__ import annotations
 from math import isclose
 
 import numpy as np
+import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
@@ -43,9 +44,17 @@ class TestSites:  # type: ignore
         assert_allclose(states_prev[slice_],
                         np.array([[94, -1], [94, 65], [0, 65], [0, 65]]))
 
-    def test_all_transitions(self, vasp_sites, vasp_transitions):
+    def test_n_floating(self, vasp_transitions):
+        # https://github.com/GEMDAT-repos/GEMDAT/issues/252
+        assert vasp_transitions.n_floating == 48
 
+    def test_n_states(self, vasp_transitions):
+        assert vasp_transitions.n_states == 3750
+
+    def test_all_transitions(self, vasp_sites, vasp_transitions):
         events = vasp_transitions.events
+
+        assert vasp_transitions.n_events == 2105
         assert vasp_transitions.events.shape == (2105, 6)
         assert_allclose(
             events[::1000],
@@ -125,34 +134,35 @@ class TestSites:  # type: ignore
 
     def test_rates(self, vasp_jumps):
         rates = vasp_jumps.rates(n_parts=10)
-        assert isinstance(rates, dict)
+        assert isinstance(rates, pd.DataFrame)
         assert len(rates) == 1
 
-        rates, rates_std = rates[('48h', '48h')]
-        assert isclose(rates, 542307692307.69226)
-        assert isclose(rates_std, 41893421993.683655)
+        row = rates.loc[('48h', '48h')]
+
+        assert isclose(row['rates'], 1174999999999.9998)
+        assert isclose(row['std'], 90769080986.31458)
 
     def test_activation_energies(self, vasp_jumps, vasp_sites):
         activation_energies = vasp_jumps.activation_energies(n_parts=10)
 
-        assert isinstance(activation_energies, dict)
+        assert isinstance(activation_energies, pd.DataFrame)
         assert len(activation_energies) == 1
 
-        e_act, e_act_std = activation_energies[('48h', '48h')]
+        row = activation_energies.loc[('48h', '48h')]
 
-        assert isclose(e_act, 0.17445, abs_tol=1e-4)
-        assert isclose(e_act_std, 0.004059, abs_tol=1e-6)
+        assert isclose(row['energy'], 0.134486, abs_tol=1e-4)
+        assert isclose(row['std'], 0.00405952, abs_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_jumps):
         assert isclose(vasp_jumps.jump_diffusivity(3),
-                       4.377407272861394e-09,
+                       9.484382e-09,
                        rel_tol=1e-6)
 
     def test_correlation_factor(self, vasp_sites, vasp_jumps):
         tracer_diff = vasp_sites.metrics.tracer_diffusivity(dimensions=3)
         correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(
             dimensions=3)
-        assert isclose(correlation_factor, 0.3588002877883636, rel_tol=1e-6)
+        assert isclose(correlation_factor, 0.165600, rel_tol=1e-6)
 
     def test_collective(self, vasp_jumps):
         collective = vasp_jumps.collective()
