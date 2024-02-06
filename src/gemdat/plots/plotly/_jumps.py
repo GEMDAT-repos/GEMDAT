@@ -32,12 +32,11 @@ def jumps_vs_distance(*,
     fig : plotly.graph_objects.Figure
         Output figure
     """
-    structure = jumps.structure
+    sites = jumps.sites
     trajectory = jumps.trajectory
     lattice = trajectory.get_lattice()
 
-    pdist = lattice.get_all_distances(structure.frac_coords,
-                                      structure.frac_coords)
+    pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
 
     bin_max = (1 + pdist.max() // jump_res) * jump_res
     n_bins = int(bin_max / jump_res) + 1
@@ -61,19 +60,12 @@ def jumps_vs_distance(*,
     std = grouped.std().reset_index().rename(columns={'count': 'std'})
     df = mean.merge(std, how='inner')
 
-    df['specie'] = jumps.floating_specie
-
     if n_parts == 1:
-        fig = px.bar(df,
-                     x='Displacement',
-                     y='mean',
-                     color='specie',
-                     barmode='stack')
+        fig = px.bar(df, x='Displacement', y='mean', barmode='stack')
     else:
         fig = px.bar(df,
                      x='Displacement',
                      y='mean',
-                     color='specie',
                      error_y='std',
                      barmode='stack')
 
@@ -122,12 +114,11 @@ def jumps_vs_time(*,
 
     df = pd.DataFrame(data=zip(columns, mean, std),
                       columns=['time', 'count', 'std'])
-    df['specie'] = jumps.floating_specie
 
     if n_parts > 1:
-        fig = px.bar(df, x='time', y='count', color='specie', error_y='std')
+        fig = px.bar(df, x='time', y='count', error_y='std')
     else:
-        fig = px.bar(df, x='time', y='count', color='specie')
+        fig = px.bar(df, x='time', y='count')
 
     fig.update_layout(bargap=0.2,
                       title='Jumps vs. time',

@@ -32,13 +32,12 @@ def jumps_vs_distance(
     fig : matplotlib.figure.Figure
         Output figure
     """
-    structure = jumps.structure
+    sites = jumps.sites
 
     trajectory = jumps.trajectory
     lattice = trajectory.get_lattice()
 
-    pdist = lattice.get_all_distances(structure.frac_coords,
-                                      structure.frac_coords)
+    pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
 
     bin_max = (1 + pdist.max() // jump_res) * jump_res
     n_bins = int(bin_max / jump_res) + 1
@@ -137,7 +136,7 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
         Output figure
     """
     trajectory = jumps.trajectory
-    structure = jumps.structure
+    sites = jumps.sites
 
     class LabelItems:
 
@@ -148,13 +147,13 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
         def items(self):
             yield from zip(self.labels, self.coords)
 
-    coords = structure.frac_coords
+    coords = sites.frac_coords
     lattice = trajectory.get_lattice()
 
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    site_labels = LabelItems(jumps.structure.labels, coords)
+    site_labels = LabelItems(jumps.sites.labels, coords)
 
     xyz_labels = LabelItems('OABC', [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1],
                                      [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]])
@@ -253,7 +252,7 @@ def jumps_3d_animation(
         def items(self):
             yield from zip(self.labels, self.coords)
 
-    coords = jumps.structure.frac_coords
+    coords = jumps.sites.frac_coords
     lattice = trajectory.get_lattice()
 
     color_from = colormaps['Set1'].colors  # type: ignore

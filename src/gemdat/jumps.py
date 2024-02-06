@@ -131,7 +131,7 @@ class Jumps:
         """
         self.transitions = transitions
         self.trajectory = transitions.trajectory
-        self.structure = transitions.structure
+        self.sites = transitions.sites
         self.conversion_method = conversion_method
         self.data = conversion_method(transitions,
                                       minimal_residence=minimal_residence)
@@ -159,7 +159,7 @@ class Jumps:
     @property
     def site_pairs(self) -> list[tuple[str, str]]:
         """Return list of all unique site pairs."""
-        labels = self.structure.labels
+        labels = self.sites.labels
         site_pairs = product(labels, repeat=2)
         return [pair for pair in site_pairs]
 
@@ -183,11 +183,10 @@ class Jumps:
             Jump diffusivity in m^2/s
         """
         lattice = self.trajectory.get_lattice()
-        structure = self.structure
+        sites = self.sites
         total_time = self.trajectory.total_time
 
-        pdist = lattice.get_all_distances(structure.frac_coords,
-                                          structure.frac_coords)
+        pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
 
         jump_diff = np.sum(pdist**2 * self.matrix())
         jump_diff *= angstrom**2 / (2 * dimensions * self.n_floating *
@@ -225,7 +224,7 @@ class Jumps:
         """
 
         trajectory = self.trajectory
-        structure = self.transitions.structure
+        sites = self.transitions.sites
 
         time_step = trajectory.time_step
         attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
@@ -234,7 +233,7 @@ class Jumps:
 
         return Collective(
             jumps=self,
-            structure=structure,
+            sites=sites,
             lattice=trajectory.get_lattice(),
             max_steps=max_steps,
             max_dist=max_dist,
@@ -302,7 +301,7 @@ class Jumps:
         jumps : dict[tuple[str, str], int]
             Dictionary with number of jumps per sites combination
         """
-        labels = self.structure.labels
+        labels = self.sites.labels
         jumps = Counter([(labels[i], labels[j]) for _, (
             i, j) in self.data[['start site', 'destination site']].iterrows()])
         return jumps

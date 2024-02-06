@@ -10,7 +10,6 @@ from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
 from gemdat.sites import SitesData
 from gemdat.trajectory import Trajectory
-from gemdat.transitions import Transitions
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
 VASP_XML = DATA_DIR / 'short_simulation' / 'vasprun.xml'
@@ -45,9 +44,8 @@ def structure():
 
 @pytest.fixture(scope='module')
 def vasp_transitions(vasp_traj, structure):
-    transitions = Transitions.from_trajectory(trajectory=vasp_traj,
-                                              structure=structure,
-                                              floating_specie='Li')
+    transitions = vasp_traj.transitions_between_sites(sites=structure,
+                                                      floating_specie='Li')
     return transitions
 
 
