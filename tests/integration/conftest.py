@@ -54,7 +54,7 @@ def vasp_jumps(vasp_transitions):
 
 
 @pytest.fixture(scope='module')
-def vasp_rdf_data(vasp_traj, structure, vasp_transitions):
+def vasp_rdf_data(vasp_traj, structure):
     # Shorten trajectory for faster test
     trajectory = vasp_traj[-1000:]
     transitions = trajectory.transitions_between_sites(structure,
