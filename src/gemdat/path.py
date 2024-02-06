@@ -41,16 +41,11 @@ class Pathway:
         cart_sites: list[tuple]
             List of cartesian coordinates of the sites defining the path
         """
-        # Manually get the fractional coordinates of the sites, then use
-        # lattice.get_cartesian_coords and make into tuple
         cart_sites = []
         if self.sites is None:
             raise ValueError('Voxel coordinates of the path are required.')
-        for site in self.sites:
-            fractional_coords = site / np.asarray(
-                [x // vol.resolution for x in vol.lattice.lengths])
-            cartesian_coords = vol.lattice.get_cartesian_coords(
-                fractional_coords)
+        for site in self.fractional_path(vol=vol):
+            cartesian_coords = vol.lattice.get_cartesian_coords(site)
             cart_sites.append(tuple(cartesian_coords))
         return cart_sites
 
@@ -69,7 +64,6 @@ class Pathway:
         """
         if self.sites is None:
             raise ValueError('Voxel coordinates of the path are required.')
-        # Manually get the fractional coordinates of the sites
         frac_sites = []
         for site in self.sites:
             fractional_coords = site / np.asarray(
