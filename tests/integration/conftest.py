@@ -76,9 +76,13 @@ def vasp_rdf_data(vasp_traj, structure, vasp_transitions):
                       trajectory=trajectory,
                       floating_specie='Li')
 
+    transitions = Transitions.from_trajectory(trajectory=trajectory,
+                                              structure=structure,
+                                              floating_specie='Li')
+
     rdfs = radial_distribution(
         sites=sites,
-        transitions=vasp_transitions,
+        transitions=transitions,
         max_dist=5,
     )
 
@@ -87,13 +91,13 @@ def vasp_rdf_data(vasp_traj, structure, vasp_transitions):
 
 @pytest.fixture(scope='module')
 def vasp_shape_data(vasp_traj):
-    trajectory = vasp_traj[-1000:]
+    trajectory = vasp_traj[-250:]
     trajectory.filter('Li')
 
     # shape analysis needs structure without supercell
-    structure = load_known_material('argyrodite')
+    sites = load_known_material('argyrodite')
 
-    sa = ShapeAnalyzer.from_structure(structure)
+    sa = ShapeAnalyzer.from_structure(sites)
 
     shapes = sa.analyze_trajectory(trajectory, supercell=(2, 1, 1))
 
