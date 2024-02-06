@@ -43,7 +43,6 @@ class Transitions:
         *,
         trajectory: Trajectory,
         structure: Structure,
-        floating_specie: str,
         dist_close: float,
         events: pd.DataFrame,
         states: np.ndarray,
@@ -58,8 +57,6 @@ class Transitions:
             for which transitions are generated
         structure : Structure
             Structure with known sites used for calculation of events
-        floating_specie : str
-            Name of the floating specie to calculate transitions for
         dist_close: float
             Custom diameter of all sites
         events : np.ndarray
@@ -75,7 +72,6 @@ class Transitions:
         self.states = states
         self.inner_states = inner_states
         self.events = events
-        self.floating_specie = floating_specie
 
     @property
     def n_floating(self) -> int:
@@ -148,7 +144,6 @@ class Transitions:
                   states=states,
                   inner_states=inner_states,
                   structure=structure,
-                  floating_specie=floating_specie,
                   dist_close=dist_close,
                   trajectory=diff_trajectory)
 
@@ -267,7 +262,6 @@ class Transitions:
                 self.__class__(
                     structure=self.structure,
                     trajectory=split_trajectory[i],
-                    floating_specie=self.floating_specie,
                     dist_close=self.dist_close,
                     states=split_states[i],
                     inner_states=split_inner_states[i],
