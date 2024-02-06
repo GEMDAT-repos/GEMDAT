@@ -76,9 +76,13 @@ def vasp_rdf_data(vasp_traj, structure, vasp_transitions):
                       trajectory=trajectory,
                       floating_specie='Li')
 
+    transitions = Transitions.from_trajectory(trajectory=trajectory,
+                                              structure=structure,
+                                              floating_specie='Li')
+
     rdfs = radial_distribution(
         sites=sites,
-        transitions=vasp_transitions,
+        transitions=transitions,
         max_dist=5,
     )
 

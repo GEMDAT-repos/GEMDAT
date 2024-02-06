@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 from helpers import image_comparison2
 
 from gemdat.io import load_known_material
@@ -61,7 +60,6 @@ def test_jumps_3d_animation(vasp_jumps):
     plots.jumps_3d_animation(jumps=vasp_jumps, t_start=1000, t_stop=1001)
 
 
-@pytest.mark.xfail(reason='Needs to be checked')
 @image_comparison2(baseline_images=['rdf1', 'rdf2', 'rdf3'])
 def test_rdf23(vasp_rdf_data):
     assert len(vasp_rdf_data) == 3
