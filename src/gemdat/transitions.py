@@ -78,20 +78,24 @@ class Transitions:
         self.floating_specie = floating_specie
 
     @property
-    def n_sites(self) -> int:
-        """Return number of sites in structure."""
-        return len(self.structure)
-
-    @property
-    def n_steps(self) -> int:
-        """Return number of steps in trajectory."""
-        return len(self.trajectory)
-
-    @property
     def n_floating(self) -> int:
         """Return number of floating species."""
-        base_structure = self.trajectory[0]
-        return int(base_structure.composition[self.floating_specie])
+        return len(self.trajectory.species)
+
+    @property
+    def n_states(self) -> int:
+        """Return number of states."""
+        return len(self.states)
+
+    @property
+    def n_events(self) -> int:
+        """Return number of events."""
+        return len(self.events)
+
+    @property
+    def n_sites(self) -> int:
+        """Return number of sites."""
+        return len(self.structure)
 
     @classmethod
     def from_trajectory(
@@ -149,26 +153,6 @@ class Transitions:
                   trajectory=diff_trajectory)
 
         return obj
-
-    @property
-    def n_floating(self) -> int:
-        """Return number of floating species."""
-        return len(self.trajectory.species)
-
-    @property
-    def n_states(self) -> int:
-        """Return number of states."""
-        return len(self.states)
-
-    @property
-    def n_events(self) -> int:
-        """Return number of events."""
-        return len(self.events)
-
-    @property
-    def n_sites(self) -> int:
-        """Return number of sites."""
-        return len(self.structure)
 
     @weak_lru_cache()
     def matrix(self) -> np.ndarray:

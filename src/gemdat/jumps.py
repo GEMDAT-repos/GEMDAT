@@ -182,9 +182,9 @@ class Jumps:
         jump_diff : float
             Jump diffusivity in m^2/s
         """
-        lattice = self.transitions.trajectory.get_lattice()
-        structure = self.transitions.structure
-        total_time = self.transitions.trajectory.total_time
+        lattice = self.trajectory.get_lattice()
+        structure = self.structure
+        total_time = self.trajectory.total_time
 
         pdist = lattice.get_all_distances(structure.frac_coords,
                                           structure.frac_coords)
@@ -224,7 +224,7 @@ class Jumps:
             Output class with data on collective jumps
         """
 
-        trajectory = self.transitions.trajectory
+        trajectory = self.trajectory
         structure = self.transitions.structure
 
         time_step = trajectory.time_step
@@ -249,7 +249,7 @@ class Jumps:
         df : pd.DataFrame
             Dataframe with jump activation energies and standard deviations between site pairs.
         """
-        trajectory = self.transitions.trajectory
+        trajectory = self.trajectory
         attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
 
         dct = {}
@@ -302,7 +302,7 @@ class Jumps:
         jumps : dict[tuple[str, str], int]
             Dictionary with number of jumps per sites combination
         """
-        labels = self.transitions.structure.labels
+        labels = self.structure.labels
         jumps = Counter([(labels[i], labels[j]) for _, (
             i, j) in self.data[['start site', 'destination site']].iterrows()])
         return jumps
@@ -338,7 +338,7 @@ class Jumps:
         for site_pair in self.site_pairs:
             n_jumps = [part[site_pair] for part in parts]
 
-            part_time = self.transitions.trajectory.total_time / n_parts
+            part_time = self.trajectory.total_time / n_parts
             denom = self.n_floating * part_time
 
             jump_freq_mean = np.mean(n_jumps) / denom
