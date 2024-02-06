@@ -4,9 +4,15 @@ between sites."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import networkx as nx
 import numpy as np
+from pymatgen.core import Structure
+
+from gemdat.volume import Volume
+
+from .utils import nearest_structure_reference
 
 
 @dataclass
@@ -15,13 +21,57 @@ class Pathway:
 
     Attributes
     ----------
-    path: list[tuple]
-        List of coordinates of the sites definint the path
-    path_energy: list[float]
+    sites: list[tuple]
+        List of voxel coordinates of the sites defining the path
+    energy: list[float]
         List of the energy along the path
     """
-    sites: list[tuple[int, int, int]]
-    energy: list[float]
+
+    sites: list[tuple[int, int, int]] | None = None
+    energy: list[float] | None = None
+
+    def cartesian_path(self, vol: Volume) -> list[tuple[float, float, float]]:
+        """Convert voxel coordinates to cartesian coordinates.
+
+        Parameters
+        ----------
+        vol : Volume
+            Volume object containing the grid information
+
+        Returns
+        -------
+        cart_sites: list[tuple]
+            List of cartesian coordinates of the sites defining the path
+        """
+        cart_sites = []
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
+        for site in self.fractional_path(vol=vol):
+            cartesian_coords = vol.lattice.get_cartesian_coords(site)
+            cart_sites.append(tuple(cartesian_coords))
+        return cart_sites
+
+    def fractional_path(self, vol: Volume) -> list[tuple[float, float, float]]:
+        """Convert voxel coordinates to fractional coordinates.
+
+        Parameters
+        ----------
+        vol : Volume
+            Volume object containing the grid information
+
+        Returns
+        -------
+        frac_sites: list[tuple]
+            List of fractional coordinates of the sites defining the path
+        """
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
+        frac_sites = []
+        for site in self.sites:
+            fractional_coords = site / np.asarray(
+                [x // vol.resolution for x in vol.lattice.lengths])
+            frac_sites.append(tuple(fractional_coords))
+        return frac_sites
 
     def wrap(self, F: np.ndarray):
         """Wrap path in periodic boundary conditions in-place.
@@ -31,22 +81,69 @@ class Pathway:
         F: np.ndarray
             Grid in which the path sites will be wrapped
         """
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
+
         X, Y, Z = F.shape
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
+
+    def path_over_structure(self, structure: Structure,
+                            vol: Volume) -> tuple[list[str], list[np.ndarray]]:
+        """Find the nearest site of the structure to the path sites.
+
+        Parameters
+        ----------
+        structure : Structure
+            Reference structure
+        vol : Volume
+            Volume object that contains the information about the nearest sites of the structure
+
+        Returns
+        -------
+        nearest_structure_label: list[str]
+            List of the label of the closest site of the reference structure
+        nearest_structure_coord: list[np.ndarray]
+            List of cartesian coordinates of the closest site of the reference structure
+        """
+        frac_sites = self.fractional_path(vol)
+        nearest_structure_tree, nearest_structure_map = nearest_structure_reference(
+            structure)
+
+        # Get the indices of the nearest structure sites to the path sites
+        nearest_structure_indices = [
+            nearest_structure_tree.query(site)[1] for site in frac_sites
+        ]
+        # and use it to get its label and coordinates
+        nearest_structure_label = [
+            structure.labels[nearest_structure_map[index]]
+            for index in nearest_structure_indices
+        ]
+        nearest_structure_coord = [
+            structure.cart_coords[nearest_structure_map[index]]
+            for index in nearest_structure_indices
+        ]
+
+        return nearest_structure_label, nearest_structure_coord
 
     @property
     def cost(self) -> float:
         """Calculate the path cost."""
+        if self.energy is None:
+            raise ValueError('Energy of the path is required.')
         return np.sum(self.energy)
 
     @property
     def start_site(self) -> tuple[int, int, int]:
         """Return first site."""
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
         return self.sites[0]
 
     @property
     def end_site(self) -> tuple[int, int, int]:
         """Return end site."""
+        if self.sites is None:
+            raise ValueError('Voxel coordinates of the path are required.')
         return self.sites[-1]
 
 
@@ -90,18 +187,31 @@ def free_energy_graph(F: np.ndarray,
         for move in movements:
             neighbor = tuple((node + move) % F.shape)
             if neighbor in G.nodes:
-                G.add_edge(node, neighbor, weight=F[neighbor])
+                exp_n_energy = np.exp(F[neighbor])
+                if exp_n_energy < max_energy_threshold:
+                    weight_exp = exp_n_energy
+                else:
+                    weight_exp = max_energy_threshold
+
+                G.add_edge(node,
+                           neighbor,
+                           weight=F[neighbor],
+                           weight_exp=weight_exp)
 
     return G
+
+
+_PATHFINDING_METHODS = Literal['dijkstra', 'bellman-ford', 'minmax-energy',
+                               'dijkstra-exp']
 
 
 def optimal_path(
     F_graph: nx.Graph,
     start: tuple,
     end: tuple,
+    method: _PATHFINDING_METHODS = 'dijkstra',
 ) -> Pathway:
-    """Calculate the shortest cost-effective path from start to end using
-    Networkx library.
+    """Calculate the shortest cost-effective path using the desired method.
 
     Parameters
     ----------
@@ -111,6 +221,12 @@ def optimal_path(
         Coordinates of the starting point
     end: tuple
         Coordinates of the ending point
+    method : str
+        Method used to calculate the shortest path. Options are:
+        - 'dijkstra': Dijkstra's algorithm
+        - 'bellman-ford': Bellman-Ford algorithm
+        - 'minmax-energy': Minmax energy algorithm
+        - 'dijkstra-exp': Dijkstra's algorithm with exponential weights
 
     Returns
     -------
@@ -118,19 +234,74 @@ def optimal_path(
         Optimal path on the graph between start and end
     """
 
-    optimal_path = nx.shortest_path(F_graph,
-                                    source=start,
-                                    target=end,
-                                    weight='weight')
+    optimal_path = nx.shortest_path(
+        F_graph,
+        source=start,
+        target=end,
+        weight='weight_exp' if method == 'dijkstra-exp' else 'weight',
+        method='dijkstra' if method in ('dijkstra-exp',
+                                        'minmax-energy') else method)
+
+    if method == 'minmax-energy':
+        optimal_path = _optimal_path_minmax_energy(F_graph, start, end,
+                                                   optimal_path)
+    elif method not in ('dijkstra', 'bellman-ford', 'dijkstra-exp'):
+        raise ValueError(f'Unknown method {method}')
+
     path_energy = [F_graph.nodes[node]['energy'] for node in optimal_path]
-
-    path = Pathway(optimal_path, path_energy)
-
+    path = Pathway(sites=optimal_path, energy=path_energy)
     return path
 
 
+def _optimal_path_minmax_energy(F_graph: nx.Graph, start: tuple, end: tuple,
+                                optimal_path: list) -> list:
+    """Find the optimal path that has the minimum maximum-energy.
+
+    Parameters
+    ----------
+    F_graph : nx.Graph
+        Graph of the free energy
+    start : tuple
+        Coordinates of the starting point
+    end: tuple
+        Coordinates of the ending point
+    optimal_path : list
+        List of the nodes of the optimal path
+
+    Returns
+    -------
+    optimal_path: list
+        Optimal path on the graph between start and end
+    """
+
+    max_energy = max([F_graph.nodes[node]['energy'] for node in optimal_path])
+    minmax_energy = max_energy
+    pruned_F_graph = F_graph.copy()
+
+    while minmax_energy <= max_energy:
+        # Find the node of the path with the highest energy
+        max_node = max(optimal_path, key=lambda x: F_graph.nodes[x]['energy'])
+        # remove this node from the graph
+        pruned_F_graph.remove_node(max_node)
+        # recompute the path
+        pruned_path = nx.shortest_path(
+            pruned_F_graph,
+            source=start,
+            target=end,
+            weight='weight',
+        )
+        minmax_energy = max(
+            [F_graph.nodes[node]['energy'] for node in pruned_path])
+
+        if minmax_energy < max_energy:
+            optimal_path = pruned_path
+            max_energy = minmax_energy
+
+    return optimal_path
+
+
 def find_best_perc_path(F: np.ndarray,
-                        peaks: np.ndarray,
+                        vol: Volume,
                         percolate_x: bool = True,
                         percolate_y: bool = False,
                         percolate_z: bool = False) -> Pathway:
@@ -140,8 +311,8 @@ def find_best_perc_path(F: np.ndarray,
     ----------
     F : np.ndarray
         Energy grid that will be used to calculate the shortest path
-    peaks : np.ndarray
-        List of the peaks that correspond to high probability regions
+    volume : Volume
+        Volume object containing the grid information
     percolate_x : bool
         If True, consider paths that percolate along the x dimension
     percolate_y : bool
@@ -159,13 +330,16 @@ def find_best_perc_path(F: np.ndarray,
     # Find percolation using virtual images along the required dimensions
     if not any([percolate_x, percolate_y, percolate_z]):
         print('Warning: percolation is not defined')
-        return Pathway([], [])
+        return Pathway()
 
     # Tile the grind in the percolation directions
-    F = np.tile(F, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
+    F_periodic = np.tile(F,
+                         (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
 
     # Get F on a graph
-    F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
+    F_graph = free_energy_graph(F_periodic,
+                                max_energy_threshold=1e7,
+                                diagonal=True)
 
     # reaching the percolating image
     image = tuple(
@@ -174,8 +348,9 @@ def find_best_perc_path(F: np.ndarray,
 
     # Find the lowest cost path that percolates along the x dimension
     best_cost = float('inf')
-    best_path = Pathway([], [])
+    best_path = Pathway()
 
+    peaks = vol.find_peaks()
     for starting_point in peaks:
 
         # Get the end point which is a periodic image of the peak
@@ -196,5 +371,8 @@ def find_best_perc_path(F: np.ndarray,
         if cost < best_cost:
             best_cost = cost
             best_path = path
+
+    # Before returning, wrap the path in the original volume
+    best_path.wrap(F)
 
     return best_path

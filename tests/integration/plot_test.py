@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from helpers import image_comparison2
 
+from gemdat.io import load_known_material
 from gemdat.plots import matplotlib as plots
 
 
@@ -78,3 +79,11 @@ def test_shape(vasp_shape_data):
 @image_comparison2(baseline_images=['msd'])
 def test_msd_per_element(vasp_traj):
     plots.msd_per_element(trajectory=vasp_traj)
+
+
+@image_comparison2(baseline_images=['path_energy'])
+def test_path_energy(vasp_full_vol, vasp_full_path):
+    structure = load_known_material('argyrodite')
+    plots.energy_along_path(path=vasp_full_path,
+                            volume=vasp_full_vol,
+                            structure=structure)
