@@ -485,23 +485,25 @@ class Trajectory(PymatgenTrajectory):
         sites: Structure,
         floating_specie: str,
         site_radius: Optional[float] = None,
-        site_inner_fraction: float = 1.,
+        site_inner_fraction: float = 1.0,
     ) -> Transitions:
         """Compute transitions between given sites for floating specie.
 
         Parameters
         ----------
-        trajectory : Trajectory
-            Input trajectory
-        structure : pymatgen.core.structure.Structure
+        sites : pymatgen.core.structure.Structure
             Input structure with known sites
         floating_specie : str
             Name of the floating specie to calculate transitions for
         site_radius: Optional[float]
             A custom site size to use for determining if an atom is at a site
         site_inner_fraction:
-            A fraction of the site radius which is determined to be the `inner site` 
+            A fraction of the site radius which is determined to be the `inner site`
             which is used in jump calculations
+
+        Returns
+        -------
+        transitions: Transitions
         """
         from gemdat.transitions import Transitions
         return Transitions.from_trajectory(
