@@ -20,43 +20,24 @@ def test_fractional_coordinates(vasp_path_vol, vasp_full_path):
     assert all(element > 0 for element in max(frac_sites))
 
 
+TEST_DATA = (
+    # start, stop, method, expected
+    ((10, 4, 13), (21, 3, 10), 'dijkstra', 5.210130709736149),
+    ((7, 9, 2), (20, 4, 2), 'bellman-ford', 5.5363545176821),
+    ((18, 7, 12), (25, 3, 13), 'dijkstra-exp', 5.114620231293609),
+    ((3, 3, 6), (0, 9, 4), 'minmax-energy', 2.708267913357463),
+)
+
+
 @pytest.vaspxml_available  # type: ignore
-def test_optimal_path(vasp_path_vol, vasp_F_graph):
-
-    path1 = optimal_path(
-        vasp_F_graph,
-        (10, 4, 13),
-        (21, 3, 10),
-        'dijkstra',
-    )
-    path2 = optimal_path(
-        vasp_F_graph,
-        (7, 9, 2),
-        (20, 4, 2),
-        'bellman-ford',
-    )
-    path3 = optimal_path(
-        vasp_F_graph,
-        (18, 7, 12),
-        (25, 3, 13),
-        'dijkstra-exp',
-    )
-    path4 = optimal_path(
-        vasp_F_graph,
-        (3, 3, 6),
-        (0, 9, 4),
-        'minmax-energy',
-    )
-
-    assert isclose(sum(path1.energy), 5.210130709736149)
-    assert isclose(sum(path2.energy), 5.5363545176821)
-    assert isclose(sum(path3.energy), 5.114620231293609)
-    assert isclose(sum(path4.energy), 2.708267913357463)
+@pytest.mark.parametrize('start,stop,method,expected', TEST_DATA)
+def test_optimal_path(vasp_F_graph, start, stop, method, expected):
+    path = optimal_path(vasp_F_graph, start, stop, method)
+    assert isclose(sum(path.energy), expected)
 
 
 @pytest.vaspxml_available  # type: ignore
 def test_find_best_perc_path(vasp_full_path):
-
     assert isclose(vasp_full_path.cost, 11.490420312258468)
     assert vasp_full_path.start_site == (11, 9, 6)
 
