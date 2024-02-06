@@ -8,7 +8,6 @@ from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
 from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
-from gemdat.sites import SitesData
 from gemdat.trajectory import Trajectory
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
@@ -58,14 +57,12 @@ def vasp_jumps(vasp_transitions):
 def vasp_rdf_data(vasp_traj, structure, vasp_transitions):
     # Shorten trajectory for faster test
     trajectory = vasp_traj[-1000:]
-
-    sites = SitesData(structure=structure,
-                      trajectory=trajectory,
-                      floating_specie='Li')
+    transitions = trajectory.transitions_between_sites(structure,
+                                                       floating_specie='Li')
 
     rdfs = radial_distribution(
-        sites=sites,
-        transitions=vasp_transitions,
+        transitions=transitions,
+        floating_specie='Li',
         max_dist=5,
     )
 

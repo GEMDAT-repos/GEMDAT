@@ -20,8 +20,8 @@ def jumps_vs_distance(*,
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input jumps data
     jump_res : float, optional
         Resolution of the bins in Angstrom
     n_parts : int
@@ -84,8 +84,8 @@ def jumps_vs_time(*,
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input jumps data
     bins : int, optional
         Number of bins
     n_parts : int

@@ -10,7 +10,6 @@ from rich.progress import track
 if TYPE_CHECKING:
     from pymatgen.core import Structure
 
-    from gemdat import SitesData
     from gemdat.transitions import Transitions
 
 
@@ -95,8 +94,8 @@ class RDFData:
 
 def radial_distribution(
     *,
-    sites: SitesData,
     transitions: Transitions,
+    floating_specie: str,
     max_dist: float = 5.0,
     resolution: float = 0.1,
 ) -> dict[str, list[RDFData]]:
@@ -104,10 +103,10 @@ def radial_distribution(
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
     transitions: Transitions
-        Input transitions data, (used only for site occupancy)
+        Input transitions data
+    floating_specie : str
+        Name of the floating specie
     max_dist : float, optional
         Max distance for rdf calculation
     resolution : float, optional
@@ -118,16 +117,17 @@ def radial_distribution(
     rdfs : dict[str, np.ndarray]
         Dictionary with rdf arrays per symbol
     """
-    trajectory = sites.trajectory
-    structure = trajectory.get_structure(0)
+    trajectory = transitions.trajectory
+    sites = transitions.sites
+    base_structure = trajectory.get_structure(0)
     lattice = trajectory.get_lattice()
 
     coords = trajectory.positions
-    sp_coords = sites.diff_trajectory.positions
+    sp_coords = trajectory.filter(floating_specie).positions
 
-    states2str = _get_states(sites.structure.labels)
-    states_array = _get_states_array(transitions, sites.structure.labels)
-    symbol_indices = _get_symbol_indices(structure)
+    states2str = _get_states(sites.labels)
+    states_array = _get_states_array(transitions, sites.labels)
+    symbol_indices = _get_symbol_indices(base_structure)
 
     bins = np.arange(0, max_dist + resolution, resolution)
     length = len(bins) + 1
