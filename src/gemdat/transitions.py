@@ -191,7 +191,7 @@ class Transitions:
 
         Returns
         -------
-        structure : Structure
+        sites : Structure
             Structure with occupancies set on the sites.
         """
         sites = self.sites
