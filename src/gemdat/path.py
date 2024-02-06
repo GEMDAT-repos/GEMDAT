@@ -4,7 +4,7 @@ between sites."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Literal, Tuple
+from typing import Literal
 
 import networkx as nx
 import numpy as np
@@ -21,22 +21,14 @@ class Pathway:
     ----------
     sites: list[tuple]
         List of voxel coordinates of the sites defining the path
-    cart_sites: list[tuple]
-        List of cartesian coordinates of the sites defining the path
-    frac_sites: list[tuple]
-        List of fractional coordinates of the sites defining the path
     energy: list[float]
         List of the energy along the path
-    nearest_structure_coord: list[np.ndarray]
-        List of cartesian coordinates of the closest site of the reference structure
-    nearest_structure_label: list[str]
-        List of the label of the closest site of the reference structure
     """
 
-    sites: List[Tuple[int, int, int]] | None = None
+    sites: list[tuple[int, int, int]] | None = None
     energy: list[float] | None = None
 
-    def cartesian_path(self, vol: Volume) -> List[Tuple[float, float, float]]:
+    def cartesian_path(self, vol: Volume) -> list[tuple[float, float, float]]:
         """Convert voxel coordinates to cartesian coordinates.
 
         Parameters
@@ -62,7 +54,7 @@ class Pathway:
             cart_sites.append(tuple(cartesian_coords))
         return cart_sites
 
-    def fractional_path(self, vol: Volume) -> List[Tuple[float, float, float]]:
+    def fractional_path(self, vol: Volume) -> list[tuple[float, float, float]]:
         """Convert voxel coordinates to fractional coordinates.
 
         Parameters
@@ -100,7 +92,7 @@ class Pathway:
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
 
     def path_over_structure(self, structure: Structure,
-                            vol: Volume) -> Tuple[List[str], List[np.ndarray]]:
+                            vol: Volume) -> tuple[list[str], list[np.ndarray]]:
         """Find the nearest site of the structure to the path sites.
 
         Parameters
