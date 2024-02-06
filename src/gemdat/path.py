@@ -12,6 +12,8 @@ from pymatgen.core import Structure
 
 from gemdat.volume import Volume
 
+from .utils import nearest_structure_reference
+
 
 @dataclass
 class Pathway:
@@ -103,9 +105,8 @@ class Pathway:
         nearest_structure_coord: list[np.ndarray]
             List of cartesian coordinates of the closest site of the reference structure
         """
-
         frac_sites = self.fractional_path(vol)
-        nearest_structure_tree, nearest_structure_map = vol.nearest_structure_reference(
+        nearest_structure_tree, nearest_structure_map = nearest_structure_reference(
             structure)
 
         # Get the indices of the nearest structure sites to the path sites
