@@ -133,7 +133,7 @@ def displacement_histogram(trajectory: Trajectory,
     ----------
     trajectory : Trajectory
         Input trajectory, i.e. for the diffusing atom
-    nparts : int
+    n_parts : int
         Plot error bars by dividing data into n parts
 
     Returns
