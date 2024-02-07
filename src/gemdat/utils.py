@@ -2,11 +2,16 @@
 from __future__ import annotations
 
 import warnings
+from pathlib import Path
 
 import numpy as np
 from pymatgen.core import Lattice, Structure
 from scipy import signal
 from scipy.spatial import cKDTree
+
+# shortcut to test data
+VASPRUN = Path(__file__).parents[
+    2] / 'tests' / 'data' / 'short_simulation' / 'vasprun.xml'
 
 
 def nearest_structure_reference(

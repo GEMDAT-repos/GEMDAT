@@ -44,7 +44,6 @@ class Transitions:
         trajectory: Trajectory,
         diff_trajectory: Trajectory,
         sites: Structure,
-        dist_close: float,
         events: pd.DataFrame,
         states: np.ndarray,
         inner_states: np.ndarray,
@@ -60,8 +59,6 @@ class Transitions:
             for which transitions are generated
         sites : Structure
             Structure with known sites used for calculation of events
-        dist_close: float
-            Custom diameter of all sites
         events : np.ndarray
             Input events
         states : np.ndarray
@@ -72,30 +69,9 @@ class Transitions:
         self.sites = sites
         self.trajectory = trajectory
         self.diff_trajectory = diff_trajectory
-        self.dist_close = dist_close
         self.states = states
         self.inner_states = inner_states
         self.events = events
-
-    @property
-    def n_floating(self) -> int:
-        """Return number of floating species."""
-        return len(self.diff_trajectory.species)
-
-    @property
-    def n_states(self) -> int:
-        """Return number of states."""
-        return len(self.states)
-
-    @property
-    def n_events(self) -> int:
-        """Return number of events."""
-        return len(self.events)
-
-    @property
-    def n_sites(self) -> int:
-        """Return number of sites."""
-        return len(self.sites)
 
     @classmethod
     def from_trajectory(
@@ -122,37 +98,62 @@ class Transitions:
             A custom site size to use for determining if an atom is at a site
         """
         diff_trajectory = trajectory.filter(floating_specie)
-        vibration_amplitude = SimulationMetrics(
-            diff_trajectory).vibration_amplitude()
 
         if site_radius is None:
-            dist_close = _dist_close(trajectory=trajectory,
-                                     sites=sites,
-                                     vibration_amplitude=vibration_amplitude)
-        else:
-            dist_close = site_radius
+            vibration_amplitude = SimulationMetrics(
+                diff_trajectory).vibration_amplitude()
 
-        states = _calculate_atom_states(sites=sites,
-                                        trajectory=diff_trajectory,
-                                        dist_close=dist_close)
+            site_radius = _compute_site_radius(
+                trajectory=trajectory,
+                sites=sites,
+                vibration_amplitude=vibration_amplitude)
+
+        states = _calculate_atom_states(
+            sites=sites,
+            trajectory=diff_trajectory,
+            site_radius=site_radius,
+        )
+
         inner_states = _calculate_atom_states(
             sites=sites,
             trajectory=diff_trajectory,
-            dist_close=dist_close,
-            site_inner_fraction=site_inner_fraction)
+            site_radius=site_radius,
+            site_inner_fraction=site_inner_fraction,
+        )
 
         events = _calculate_transition_events(atom_sites=states,
                                               atom_inner_sites=inner_states)
 
-        obj = cls(events=events,
-                  states=states,
-                  inner_states=inner_states,
-                  sites=sites,
-                  dist_close=dist_close,
-                  diff_trajectory=diff_trajectory,
-                  trajectory=trajectory)
+        obj = cls(
+            sites=sites,
+            trajectory=trajectory,
+            diff_trajectory=diff_trajectory,
+            events=events,
+            states=states,
+            inner_states=inner_states,
+        )
 
         return obj
+
+    @property
+    def n_floating(self) -> int:
+        """Return number of floating species."""
+        return len(self.diff_trajectory.species)
+
+    @property
+    def n_states(self) -> int:
+        """Return number of states."""
+        return len(self.states)
+
+    @property
+    def n_events(self) -> int:
+        """Return number of events."""
+        return len(self.events)
+
+    @property
+    def n_sites(self) -> int:
+        """Return number of sites."""
+        return len(self.sites)
 
     @weak_lru_cache()
     def matrix(self) -> np.ndarray:
@@ -269,7 +270,6 @@ class Transitions:
                     sites=self.sites,
                     trajectory=split_trajectory[i],
                     diff_trajectory=split_diff_trajectory[i],
-                    dist_close=self.dist_close,
                     states=split_states[i],
                     inner_states=split_inner_states[i],
                     events=split_events[i],
@@ -337,8 +337,8 @@ def _calculate_transition_events(*, atom_sites: np.ndarray,
     return events
 
 
-def _dist_close(trajectory: Trajectory, sites: Structure,
-                vibration_amplitude: float) -> float:
+def _compute_site_radius(trajectory: Trajectory, sites: Structure,
+                         vibration_amplitude: float) -> float:
     """Calculate tolerance wihin which atoms are considered to be close to a
     site.
 
@@ -351,49 +351,49 @@ def _dist_close(trajectory: Trajectory, sites: Structure,
 
     Returns
     -------
-    dist_close : float
+    site_radius : float
         Atoms within this distance (in Angstrom) are considered to be close to a site
     """
     lattice = trajectory.get_lattice()
-    dist_close = 2 * vibration_amplitude
+    site_radius = 2 * vibration_amplitude
 
     site_coords = sites.frac_coords
 
     pdist = lattice.get_all_distances(site_coords, site_coords)
     min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
 
-    if min_dist < 2 * dist_close:
-        # Crystallographic sites are overlapping with the chosen dist_close, making it smaller
-        dist_close = (0.5 * min_dist) - 0.005
+    if min_dist < 2 * site_radius:
+        # Crystallographic sites are overlapping with the chosen site_radius, making it smaller
+        site_radius = (0.5 * min_dist) - 0.005
 
         # Two crystallographic sites are within half an Angstrom of each other
         # This is NOT realistic, check/change the given crystallographic site
-        if dist_close * 2 < 0.5:
+        if site_radius * 2 < 0.5:
             idx = np.argwhere(pdist == min_dist)
 
             lines = []
 
             for i, j in idx:
-                sites[i]
+                site_i = sites[i]
                 site_j = sites[j]
                 lines.append('\nToo close:')
-                lines.append(
-                    '{site_i.specie.name}({i}) {site_i.frac_coords} - ')
+                lines.append(f'{site_i.specie.name}({i}) {site_i.frac_coords}')
+                lines.append(' - ')
                 lines.append(f'{site_j.specie.name}({j}) {site_j.frac_coords}')
 
             msg = ''.join(lines)
 
             raise ValueError(
-                f'Crystallographic sites are too close together (expected: >{dist_close*2:.4f}, '
+                f'Crystallographic sites are too close together (expected: >{site_radius*2:.4f}, '
                 f'got: {min_dist:.4f} for {msg}')
 
-    return dist_close
+    return site_radius
 
 
 def _calculate_atom_states(
     sites: Structure,
     trajectory: Trajectory,
-    dist_close: float,
+    site_radius: float,
     site_inner_fraction: float = 1.,
 ) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
@@ -408,10 +408,10 @@ def _calculate_atom_states(
         Input sites with pre-defined sites
     trajectory : Trajectory
         Input trajectory for floating atoms
-    dist_close : float
+    site_radius : float
         Atoms within this distance (in Angstrom) are considered to be close to a site
     site_inner_fraction: float
-        Atoms that are closer than (dist_close*site_inner_fraction) to a site, are considered
+        Atoms that are closer than (site_radius*site_inner_fraction) to a site, are considered
         to be in the inner site
 
     Returns
@@ -430,7 +430,7 @@ def _calculate_atom_states(
     site_cart_coords = np.dot(site_coords, lattice.matrix)
     site_coords_tree: PeriodicKDTree = PeriodicKDTree(
         box=np.array(lattice.parameters, dtype=np.float32))
-    site_coords_tree.set_coords(site_cart_coords, cutoff=dist_close)
+    site_coords_tree.set_coords(site_cart_coords, cutoff=site_radius)
 
     atom_sites = []
 
@@ -440,7 +440,7 @@ def _calculate_atom_states(
         # index and distance of nearest site
         atom_cart_coords = np.dot(atom_coords, lattice.matrix)
         site_index = site_coords_tree.search_tree(
-            atom_cart_coords, dist_close * site_inner_fraction)
+            atom_cart_coords, site_radius * site_inner_fraction)
 
         # construct mapping
         atom_site = np.full((atom_coords.shape[0], 1), NOSITE)
