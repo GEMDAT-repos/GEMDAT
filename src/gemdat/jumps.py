@@ -130,7 +130,7 @@ class Jumps:
             method
         """
         self.transitions = transitions
-        self.trajectory = transitions.trajectory
+        self.trajectory = transitions.diff_trajectory
         self.sites = transitions.sites
         self.conversion_method = conversion_method
         self.data = conversion_method(transitions,
@@ -243,6 +243,11 @@ class Jumps:
     def activation_energies(self, n_parts: int = 10) -> pd.DataFrame:
         """Calculate activation energies for jumps (UNITS?).
 
+        Parameters
+        ----------
+        n_parts : 10
+            Number of parts to split the data into
+
         Returns
         -------
         df : pd.DataFrame
@@ -306,14 +311,18 @@ class Jumps:
             i, j) in self.data[['start site', 'destination site']].iterrows()])
         return jumps
 
-    def split(self, n_parts) -> list[Jumps]:
+    def split(self, n_parts: int) -> list[Jumps]:
         """Split the jumps into parts.
+
+        Parameters
+        ----------
+        n_parts : int
+            Number of parts to split the data into
 
         Returns
         -------
         jumps : list[Jumps]
         """
-
         parts = self.transitions.split(n_parts)
 
         return [

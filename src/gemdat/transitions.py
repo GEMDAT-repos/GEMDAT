@@ -42,6 +42,7 @@ class Transitions:
         self,
         *,
         trajectory: Trajectory,
+        diff_trajectory: Trajectory,
         sites: Structure,
         dist_close: float,
         events: pd.DataFrame,
@@ -53,6 +54,8 @@ class Transitions:
         Parameters
         ----------
         trajectory : Trajectory
+            Full trajectory of all sites in the simulation
+        diff_trajectory : Trajectory
             Trajectory of species of interest (e.g. diffusing)
             for which transitions are generated
         sites : Structure
@@ -68,6 +71,7 @@ class Transitions:
         """
         self.sites = sites
         self.trajectory = trajectory
+        self.diff_trajectory = diff_trajectory
         self.dist_close = dist_close
         self.states = states
         self.inner_states = inner_states
@@ -76,7 +80,7 @@ class Transitions:
     @property
     def n_floating(self) -> int:
         """Return number of floating species."""
-        return len(self.trajectory.species)
+        return len(self.diff_trajectory.species)
 
     @property
     def n_states(self) -> int:
@@ -145,7 +149,8 @@ class Transitions:
                   inner_states=inner_states,
                   sites=sites,
                   dist_close=dist_close,
-                  trajectory=diff_trajectory)
+                  diff_trajectory=diff_trajectory,
+                  trajectory=trajectory)
 
         return obj
 
@@ -254,6 +259,7 @@ class Transitions:
                                                  n_parts)
 
         split_trajectory = self.trajectory.split(n_parts)
+        split_diff_trajectory = self.diff_trajectory.split(n_parts)
 
         parts = []
 
@@ -262,6 +268,7 @@ class Transitions:
                 self.__class__(
                     sites=self.sites,
                     trajectory=split_trajectory[i],
+                    diff_trajectory=split_diff_trajectory[i],
                     dist_close=self.dist_close,
                     states=split_states[i],
                     inner_states=split_inner_states[i],

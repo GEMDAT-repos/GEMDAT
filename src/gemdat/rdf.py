@@ -117,6 +117,7 @@ def radial_distribution(
     rdfs : dict[str, np.ndarray]
         Dictionary with rdf arrays per symbol
     """
+    # note: needs trajectory with ALL species
     trajectory = transitions.trajectory
     sites = transitions.sites
     base_structure = trajectory.get_structure(0)
