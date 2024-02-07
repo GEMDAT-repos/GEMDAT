@@ -374,11 +374,11 @@ def _compute_site_radius(trajectory: Trajectory, sites: Structure,
             lines = []
 
             for i, j in idx:
-                sites[i]
+                site_i = sites[i]
                 site_j = sites[j]
                 lines.append('\nToo close:')
-                lines.append(
-                    '{site_i.specie.name}({i}) {site_i.frac_coords} - ')
+                lines.append(f'{site_i.specie.name}({i}) {site_i.frac_coords}')
+                lines.append(' - ')
                 lines.append(f'{site_j.specie.name}({j}) {site_j.frac_coords}')
 
             msg = ''.join(lines)
