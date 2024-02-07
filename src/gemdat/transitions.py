@@ -4,6 +4,7 @@ sites."""
 from __future__ import annotations
 
 import typing
+from collections import defaultdict
 from itertools import pairwise
 from typing import Optional
 
@@ -41,97 +42,45 @@ class Transitions:
         self,
         *,
         trajectory: Trajectory,
-        structure: Structure,
+        diff_trajectory: Trajectory,
+        sites: Structure,
+        dist_close: float,
         events: pd.DataFrame,
         states: np.ndarray,
         inner_states: np.ndarray,
-        dist_close: float,
     ):
         """Store event data for jumps and transitions between sites.
 
         Parameters
         ----------
+        trajectory : Trajectory
+            Full trajectory of all sites in the simulation
+        diff_trajectory : Trajectory
+            Trajectory of species of interest (e.g. diffusing)
+            for which transitions are generated
+        sites : Structure
+            Structure with known sites used for calculation of events
+        dist_close: float
+            Custom diameter of all sites
         events : np.ndarray
             Input events
         states : np.ndarray
             Input states
         inner_states : np.ndarray
             Input states for inner sites
-        structure : Structure
-            Structure with know sites used for calculation of events
-        dist_close: float
-            Custom diameter of all sites
-        trajectory : Trajectory
-            Trajectory of species of interest (e.g. diffusing)
-            for which transitions are generated
         """
-        self.structure = structure
+        self.sites = sites
         self.trajectory = trajectory
+        self.diff_trajectory = diff_trajectory
         self.dist_close = dist_close
         self.states = states
         self.inner_states = inner_states
         self.events = events
 
-    @classmethod
-    def from_trajectory(
-        cls,
-        *,
-        trajectory: Trajectory,
-        structure: Structure,
-        floating_specie: str,
-        site_radius: Optional[float] = None,
-        site_inner_fraction: float = 1.,
-    ) -> Transitions:
-        """Compute transitions for floating specie from trajectory and
-        structure with known sites.
-
-        Parameters
-        ----------
-        trajectory : Trajectory
-            Input trajectory
-        structure : pymatgen.core.structure.Structure
-            Input structure with known sites
-        floating_specie : str
-            Name of the floating specie to calculate transitions for
-        site_radius: Optional[float]
-            A custom site size to use for determining if an atom is at a site
-        """
-        diff_trajectory = trajectory.filter(floating_specie)
-        vibration_amplitude = SimulationMetrics(
-            diff_trajectory).vibration_amplitude()
-
-        if site_radius is None:
-            dist_close = _dist_close(trajectory=trajectory,
-                                     structure=structure,
-                                     vibration_amplitude=vibration_amplitude)
-        else:
-            dist_close = site_radius
-
-        states = _calculate_atom_states(structure=structure,
-                                        trajectory=diff_trajectory,
-                                        dist_close=dist_close)
-        inner_states = _calculate_atom_states(
-            structure=structure,
-            trajectory=diff_trajectory,
-            dist_close=dist_close,
-            site_inner_fraction=site_inner_fraction)
-
-        events = _calculate_transition_events(atom_sites=states,
-                                              atom_inner_sites=inner_states)
-
-        obj = cls(events=events,
-                  states=states,
-                  inner_states=inner_states,
-                  structure=structure,
-                  dist_close=dist_close,
-                  trajectory=diff_trajectory)
-
-        return obj
-
     @property
     def n_floating(self) -> int:
         """Return number of floating species."""
-        return len(self.trajectory.species)
+        return len(self.diff_trajectory.species)
 
     @property
     def n_states(self) -> int:
@@ -146,7 +95,64 @@ class Transitions:
     @property
     def n_sites(self) -> int:
         """Return number of sites."""
-        return len(self.structure)
+        return len(self.sites)
+
+    @classmethod
+    def from_trajectory(
+        cls,
+        *,
+        trajectory: Trajectory,
+        sites: Structure,
+        floating_specie: str,
+        site_radius: Optional[float] = None,
+        site_inner_fraction: float = 1.,
+    ) -> Transitions:
+        """Compute transitions for floating specie from trajectory and
+        structure with known sites.
+
+        Parameters
+        ----------
+        trajectory : Trajectory
+            Input trajectory
+        sites : pymatgen.core.structure.Structure
+            Input sites with known sites
+        floating_specie : str
+            Name of the floating specie to calculate transitions for
+        site_radius: Optional[float]
+            A custom site size to use for determining if an atom is at a site
+        """
+        diff_trajectory = trajectory.filter(floating_specie)
+        vibration_amplitude = SimulationMetrics(
+            diff_trajectory).vibration_amplitude()
+
+        if site_radius is None:
+            dist_close = _dist_close(trajectory=trajectory,
+                                     sites=sites,
+                                     vibration_amplitude=vibration_amplitude)
+        else:
+            dist_close = site_radius
+
+        states = _calculate_atom_states(sites=sites,
+                                        trajectory=diff_trajectory,
+                                        dist_close=dist_close)
+        inner_states = _calculate_atom_states(
+            sites=sites,
+            trajectory=diff_trajectory,
+            dist_close=dist_close,
+            site_inner_fraction=site_inner_fraction)
+
+        events = _calculate_transition_events(atom_sites=states,
+                                              atom_inner_sites=inner_states)
+
+        obj = cls(events=events,
+                  states=states,
+                  inner_states=inner_states,
+                  sites=sites,
+                  dist_close=dist_close,
+                  diff_trajectory=diff_trajectory,
+                  trajectory=trajectory)
+
+        return obj
 
     @weak_lru_cache()
     def matrix(self) -> np.ndarray:
@@ -190,10 +196,10 @@ class Transitions:
 
         Returns
         -------
-        structure : Structure
+        sites : Structure
             Structure with occupancies set on the sites.
         """
-        structure = self.structure
+        sites = self.sites
         states = self.states
 
         unq, counts = np.unique(states, return_counts=True)
@@ -202,15 +208,37 @@ class Transitions:
 
         species = [{
             site.specie.name: occupancies.get(i, 0)
-        } for i, site in enumerate(structure)]
+        } for i, site in enumerate(sites)]
 
         return Structure(
-            lattice=structure.lattice,
+            lattice=sites.lattice,
             species=species,
-            coords=structure.frac_coords,
-            site_properties=structure.site_properties,
-            labels=structure.labels,
+            coords=sites.frac_coords,
+            site_properties=sites.site_properties,
+            labels=sites.labels,
         )
+
+    def atom_locations(self):
+        """Calculate fraction of time atoms spent at a type of site.
+
+        Returns
+        -------
+        dict[str, float]
+            Return dict with the fraction of time atoms spent at a site
+        """
+        multiplier = len(self.sites) / self.n_floating
+
+        compositions_by_label = defaultdict(list)
+
+        for site in self.occupancy():
+            compositions_by_label[site.label].append(site.species.num_atoms)
+
+        ret = {}
+
+        for k, v in compositions_by_label.items():
+            ret[k] = (sum(v) / len(v)) * multiplier
+
+        return ret
 
     def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
@@ -231,14 +259,16 @@ class Transitions:
                                                  n_parts)
 
         split_trajectory = self.trajectory.split(n_parts)
+        split_diff_trajectory = self.diff_trajectory.split(n_parts)
 
         parts = []
 
         for i in range(n_parts):
             parts.append(
                 self.__class__(
-                    structure=self.structure,
+                    sites=self.sites,
                     trajectory=split_trajectory[i],
+                    diff_trajectory=split_diff_trajectory[i],
                     dist_close=self.dist_close,
                     states=split_states[i],
                     inner_states=split_inner_states[i],
@@ -307,7 +337,7 @@ def _calculate_transition_events(*, atom_sites: np.ndarray,
     return events
 
 
-def _dist_close(trajectory: Trajectory, structure: Structure,
+def _dist_close(trajectory: Trajectory, sites: Structure,
                 vibration_amplitude: float) -> float:
     """Calculate tolerance wihin which atoms are considered to be close to a
     site.
@@ -316,8 +346,8 @@ def _dist_close(trajectory: Trajectory, structure: Structure,
     ----------
     trajectory : Trajectory
         Input trajectory
-    structure : pymatgen.core.structure.Structure
-        Input structure
+    sites : pymatgen.core.structure.Structure
+        Input sites
 
     Returns
     -------
@@ -327,7 +357,7 @@ def _dist_close(trajectory: Trajectory, structure: Structure,
     lattice = trajectory.get_lattice()
     dist_close = 2 * vibration_amplitude
 
-    site_coords = structure.frac_coords
+    site_coords = sites.frac_coords
 
     pdist = lattice.get_all_distances(site_coords, site_coords)
     min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
@@ -344,8 +374,8 @@ def _dist_close(trajectory: Trajectory, structure: Structure,
             lines = []
 
             for i, j in idx:
-                structure.sites[i]
-                site_j = structure.sites[j]
+                sites[i]
+                site_j = sites[j]
                 lines.append('\nToo close:')
                 lines.append(
                     '{site_i.specie.name}({i}) {site_i.frac_coords} - ')
@@ -361,7 +391,7 @@ def _dist_close(trajectory: Trajectory, structure: Structure,
 
 
 def _calculate_atom_states(
-    structure: Structure,
+    sites: Structure,
     trajectory: Trajectory,
     dist_close: float,
     site_inner_fraction: float = 1.,
@@ -374,8 +404,8 @@ def _calculate_atom_states(
 
     Parameters
     ----------
-    structure : pymatgen.core.structure.Structure
-        Input structure with pre-defined sites
+    sites : pymatgen.core.structure.Structure
+        Input sites with pre-defined sites
     trajectory : Trajectory
         Input trajectory for floating atoms
     dist_close : float
@@ -394,7 +424,7 @@ def _calculate_atom_states(
     # Unit cell parameters
     lattice = trajectory.get_lattice()
 
-    site_coords = structure.frac_coords
+    site_coords = sites.frac_coords
 
     # Input array with site coordinates [site, (x, y, z)]
     site_cart_coords = np.dot(site_coords, lattice.matrix)

@@ -9,9 +9,7 @@ from gemdat.jumps import Jumps
 from gemdat.path import find_best_perc_path, free_energy_graph
 from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
-from gemdat.sites import SitesData
 from gemdat.trajectory import Trajectory
-from gemdat.transitions import Transitions
 from gemdat.volume import trajectory_to_volume
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
@@ -46,43 +44,27 @@ def structure():
 
 
 @pytest.fixture(scope='module')
-def vasp_sites(vasp_traj, structure):
-    sites = SitesData(structure=structure,
-                      trajectory=vasp_traj,
-                      floating_specie='Li')
-    return sites
-
-
-@pytest.fixture(scope='module')
 def vasp_transitions(vasp_traj, structure):
-    transitions = Transitions.from_trajectory(trajectory=vasp_traj,
-                                              structure=structure,
-                                              floating_specie='Li')
+    transitions = vasp_traj.transitions_between_sites(sites=structure,
+                                                      floating_specie='Li')
     return transitions
 
 
 @pytest.fixture(scope='module')
-def vasp_jumps(vasp_transitions, vasp_sites):
-    jumps = Jumps(transitions=vasp_transitions, sites=vasp_sites)
-    return jumps
+def vasp_jumps(vasp_transitions):
+    return Jumps(transitions=vasp_transitions)
 
 
 @pytest.fixture(scope='module')
-def vasp_rdf_data(vasp_traj, structure, vasp_transitions):
+def vasp_rdf_data(vasp_traj, structure):
     # Shorten trajectory for faster test
     trajectory = vasp_traj[-1000:]
-
-    sites = SitesData(structure=structure,
-                      trajectory=trajectory,
-                      floating_specie='Li')
-
-    transitions = Transitions.from_trajectory(trajectory=trajectory,
-                                              structure=structure,
-                                              floating_specie='Li')
+    transitions = trajectory.transitions_between_sites(structure,
+                                                       floating_specie='Li')
 
     rdfs = radial_distribution(
-        sites=sites,
         transitions=transitions,
+        floating_specie='Li',
         max_dist=5,
     )
 

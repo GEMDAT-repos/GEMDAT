@@ -12,7 +12,7 @@ plots.jumps_vs_distance(trajectory, sites)
 plots.radial_distribution(rdfs)
 ```
 
-All plotting functions take a [gemdat.Trajectory][], [gemdat.SitesData][], [gemdat.rdf.RDFData][] or a combination as input. In addition, for some plots you have a few parameters to tune the output.
+All plotting functions take a [gemdat.Trajectory][], [gemdat.Jumps][], [gemdat.Transitions][], [gemdat.rdf.RDFData][] or a combination as input. In addition, for some plots you have a few parameters to tune the output.
 
 
 ## Trajectory and displacements plots

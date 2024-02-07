@@ -61,7 +61,7 @@ def test_jumps_3d_animation(vasp_jumps):
 
 
 @image_comparison2(baseline_images=['rdf1', 'rdf2', 'rdf3'])
-def test_rdf23(vasp_rdf_data):
+def test_rdf(vasp_rdf_data):
     assert len(vasp_rdf_data) == 3
     for rdfs in vasp_rdf_data.values():
         plots.radial_distribution(rdfs)

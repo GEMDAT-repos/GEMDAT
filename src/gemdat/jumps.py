@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from itertools import product
 from math import ceil
 from typing import TYPE_CHECKING, Callable
 
@@ -12,7 +13,6 @@ from scipy.constants import Boltzmann, angstrom, elementary_charge
 from .caching import weak_lru_cache
 from .collective import Collective
 from .simulation_metrics import SimulationMetrics
-from .sites import SitesData
 from .transitions import Transitions, _calculate_transitions_matrix
 
 if TYPE_CHECKING:
@@ -110,20 +110,17 @@ class Jumps:
 
     def __init__(self,
                  transitions: Transitions,
-                 sites: SitesData,
+                 *,
                  conversion_method: Callable[
                      [Transitions,
                       DefaultNamedArg(int, 'minimal_residence')],
                      pd.DataFrame] = _generic_transitions_to_jumps,
-                 *,
                  minimal_residence: int = 0):
         """
         Parameters
         ----------
         transitions : Transitions
             pymatgen transitions in which to calculate jumps
-        sites : SitesData
-            which sites are used in calculating transitions, used for statistics
         conversion_method : Callable[[Transitions,int], pd.DataFrame]:
             conversion method that translates the Transitions into Jumps,
             second parameter is the minimal_residence parameter
@@ -133,7 +130,8 @@ class Jumps:
             method
         """
         self.transitions = transitions
-        self.sites = sites
+        self.trajectory = transitions.diff_trajectory
+        self.sites = transitions.sites
         self.conversion_method = conversion_method
         self.data = conversion_method(transitions,
                                       minimal_residence=minimal_residence)
@@ -151,7 +149,7 @@ class Jumps:
     @property
     def n_floating(self) -> int:
         """Return number of floating species."""
-        return self.transitions.n_floating
+        return len(self.trajectory.species)
 
     @property
     def solo_fraction(self) -> float:
@@ -159,9 +157,16 @@ class Jumps:
         return self.n_solo_jumps / self.n_jumps
 
     @property
+    def site_pairs(self) -> list[tuple[str, str]]:
+        """Return list of all unique site pairs."""
+        labels = self.sites.labels
+        site_pairs = product(labels, repeat=2)
+        return [pair for pair in site_pairs]
+
+    @property
     def jump_names(self) -> list[str]:
         """Return list of jump names."""
-        return ['->'.join(key) for key in self.sites.site_pairs]
+        return ['->'.join(key) for key in self.site_pairs]
 
     @weak_lru_cache()
     def jump_diffusivity(self, dimensions: int) -> float:
@@ -177,12 +182,11 @@ class Jumps:
         jump_diff : float
             Jump diffusivity in m^2/s
         """
-        lattice = self.transitions.trajectory.get_lattice()
-        structure = self.transitions.structure
-        total_time = self.transitions.trajectory.total_time
+        lattice = self.trajectory.get_lattice()
+        sites = self.sites
+        total_time = self.trajectory.total_time
 
-        pdist = lattice.get_all_distances(structure.frac_coords,
-                                          structure.frac_coords)
+        pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
 
         jump_diff = np.sum(pdist**2 * self.matrix())
         jump_diff *= angstrom**2 / (2 * dimensions * self.n_floating *
@@ -219,8 +223,8 @@ class Jumps:
             Output class with data on collective jumps
         """
 
-        trajectory = self.transitions.trajectory
-        structure = self.transitions.structure
+        trajectory = self.trajectory
+        sites = self.transitions.sites
 
         time_step = trajectory.time_step
         attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
@@ -229,7 +233,7 @@ class Jumps:
 
         return Collective(
             jumps=self,
-            structure=structure,
+            sites=sites,
             lattice=trajectory.get_lattice(),
             max_steps=max_steps,
             max_dist=max_dist,
@@ -239,12 +243,17 @@ class Jumps:
     def activation_energies(self, n_parts: int = 10) -> pd.DataFrame:
         """Calculate activation energies for jumps (UNITS?).
 
+        Parameters
+        ----------
+        n_parts : 10
+            Number of parts to split the data into
+
         Returns
         -------
         df : pd.DataFrame
             Dataframe with jump activation energies and standard deviations between site pairs.
         """
-        trajectory = self.transitions.trajectory
+        trajectory = self.trajectory
         attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
 
         dct = {}
@@ -252,14 +261,14 @@ class Jumps:
         temperature = trajectory.metadata['temperature']
 
         atom_locations_parts = [
-            self.sites.atom_locations(part)
-            for part in self.transitions.split(n_parts)
+            part.atom_locations() for part in self.transitions.split(n_parts)
         ]
         jumps_counter_parts = [
             part.jumps_counter() for part in self.split(n_parts)
         ]
+        n_floating = self.n_floating
 
-        for site_pair in self.sites.site_pairs:
+        for site_pair in self.site_pairs:
             site_start, site_stop = site_pair
 
             n_jumps = np.array(
@@ -270,7 +279,7 @@ class Jumps:
             atom_percentage = np.array(
                 [part[site_start] for part in atom_locations_parts])
 
-            denom = atom_percentage * self.n_floating * part_time
+            denom = atom_percentage * n_floating * part_time
 
             eff_rate = n_jumps / denom
 
@@ -297,23 +306,28 @@ class Jumps:
         jumps : dict[tuple[str, str], int]
             Dictionary with number of jumps per sites combination
         """
-        labels = self.transitions.structure.labels
+        labels = self.sites.labels
         jumps = Counter([(labels[i], labels[j]) for _, (
             i, j) in self.data[['start site', 'destination site']].iterrows()])
         return jumps
 
-    def split(self, n_parts) -> list[Jumps]:
+    def split(self, n_parts: int) -> list[Jumps]:
         """Split the jumps into parts.
+
+        Parameters
+        ----------
+        n_parts : int
+            Number of parts to split the data into
 
         Returns
         -------
         jumps : list[Jumps]
         """
-
         parts = self.transitions.split(n_parts)
 
         return [
-            Jumps(part, self.sites, self.conversion_method) for part in parts
+            Jumps(part, conversion_method=self.conversion_method)
+            for part in parts
         ]
 
     @weak_lru_cache()
@@ -329,10 +343,10 @@ class Jumps:
 
         parts = [part.jumps_counter() for part in self.split(n_parts)]
 
-        for site_pair in self.sites.site_pairs:
+        for site_pair in self.site_pairs:
             n_jumps = [part[site_pair] for part in parts]
 
-            part_time = self.transitions.trajectory.total_time / n_parts
+            part_time = self.trajectory.total_time / n_parts
             denom = self.n_floating * part_time
 
             jump_freq_mean = np.mean(n_jumps) / denom

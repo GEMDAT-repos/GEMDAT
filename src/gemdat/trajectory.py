@@ -9,12 +9,17 @@ import pickle
 import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
-from typing import Collection, Optional
+from typing import TYPE_CHECKING, Collection, Optional
 
 import numpy as np
 from pymatgen.core import Lattice
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
+
+if TYPE_CHECKING:
+    from pymatgen.core import Structure
+
+    from .transitions import Transitions
 
 
 def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
@@ -474,3 +479,37 @@ class Trajectory(PymatgenTrajectory):
 
         MSD = S1 - 2 * S2
         return MSD
+
+    def transitions_between_sites(
+        self,
+        sites: Structure,
+        floating_specie: str,
+        site_radius: Optional[float] = None,
+        site_inner_fraction: float = 1.0,
+    ) -> Transitions:
+        """Compute transitions between given sites for floating specie.
+
+        Parameters
+        ----------
+        sites : pymatgen.core.structure.Structure
+            Input structure with known sites
+        floating_specie : str
+            Name of the floating specie to calculate transitions for
+        site_radius: Optional[float]
+            A custom site size to use for determining if an atom is at a site
+        site_inner_fraction:
+            A fraction of the site radius which is determined to be the `inner site`
+            which is used in jump calculations
+
+        Returns
+        -------
+        transitions: Transitions
+        """
+        from gemdat.transitions import Transitions
+        return Transitions.from_trajectory(
+            trajectory=self,
+            sites=sites,
+            floating_specie=floating_specie,
+            site_radius=site_radius,
+            site_inner_fraction=site_inner_fraction,
+        )

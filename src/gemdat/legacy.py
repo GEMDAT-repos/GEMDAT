@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import matplotlib.pyplot as plt
 
-from gemdat import Jumps, SitesData, Transitions, load_known_material, plots
+from gemdat import Jumps, load_known_material, plots
 from gemdat.rdf import radial_distribution
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume
@@ -29,7 +29,7 @@ def analyse_md(
     start_end: tuple[int, int] = (5000, 7500),
     nr_steps_frame: int = 5,
     show_plots: bool = True,
-) -> tuple[Trajectory, SitesData]:
+) -> Trajectory:
     """Analyse md data.
 
     This function mimicks the the API of the `analyse_md` function in the
@@ -75,8 +75,6 @@ def analyse_md(
     -------
     trajectory : Trajectory
         Output trajectory
-    sites : SitesData
-        Output sites data
     """
     trajectory = Trajectory.from_vasprun(vasp_xml)
 
@@ -88,16 +86,12 @@ def analyse_md(
 
     sites_structure = load_known_material(material, supercell=supercell)
 
-    sites = SitesData(
-        structure=sites_structure,
-        trajectory=trajectory,
+    transitions = trajectory.transitions_between_sites(
+        sites=sites_structure,
         floating_specie=diff_elem,
     )
 
-    transitions = Transitions.from_trajectory(trajectory=trajectory,
-                                              structure=sites_structure,
-                                              floating_specie='Li')
-    jumps = Jumps(sites=sites_structure, transitions=transitions)
+    jumps = Jumps(transitions=transitions)
 
     plots.displacement_per_element(trajectory=trajectory)
     plots.displacement_per_site(trajectory=diff_trajectory)
@@ -134,12 +128,12 @@ def analyse_md(
 
     if calc_rdfs:
         rdf_data = radial_distribution(
-            sites=sites,
             transitions=transitions,
+            floating_specie=diff_elem,
             max_dist=rdf_max_dist,
             resolution=rdf_res,
         )
         for rdfs in rdf_data.values():
             plots.radial_distribution(rdfs)
 
-    return trajectory, sites
+    return trajectory
