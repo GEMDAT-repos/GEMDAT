@@ -358,3 +358,28 @@ class Jumps:
         df.columns = ('rates', 'std')
 
         return df
+
+    def plot_jumps_vs_distance(self, **kwargs):
+        """See `gemdat.plots.jumps_vs_distance()` for more information."""
+        from gemdat.plots import jumps_vs_distance
+        return jumps_vs_distance(jumps=self, **kwargs)
+
+    def plot_jumps_vs_time(self, **kwargs):
+        """See `gemdat.plots.jumps_vs_time()` for more information."""
+        from gemdat.plots import jumps_vs_time
+        return jumps_vs_time(jumps=self, **kwargs)
+
+    def plot_collective_jumps(self, **kwargs):
+        """See `gemdat.plots.collective_jumps()` for more information."""
+        from gemdat.plots import collective_jumps
+        return collective_jumps(jumps=self, **kwargs)
+
+    def plot_jumps_3d(self, **kwargs):
+        """See `gemdat.plots.jumps_3d()` for more information."""
+        from gemdat.plots import jumps_3d
+        return jumps_3d(jumps=self, **kwargs)
+
+    def plot_jumps_3d_animation(self, **kwargs):
+        """See `gemdat.plots.jumps_3d_animation()` for more information."""
+        from gemdat.plots import jumps_3d_animation
+        return jumps_3d_animation(jumps=self, **kwargs)
