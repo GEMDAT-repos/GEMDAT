@@ -155,17 +155,13 @@ def displacement_histogram(trajectory: Trajectory,
                           xaxis_title='Displacement (Angstrom)',
                           yaxis_title='Nr. of atoms')
     else:
-
-        all_df = []
         interval = np.linspace(0, len(trajectory) - 1, n_parts + 1)
-        trajectories = trajectory.split(n_parts)
+        dfs = [
+            _trajectory_to_dataframe(part)
+            for part in trajectory.split(n_parts)
+        ]
 
-        for trajectory in trajectories:
-
-            df = _trajectory_to_dataframe(trajectory)
-            all_df.append(df)
-
-        all_df = pd.concat(all_df)
+        all_df = pd.concat(dfs)
 
         # Get the mean and standard deviation
         grouped = all_df.groupby(['Displacement', 'Element'])
@@ -185,4 +181,5 @@ def displacement_histogram(trajectory: Trajectory,
             f'Displacement per element after {int(interval[1]-interval[0])} timesteps',
             xaxis_title='Displacement (Angstrom)',
             yaxis_title='Nr. of atoms')
+
     return fig
