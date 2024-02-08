@@ -116,14 +116,15 @@ class Jumps:
                       DefaultNamedArg(int, 'minimal_residence')],
                      pd.DataFrame] = _generic_transitions_to_jumps,
                  minimal_residence: int = 0):
-        """
+        """Analyze transitions and classify them as jumps.
+
         Parameters
         ----------
         transitions : Transitions
             pymatgen transitions in which to calculate jumps
         conversion_method : Callable[[Transitions,int], pd.DataFrame]:
             conversion method that translates the Transitions into Jumps,
-            second parameter is the minimal_residence parameter
+            second parameter is the `minimal_residence` parameter
         minimal_residence : int
             minimal residence, number of timesteps that an atom needs to reside
             on a destination site to count as a jump, passed through to conversion

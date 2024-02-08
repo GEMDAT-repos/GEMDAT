@@ -18,14 +18,14 @@ from .simulation_metrics import SimulationMetrics
 from .utils import bfill, ffill
 
 if typing.TYPE_CHECKING:
-
+    from gemdat.jumps import Jumps
     from gemdat.trajectory import Trajectory
 
 NOSITE = -1
 
 
 class Transitions:
-    """Container class for jumps and transitions between sites.
+    """Container class for transitions between sites.
 
     Attributes
     ----------
@@ -134,6 +134,26 @@ class Transitions:
         )
 
         return obj
+
+    def jumps(self, minimal_residence: int = 0, **kwargs) -> Jumps:
+        """Analyze transitions and classify them as jumps.
+
+        Parameters
+        ----------
+        minimal_residence : int
+            minimal residence, number of timesteps that an atom needs to reside
+            on a destination site to count as a jump, passed through to conversion
+            method
+        **kwargs : dict
+            These parameters are passed to the [Jumps][] initializer.
+
+        Returns
+        -------
+        jumps : Jumps
+        """
+
+        from gemdat.jumps import Jumps
+        return Jumps(self, **kwargs)
 
     @property
     def n_floating(self) -> int:
