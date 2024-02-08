@@ -7,20 +7,30 @@ from gemdat.path import Pathway
 from gemdat.volume import Volume
 
 
-def energy_along_path(*, path: Pathway, structure: Structure,
+def energy_along_path(*, paths: Pathway | list[Pathway], structure: Structure,
                       volume: Volume) -> plt.Figure:
     """Plot energy along specified path.
 
     Parameters
     ----------
-    path : Pathway
-        Pathway object containing the energy along the path
+    paths : Pathway | list[Pathway]
+        Pathway object containing the energy along the path, or list of Pathways
+    structure : Structure
+        Structure object to get the site information
+    volume : Volume
+        Volume object to get the site information
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         Output figure
     """
+    # The first Pathway in paths is assumed to be the optimal one
+    if isinstance(paths, Pathway):
+        path = paths
+    else:
+        path = paths[0]
+
     if path.energy is None:
         raise ValueError('Pathway does not contain energy data')
     if path.sites is None:
@@ -28,7 +38,11 @@ def energy_along_path(*, path: Pathway, structure: Structure,
 
     fig, ax = plt.subplots(figsize=(8, 4))
 
-    ax.plot(range(len(path.energy)), path.energy, marker='o', color='r')
+    ax.plot(range(len(path.energy)),
+            path.energy,
+            marker='o',
+            color='r',
+            label='Optimal path')
     ax.set(ylabel='Free energy [eV]')
 
     nearest_structure_label, nearest_structure_coord = path.path_over_structure(
@@ -76,6 +90,16 @@ def energy_along_path(*, path: Pathway, structure: Structure,
     ax_up.set_xticklabels([site_xlabel[i] for i in non_empty_ticks],
                           rotation=45)
     ax_up.get_yaxis().set_visible(False)
+
+    # If available, plot the other pathways
+    if isinstance(paths, list):
+        for idx, path in enumerate(paths[1:]):
+            if path.energy is None:
+                raise ValueError('Pathway does not contain energy data')
+            ax.plot(range(len(path.energy)),
+                    path.energy,
+                    label=f'Alternative {idx+1}')
+        ax.legend(fontsize=8)
 
     return fig
 

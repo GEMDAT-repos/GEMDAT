@@ -187,7 +187,7 @@ def free_energy_graph(F: np.ndarray,
         for move in movements:
             neighbor = tuple((node + move) % F.shape)
             if neighbor in G.nodes:
-                exp_n_energy = np.exp(F[neighbor])
+                exp_n_energy = np.exp(0.5 * (F[node] + F[neighbor]))
                 if exp_n_energy < max_energy_threshold:
                     weight_exp = exp_n_energy
                 else:
@@ -195,7 +195,7 @@ def free_energy_graph(F: np.ndarray,
 
                 G.add_edge(node,
                            neighbor,
-                           weight=F[neighbor],
+                           weight=0.5 * (F[node] + F[neighbor]),
                            weight_exp=weight_exp)
 
     return G
@@ -203,6 +203,101 @@ def free_energy_graph(F: np.ndarray,
 
 _PATHFINDING_METHODS = Literal['dijkstra', 'bellman-ford', 'minmax-energy',
                                'dijkstra-exp']
+
+
+def calculate_path_difference(path_sites1: list, path_sites2: list) -> float:
+    """Calculate the difference between two paths. This difference is defined
+    as the percentage of sites that are not shared between the two paths.
+
+    Parameters
+    ----------
+    path_sites1 : list
+        List of sites defining the first path
+    path_sites2 : list
+        List of sites defining the second path
+
+    Returns
+    -------
+    difference : float
+        Difference between the two paths
+    """
+
+    # Find the shortest and longest paths
+    shortest_path = path_sites1 if len(path_sites1) <= len(
+        path_sites2) else path_sites2
+    longest_path = path_sites2 if shortest_path is path_sites1 else path_sites1
+
+    # Calculate the number of nodes shared between the shortest and longest paths
+    shared_nodes = 0
+    for node in shortest_path:
+        if node in longest_path:
+            shared_nodes += 1
+
+    return 1 - (shared_nodes / len(shortest_path))
+
+
+def multiple_paths(
+    F_graph: nx.Graph,
+    start: tuple,
+    end: tuple,
+    method: _PATHFINDING_METHODS = 'dijkstra',
+    Npaths: int = 3,
+    min_diff: float = 0.15,
+) -> list[Pathway]:
+    """ Calculate the Np shortest paths between two sites on the graph.
+    This procedure is based the algorithm by Jin Y. Yen (https://doi.org/10.1287/mnsc.17.11.712)
+    and its implementation in NetworkX. Only paths that are different by at least min_diff are considered.
+
+    Parameters
+    ----------
+    F_graph : nx.Graph
+        Graph of the free energy
+    start : tuple
+        Coordinates of the starting point
+    end: tuple
+        Coordinates of the ending point
+    method : str
+        Method used to calculate the shortest path. Options are:
+        - 'dijkstra': Dijkstra's algorithm
+        - 'bellman-ford': Bellman-Ford algorithm
+        - 'minmax-energy': Minmax energy algorithm
+        - 'dijkstra-exp': Dijkstra's algorithm with exponential weights
+    Npaths : int
+        Number of paths to be calculated
+    min_diff : float
+        Minimum difference between the paths
+    """
+
+    # First compute the optimal path
+    best_path = optimal_path(F_graph, start, end, method)
+
+    list_of_paths_sites = [best_path.sites]
+    list_of_paths = [best_path]
+
+    # Compute the iterator over all the short paths
+    all_paths = nx.shortest_simple_paths(F_graph,
+                                         source=start,
+                                         target=end,
+                                         weight='weight')
+
+    # Attempt to find the Np shortest paths
+    for idx, path in enumerate(all_paths):
+        try:
+            for good_path in list_of_paths_sites:
+                if good_path and calculate_path_difference(
+                        path, good_path) < min_diff:
+                    raise ValueError('Path too similar to another')
+        except ValueError:
+            continue
+
+        list_of_paths_sites.append(path)
+        path_energy = [F_graph.nodes[node]['energy'] for node in path]
+        list_of_paths.append(Pathway(sites=path, energy=path_energy))
+
+        if len(list_of_paths) == Npaths:
+            break
+
+    return list_of_paths
 
 
 def optimal_path(
