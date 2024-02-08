@@ -22,12 +22,12 @@ if TYPE_CHECKING:
 def _generic_transitions_to_jumps(transitions: Transitions,
                                   *,
                                   minimal_residence: int = 0) -> pd.DataFrame:
-    """Generic function to convert transitions to jumps.
+    """Generic function to convert transition events to jumps.
 
     Parameters
     ----------
-    transitions :
-        transitions
+    transitions : Transitions
+        Input transitions
     minimal_residence : int
         minimal residence time of an atom on a destination site to count as a jump
     """

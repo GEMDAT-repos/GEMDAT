@@ -496,7 +496,8 @@ class Trajectory(PymatgenTrajectory):
         floating_specie : str
             Name of the floating specie to calculate transitions for
         site_radius: Optional[float]
-            A custom site size to use for determining if an atom is at a site
+            A custom site radius in Ångstrom to determine
+            if an atom is at a site
         site_inner_fraction:
             A fraction of the site radius which is determined to be the `inner site`
             which is used in jump calculations
