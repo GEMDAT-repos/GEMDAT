@@ -224,16 +224,18 @@ def calculate_path_difference(path1: list, path2: list) -> float:
     """
 
     # Find the shortest and longest paths
-    shortest_path = min(path1, path2, key=len)
-    longest_path = max(path1, path2, key=len)
+    if len(path1) <= len(path2):
+        shortest, longest = path1, path2
+    else:
+        shortest, longest = path2, path1
 
     # Calculate the number of nodes shared between the shortest and longest paths
     shared_nodes = 0
-    for node in shortest_path:
-        if node in longest_path:
+    for node in shortest:
+        if node in longest:
             shared_nodes += 1
 
-    return 1 - (shared_nodes / len(shortest_path))
+    return 1 - (shared_nodes / len(shortest))
 
 
 def _paths_too_similar(path: list, list_of_paths: list,
@@ -256,15 +258,14 @@ def _paths_too_similar(path: list, list_of_paths: list,
     """
 
     for good_path in list_of_paths:
-        if good_path and calculate_path_difference(path,
-                                                   good_path.sites) < min_diff:
+        if calculate_path_difference(path, good_path.sites) < min_diff:
             return True
     return False
 
 
 def multiple_paths(
-    F_graph: nx.Graph,
     *,
+    F_graph: nx.Graph,
     start: tuple,
     stop: tuple,
     method: _PATHFINDING_METHODS = 'dijkstra',
