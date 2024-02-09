@@ -196,7 +196,7 @@ def free_energy_graph(F: np.ndarray,
 
                 G.add_edge(node,
                            neighbor,
-                           weight=0.5 * (F[node] + F[neighbor]),
+                           weight=weight,
                            weight_exp=weight_exp)
 
     return G
