@@ -187,7 +187,8 @@ def free_energy_graph(F: np.ndarray,
         for move in movements:
             neighbor = tuple((node + move) % F.shape)
             if neighbor in G.nodes:
-                exp_n_energy = np.exp(0.5 * (F[node] + F[neighbor]))
+                weight = 0.5 * (F[node] + F[neighbor])
+                exp_n_energy = np.exp(weight)
                 if exp_n_energy < max_energy_threshold:
                     weight_exp = exp_n_energy
                 else:
