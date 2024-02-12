@@ -283,7 +283,7 @@ def multiple_paths(
     start : tuple
         Coordinates of the starting point
     stop: tuple
-        Coordinates of the stoping point
+        Coordinates of the stopping point
     method : str
         Method used to calculate the shortest path. Options are:
         - 'dijkstra': Dijkstra's algorithm
