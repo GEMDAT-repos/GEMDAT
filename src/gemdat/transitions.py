@@ -298,8 +298,11 @@ class Transitions:
         return parts
 
 
-def _calculate_transition_events(*, atom_sites: np.ndarray,
-                                 atom_inner_sites: np.ndarray) -> pd.DataFrame:
+def _calculate_transition_events(
+    *,
+    atom_sites: np.ndarray,
+    atom_inner_sites: np.ndarray,
+) -> pd.DataFrame:
     """Find transitions between sites.
 
     Parameters
@@ -322,6 +325,10 @@ def _calculate_transition_events(*, atom_sites: np.ndarray,
 
         # Indices when atom jumps in or out of site
         i, = np.nonzero((atom_site != np.roll(atom_site, shift=-1)))
+
+        # continue if atom does not jump
+        if len(i) < 1:
+            continue
 
         # Indices when atom jumps in or out of inner site
         i2, = np.nonzero((atom_inner_site != np.roll(atom_inner_site,
