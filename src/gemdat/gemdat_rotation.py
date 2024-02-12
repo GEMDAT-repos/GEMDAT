@@ -1,83 +1,196 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import matplotlib.pyplot as plt
 import numpy as np
 
+from gemdat.trajectory import Trajectory
 
-def bond_direct(traj, cent, sat, nr_cen, nr_lig=4, norm=True):
-    """Returns trajectories of normalized unit vectors defined as the distance
-    between a central and satellite atoms, meant to track orientation of
-    moleules or clusters."""
 
-    # Create new trajectory files
-    diff_trajectory_sat = traj.filter(sat)
-    diff_trajectory_cent = traj.filter(cent)
-    nr_ligands = nr_lig
-    nr_central_atoms = nr_cen
+@dataclass
+class Orientations:
+    """Container for orientational data. It computes trajectories of normalized
+    unit vectors defined as the distance between a central and satellite atoms,
+    meant to track orientation of moleules or clusters.
 
-    #fractional coordinates of central atom and sattelite atoms
-    frac_coord_sat = diff_trajectory_sat.positions
-    frac_coord_cent = diff_trajectory_cent.positions
+    Parameters
+    ----------
+    traj : Trajectory
+        Input trajectory
+    center_type: str
+        Type of the central atoms
+    satellite_type: str
+        Type of the satellite atoms
+    nr_central_atoms: int
+        Number of central atoms (? ask Theo ?)
+    nr_ligands: optional[int]
+        Number of ligands
+    """
+    traj: Trajectory
+    center_type: str
+    satellite_type: str
+    nr_central_atoms: int
+    nr_ligands: int | None = None
 
-    # Find starting coordinates of all atoms
-    central_start_coord = frac_coord_cent[1, :, :]
-    sattelite_start_coord = frac_coord_sat[1, :, :]
+    @property
+    def _traj_cent(self) -> Trajectory:
+        """Return trajectory of center atoms."""
+        return self.traj.filter(self.center_type)
 
-    # Calculate distances between every central atom and all satellite atoms
-    lattice = traj.lattice
+    @property
+    def _traj_sat(self) -> Trajectory:
+        """Return trajectory of satellite atoms."""
+        return self.traj.filter(self.satellite_type)
 
-    #function to calculate distance between two positions taking BC intro account
-    def calc_dist(frac1, frac2, lattice):
+    def _pbc_dist(self, frac1: np.ndarray, frac2: np.ndarray) -> np.floating:
+        """Computes the distance using periodic boundary conditions.
+
+        Parameters
+        ----------
+        frac1: np.ndarray
+            Fractional coordinates of atom1
+        frac2: np.ndarray
+            Fractional coordinates of atom2
+
+        Returns
+        -------
+        dist: np.floating
+            Distance between atom1 and atom2 considering the pbc
+        """
+        lattice = self.traj.lattice
         frac = np.subtract(frac2, frac1)
-
-        # Use numpy's modulo operation to handle wrapping
         frac = np.mod(frac + 0.5, 1) - 0.5
-
         cart = np.dot(frac, lattice)
         dist = np.linalg.norm(cart)
         return dist
 
-    distance = np.array([[
-        calc_dist(central, satellite, lattice)
-        for satellite in sattelite_start_coord
-    ] for central in central_start_coord])
+    def _fractional_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
+        """Return fractional coordinates of central atoms and sattelite
+        atoms."""
+        return self._traj_cent.positions, self._traj_sat.positions
 
-    # Determine which satellite atoms are close enough to central atom to be connected
-    match_criteria = 1.5 * np.min(distance)
-    distance_match = np.where(distance < match_criteria, distance, 0)
+    def _starting_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
+        """Return starting coordinates of all central atoms and all satellite
+        atoms."""
+        return self._traj_cent.positions[1, :, :], self._traj_sat.positions[
+            1, :, :]
 
-    # Create array which contains every central atom at rows and associated satellite atoms in the columns
-    matching_matrix = np.zeros((len(frac_coord_cent[0, :, 0]), 4), dtype=int)
+    @property
+    def _distances(self) -> np.ndarray:
+        """Calculate distances between every central atom and all satellite
+        atoms."""
+        central_start_coord, satellite_start_coord = self._starting_coordinates(
+        )
+        distance = np.array([[
+            self._pbc_dist(central, satellite)
+            for satellite in satellite_start_coord
+        ] for central in central_start_coord])
+        return distance
 
-    for k in range(len(frac_coord_cent[0, :, 0])):
-        matching_matrix[k, :] = np.where(distance_match[k, :] != 0)[0][:4]
+    def _matching_matrix(self, distance: np.ndarray,
+                         frac_coord_cent: np.ndarray) -> np.ndarray:
+        """Determine which satellite atoms are close enough to central atom to
+        be connected.
 
-    # Get central atoms and satellite atoms in a nice matrix for further calculations
-    index_central_atoms = np.arange(nr_central_atoms)
-    combinations = np.array([(i, j) for i in index_central_atoms
-                             for j in matching_matrix[i, :]])
+        Parameters
+        ----------
+        distance: np.ndarray
+            Distance between all the central-satellite pairs
+        frac_coord_cent; np.ndarray
+            Fractional coordinates of all the central atoms
 
-    # Get all fractional coordinate vectors going from central atom to its 4 ligands
-    direction = frac_coord_sat[:,
-                               combinations[:,
-                                            1], :] - frac_coord_cent[:,
-                                                                     combinations[:,
-                                                                                  0], :]
+        Returns
+        -------
+        matching_matrix: np.ndarray
+            Matrix that shows which center-satellite pair is closer than the matchin criteria
+        """
+        # The matching criteria is defined here
+        match_criteria = 1.5 * np.min(distance)
 
-    # Take the periodic boundary conditions into account
-    direction = np.where(direction > 0.5, direction - 1, direction)
-    direction = np.where(direction < -0.5, direction + 1, direction)
+        distance_match = np.where(distance < match_criteria, distance, 0)
+        matching_matrix = np.zeros((len(frac_coord_cent[0, :, 0]), 4),
+                                   dtype=int)
+        for k in range(len(frac_coord_cent[0, :, 0])):
+            matching_matrix[k, :] = np.where(distance_match[k, :] != 0)[0][:4]
+        return matching_matrix
 
-    # Create a directions matrix with cartesian vectors
-    # direct_cart = np.matmul(lattice.T, np.swapaxes(direction, 2, 1))
-    direct_cart = np.matmul(direction, lattice)
+    def _central_satellite_matrix(self, distance: np.ndarray,
+                                  frac_coord_cent: np.ndarray) -> np.ndarray:
+        """Get the combinations of central atoms and satellite atoms in a
+        matrix.
 
-    if norm:
-        normalized_direct_cart = direct_cart / np.linalg.norm(
-            direct_cart, axis=-1, keepdims=True)
-        return normalized_direct_cart
-    else:
-        return direct_cart
+        Parameters
+        ----------
+        distance: np.ndarray
+            Distance between all the central-satellite pairs
+        frac_coord_cent; np.ndarray
+            Fractional coordinates of all the central atoms
+
+        Returns
+        -------
+        combinations: np.ndarray
+            Matrix of combinations between central and satellite atoms
+        """
+        index_central_atoms = np.arange(self.nr_central_atoms)
+        matching_matrix = self._matching_matrix(distance, frac_coord_cent)
+        combinations = np.array([(i, j) for i in index_central_atoms
+                                 for j in matching_matrix[i, :]])
+        return combinations
+
+    def fractional_directions(self, distance: np.ndarray) -> np.ndarray:
+        """Get all fractional coordinate vectors going from central atom to its
+        ligands.
+
+        Parameters
+        ----------
+        distance: np.ndarray
+            Distance between all the central-satellite pairs
+
+        Returns
+        -------
+        direction: np.ndarray
+            Contains the direction between central atoms and their ligands.
+        """
+
+        frac_coord_cent, frac_coord_sat = self._fractional_coordinates()
+        combinations = self._central_satellite_matrix(distance,
+                                                      frac_coord_cent)
+        direction = frac_coord_sat[:,
+                                   combinations[:,
+                                                1], :] - frac_coord_cent[:,
+                                                                         combinations[:,
+                                                                                      0], :]
+        # Take the periodic boundary conditions into account.
+        direction = np.where(direction > 0.5, direction - 1, direction)
+        direction = np.where(direction < -0.5, direction + 1, direction)
+        return direction
+
+    def unit_vectors(self, normalize: bool) -> np.ndarray:
+        """Returns trajectories of normalized unit vectors defined as the
+        distance between a central and satellite atoms, meant to track
+        orientation of moleules or clusters.
+
+        Parameters
+        ----------
+        normalize: bool
+            If true, normalize the trajectories
+
+        Returns
+        -------
+        unit_vec_traj: np.ndarray
+            Trajectories of the unit vectors
+        """
+        lattice = self.traj.lattice
+        direction = self.fractional_directions(self._distances)
+        unit_vec_traj = np.matmul(direction, lattice)
+
+        if normalize:
+            unit_vec_traj = unit_vec_traj / np.linalg.norm(
+                unit_vec_traj, axis=-1, keepdims=True)
+            return unit_vec_traj
+        else:
+            return unit_vec_traj
 
 
 def cart2sph(x, y, z):
