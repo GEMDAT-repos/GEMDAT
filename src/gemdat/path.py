@@ -203,7 +203,7 @@ def free_energy_graph(F: np.ndarray,
 
 
 _PATHFINDING_METHODS = Literal['dijkstra', 'bellman-ford', 'minmax-energy',
-                               'dijkstra-exp']
+                               'dijkstra-exp', 'direct']
 
 
 def calculate_path_difference(path1: list, path2: list) -> float:
@@ -351,12 +351,19 @@ def optimal_path(
     path: Pathway
         Optimal path on the graph between start and stop
     """
+    if method == 'direct':
+        weight = None
+        method = 'dijkstra'
+    elif method == 'dijkstra-exp':
+        weight = 'dijkstra-exp'
+    else:
+        weight = 'weight'
 
     optimal_path = nx.shortest_path(
         F_graph,
         source=start,
         target=stop,
-        weight='weight_exp' if method == 'dijkstra-exp' else 'weight',
+        weight=weight,
         method='dijkstra' if method in ('dijkstra-exp',
                                         'minmax-energy') else method)
 
