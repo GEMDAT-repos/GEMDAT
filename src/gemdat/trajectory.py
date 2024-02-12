@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pymatgen.core import Structure
 
     from .transitions import Transitions
+    from .volume import Volume
 
 
 def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
@@ -126,6 +127,28 @@ class Trajectory(PymatgenTrajectory):
         """
         super().to_positions()
         self.coords = np.mod(self.coords, 1)
+
+    def to_volume(self, resolution: float = 0.2) -> Volume:
+        """Calculate density volume from a trajectory.
+
+        All coordinates are binned into voxels. The value of each
+        voxel represents the number of coodinates that are associated
+        with it.
+
+        For more info, see [gemdat.Volume][].
+
+        Parameters
+        ----------
+        resolution : float, optional
+            Minimum resolution for the voxels in Angstrom
+
+        Returns
+        -------
+        vol : Volume
+            Output volume
+        """
+        from gemdat.volume import trajectory_to_volume
+        return trajectory_to_volume(self, resolution=resolution)
 
     @property
     def total_time(self) -> float:
