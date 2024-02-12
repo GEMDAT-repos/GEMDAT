@@ -30,6 +30,29 @@ class Pathway:
     sites: list[tuple[int, int, int]] | None = None
     energy: list[float] | None = None
 
+    def __repr__(self):
+        s = [f'{self.__class__.__name__}(']
+
+        if len(self.sites) >= 7:
+            s.append('sites=[')
+            s.append(', '.join([str(v) for v in self.sites[:3]]))
+            s.append(', ..., ')
+            s.append(', '.join([str(v) for v in self.sites[:3]]))
+            s.append(']')
+        else:
+            s.append(str(self.sites))
+
+        s.append(', ')
+        s.append(f'total_energy={self.total_energy:.3f} eV')
+        s.append(')')
+
+        return ''.join(s)
+
+    @property
+    def total_energy(self):
+        """Return total energy for path."""
+        return sum(self.energy)
+
     def cartesian_path(self, vol: Volume) -> list[tuple[float, float, float]]:
         """Convert voxel coordinates to cartesian coordinates.
 
