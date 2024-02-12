@@ -145,7 +145,7 @@ class Transitions:
             on a destination site to count as a jump, passed through to conversion
             method
         **kwargs : dict
-            These parameters are passed to the [Jumps][] initializer.
+            These parameters are passed to the [gemdat.Jumps][] initializer.
 
         Returns
         -------

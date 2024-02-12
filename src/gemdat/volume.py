@@ -258,7 +258,7 @@ class Volume:
         peaks : Optional[np.ndarray]
             Voxel coordinates to use as starting points for watershed algorithm.
         **kwargs : dict
-            These keywords parameters are passed to [Volume.find_peaks][].
+            These keywords parameters are passed to [gemdat.Volume.find_peaks][].
             Only applies if `peaks == None`.
 
         Returns
