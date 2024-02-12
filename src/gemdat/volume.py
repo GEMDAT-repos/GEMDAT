@@ -315,6 +315,11 @@ class Volume:
             'Boltzmann constant in eV/K'][0] * np.log(prob)
         return np.nan_to_num(free_energy)
 
+    def plot_density(self, **kwargs):
+        """See `gemdat.plots.density()` for more info."""
+        from gemdat.plots import density
+        return density(volume=self, **kwargs)
+
 
 def trajectory_to_volume(
     trajectory: Trajectory,

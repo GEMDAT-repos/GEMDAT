@@ -167,7 +167,8 @@ def plot_volume(
                       showlegend=False))
 
 
-def density(vol: Volume,
+def density(volume: Volume,
+            *,
             structure: Optional[Structure] = None,
             force_lattice: Lattice | None = None) -> go.Figure:
     """Create density plot from volume and structure.
@@ -176,28 +177,30 @@ def density(vol: Volume,
 
     Arguments
     ---------
-    vol : Volume
+    volume : Volume
         Input volume
     structure : Structure, optional
         Input structure
     force_lattice : Lattice | None
         Plot volume and structure using this lattice as a basis. Overrides the default, which is to
-        use `vol.lattice` and `structure.lattice` where applicable.
+        use `volume.lattice` and `structure.lattice` where applicable.
 
     Returns
     -------
     fig : go.Figure
         Output as plotly figure
     """
+    zoom = 0.1
+
     fig = go.Figure()
 
     if force_lattice:
         lattice = force_lattice
     else:
-        lattice = vol.lattice
+        lattice = volume.lattice
 
     plot_lattice_vectors(lattice, fig=fig)
-    plot_volume(vol, lattice=lattice, fig=fig)
+    plot_volume(volume, lattice=lattice, fig=fig)
 
     if structure:
         if force_lattice:
@@ -211,9 +214,9 @@ def density(vol: Volume,
                       scene={
                           'aspectmode': 'manual',
                           'aspectratio': {
-                              'x': vol.lattice.a,
-                              'y': vol.lattice.b,
-                              'z': vol.lattice.c,
+                              'x': volume.lattice.a * zoom,
+                              'y': volume.lattice.b * zoom,
+                              'z': volume.lattice.c * zoom,
                           },
                           'xaxis_title': 'X (Ångstrom)',
                           'yaxis_title': 'Y (Ångstrom)',
@@ -238,9 +241,9 @@ def density(vol: Volume,
                               'type': 'orthographic'
                           },
                           'eye': {
-                              'x': -vol.lattice.a * 0.5,
-                              'y': -vol.lattice.b * 2,
-                              'z': vol.lattice.c * 1.5,
+                              'x': -volume.lattice.a * 0.05,
+                              'y': -volume.lattice.b * 0.2,
+                              'z': volume.lattice.c * 0.15,
                           }
                       })
 

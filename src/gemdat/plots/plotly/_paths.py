@@ -32,8 +32,7 @@ def path_on_landscape(
     fig : go.Figure
         Output as plotly figure
     """
-
-    fig = density(volume.to_probability(), structure)
+    fig = density(volume.to_probability(), structure=structure)
 
     path = np.asarray(path.cartesian_path(volume))
     x_path, y_path, z_path = path.T
