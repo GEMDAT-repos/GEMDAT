@@ -11,7 +11,7 @@ nav:
   - Examples:
     # - Index: notebooks/README.md
     - Introduction: notebooks/introduction.ipynb
-    - Loading a CIF File: notebooks/CIF.ipynb
+    - Loading a CIF File: notebooks/cif_sites.ipynb
     - Generate sites from trajectory: notebooks/volume_sites.ipynb
     - Shape analysis: notebooks/shape_analysis.ipynb
     - Pathways: notebooks/paths.ipynb
