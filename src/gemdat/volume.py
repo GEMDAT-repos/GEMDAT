@@ -317,8 +317,8 @@ class Volume:
 
     def plot_density(self, **kwargs):
         """See [gemdat.plots.density][] for more info."""
-        from gemdat.plots import density
-        return density(volume=self, **kwargs)
+        from gemdat import plots
+        return plots.density(volume=self, **kwargs)
 
 
 def trajectory_to_volume(
