@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import warnings
+from importlib.resources import files
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +13,8 @@ from scipy.spatial import cKDTree
 # shortcut to test data
 VASPRUN = Path(__file__).parents[
     2] / 'tests' / 'data' / 'short_simulation' / 'vasprun.xml'
+
+DATA = files('gemdat') / 'data'
 
 
 def nearest_structure_reference(
