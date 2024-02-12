@@ -539,31 +539,31 @@ class Trajectory(PymatgenTrajectory):
         )
 
     def plot_displacement_per_site(self, **kwargs):
-        """See `gemdat.plots.displacement_per_site()` for more info."""
+        """See [gemdat.plots.displacement_per_site][] for more info."""
         from gemdat.plots import displacement_per_site
         return displacement_per_site(trajectory=self, **kwargs)
 
     def plot_displacement_per_element(self, **kwargs):
-        """See `gemdat.plots.displacement_per_element()` for more info."""
+        """See [gemdat.plots.displacement_per_element][] for more info."""
         from gemdat.plots import displacement_per_element
         return displacement_per_element(trajectory=self, **kwargs)
 
     def plot_msd_per_element(self, **kwargs):
-        """See `gemdat.plots.msd_per_element()` for more info."""
+        """See [gemdat.plots.msd_per_element][] for more info."""
         from gemdat.plots import msd_per_element
         return msd_per_element(trajectory=self, **kwargs)
 
     def plot_displacement_histogram(self, **kwargs):
-        """See `gemdat.plots.displacement_histogram()` for more info."""
+        """See [gemdat.plots.displacement_histogram][] for more info."""
         from gemdat.plots import displacement_histogram
         return displacement_histogram(trajectory=self, **kwargs)
 
     def plot_frequency_vs_occurence(self, **kwargs):
-        """See `gemdat.plots.frequency_vs_occurence()` for more info."""
+        """See [gemdat.plots.frequency_vs_occurence][] for more info."""
         from gemdat.plots import frequency_vs_occurence
         return frequency_vs_occurence(trajectory=self, **kwargs)
 
     def plot_vibrational_amplitudes(self, **kwargs):
-        """See `gemdat.plots.vibrational_amplitudes()` for more info."""
+        """See [gemdat.plots.vibrational_amplitudes][] for more info."""
         from gemdat.plots import vibrational_amplitudes
         return vibrational_amplitudes(trajectory=self, **kwargs)

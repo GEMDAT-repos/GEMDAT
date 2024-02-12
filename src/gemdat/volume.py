@@ -316,7 +316,7 @@ class Volume:
         return np.nan_to_num(free_energy)
 
     def plot_density(self, **kwargs):
-        """See `gemdat.plots.density()` for more info."""
+        """See [gemdat.plots.density][] for more info."""
         from gemdat.plots import density
         return density(volume=self, **kwargs)
 
