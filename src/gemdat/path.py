@@ -224,10 +224,7 @@ def calculate_path_difference(path1: list, path2: list) -> float:
     """
 
     # Find the shortest and longest paths
-    if len(path1) <= len(path2):
-        shortest, longest = path1, path2
-    else:
-        shortest, longest = path2, path1
+    shortest, longest = sorted((path1, path2), key=len)
 
     # Calculate the number of nodes shared between the shortest and longest paths
     shared_nodes = 0
