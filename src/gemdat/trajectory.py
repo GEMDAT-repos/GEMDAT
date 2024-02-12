@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pymatgen.core import Structure
 
     from .transitions import Transitions
+    from .volume import Volume
 
 
 def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
@@ -126,6 +127,28 @@ class Trajectory(PymatgenTrajectory):
         """
         super().to_positions()
         self.coords = np.mod(self.coords, 1)
+
+    def to_volume(self, resolution: float = 0.2) -> Volume:
+        """Calculate density volume from a trajectory.
+
+        All coordinates are binned into voxels. The value of each
+        voxel represents the number of coodinates that are associated
+        with it.
+
+        For more info, see [gemdat.Volume][].
+
+        Parameters
+        ----------
+        resolution : float, optional
+            Minimum resolution for the voxels in Angstrom
+
+        Returns
+        -------
+        vol : Volume
+            Output volume
+        """
+        from gemdat.volume import trajectory_to_volume
+        return trajectory_to_volume(self, resolution=resolution)
 
     @property
     def total_time(self) -> float:
@@ -496,7 +519,8 @@ class Trajectory(PymatgenTrajectory):
         floating_specie : str
             Name of the floating specie to calculate transitions for
         site_radius: Optional[float]
-            A custom site size to use for determining if an atom is at a site
+            A custom site radius in Ångstrom to determine
+            if an atom is at a site
         site_inner_fraction:
             A fraction of the site radius which is determined to be the `inner site`
             which is used in jump calculations
@@ -513,3 +537,33 @@ class Trajectory(PymatgenTrajectory):
             site_radius=site_radius,
             site_inner_fraction=site_inner_fraction,
         )
+
+    def plot_displacement_per_site(self, **kwargs):
+        """See [gemdat.plots.displacement_per_site][] for more info."""
+        from gemdat import plots
+        return plots.displacement_per_site(trajectory=self, **kwargs)
+
+    def plot_displacement_per_element(self, **kwargs):
+        """See [gemdat.plots.displacement_per_element][] for more info."""
+        from gemdat import plots
+        return plots.displacement_per_element(trajectory=self, **kwargs)
+
+    def plot_msd_per_element(self, **kwargs):
+        """See [gemdat.plots.msd_per_element][] for more info."""
+        from gemdat import plots
+        return plots.msd_per_element(trajectory=self, **kwargs)
+
+    def plot_displacement_histogram(self, **kwargs):
+        """See [gemdat.plots.displacement_histogram][] for more info."""
+        from gemdat import plots
+        return plots.displacement_histogram(trajectory=self, **kwargs)
+
+    def plot_frequency_vs_occurence(self, **kwargs):
+        """See [gemdat.plots.frequency_vs_occurence][] for more info."""
+        from gemdat import plots
+        return plots.frequency_vs_occurence(trajectory=self, **kwargs)
+
+    def plot_vibrational_amplitudes(self, **kwargs):
+        """See [gemdat.plots.vibrational_amplitudes][] for more info."""
+        from gemdat import plots
+        return plots.vibrational_amplitudes(trajectory=self, **kwargs)

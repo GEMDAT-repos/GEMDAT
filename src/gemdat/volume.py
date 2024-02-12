@@ -258,7 +258,7 @@ class Volume:
         peaks : Optional[np.ndarray]
             Voxel coordinates to use as starting points for watershed algorithm.
         **kwargs : dict
-            These keywords parameters are passed to [Volume.find_peaks][].
+            These keywords parameters are passed to [gemdat.Volume.find_peaks][].
             Only applies if `peaks == None`.
 
         Returns
@@ -314,6 +314,11 @@ class Volume:
         free_energy = -temperature * physical_constants[
             'Boltzmann constant in eV/K'][0] * np.log(prob)
         return np.nan_to_num(free_energy)
+
+    def plot_density(self, **kwargs):
+        """See [gemdat.plots.density][] for more info."""
+        from gemdat import plots
+        return plots.density(volume=self, **kwargs)
 
 
 def trajectory_to_volume(

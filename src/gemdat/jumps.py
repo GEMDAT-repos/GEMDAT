@@ -22,12 +22,12 @@ if TYPE_CHECKING:
 def _generic_transitions_to_jumps(transitions: Transitions,
                                   *,
                                   minimal_residence: int = 0) -> pd.DataFrame:
-    """Generic function to convert transitions to jumps.
+    """Generic function to convert transition events to jumps.
 
     Parameters
     ----------
-    transitions :
-        transitions
+    transitions : Transitions
+        Input transitions
     minimal_residence : int
         minimal residence time of an atom on a destination site to count as a jump
     """
@@ -116,14 +116,15 @@ class Jumps:
                       DefaultNamedArg(int, 'minimal_residence')],
                      pd.DataFrame] = _generic_transitions_to_jumps,
                  minimal_residence: int = 0):
-        """
+        """Analyze transitions and classify them as jumps.
+
         Parameters
         ----------
         transitions : Transitions
             pymatgen transitions in which to calculate jumps
         conversion_method : Callable[[Transitions,int], pd.DataFrame]:
             conversion method that translates the Transitions into Jumps,
-            second parameter is the minimal_residence parameter
+            second parameter is the `minimal_residence` parameter
         minimal_residence : int
             minimal residence, number of timesteps that an atom needs to reside
             on a destination site to count as a jump, passed through to conversion
@@ -358,3 +359,28 @@ class Jumps:
         df.columns = ('rates', 'std')
 
         return df
+
+    def plot_jumps_vs_distance(self, **kwargs):
+        """See [gemdat.plots.jumps_vs_distance][] for more information."""
+        from gemdat import plots
+        return plots.jumps_vs_distance(jumps=self, **kwargs)
+
+    def plot_jumps_vs_time(self, **kwargs):
+        """See [gemdat.plots.jumps_vs_time][] for more information."""
+        from gemdat import plots
+        return plots.jumps_vs_time(jumps=self, **kwargs)
+
+    def plot_collective_jumps(self, **kwargs):
+        """See [gemdat.plots.collective_jumps][] for more information."""
+        from gemdat import plots
+        return plots.collective_jumps(jumps=self, **kwargs)
+
+    def plot_jumps_3d(self, **kwargs):
+        """See [gemdat.plots.jumps_3d][] for more information."""
+        from gemdat import plots
+        return plots.jumps_3d(jumps=self, **kwargs)
+
+    def plot_jumps_3d_animation(self, **kwargs):
+        """See [gemdat.plots.jumps_3d_animation][] for more information."""
+        from gemdat import plots
+        return plots.jumps_3d_animation(jumps=self, **kwargs)

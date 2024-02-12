@@ -72,6 +72,11 @@ class ShapeData:
         centroid = np.mean(self.coords, axis=0)
         return centroid
 
+    def plot(self, **kwargs):
+        """See [gemdat.plots.shape][] for more info."""
+        from gemdat import plots
+        return plots.shape(shape=self, **kwargs)
+
 
 class ShapeAnalyzer:
     """The goal for this class is to have a generalized algorithm that for all

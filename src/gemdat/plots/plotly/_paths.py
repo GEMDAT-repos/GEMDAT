@@ -38,7 +38,7 @@ def path_on_landscape(
     else:
         path = paths[0]
 
-    fig = density(volume.to_probability(), structure)
+    fig = density(volume.to_probability(), structure=structure)
 
     x_path, y_path, z_path = np.asarray(path.cartesian_path(volume)).T
 
