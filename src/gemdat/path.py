@@ -374,19 +374,19 @@ def optimal_path(
     """
     if method == 'direct':
         weight = None
-        method = 'dijkstra'
     elif method == 'dijkstra-exp':
-        weight = 'dijkstra-exp'
+        weight = 'weight_exp'
     else:
         weight = 'weight'
 
-    optimal_path = nx.shortest_path(
-        F_graph,
-        source=start,
-        target=stop,
-        weight=weight,
-        method='dijkstra' if method in ('dijkstra-exp',
-                                        'minmax-energy') else method)
+    if method in ('dijkstra-exp', 'minmax-energy', 'direct'):
+        method = 'dijkstra'
+
+    optimal_path = nx.shortest_path(F_graph,
+                                    source=start,
+                                    target=stop,
+                                    weight=weight,
+                                    method=method)
 
     if method == 'minmax-energy':
         optimal_path = _optimal_path_minmax_energy(F_graph, start, stop,

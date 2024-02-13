@@ -22,6 +22,7 @@ def test_fractional_coordinates(vasp_path_vol, vasp_full_path):
 
 TEST_DATA = (
     # start, stop, method, expected
+    ((10, 4, 13), (21, 3, 10), 'direct', 6.3023933200094655),
     ((10, 4, 13), (21, 3, 10), 'dijkstra', 5.210130709736149),
     ((7, 9, 2), (20, 4, 2), 'bellman-ford', 5.5363545176821),
     ((18, 7, 12), (25, 3, 13), 'dijkstra-exp', 5.029753032964493),
@@ -33,7 +34,7 @@ TEST_DATA = (
 @pytest.mark.parametrize('start,stop,method,expected', TEST_DATA)
 def test_optimal_path(vasp_F_graph, start, stop, method, expected):
     path = optimal_path(vasp_F_graph, start, stop, method)
-    assert isclose(sum(path.energy), expected)
+    assert isclose(path.total_energy, expected)
 
 
 @pytest.vaspxml_available  # type: ignore
