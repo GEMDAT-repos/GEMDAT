@@ -75,13 +75,12 @@ class Volume:
 
     def voxel_to_frac_coords(self, voxel: tuple[int, int, int]) -> np.ndarray:
         """Convert voxel coordinates to fractional coordinates."""
-        return (np.array(voxel)) / np.array(self.data.shape)
+        return (np.array(voxel) + 0.5) / np.array(self.data.shape)
 
     def frac_coords_to_voxel(self, frac_coords: tuple[int, int,
                                                       int]) -> np.ndarray:
         """Convert fractional coordinates to voxel coordinates."""
-        return (np.array(frac_coords) *
-                np.array(self.data.shape)).round().astype(int)
+        return (np.array(frac_coords) * np.array(self.data.shape)).astype(int)
 
     def site_to_voxel(self, site: PeriodicSite) -> np.ndarray:
         """Convert fractional coordinates to voxel coordinates."""
