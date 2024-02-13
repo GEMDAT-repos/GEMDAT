@@ -55,7 +55,7 @@ def energy_along_path(
         coord = nearest_structure_coord[i]
         # only non repeated labels will get an entry
         if (coord != nearest_structure_coord[i - 1]).any() or i == 0:
-            sitecoord_xlabel.append(', '.join([f"{val:.1f}" for val in coord]))
+            sitecoord_xlabel.append(', '.join([f'{val:.1f}' for val in coord]))
             site_xlabel.append(f'{nearest_structure_label[i]}')
         else:
             sitecoord_xlabel.append('')
