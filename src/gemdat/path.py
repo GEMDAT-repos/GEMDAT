@@ -31,22 +31,13 @@ class Pathway:
     energy: list[float] | None = None
 
     def __repr__(self):
-        s = [f'{self.__class__.__name__}(']
+        s = (
+            f'Path: {self.start_site} -> {self.stop_site}',
+            f'Steps: {len(self.sites)}',
+            f'Total energy: {self.total_energy:.3f} eV',
+        )
 
-        if len(self.sites) >= 7:
-            s.append('sites=[')
-            s.append(', '.join([str(v) for v in self.sites[:3]]))
-            s.append(', ..., ')
-            s.append(', '.join([str(v) for v in self.sites[:3]]))
-            s.append(']')
-        else:
-            s.append(str(self.sites))
-
-        s.append(', ')
-        s.append(f'total_energy={self.total_energy:.3f} eV')
-        s.append(')')
-
-        return ''.join(s)
+        return '\n'.join(s)
 
     @property
     def total_energy(self):
