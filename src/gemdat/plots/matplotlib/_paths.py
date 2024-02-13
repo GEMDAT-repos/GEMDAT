@@ -30,10 +30,10 @@ def energy_along_path(
         Output figure
     """
     # The first Pathway in paths is assumed to be the optimal one
-    if isinstance(paths, Pathway):
-        path = paths
-    else:
+    if isinstance(paths, list):
         path = paths[0]
+    else:
+        path = paths
 
     if path.energy is None:
         raise ValueError('Pathway does not contain energy data')

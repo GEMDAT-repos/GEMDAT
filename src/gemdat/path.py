@@ -302,6 +302,7 @@ def multiple_paths(
         Coordinates of the stopping point
     method : str
         Method used to calculate the shortest path. Options are:
+        - 'direct': Shortest, unweighted path
         - 'dijkstra': Dijkstra's algorithm
         - 'bellman-ford': Bellman-Ford algorithm
         - 'minmax-energy': Minmax energy algorithm
@@ -360,6 +361,7 @@ def optimal_path(
         Coordinates of the stoping point
     method : str
         Method used to calculate the shortest path. Options are:
+        - 'direct': Shortest, unweighted path
         - 'dijkstra': Dijkstra's algorithm
         - 'bellman-ford': Bellman-Ford algorithm
         - 'minmax-energy': Minmax energy algorithm
@@ -397,8 +399,12 @@ def optimal_path(
     return path
 
 
-def _optimal_path_minmax_energy(F_graph: nx.Graph, start: tuple, stop: tuple,
-                                optimal_path: list) -> list:
+def _optimal_path_minmax_energy(
+    F_graph: nx.Graph,
+    start: tuple[int, int, int],
+    stop: tuple[int, int, int],
+    optimal_path: list,
+) -> list:
     """Find the optimal path that has the minimum maximum-energy.
 
     Parameters
