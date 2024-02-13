@@ -166,8 +166,8 @@ class Orientations:
         direction = np.where(direction < -0.5, direction + 1, direction)
         return direction
 
-    def unit_vectors(self, normalize: bool) -> np.ndarray:
-        """Returns trajectories of normalized unit vectors defined as the
+    def _compute_unit_vectors_traj(self, normalize: bool) -> None:
+        """Computes trajectories of normalized unit vectors defined as the
         distance between a central and satellite atoms, meant to track
         orientation of moleules or clusters.
 
@@ -188,35 +188,233 @@ class Orientations:
         if normalize:
             unit_vec_traj = unit_vec_traj / np.linalg.norm(
                 unit_vec_traj, axis=-1, keepdims=True)
-            return unit_vec_traj
-        else:
-            return unit_vec_traj
+
+        self._unit_vectors_traj = unit_vec_traj
+        self._unit_vectors_traj_norm = normalize
+
+    def get_unit_vectors_traj(self, normalize: bool = False) -> np.ndarray:
+        """Returns trajectories of normalized unit vectors defined as the
+        distance between a central and satellite atoms, meant to track
+        orientation of moleules or clusters.
+
+        Parameters
+        ----------
+        normalize: bool
+            If true, normalize the trajectories
+
+        Returns
+        -------
+        unit_vec_traj: np.ndarray
+            Trajectories of the unit vectors
+        """
+        # Recompute also if normalized differently as expected
+        if not hasattr(self, '_unit_vectors_traj') or self._unit_vectors_traj_norm != normalize:
+            self._compute_unit_vectors_traj(normalize)
+        return self._unit_vectors_traj
+
+    def _compute_conventional_form(self, normalize: bool = False) -> None:
+        """Converts the trajectory of unit vectors from fractional to
+        conventional coordinates.
+
+        Parameters
+        ----------
+        normalize: bool
+            If true, normalize the trajectories
+        """
+        unit_vec_traj = self.get_unit_vectors_traj(normalize=normalize)
+        # Matrix to transform primitive unit cell coordinates to conventional unit cell coordinates
+        prim_to_conv_matrix = np.array(
+            [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)],
+             [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
+             [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
+
+        self._conventional_form = np.matmul(unit_vec_traj,
+                                            prim_to_conv_matrix.T)
+
+    def get_conventional_form(self, normalize: bool = False) -> np.ndarray:
+        """Returns the trajectory of unit vectors in conventional coordinates.
+
+        Parameters
+        ----------
+        normalize: bool
+            If true, normalize the trajectories
+
+        Returns
+        -------
+        conventional_traj: np.ndarray
+            Trajectory of the unit vectors in conventional coordinates (? @Theo)
+        """
+        if not hasattr(self, '_conventional_form'):
+            self._compute_conventional_form(normalize)
+        return self._conventional_form
+
+    def apply_symmetry(self, direction: np.ndarray,
+                       sym_matrix: np.ndarray) -> np.ndaray:
+        """Apply symmetry elements of Oh space group with vectorized
+        operations.
+
+        Parameters
+        ----------
+        direction: np.ndarray
+            Trajectory of the unit vectors in conventional coordinates
+        sym_matrix: np.ndarray
+            Matrix of symmetry operations
+
+        Returns
+        -------
+        direction_sym: np.ndarray
+            Trajectory of the unit vectors after applying symmetry operations
+        """
+
+        n_ts = direction.shape[0]
+        n_bonds = direction.shape[1]
+        n_symops = sym_matrix.shape[2]
+
+        direction_sym = np.zeros((n_ts, n_bonds * n_symops, 3))
+        for m in range(n_ts):
+            for l in range(n_bonds):
+                for k in range(n_symops):
+                    direction_sym[m, l * n_symops + k, :] = np.matmul(
+                        sym_matrix[:, :, k], direction[m, l, :])
+
+        return direction_sym
+
+    def _cart2sph(self, x: float, y: float, z: float) -> tuple[float, float, float]:
+        """Transform cartesian coordinates to spherical coordinates.
+
+        Parameters
+        ----------
+        x : float
+            x coordinate
+        y : float
+            y coordinate
+        z : float
+            z coordinate
+
+        Returns
+        -------
+        az : float
+            azimuthal angle
+        el : float
+            elevation angle
+        r : float
+            radius
+        """
+        r = np.sqrt(x**2 + y**2 + z**2)
+        el = np.arcsin(z / r)
+        az = np.arctan2(y, x)
+        return az, el, r
+
+    def cartesian_to_spherical(self,
+                               direct_cart: np.ndarray,
+                               degrees: bool) -> np.ndarray:
+        """Trajectory from cartesian coordinates to spherical coordinates.
+
+        Parameters
+        ----------
+        direct_cart : np.ndarray
+            Trajectory of the unit vectors in conventional coordinates
+        degrees : bool
+            If true, return angles in degrees
+
+        Returns
+        -------
+        direction_spherical : np.ndarray
+            Trajectory of the unit vectors in spherical coordinates
+        """
+        x = direct_cart[:, :, 0]
+        y = direct_cart[:, :, 1]
+        z = direct_cart[:, :, 2]
+
+        az, el, r = self._cart2sph(x, y, z)
+
+        if degrees:
+            az = np.degrees(az)
+            el = np.degrees(el)
+
+        direction_spherical = np.stack((az, el, r), axis=-1)
+
+        return direction_spherical
 
 
-def cart2sph(x, y, z):
-    """Transform cartesian coordinates to spherical coordinates."""
-    r = np.sqrt(x**2 + y**2 + z**2)
-    el = np.arcsin(z / r)
-    az = np.arctan2(y, x)
-    return az, el, r
+@dataclass
+class Oh_point_group:
+    """Container for the symmetry operations of the Oh point group."""
+
+    @property
+    def sym_ops_Oh_firstcolumn(self):
+        """Returns the symmetry operations for the first column."""
+        return np.array([
+            np.eye(3),
+            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+            np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]),
+            np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]]),
+            np.array([[1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+            np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
+            np.array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]])
+        ])
+
+    @property
+    def sym_ops_Oh_firstrow(self):
+        """Returns the symmetry operation for the first row."""
+        return np.array([
+            np.eye(3),
+            np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1]]),
+            np.array([[1, 0, 0], [0, 0, 1], [0, 1, 0]]),
+            np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]]),
+            np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]),
+            np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])
+        ])
+
+    @property
+    def sym_ops_Oh(self):
+        """Multiply row by column the sym_ops to get 8x6 matrix of
+        transformation matrices."""
+        sym_ops_Oh = np.zeros((8, 6, 3, 3))
+        sym_ops_Oh_firstcolumn = self.sym_ops_Oh_firstcolumn
+        sym_ops_Oh_firstrow = self.sym_ops_Oh_firstrow
+        for i in range(len(sym_ops_Oh_firstcolumn)):
+            for j in range(len(sym_ops_Oh_firstrow)):
+                sym_ops_Oh[i, j, :, :] = np.matmul(
+                    sym_ops_Oh_firstcolumn[i, :, :],
+                    sym_ops_Oh_firstrow[j, :, :])
+
+        # Reshape to make it easier to iterate on (only on 3rd dimension)
+        return sym_ops_Oh.reshape(3, 3, -1)
 
 
-def cartesian_to_spherical(direct_cart, degrees=True):
-    """Trajectory from cartesian coordinates to spherical coordinates."""
-    x = direct_cart[:, :, 0]
-    y = direct_cart[:, :, 1]
-    z = direct_cart[:, :, 2]
+def calculate_spherical_areas(shape: tuple, radius: float = 1) -> np.ndarray:
+    """Calculate the areas of a section of a sphere, defined in spherical
+    coordinates.
 
-    az, el, r = cart2sph(x, y, z)
+    Parameters
+    ----------
+    shape : tuple
+        Shape of the grid
+    radius : float
+        Radius of the sphere
 
-    if degrees:
-        az = np.degrees(az)
-        el = np.degrees(el)
+    Returns
+    -------
+    areas : np.ndarray
+        Areas of the section
+    """
+    azimuthal_angles = np.linspace(0, 360, shape[1])
+    elevation_angles = np.linspace(0, 180, shape[0])
 
-    # Stack the results along the last axis to match the shape of direction_spherical
-    direction_spherical = np.stack((az, el, r), axis=-1)
+    areas = np.zeros(shape, dtype=float)
 
-    return direction_spherical
+    for i in range(shape[1]):
+        for j in range(shape[0]):
+            azimuthal_increment = np.deg2rad(1)
+            elevation_increment = np.deg2rad(1)
+
+            areas[j, i] = (radius**2) * azimuthal_increment * np.sin(
+                np.deg2rad(elevation_angles[j])) * elevation_increment
+            #hacky way to get rid of singularity on poles
+            areas[0, :] = areas[-1, 0]
+    return areas
 
 
 def sph_prob(direction_spherical_deg, shape=(360, 180)):

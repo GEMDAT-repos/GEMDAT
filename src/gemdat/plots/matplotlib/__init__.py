@@ -20,6 +20,7 @@ from ._paths import (
     path_on_grid,
 )
 from ._rdf import radial_distribution
+from ._rotations import rectilinear_plot
 from ._shape import shape
 from ._vibration import (
     frequency_vs_occurence,
@@ -40,6 +41,7 @@ __all__ = [
     'msd_per_element',
     'path_on_grid',
     'radial_distribution',
+    'rectilinear_plot',
     'shape',
     'vibrational_amplitudes',
 ]

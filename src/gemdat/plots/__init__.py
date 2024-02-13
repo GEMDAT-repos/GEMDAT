@@ -11,6 +11,7 @@ from .matplotlib import (
     jumps_3d_animation,
     path_on_grid,
     radial_distribution,
+    rectilinear_plot,
     shape,
 )
 
@@ -39,6 +40,7 @@ __all__ = [
     'jumps_vs_time',
     'msd_per_element',
     'radial_distribution',
+    'rectilinear_plot',
     'shape',
     'vibrational_amplitudes',
     'energy_along_path',
