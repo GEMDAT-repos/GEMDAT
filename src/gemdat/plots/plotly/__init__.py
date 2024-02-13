@@ -11,7 +11,6 @@ from ._jumps import (
     jumps_vs_distance,
     jumps_vs_time,
 )
-from ._paths import path_on_landscape
 from ._vibration import vibrational_amplitudes
 
 __all__ = [
@@ -21,6 +20,5 @@ __all__ = [
     'jumps_vs_distance',
     'jumps_vs_time',
     'msd_per_element',
-    'path_on_landscape',
     'vibrational_amplitudes',
 ]
