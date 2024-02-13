@@ -61,16 +61,16 @@ class Volume:
                                            self.data.shape))  # type: ignore
 
     @classmethod
-    def from_volumetric_data(cls, vol: VolumetricData):
+    def from_volumetric_data(cls, volume: VolumetricData):
         """Create instance from VolumetricData.
 
         Parameters
         ----------
-        vol : pymatgen.io.common.VolumetricData
+        volume : pymatgen.io.common.VolumetricData
             Input volumetric data
         """
-        return cls(data=vol.data['total'],
-                   lattice=vol.structure.lattice,
+        return cls(data=volume.data['total'],
+                   lattice=volume.structure.lattice,
                    resolution=None)
 
     def find_peaks(

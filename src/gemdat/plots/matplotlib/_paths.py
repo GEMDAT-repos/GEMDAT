@@ -7,8 +7,12 @@ from gemdat.path import Pathway
 from gemdat.volume import Volume
 
 
-def energy_along_path(*, paths: Pathway | list[Pathway], structure: Structure,
-                      volume: Volume) -> plt.Figure:
+def energy_along_path(
+    *,
+    paths: Pathway | list[Pathway],
+    structure: Structure,
+    volume: Volume,
+) -> plt.Figure:
     """Plot energy along specified path.
 
     Parameters
@@ -52,7 +56,7 @@ def energy_along_path(*, paths: Pathway | list[Pathway], structure: Structure,
         # only non repeated labels will get an entry
         if (coord != nearest_structure_coord[i - 1]).any() or i == 0:
             sitecoord_xlabel.append(
-                f'{", ".join([f"{coord:.1f}" for coord in coord])}')
+                f'{', '.join([f"{coord:.1f}" for coord in coord])}')
             site_xlabel.append(f'{nearest_structure_label[i]}')
         else:
             sitecoord_xlabel.append('')
