@@ -18,7 +18,7 @@ from skimage.measure import regionprops
 from .segmentation import watershed_pbc
 
 if TYPE_CHECKING:
-    from pymatgen.core import Lattice
+    from pymatgen.core import Lattice, PeriodicSite
     from skimage.measure._regionprops import RegionProperties
 
     from gemdat.trajectory import Trajectory
@@ -72,6 +72,20 @@ class Volume:
         return cls(data=volume.data['total'],
                    lattice=volume.structure.lattice,
                    resolution=None)
+
+    def voxel_to_frac_coords(self, voxel: tuple[int, int, int]) -> np.ndarray:
+        """Convert voxel coordinates to fractional coordinates."""
+        return (np.array(voxel)) / np.array(self.data.shape)
+
+    def frac_coords_to_voxel(self, frac_coords: tuple[int, int,
+                                                      int]) -> np.ndarray:
+        """Convert fractional coordinates to voxel coordinates."""
+        return (np.array(frac_coords) *
+                np.array(self.data.shape)).round().astype(int)
+
+    def site_to_voxel(self, site: PeriodicSite) -> np.ndarray:
+        """Convert fractional coordinates to voxel coordinates."""
+        return self.frac_coords_to_voxel(site.frac_coords)
 
     def find_peaks(
         self,
