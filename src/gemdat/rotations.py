@@ -208,7 +208,8 @@ class Orientations:
             Trajectories of the unit vectors
         """
         # Recompute also if normalized differently as expected
-        if not hasattr(self, '_unit_vectors_traj') or self._unit_vectors_traj_norm != normalize:
+        if not hasattr(self, '_unit_vectors_traj'
+                       ) or self._unit_vectors_traj_norm != normalize:
             self._compute_unit_vectors_traj(normalize)
         return self._unit_vectors_traj
 
@@ -279,7 +280,8 @@ class Orientations:
 
         return direction_sym
 
-    def _cart2sph(self, x: float, y: float, z: float) -> tuple[float, float, float]:
+    def _cart2sph(self, x: float, y: float,
+                  z: float) -> tuple[float, float, float]:
         """Transform cartesian coordinates to spherical coordinates.
 
         Parameters
@@ -305,8 +307,7 @@ class Orientations:
         az = np.arctan2(y, x)
         return az, el, r
 
-    def cartesian_to_spherical(self,
-                               direct_cart: np.ndarray,
+    def cartesian_to_spherical(self, direct_cart: np.ndarray,
                                degrees: bool) -> np.ndarray:
         """Trajectory from cartesian coordinates to spherical coordinates.
 
