@@ -465,20 +465,17 @@ def _calculate_atom_states(
         box=np.array(lattice.parameters, dtype=np.float32))
     site_coords_tree.set_coords(traj_cart_coords, cutoff=site_radius)
 
+    shape = trajectory.positions.shape[0:2]
+
     atom_sites = np.full((traj_cart_coords.shape[0]), NOSITE)
 
-    for i, site in enumerate(sites):
-        cart_coords = np.dot(site.frac_coords, lattice.matrix)
-        site_index = site_coords_tree.search_tree(
-            cart_coords, site_radius * site_inner_fraction)
+    cart_coords = np.dot(sites.frac_coords, lattice.matrix)
+    site_index = site_coords_tree.search_tree(
+        cart_coords, site_radius * site_inner_fraction)
 
-        if site_index.size == 0:
-            continue
+    siteno, index = site_index.T
+    atom_sites[index] = siteno
 
-        index = site_index[:, 1]
-        atom_sites[index] = i
-
-    shape = trajectory.positions.shape[0:2]
     return atom_sites.reshape(shape)
 
 
