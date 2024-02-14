@@ -249,23 +249,19 @@ class Orientations:
             self._compute_conventional_form(normalize)
         return self._conventional_form
 
-    def apply_symmetry(self, direction: np.ndarray,
-                       sym_matrix: np.ndarray) -> np.ndaray:
+
+    def _compute_symmetric_traj(self, sym_matrix: np.ndarray, normalize: bool =False) -> None:
         """Apply symmetry elements of Oh space group with vectorized
-        operations.
+        operations. It starts from the unit vectors trajectory in conventional coordinates.
 
         Parameters
         ----------
-        direction: np.ndarray
-            Trajectory of the unit vectors in conventional coordinates
         sym_matrix: np.ndarray
             Matrix of symmetry operations
-
-        Returns
-        -------
-        direction_sym: np.ndarray
-            Trajectory of the unit vectors after applying symmetry operations
+        normalize: bool
+            If true, normalize the trajectories
         """
+        direction = self.get_conventional_form(normalize=normalize)
 
         n_ts = direction.shape[0]
         n_bonds = direction.shape[1]
@@ -278,7 +274,29 @@ class Orientations:
                     direction_sym[m, l * n_symops + k, :] = np.matmul(
                         sym_matrix[:, :, k], direction[m, l, :])
 
-        return direction_sym
+        self._symmetric_traj = direction_sym
+
+
+    def get_symmetric_traj(self, 
+                       sym_matrix: np.ndarray, normalize: bool=False) -> np.ndaray:
+        """Returns the symmetric trajectory.
+
+        Parameters
+        ----------
+        sym_matrix: np.ndarray
+            Matrix of symmetry operations
+        normalize: bool
+            If true, normalize the trajectories
+
+        Returns
+        -------
+        direction_sym: np.ndarray
+            Trajectory of the unit vectors after applying symmetry operations
+        """
+        if not hasattr(self, '_symmetric_traj'):
+            self._compute_symmetric_traj(sym_matrix,normalize)
+        return self._symmetric_traj
+
 
     def _cart2sph(self, x: float, y: float,
                   z: float) -> tuple[float, float, float]:
