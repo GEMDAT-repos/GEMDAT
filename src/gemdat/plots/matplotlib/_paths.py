@@ -7,8 +7,12 @@ from gemdat.path import Pathway
 from gemdat.volume import Volume
 
 
-def energy_along_path(*, paths: Pathway | list[Pathway], structure: Structure,
-                      volume: Volume) -> plt.Figure:
+def energy_along_path(
+    *,
+    paths: Pathway | list[Pathway],
+    structure: Structure,
+    volume: Volume,
+) -> plt.Figure:
     """Plot energy along specified path.
 
     Parameters
@@ -26,10 +30,10 @@ def energy_along_path(*, paths: Pathway | list[Pathway], structure: Structure,
         Output figure
     """
     # The first Pathway in paths is assumed to be the optimal one
-    if isinstance(paths, Pathway):
-        path = paths
-    else:
+    if isinstance(paths, list):
         path = paths[0]
+    else:
+        path = paths
 
     if path.energy is None:
         raise ValueError('Pathway does not contain energy data')
@@ -51,8 +55,7 @@ def energy_along_path(*, paths: Pathway | list[Pathway], structure: Structure,
         coord = nearest_structure_coord[i]
         # only non repeated labels will get an entry
         if (coord != nearest_structure_coord[i - 1]).any() or i == 0:
-            sitecoord_xlabel.append(
-                f'{", ".join([f"{coord:.1f}" for coord in coord])}')
+            sitecoord_xlabel.append(', '.join([f'{val:.1f}' for val in coord]))
             site_xlabel.append(f'{nearest_structure_label[i]}')
         else:
             sitecoord_xlabel.append('')

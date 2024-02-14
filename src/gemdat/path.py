@@ -30,12 +30,27 @@ class Pathway:
     sites: list[tuple[int, int, int]] | None = None
     energy: list[float] | None = None
 
-    def cartesian_path(self, vol: Volume) -> list[tuple[float, float, float]]:
+    def __repr__(self):
+        s = (
+            f'Path: {self.start_site} -> {self.stop_site}',
+            f'Steps: {len(self.sites)}',
+            f'Total energy: {self.total_energy:.3f} eV',
+        )
+
+        return '\n'.join(s)
+
+    @property
+    def total_energy(self):
+        """Return total energy for path."""
+        return sum(self.energy)
+
+    def cartesian_path(self,
+                       volume: Volume) -> list[tuple[float, float, float]]:
         """Convert voxel coordinates to cartesian coordinates.
 
         Parameters
         ----------
-        vol : Volume
+        volume : Volume
             Volume object containing the grid information
 
         Returns
@@ -46,17 +61,18 @@ class Pathway:
         cart_sites = []
         if self.sites is None:
             raise ValueError('Voxel coordinates of the path are required.')
-        for site in self.fractional_path(vol=vol):
-            cartesian_coords = vol.lattice.get_cartesian_coords(site)
+        for site in self.fractional_path(volume=volume):
+            cartesian_coords = volume.lattice.get_cartesian_coords(site)
             cart_sites.append(tuple(cartesian_coords))
         return cart_sites
 
-    def fractional_path(self, vol: Volume) -> list[tuple[float, float, float]]:
+    def fractional_path(self,
+                        volume: Volume) -> list[tuple[float, float, float]]:
         """Convert voxel coordinates to fractional coordinates.
 
         Parameters
         ----------
-        vol : Volume
+        volume : Volume
             Volume object containing the grid information
 
         Returns
@@ -69,7 +85,7 @@ class Pathway:
         frac_sites = []
         for site in self.sites:
             fractional_coords = site / np.asarray(
-                [x // vol.resolution for x in vol.lattice.lengths])
+                [x // volume.resolution for x in volume.lattice.lengths])
             frac_sites.append(tuple(fractional_coords))
         return frac_sites
 
@@ -87,15 +103,18 @@ class Pathway:
         X, Y, Z = F.shape
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
 
-    def path_over_structure(self, structure: Structure,
-                            vol: Volume) -> tuple[list[str], list[np.ndarray]]:
+    def path_over_structure(
+        self,
+        structure: Structure,
+        volume: Volume,
+    ) -> tuple[list[str], list[np.ndarray]]:
         """Find the nearest site of the structure to the path sites.
 
         Parameters
         ----------
         structure : Structure
             Reference structure
-        vol : Volume
+        volume : Volume
             Volume object that contains the information about the nearest sites of the structure
 
         Returns
@@ -105,7 +124,7 @@ class Pathway:
         nearest_structure_coord: list[np.ndarray]
             List of cartesian coordinates of the closest site of the reference structure
         """
-        frac_sites = self.fractional_path(vol)
+        frac_sites = self.fractional_path(volume)
         nearest_structure_tree, nearest_structure_map = nearest_structure_reference(
             structure)
 
@@ -203,7 +222,7 @@ def free_energy_graph(F: np.ndarray,
 
 
 _PATHFINDING_METHODS = Literal['dijkstra', 'bellman-ford', 'minmax-energy',
-                               'dijkstra-exp']
+                               'dijkstra-exp', 'simple']
 
 
 def calculate_path_difference(path1: list, path2: list) -> float:
@@ -283,6 +302,7 @@ def multiple_paths(
         Coordinates of the stopping point
     method : str
         Method used to calculate the shortest path. Options are:
+        - 'simple': Shortest, unweighted path
         - 'dijkstra': Dijkstra's algorithm
         - 'bellman-ford': Bellman-Ford algorithm
         - 'minmax-energy': Minmax energy algorithm
@@ -341,6 +361,7 @@ def optimal_path(
         Coordinates of the stoping point
     method : str
         Method used to calculate the shortest path. Options are:
+        - 'simple': Shortest, unweighted path
         - 'dijkstra': Dijkstra's algorithm
         - 'bellman-ford': Bellman-Ford algorithm
         - 'minmax-energy': Minmax energy algorithm
@@ -351,14 +372,21 @@ def optimal_path(
     path: Pathway
         Optimal path on the graph between start and stop
     """
+    if method == 'simple':
+        weight = None
+    elif method == 'dijkstra-exp':
+        weight = 'weight_exp'
+    else:
+        weight = 'weight'
 
-    optimal_path = nx.shortest_path(
-        F_graph,
-        source=start,
-        target=stop,
-        weight='weight_exp' if method == 'dijkstra-exp' else 'weight',
-        method='dijkstra' if method in ('dijkstra-exp',
-                                        'minmax-energy') else method)
+    if method in ('dijkstra-exp', 'minmax-energy', 'simple'):
+        method = 'dijkstra'
+
+    optimal_path = nx.shortest_path(F_graph,
+                                    source=start,
+                                    target=stop,
+                                    weight=weight,
+                                    method=method)
 
     if method == 'minmax-energy':
         optimal_path = _optimal_path_minmax_energy(F_graph, start, stop,
@@ -371,8 +399,12 @@ def optimal_path(
     return path
 
 
-def _optimal_path_minmax_energy(F_graph: nx.Graph, start: tuple, stop: tuple,
-                                optimal_path: list) -> list:
+def _optimal_path_minmax_energy(
+    F_graph: nx.Graph,
+    start: tuple[int, int, int],
+    stop: tuple[int, int, int],
+    optimal_path: list,
+) -> list:
     """Find the optimal path that has the minimum maximum-energy.
 
     Parameters
@@ -419,7 +451,7 @@ def _optimal_path_minmax_energy(F_graph: nx.Graph, start: tuple, stop: tuple,
 
 
 def find_best_perc_path(F: np.ndarray,
-                        vol: Volume,
+                        volume: Volume,
                         percolate_x: bool = True,
                         percolate_y: bool = False,
                         percolate_z: bool = False) -> Pathway:
@@ -468,7 +500,7 @@ def find_best_perc_path(F: np.ndarray,
     best_cost = float('inf')
     best_path = Pathway()
 
-    peaks = vol.find_peaks()
+    peaks = volume.find_peaks()
     for start_point in peaks:
 
         # Get the stop point which is a periodic image of the peak
