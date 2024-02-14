@@ -458,31 +458,28 @@ def _calculate_atom_states(
     # Unit cell parameters
     lattice = trajectory.get_lattice()
 
-    site_coords = sites.frac_coords
+    traj_frac_coords = trajectory.positions.reshape(-1, 3)
+    traj_cart_coords = np.dot(traj_frac_coords, lattice.matrix)
 
-    # Input array with site coordinates [site, (x, y, z)]
-    site_cart_coords = np.dot(site_coords, lattice.matrix)
     site_coords_tree: PeriodicKDTree = PeriodicKDTree(
         box=np.array(lattice.parameters, dtype=np.float32))
-    site_coords_tree.set_coords(site_cart_coords, cutoff=site_radius)
+    site_coords_tree.set_coords(traj_cart_coords, cutoff=site_radius)
 
-    atom_sites = []
+    atom_sites = np.full((traj_cart_coords.shape[0]), NOSITE)
 
-    for atom_index, atom_coords in enumerate(
-            trajectory.positions.swapaxes(0, 1)):
-
-        # index and distance of nearest site
-        atom_cart_coords = np.dot(atom_coords, lattice.matrix)
+    for i, site in enumerate(sites):
+        cart_coords = np.dot(site.frac_coords, lattice.matrix)
         site_index = site_coords_tree.search_tree(
-            atom_cart_coords, site_radius * site_inner_fraction)
+            cart_coords, site_radius * site_inner_fraction)
 
-        # construct mapping
-        atom_site = np.full((atom_coords.shape[0], 1), NOSITE)
-        for index, site in site_index:
-            atom_site[index] = site
-        atom_sites.append(atom_site)
+        if site_index.size == 0:
+            continue
 
-    return np.hstack(atom_sites)
+        index = site_index[:, 1]
+        atom_sites[index] = i
+
+    shape = trajectory.positions.shape[0:2]
+    return atom_sites.reshape(shape)
 
 
 def _calculate_transitions_matrix(events: pd.DataFrame,
