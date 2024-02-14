@@ -22,7 +22,7 @@ def test_fractional_coordinates(vasp_path_vol, vasp_full_path):
 
 TEST_DATA = (
     # start, stop, method, expected
-    ((10, 4, 13), (21, 3, 10), 'direct', 6.3023933200094655),
+    ((10, 4, 13), (21, 3, 10), 'simple', 6.3023933200094655),
     ((10, 4, 13), (21, 3, 10), 'dijkstra', 5.210130709736149),
     ((7, 9, 2), (20, 4, 2), 'bellman-ford', 5.5363545176821),
     ((18, 7, 12), (25, 3, 13), 'dijkstra-exp', 5.029753032964493),

@@ -222,7 +222,7 @@ def free_energy_graph(F: np.ndarray,
 
 
 _PATHFINDING_METHODS = Literal['dijkstra', 'bellman-ford', 'minmax-energy',
-                               'dijkstra-exp', 'direct']
+                               'dijkstra-exp', 'simple']
 
 
 def calculate_path_difference(path1: list, path2: list) -> float:
@@ -302,7 +302,7 @@ def multiple_paths(
         Coordinates of the stopping point
     method : str
         Method used to calculate the shortest path. Options are:
-        - 'direct': Shortest, unweighted path
+        - 'simple': Shortest, unweighted path
         - 'dijkstra': Dijkstra's algorithm
         - 'bellman-ford': Bellman-Ford algorithm
         - 'minmax-energy': Minmax energy algorithm
@@ -361,7 +361,7 @@ def optimal_path(
         Coordinates of the stoping point
     method : str
         Method used to calculate the shortest path. Options are:
-        - 'direct': Shortest, unweighted path
+        - 'simple': Shortest, unweighted path
         - 'dijkstra': Dijkstra's algorithm
         - 'bellman-ford': Bellman-Ford algorithm
         - 'minmax-energy': Minmax energy algorithm
@@ -372,7 +372,7 @@ def optimal_path(
     path: Pathway
         Optimal path on the graph between start and stop
     """
-    if method == 'direct':
+    if method == 'simple':
         weight = None
     elif method == 'dijkstra-exp':
         weight = 'weight_exp'
