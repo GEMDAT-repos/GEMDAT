@@ -507,7 +507,7 @@ class Trajectory(PymatgenTrajectory):
         self,
         sites: Structure,
         floating_specie: str,
-        site_radius: Optional[float] = None,
+        site_radius: float | dict[str, float] | None = None,
         site_inner_fraction: float = 1.0,
     ) -> Transitions:
         """Compute transitions between given sites for floating specie.
@@ -518,9 +518,11 @@ class Trajectory(PymatgenTrajectory):
             Input structure with known sites
         floating_specie : str
             Name of the floating specie to calculate transitions for
-        site_radius: Optional[float]
+        site_radius: Optional[float, dict[str, float]]
             A custom site radius in Ångstrom to determine
-            if an atom is at a site
+            if an atom is at a site. A dict keyed by the site label can
+            be used to have a site per atom type, e.g.
+            `site_radius = {'Li1': 1.0, 'Li2': 1.2}.
         site_inner_fraction:
             A fraction of the site radius which is determined to be the `inner site`
             which is used in jump calculations

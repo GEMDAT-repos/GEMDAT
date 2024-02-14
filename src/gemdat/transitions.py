@@ -6,7 +6,6 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from itertools import pairwise
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -80,22 +79,29 @@ class Transitions:
         trajectory: Trajectory,
         sites: Structure,
         floating_specie: str,
-        site_radius: Optional[float] = None,
+        site_radius: float | dict[str, float] | None = None,
         site_inner_fraction: float = 1.,
     ) -> Transitions:
-        """Compute transitions for floating specie from trajectory and
-        structure with known sites.
+        """Compute transitions between given sites for floating specie.
 
         Parameters
         ----------
-        trajectory : Trajectory
-            Input trajectory
         sites : pymatgen.core.structure.Structure
-            Input sites with known sites
+            Input structure with known sites
         floating_specie : str
             Name of the floating specie to calculate transitions for
-        site_radius: Optional[float]
-            A custom site size to use for determining if an atom is at a site
+        site_radius: float | dict[str, float] | None
+            A custom site radius in Ångstrom to determine
+            if an atom is at a site. A dict keyed by the site label can
+            be used to have a site per atom type, e.g.
+            `site_radius = {'Li1': 1.0, 'Li2': 1.2}.
+        site_inner_fraction:
+            A fraction of the site radius which is determined to be the `inner site`
+            which is used in jump calculations
+
+        Returns
+        -------
+        transitions: Transitions
         """
         diff_trajectory = trajectory.filter(floating_specie)
 
@@ -420,7 +426,7 @@ def _compute_site_radius(trajectory: Trajectory, sites: Structure,
 def _calculate_atom_states(
     sites: Structure,
     trajectory: Trajectory,
-    site_radius: float,
+    site_radius: float | dict[str, float],
     site_inner_fraction: float = 1.,
 ) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
@@ -435,8 +441,9 @@ def _calculate_atom_states(
         Input sites with pre-defined sites
     trajectory : Trajectory
         Input trajectory for floating atoms
-    site_radius : float
-        Atoms within this distance (in Angstrom) are considered to be close to a site
+    site_radius : float | dict[str, float]
+        Atoms within this distance (in Angstrom) are considered to be close to a site.
+        Can also be a dict keyed by the site label to specify the radius by atom type.
     site_inner_fraction: float
         Atoms that are closer than (site_radius*site_inner_fraction) to a site, are considered
         to be in the inner site
