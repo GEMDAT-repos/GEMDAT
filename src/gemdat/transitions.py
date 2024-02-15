@@ -14,7 +14,7 @@ from pymatgen.core import Structure
 
 from .caching import weak_lru_cache
 from .simulation_metrics import SimulationMetrics
-from .utils import bfill, ffill
+from .utils import bfill, ffill, integer_remap
 
 if typing.TYPE_CHECKING:
     from gemdat.jumps import Jumps
@@ -113,6 +113,9 @@ class Transitions:
                 trajectory=trajectory,
                 sites=sites,
                 vibration_amplitude=vibration_amplitude)
+
+        if isinstance(site_radius, float):
+            site_radius = {'': site_radius}
 
         states = _calculate_atom_states(
             sites=sites,
@@ -426,7 +429,7 @@ def _compute_site_radius(trajectory: Trajectory, sites: Structure,
 def _calculate_atom_states(
     sites: Structure,
     trajectory: Trajectory,
-    site_radius: float | dict[str, float],
+    site_radius: dict[str, float],
     site_inner_fraction: float = 1.,
 ) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
@@ -441,7 +444,7 @@ def _calculate_atom_states(
         Input sites with pre-defined sites
     trajectory : Trajectory
         Input trajectory for floating atoms
-    site_radius : float | dict[str, float]
+    site_radius : dict[str, float]
         Atoms within this distance (in Angstrom) are considered to be close to a site.
         Can also be a dict keyed by the site label to specify the radius by atom type.
     site_inner_fraction: float
@@ -455,26 +458,44 @@ def _calculate_atom_states(
         The value corresponds to the index in the `site_coords`.
         -1 indicates that atom is not at any site.
     """
-    # Unit cell parameters
     lattice = trajectory.get_lattice()
+
+    cutoff = max(list(site_radius.values()))
 
     traj_frac_coords = trajectory.positions.reshape(-1, 3)
     traj_cart_coords = np.dot(traj_frac_coords, lattice.matrix)
 
     site_coords_tree: PeriodicKDTree = PeriodicKDTree(
         box=np.array(lattice.parameters, dtype=np.float32))
-    site_coords_tree.set_coords(traj_cart_coords, cutoff=site_radius)
+    site_coords_tree.set_coords(traj_cart_coords, cutoff=cutoff)
 
     shape = trajectory.positions.shape[0:2]
 
     atom_sites = np.full((traj_cart_coords.shape[0]), NOSITE)
 
-    cart_coords = np.dot(sites.frac_coords, lattice.matrix)
-    site_index = site_coords_tree.search_tree(
-        cart_coords, site_radius * site_inner_fraction)
+    for label, radius in site_radius.items():
+        if label:
+            groups = ((i, site) for i, site in enumerate(sites)
+                      if site.label == label)
+            index_group, site_group = zip(*groups)
+        else:
+            # fallback
+            site_group = sites
 
-    siteno, index = site_index.T
-    atom_sites[index] = siteno
+        frac_coords = np.array([site.frac_coords for site in site_group])
+
+        cart_coords = np.dot(frac_coords, lattice.matrix)
+        site_index = site_coords_tree.search_tree(cart_coords,
+                                                  radius * site_inner_fraction)
+
+        siteno, index = site_index.T
+
+        if label:
+            siteno = integer_remap(a=siteno,
+                                   key=np.array(index_group),
+                                   palette=np.unique(siteno))
+
+        atom_sites[index] = siteno
 
     return atom_sites.reshape(shape)
 

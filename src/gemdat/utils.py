@@ -93,6 +93,20 @@ def bfill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
     return np.fliplr(ffill(np.fliplr(arr), fill_val=fill_val))
 
 
+def integer_remap(a: np.ndarray,
+                  key: np.ndarray,
+                  palette: np.ndarray | None = None) -> np.ndarray:
+    # palette must be given in sorted order
+    # key gives the new values you wish palette to be mapped to.
+
+    if palette is None:
+        palette = np.unique(a)
+
+    index = np.digitize(a.ravel(), palette, right=True)
+
+    return key[index].reshape(a.shape)
+
+
 def meanfreq(x: np.ndarray, fs: float = 1.0) -> np.ndarray:
     """Estimates the mean frequency in terms of the sample rate, fs.
 
