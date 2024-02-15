@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose, assert_equal
 
-from gemdat.utils import bfill, ffill, meanfreq
+from gemdat.utils import bfill, ffill, integer_remap, meanfreq
 
 
 @pytest.fixture
@@ -23,7 +24,7 @@ def test_ffill(arr):
         [4, 9, 6, 6, 6],
     ])
 
-    np.testing.assert_equal(ret, expected)
+    assert_equal(ret, expected)
 
 
 def test_bfill(arr):
@@ -34,7 +35,7 @@ def test_bfill(arr):
         [4, 9, 6, -1, -1],
     ])
 
-    np.testing.assert_equal(ret, expected)
+    assert_equal(ret, expected)
 
 
 def test_ffill_axis0(arr):
@@ -45,7 +46,7 @@ def test_ffill_axis0(arr):
         [4, 9, 6, 8, 2],
     ])
 
-    np.testing.assert_equal(ret, expected)
+    assert_equal(ret, expected)
 
 
 def test_bfill_axis0(arr):
@@ -56,7 +57,14 @@ def test_bfill_axis0(arr):
         [4, 9, 6, -1, -1],
     ])
 
-    np.testing.assert_equal(ret, expected)
+    assert_equal(ret, expected)
+
+
+def test_integer_remap():
+    a = np.array([4, 2, 1, 3])
+    key = np.array([10, 20, 30, 40])
+    ret = integer_remap(a, key=key)
+    assert_equal(ret, a * 10)
 
 
 def test_meanfreq_single_timestep():
@@ -65,7 +73,7 @@ def test_meanfreq_single_timestep():
 
     expected = np.array([[0.2303359]])
 
-    np.testing.assert_allclose(ret, expected)
+    assert_allclose(ret, expected)
 
 
 def test_meanfreq():
@@ -78,4 +86,4 @@ def test_meanfreq():
 
     expected = np.array([[0.2303359], [0.21308077], [0.17074241]])
 
-    np.testing.assert_allclose(ret, expected)
+    assert_allclose(ret, expected)

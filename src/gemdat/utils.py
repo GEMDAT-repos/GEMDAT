@@ -96,9 +96,22 @@ def bfill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
 def integer_remap(a: np.ndarray,
                   key: np.ndarray,
                   palette: np.ndarray | None = None) -> np.ndarray:
-    # palette must be given in sorted order
-    # key gives the new values you wish palette to be mapped to.
+    """Map integers in array `a` from `palette` -> `key`
 
+    Parameters
+    ----------
+    a : np.ndarray
+        Input array with values to be
+    key : np.ndarray
+        The key gives the new values that the palette will be mapped to
+    palette : np.ndarray | None
+        Input values, must be given in sorted order.
+        If None, use sorted unique values in `a`
+
+    Returns
+    -------
+    np.ndarray
+    """
     if palette is None:
         palette = np.unique(a)
 
