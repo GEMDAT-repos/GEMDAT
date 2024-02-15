@@ -458,6 +458,19 @@ def _calculate_atom_states(
         The value corresponds to the index in the `site_coords`.
         -1 indicates that atom is not at any site.
     """
+
+    def _site_radius_iterator():
+        for label, radius in site_radius.items():
+            if label:
+                grouped = ((k, site) for k, site in enumerate(sites)
+                           if site.label == label)
+                key, site_group = zip(*grouped)
+                frac_coords = np.array(
+                    [site.frac_coords for site in site_group])
+                yield frac_coords, np.array(key), radius
+            else:
+                yield sites.frac_coords, None, radius
+
     lattice = trajectory.get_lattice()
 
     cutoff = max(list(site_radius.values()))
@@ -473,26 +486,16 @@ def _calculate_atom_states(
 
     atom_sites = np.full((traj_cart_coords.shape[0]), NOSITE)
 
-    for label, radius in site_radius.items():
-        if label:
-            groups = ((i, site) for i, site in enumerate(sites)
-                      if site.label == label)
-            index_group, site_group = zip(*groups)
-        else:
-            # fallback
-            site_group = sites
-
-        frac_coords = np.array([site.frac_coords for site in site_group])
-
-        cart_coords = np.dot(frac_coords, lattice.matrix)
+    for coords, key, radius in _site_radius_iterator():
+        cart_coords = np.dot(coords, lattice.matrix)
         site_index = site_coords_tree.search_tree(cart_coords,
                                                   radius * site_inner_fraction)
 
         siteno, index = site_index.T
 
-        if label:
+        if key is not None:
             siteno = integer_remap(a=siteno,
-                                   key=np.array(index_group),
+                                   key=key,
                                    palette=np.unique(siteno))
 
         atom_sites[index] = siteno
