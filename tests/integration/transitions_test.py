@@ -28,8 +28,24 @@ class TestTransitions:  # type: ignore
         )
         assert isclose(site_radius, 0.9284961123176741)
 
-    def test_atom_sites(self, vasp_traj, vasp_transitions):
-        n_steps = len(vasp_traj)
+    def test_site_radius_dict(self, vasp_traj, structure):
+        sites = structure.copy()
+
+        for site in sites[0::3]:
+            site.label = 'A'
+        for site in sites[1::3]:
+            site.label = 'B'
+        for site in sites[2::3]:
+            site.label = 'C'
+
+        site_radius = {'A': 0.5, 'B': 0.6, 'C': 0.7}
+        transitions = vasp_traj.transitions_between_sites(
+            sites=sites, floating_specie='Li', site_radius=site_radius)
+
+        assert transitions.states.sum() == 3445344
+
+    def test_atom_sites(self, vasp_transitions):
+        n_steps = 3750
         n_diffusing = 48
 
         slice_ = np.s_[::1000, ::24]
