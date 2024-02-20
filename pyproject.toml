@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 [project]
 name = "GEMDAT"
-version = "1.0.1"
+version = "1.1.0"
 description = "Generalized Molecular Dynamics Analysis Tool"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -104,7 +104,7 @@ allow_redefinition = true
 ignore_missing_imports = true
 
 [tool.bumpversion]
-current_version = "1.0.1"
+current_version = "1.1.0"
 
 [[tool.bumpversion.files]]
 filename = "src/gemdat/__init__.py"
