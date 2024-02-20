@@ -6,7 +6,6 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from itertools import pairwise
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -15,7 +14,7 @@ from pymatgen.core import Structure
 
 from .caching import weak_lru_cache
 from .simulation_metrics import SimulationMetrics
-from .utils import bfill, ffill
+from .utils import bfill, ffill, integer_remap
 
 if typing.TYPE_CHECKING:
     from gemdat.jumps import Jumps
@@ -80,22 +79,29 @@ class Transitions:
         trajectory: Trajectory,
         sites: Structure,
         floating_specie: str,
-        site_radius: Optional[float] = None,
+        site_radius: float | dict[str, float] | None = None,
         site_inner_fraction: float = 1.,
     ) -> Transitions:
-        """Compute transitions for floating specie from trajectory and
-        structure with known sites.
+        """Compute transitions between given sites for floating specie.
 
         Parameters
         ----------
-        trajectory : Trajectory
-            Input trajectory
         sites : pymatgen.core.structure.Structure
-            Input sites with known sites
+            Input structure with known sites
         floating_specie : str
             Name of the floating specie to calculate transitions for
-        site_radius: Optional[float]
-            A custom site size to use for determining if an atom is at a site
+        site_radius: float | dict[str, float] | None
+            A custom site radius in Ångstrom to determine
+            if an atom is at a site. A dict keyed by the site label can
+            be used to have a site per atom type, e.g.
+            `site_radius = {'Li1': 1.0, 'Li2': 1.2}.
+        site_inner_fraction:
+            A fraction of the site radius which is determined to be the `inner site`
+            which is used in jump calculations
+
+        Returns
+        -------
+        transitions: Transitions
         """
         diff_trajectory = trajectory.filter(floating_specie)
 
@@ -107,6 +113,9 @@ class Transitions:
                 trajectory=trajectory,
                 sites=sites,
                 vibration_amplitude=vibration_amplitude)
+
+        if isinstance(site_radius, float):
+            site_radius = {'': site_radius}
 
         states = _calculate_atom_states(
             sites=sites,
@@ -420,7 +429,7 @@ def _compute_site_radius(trajectory: Trajectory, sites: Structure,
 def _calculate_atom_states(
     sites: Structure,
     trajectory: Trajectory,
-    site_radius: float,
+    site_radius: dict[str, float],
     site_inner_fraction: float = 1.,
 ) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
@@ -435,8 +444,9 @@ def _calculate_atom_states(
         Input sites with pre-defined sites
     trajectory : Trajectory
         Input trajectory for floating atoms
-    site_radius : float
-        Atoms within this distance (in Angstrom) are considered to be close to a site
+    site_radius : dict[str, float]
+        Atoms within this distance (in Angstrom) are considered to be close to a site.
+        Can also be a dict keyed by the site label to specify the radius by atom type.
     site_inner_fraction: float
         Atoms that are closer than (site_radius*site_inner_fraction) to a site, are considered
         to be in the inner site
@@ -448,34 +458,49 @@ def _calculate_atom_states(
         The value corresponds to the index in the `site_coords`.
         -1 indicates that atom is not at any site.
     """
-    # Unit cell parameters
+
+    def _site_radius_iterator():
+        for label, radius in site_radius.items():
+            if label:
+                grouped = ((k, site) for k, site in enumerate(sites)
+                           if site.label == label)
+                key, site_group = zip(*grouped)
+                frac_coords = np.array(
+                    [site.frac_coords for site in site_group])
+                yield frac_coords, np.array(key), radius
+            else:
+                yield sites.frac_coords, None, radius
+
     lattice = trajectory.get_lattice()
 
-    site_coords = sites.frac_coords
+    cutoff = max(list(site_radius.values()))
 
-    # Input array with site coordinates [site, (x, y, z)]
-    site_cart_coords = np.dot(site_coords, lattice.matrix)
-    site_coords_tree: PeriodicKDTree = PeriodicKDTree(
+    traj_frac_coords = trajectory.positions.reshape(-1, 3)
+    traj_cart_coords = lattice.get_cartesian_coords(traj_frac_coords)
+
+    periodic_tree: PeriodicKDTree = PeriodicKDTree(
         box=np.array(lattice.parameters, dtype=np.float32))
-    site_coords_tree.set_coords(site_cart_coords, cutoff=site_radius)
+    periodic_tree.set_coords(traj_cart_coords, cutoff=cutoff)
 
-    atom_sites = []
+    shape = trajectory.positions.shape[0:2]
 
-    for atom_index, atom_coords in enumerate(
-            trajectory.positions.swapaxes(0, 1)):
+    atom_sites = np.full((traj_cart_coords.shape[0]), NOSITE)
 
-        # index and distance of nearest site
-        atom_cart_coords = np.dot(atom_coords, lattice.matrix)
-        site_index = site_coords_tree.search_tree(
-            atom_cart_coords, site_radius * site_inner_fraction)
+    for coords, key, radius in _site_radius_iterator():
+        cart_coords = lattice.get_cartesian_coords(coords)
+        site_index = periodic_tree.search_tree(cart_coords,
+                                               radius * site_inner_fraction)
 
-        # construct mapping
-        atom_site = np.full((atom_coords.shape[0], 1), NOSITE)
-        for index, site in site_index:
-            atom_site[index] = site
-        atom_sites.append(atom_site)
+        siteno, index = site_index.T
 
-    return np.hstack(atom_sites)
+        if key is not None:
+            siteno = integer_remap(a=siteno,
+                                   key=key,
+                                   palette=np.unique(siteno))
+
+        atom_sites[index] = siteno
+
+    return atom_sites.reshape(shape)
 
 
 def _calculate_transitions_matrix(events: pd.DataFrame,
