@@ -115,7 +115,7 @@ def integer_remap(a: np.ndarray,
     if palette is None:
         palette = np.unique(a)
 
-    index = np.digitize(a.ravel(), palette, right=True)
+    index = np.digitize(a, palette, right=True)
 
     return key[index].reshape(a.shape)
 

@@ -476,20 +476,20 @@ def _calculate_atom_states(
     cutoff = max(list(site_radius.values()))
 
     traj_frac_coords = trajectory.positions.reshape(-1, 3)
-    traj_cart_coords = np.dot(traj_frac_coords, lattice.matrix)
+    traj_cart_coords = lattice.get_cartesian_coords(traj_frac_coords)
 
-    site_coords_tree: PeriodicKDTree = PeriodicKDTree(
+    periodic_tree: PeriodicKDTree = PeriodicKDTree(
         box=np.array(lattice.parameters, dtype=np.float32))
-    site_coords_tree.set_coords(traj_cart_coords, cutoff=cutoff)
+    periodic_tree.set_coords(traj_cart_coords, cutoff=cutoff)
 
     shape = trajectory.positions.shape[0:2]
 
     atom_sites = np.full((traj_cart_coords.shape[0]), NOSITE)
 
     for coords, key, radius in _site_radius_iterator():
-        cart_coords = np.dot(coords, lattice.matrix)
-        site_index = site_coords_tree.search_tree(cart_coords,
-                                                  radius * site_inner_fraction)
+        cart_coords = lattice.get_cartesian_coords(coords)
+        site_index = periodic_tree.search_tree(cart_coords,
+                                               radius * site_inner_fraction)
 
         siteno, index = site_index.T
 
