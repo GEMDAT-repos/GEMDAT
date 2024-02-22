@@ -540,10 +540,10 @@ class Trajectory(PymatgenTrajectory):
             site_inner_fraction=site_inner_fraction,
         )
 
-    def plot_displacement_per_site(self, **kwargs):
-        """See [gemdat.plots.displacement_per_site][] for more info."""
+    def plot_displacement_per_atom(self, **kwargs):
+        """See [gemdat.plots.displacement_per_atom][] for more info."""
         from gemdat import plots
-        return plots.displacement_per_site(trajectory=self, **kwargs)
+        return plots.displacement_per_atom(trajectory=self, **kwargs)
 
     def plot_displacement_per_element(self, **kwargs):
         """See [gemdat.plots.displacement_per_element][] for more info."""
