@@ -12,9 +12,9 @@ def test_displacement_per_element(vasp_traj):
 
 
 @image_comparison2(baseline_images=['displacement_per_site'])
-def test_displacement_per_site(vasp_traj):
+def test_displacement_per_atom(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
-    plots.displacement_per_site(trajectory=diff_trajectory)
+    plots.displacement_per_atom(trajectory=diff_trajectory)
 
 
 @image_comparison2(baseline_images=['displacement_histogram'])

@@ -94,7 +94,7 @@ def analyse_md(
     jumps = Jumps(transitions=transitions)
 
     plots.displacement_per_element(trajectory=trajectory)
-    plots.displacement_per_site(trajectory=diff_trajectory)
+    plots.displacement_per_atom(trajectory=diff_trajectory)
     plots.displacement_histogram(trajectory=diff_trajectory)
     plots.frequency_vs_occurence(trajectory=diff_trajectory)
     plots.vibrational_amplitudes(trajectory=diff_trajectory)

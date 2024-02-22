@@ -126,3 +126,125 @@ def jumps_vs_time(*,
                       yaxis_title='Number of jumps')
 
     return fig
+
+
+def collective_jumps(*, jumps: Jumps) -> go.Figure:
+    """Plot collective jumps per jump-type combination.
+
+    Parameters
+    ----------
+    jumps : Jumps
+        Input data
+
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+        Output figure
+    """
+
+    matrix = jumps.collective().site_pair_count_matrix()
+    labels = jumps.collective().site_pair_count_matrix_labels()
+
+    fig = px.imshow(matrix)
+
+    ticks = [_ for _ in range(len(labels))]
+
+    fig.update_layout(xaxis=dict(tickmode='array',
+                                 tickvals=ticks,
+                                 ticktext=labels),
+                      yaxis=dict(tickmode='array',
+                                 tickvals=ticks,
+                                 ticktext=labels),
+                      title='Cooperative jumps per jump-type combination')
+
+    return fig
+
+
+def jumps_3d(*, jumps: Jumps) -> go.Figure:
+    """Plot jumps in 3D.
+
+    Parameters
+    ----------
+    jumps : Jumps
+        Input data
+
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+        Output figure
+    """
+    from ._density import plot_structure
+    trajectory = jumps.trajectory
+    sites = jumps.sites
+
+    fig = go.Figure()
+    plot_structure(sites, fig=fig)
+
+    coords = sites.frac_coords
+    lattice = trajectory.get_lattice()
+
+    for i, j in zip(*np.triu_indices(len(coords), k=1)):
+        count = jumps.matrix()[i, j] + jumps.matrix()[j, i]
+        if count == 0:
+            continue
+
+        coord_i = coords[i]
+        coord_j = coords[j]
+
+        lw = 1 + np.log(count)
+
+        length, image = lattice.get_distance_and_image(coord_i, coord_j)
+
+        # NOTE: might need to plot `line = [coord_i - image, coord_j]` as well
+        #if np.any(image != 0):
+        #    continue
+        lines = [[coord_i, coord_j + image], [coord_i - image, coord_j]]
+        for line in lines:
+            line = lattice.get_cartesian_coords(line)
+            line = [_ for _ in zip(*line)]  # transpose, but pythonic
+
+            fig.add_trace(
+                go.Scatter3d(
+                    x=line[0],
+                    y=line[1],
+                    z=line[2],
+                    mode='lines',
+                    showlegend=False,
+                    line_dash='dashdot' if any(image) != 0 else 'solid',
+                    line_width=lw * 3,
+                    line_color='black',
+                ))
+
+    zoom = 0.1
+
+    fig.update_layout(title='Jumps between sites',
+                      scene={
+                          'aspectmode': 'manual',
+                          'aspectratio': {
+                              'x': lattice.a * zoom,
+                              'y': lattice.b * zoom,
+                              'z': lattice.c * zoom,
+                          },
+                          'xaxis_title': 'X (Ångstrom)',
+                          'yaxis_title': 'Y (Ångstrom)',
+                          'zaxis_title': 'Z (Ångstrom)'
+                      },
+                      showlegend=True,
+                      margin={
+                          'l': 0,
+                          'r': 0,
+                          'b': 0,
+                          't': 0
+                      },
+                      scene_camera={
+                          'projection': {
+                              'type': 'orthographic'
+                          },
+                          'eye': {
+                              'x': -lattice.a * 0.05,
+                              'y': -lattice.b * 0.2,
+                              'z': lattice.c * 0.15,
+                          }
+                      })
+
+    return fig
