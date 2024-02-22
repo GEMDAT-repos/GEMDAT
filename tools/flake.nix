@@ -18,11 +18,6 @@
           pythonpkgs.scipy
           pythonpkgs.pandas
           pythonpkgs.pyarrow
-          #pythonpkgs.jupyterlab
-          #pythonpkgs.jupyterlab-widgets
-          #pythonpkgs.plotly
-          #pythonpkgs.ipywidgets
-          #pythonpkgs.playwright
         ];
         pythonWithPkgs = mypython.withPackages (pythonPkgs: with pythonPkgs; [
           # This list contains tools for Python development.
