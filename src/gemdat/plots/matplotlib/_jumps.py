@@ -180,14 +180,16 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
 
         # NOTE: might need to plot `line = [coord_i - image, coord_j]` as well
         if np.any(image != 0):
-            continue
-        line = [coord_i, coord_j + image]
+            lines = [(coord_i, coord_j + image), (coord_i - image, coord_j)]
+        else:
+            lines = [(coord_i, coord_j)]
 
-        plotter.plot_path(line,
-                          lattice=lattice,
-                          ax=ax,
-                          color='red',
-                          linewidth=lw)
+        for line in lines:
+            plotter.plot_path(line,
+                              lattice=lattice,
+                              ax=ax,
+                              color='red',
+                              linewidth=lw)
 
     plotter.plot_labels(site_labels,
                         lattice=lattice,
