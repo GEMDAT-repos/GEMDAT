@@ -22,7 +22,7 @@ All plotting functions take a [gemdat.Trajectory][], [gemdat.Jumps][], [gemdat.T
       show_root_toc_entry: false
       heading_level: 3
       members:
-        - displacement_per_site
+        - displacement_per_atom
         - displacement_per_element
         - displacement_histogram
 
