@@ -45,7 +45,7 @@ trajectory.plot_displacement_per_element()
 
 diff_trajectory = trajectory.filter('Li')
 
-diff_trajectory.plot_displacement_per_site()
+diff_trajectory.plot_displacement_per_atom()
 diff_trajectory.plot_displacement_histogram()
 diff_trajectory.plot_frequency_vs_occurence()
 diff_trajectory.plot_vibrational_amplitudes()
