@@ -188,26 +188,27 @@ def jumps_3d(*, jumps: Jumps) -> go.Figure:
         if count == 0:
             continue
 
-        coord_i = coords[i]
-        coord_j = coords[j]
+        coord_i = tuple(coords[i].tolist())
+        coord_j = tuple(coords[j].tolist())
 
         lw = 1 + np.log(count)
 
         length, image = lattice.get_distance_and_image(coord_i, coord_j)
 
-        # NOTE: might need to plot `line = [coord_i - image, coord_j]` as well
-        #if np.any(image != 0):
-        #    continue
-        lines = [[coord_i, coord_j + image], [coord_i - image, coord_j]]
+        if np.any(image != 0):
+            lines = [(coord_i, coord_j + image), (coord_i - image, coord_j)]
+        else:
+            lines = [(coord_i, coord_j)]
+
         for line in lines:
             line = lattice.get_cartesian_coords(line)
-            line = [_ for _ in zip(*line)]  # transpose, but pythonic
+            line_t = [_ for _ in zip(*line)]  # transpose, but pythonic
 
             fig.add_trace(
                 go.Scatter3d(
-                    x=line[0],
-                    y=line[1],
-                    z=line[2],
+                    x=line_t[0],
+                    y=line_t[1],
+                    z=line_t[2],
                     mode='lines',
                     showlegend=False,
                     line_dash='dashdot' if any(image) != 0 else 'solid',
