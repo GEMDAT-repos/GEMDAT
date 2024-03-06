@@ -29,7 +29,7 @@ class Collective:
 
     def __init__(self,
                  jumps: Jumps,
-                 structure: Structure,
+                 sites: Structure,
                  lattice: Lattice,
                  max_steps: int,
                  max_dist: float = 1):
@@ -39,7 +39,7 @@ class Collective:
         ----------
         jumps : Jumps
             Input jump events
-        structure : pymatgen.core.structure.Structure
+        sites : pymatgen.core.structure.Structure
             Structure with list of jump sites
         lattice : pymatgen.core.lattice.Lattice
             Input lattice for distance calculations (from simulation data)
@@ -49,7 +49,7 @@ class Collective:
             Maximum distance for collective motions in Angstrom
         """
         self.jumps = jumps
-        self.structure = structure
+        self.sites = sites
         self.lattice = lattice
         self.max_steps = max_steps
         self.max_dist = max_dist
@@ -58,7 +58,7 @@ class Collective:
 
     def _compute(self):
         """Compute number of jumps which could show collective behaviour."""
-        structure = self.structure
+        sites = self.sites
         lattice = self.lattice
         max_steps = self.max_steps
         max_dist = self.max_dist
@@ -81,10 +81,10 @@ class Collective:
                 if event_i['atom index'] == event_j['atom index']:
                     continue
 
-                a = structure.frac_coords[[
+                a = sites.frac_coords[[
                     event_i['start site'], event_i['destination site']
                 ]]
-                b = structure.frac_coords[[
+                b = sites.frac_coords[[
                     event_j['start site'], event_j['destination site']
                 ]]
 
@@ -115,7 +115,7 @@ class Collective:
         site_pair_count_matrix : np.ndarray
             Matrix where all types of jumps combinations are counted
         """
-        labels = self.structure.labels
+        labels = self.sites.labels
         coll_jumps = self.coll_jumps
         site_pairs = self.site_pair_count_matrix_labels()
 
@@ -137,7 +137,7 @@ class Collective:
 
     @weak_lru_cache()
     def site_pair_count_matrix_labels(self) -> list:
-        labels = self.structure.labels
+        labels = self.sites.labels
         return list({(label1, label2)
                      for label1 in labels
                      for label2 in labels})

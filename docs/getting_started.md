@@ -46,23 +46,24 @@ from gemdat import load_known_material
 structure = load_known_material('argyrodite', supercell=(2, 1, 1))
 ```
 
-The [gemdat.SitesData][] class is responsible for calculating the different jumps properties. We pass the `structure` with the jump sites, the trajectory containing both the host and diffusing species, and specify what the diffusing element is.
+The [gemdat.Transitions][] and [gemdat.Jumps][] classes are responsible for calculating the transitions between sites and jumps properties. We pass the structure with the jump sites to the trajectory containing both the host and diffusing species, and specify what the diffusing element is.
 
 ```python
-from gemdat import SitesData
+from gemdat import Jumps
 
-sites = SitesData(
-   structure=structure,
-   trajectory=trajectory,
-   floating_specie='Li',
+transitions = trajectory.transitions_between_sites(
+    sites=sites,
+    floating_specie='Li',
 )
+
+jumps = Jumps(transitions=transitions)
 ```
 
-See the documentation for [`gemdat.SitesData`][] to find out which properties are available.
+See the documentation for [`gemdat.Transitions`][] and [`gemdat.Jumps`][] to find out which properties are available.
 
 ## Plotting jumps and transition properties
 
-Gemdat contains [several functions for plotting jumps and transitions](./plotting.md#jumps-and-transition-plots). These take the [gemdat.SitesData][] object we just constructed as input.
+Gemdat contains [several functions for plotting jumps and transitions](./plotting.md#jumps-and-transition-plots). These take the [gemdat.Jumps][] object we just constructed as input.
 
 For example, to visualize all jumps in 3d:
 
@@ -72,12 +73,12 @@ plots.plot_jumps_3d(sites)
 
 ## Radial distribution functions
 
-This function calculates the [radial distribution function](https://en.wikipedia.org/wiki/Radial_distribution_function) (RDF) from the `floating_specie` on [gemdat.SitesData][],
+This function calculates the [radial distribution function](https://en.wikipedia.org/wiki/Radial_distribution_function) (RDF) from the `floating_specie`,
 
 ```python
 from gemdat.rdf import radial_distribution
 
-rdf_data = radial_distribution(sites=sites)
+rdf_data = radial_distribution(transitions=transitions, floating_specie='Li')
 ```
 
 This returns a dictionary with all possible transitions between the jump sites. You can use the [plotting module](./plotting.md#radial-distribution-plots) to visualize the RDFs:

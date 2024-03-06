@@ -10,6 +10,39 @@ import plotly.graph_objects as go
 from gemdat.trajectory import Trajectory
 
 
+def displacement_per_atom(*, trajectory: Trajectory) -> go.Figure:
+    """Plot displacement per atom.
+
+    Parameters
+    ----------
+    trajectory : Trajectory
+        Input trajectory, i.e. for the diffusing atom
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Output figure
+    """
+
+    fig = go.Figure()
+
+    distances = [dist for dist in trajectory.distances_from_base_position()]
+
+    for i, distance in enumerate(distances):
+        fig.add_trace(
+            go.Scatter(y=distance,
+                       name=i,
+                       mode='lines',
+                       line={'width': 1},
+                       showlegend=False))
+
+    fig.update_layout(title='Displacement per atom',
+                      xaxis_title='Time step',
+                      yaxis_title='Displacement (Angstrom)')
+
+    return fig
+
+
 def displacement_per_element(*, trajectory: Trajectory) -> go.Figure:
     """Plot displacement per element.
 
@@ -133,7 +166,7 @@ def displacement_histogram(trajectory: Trajectory,
     ----------
     trajectory : Trajectory
         Input trajectory, i.e. for the diffusing atom
-    nparts : int
+    n_parts : int
         Plot error bars by dividing data into n parts
 
     Returns
@@ -155,17 +188,13 @@ def displacement_histogram(trajectory: Trajectory,
                           xaxis_title='Displacement (Angstrom)',
                           yaxis_title='Nr. of atoms')
     else:
-
-        all_df = []
         interval = np.linspace(0, len(trajectory) - 1, n_parts + 1)
-        trajectories = trajectory.split(n_parts)
+        dfs = [
+            _trajectory_to_dataframe(part)
+            for part in trajectory.split(n_parts)
+        ]
 
-        for trajectory in trajectories:
-
-            df = _trajectory_to_dataframe(trajectory)
-            all_df.append(df)
-
-        all_df = pd.concat(all_df)
+        all_df = pd.concat(dfs)
 
         # Get the mean and standard deviation
         grouped = all_df.groupby(['Displacement', 'Element'])
@@ -185,4 +214,5 @@ def displacement_histogram(trajectory: Trajectory,
             f'Displacement per element after {int(interval[1]-interval[0])} timesteps',
             xaxis_title='Displacement (Angstrom)',
             yaxis_title='Nr. of atoms')
+
     return fig

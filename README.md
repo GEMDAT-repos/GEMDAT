@@ -35,48 +35,36 @@ Suggestions, improvements, and edits are most welcome.
 The following snippet can be used to test the code using VASP data.
 
 ```python
-from gemdat import SitesData, Trajectory, plots
+from gemdat import Trajectory
 from gemdat.io import load_known_material
-from pathlib import Path
 import matplotlib.pyplot as plt
 
-trajectory = Trajectory.from_vasprun(Path('../example/vasprun.xml'))
+trajectory = Trajectory.from_vasprun('../example/vasprun.xml')
 
-plots.displacement_per_element(trajectory=trajectory)
+trajectory.plot_displacement_per_element()
 
 diff_trajectory = trajectory.filter('Li')
 
-plots.displacement_per_site(trajectory=diff_trajectory)
-plots.displacement_histogram(trajectory=diff_trajectory)
-plots.frequency_vs_occurence(trajectory=diff_trajectory)
-plots.vibrational_amplitudes(trajectory=diff_trajectory)
+diff_trajectory.plot_displacement_per_atom()
+diff_trajectory.plot_displacement_histogram()
+diff_trajectory.plot_frequency_vs_occurence()
+diff_trajectory.plot_vibrational_amplitudes()
 
-structure = load_known_material('argyrodite', supercell=(2, 1, 1))
+sites = load_known_material('argyrodite', supercell=(2, 1, 1))
 
-sites = SitesData(
-   structure=structure,
-   trajectory=trajectory,
-   floating_specie='Li',
+transitions = trajectory.transitions_between_sites(
+    sites=sites,
+    floating_specie='Li',
 )
 
-plots.jumps_vs_distance(sites=sites)
-plots.jumps_vs_time(sites=sites)
-plots.collective_jumps(sites=sites)
-plots.jumps_3d(sites=sites)
+jumps = transitions.jumps()
+
+jumps.plot_jumps_vs_distance()
+jumps.plot_jumps_vs_time()
+jumps.plot_collective_jumps()
+jumps.plot_jumps_3d()
+
 plt.show()
-```
-
-Or, one function to do everything:
-
-```python
-from gemdat.legacy import analyse_md
-
-trajectory, sites = analyse_md(
-   '/data/vasprun.xml',
-   diff_elem='Li',
-   supercell=(2, 1, 1),
-   material='argyrodite',
-)
 ```
 
 ## Development

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 import plotly.express as px
@@ -11,6 +11,7 @@ from skimage import measure
 if TYPE_CHECKING:
     from pymatgen.core import Lattice, Structure
 
+    from gemdat.path import Pathway
     from gemdat.volume import Volume
 
 
@@ -167,37 +168,107 @@ def plot_volume(
                       showlegend=False))
 
 
-def density(vol: Volume,
-            structure: Optional[Structure] = None,
-            force_lattice: Lattice | None = None) -> go.Figure:
+def plot_paths(
+    paths: Pathway | list[Pathway],
+    *,
+    volume: Volume,
+    fig: go.Figure,
+):
+    """Ploth paths over free energy.
+
+    Arguments
+    ---------
+    paths : Pathway | list[Pathway]
+        Pathway object containing the energy along the path, or list of Pathways
+    volume : Volume
+        Input volume to create the landscape
+    fig : go.Figure
+        Plotly figure to add traces too
+    """
+    if isinstance(paths, list):
+        optimal_path = paths[0]
+    else:
+        optimal_path = paths
+
+    x_path, y_path, z_path = np.asarray(optimal_path.cartesian_path(volume)).T
+
+    fig.add_trace(
+        go.Scatter3d(
+            x=x_path,
+            y=y_path,
+            z=z_path,
+            mode='markers+lines',
+            line={'width': 3},
+            marker={
+                'size': 6,
+                'color': 'teal',
+                'symbol': 'circle',
+                'opacity': 0.9
+            },
+            name='Optimal path',
+        ))
+
+    # If available, plot the other pathways
+    if isinstance(paths, list):
+        for idx, path in enumerate(paths[1:]):
+            x_path, y_path, z_path = np.asarray(path.cartesian_path(volume)).T
+
+            fig.add_trace(
+                go.Scatter3d(
+                    x=x_path,
+                    y=y_path,
+                    z=z_path,
+                    mode='markers+lines',
+                    line={'width': 3},
+                    marker={
+                        'size': 5,
+                        #'color': color,
+                        'symbol': 'circle',
+                        'opacity': 0.9
+                    },
+                    name=f'Alternative {idx+1}',
+                ))
+
+
+def density(
+    volume: Volume,
+    *,
+    structure: Structure | None = None,
+    paths: Pathway | list[Pathway] | None = None,
+    force_lattice: Lattice | None = None,
+) -> go.Figure:
     """Create density plot from volume and structure.
 
     Uses plotly as plotting backend.
 
     Arguments
     ---------
-    vol : Volume
+    volume : Volume
         Input volume
     structure : Structure, optional
         Input structure
+    paths : Pathway | list[Pathway]
+        Pathway object containing the energy along the path, or list of Pathways
     force_lattice : Lattice | None
         Plot volume and structure using this lattice as a basis. Overrides the default, which is to
-        use `vol.lattice` and `structure.lattice` where applicable.
+        use `volume.lattice` and `structure.lattice` where applicable.
 
     Returns
     -------
     fig : go.Figure
         Output as plotly figure
     """
+    zoom = 0.1
+
     fig = go.Figure()
 
     if force_lattice:
         lattice = force_lattice
     else:
-        lattice = vol.lattice
+        lattice = volume.lattice
 
     plot_lattice_vectors(lattice, fig=fig)
-    plot_volume(vol, lattice=lattice, fig=fig)
+    plot_volume(volume, lattice=lattice, fig=fig)
 
     if structure:
         if force_lattice:
@@ -207,13 +278,16 @@ def density(vol: Volume,
         else:
             plot_structure(structure, fig=fig)
 
+    if paths:
+        plot_paths(paths=paths, volume=volume, fig=fig)
+
     fig.update_layout(title='Density',
                       scene={
                           'aspectmode': 'manual',
                           'aspectratio': {
-                              'x': vol.lattice.a,
-                              'y': vol.lattice.b,
-                              'z': vol.lattice.c,
+                              'x': volume.lattice.a * zoom,
+                              'y': volume.lattice.b * zoom,
+                              'z': volume.lattice.c * zoom,
                           },
                           'xaxis_title': 'X (Ångstrom)',
                           'yaxis_title': 'Y (Ångstrom)',
@@ -238,9 +312,9 @@ def density(vol: Volume,
                               'type': 'orthographic'
                           },
                           'eye': {
-                              'x': -vol.lattice.a * 0.5,
-                              'y': -vol.lattice.b * 2,
-                              'z': vol.lattice.c * 1.5,
+                              'x': -volume.lattice.a * 0.05,
+                              'y': -volume.lattice.b * 0.2,
+                              'z': volume.lattice.c * 0.15,
                           }
                       })
 

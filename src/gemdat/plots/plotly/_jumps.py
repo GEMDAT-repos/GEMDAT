@@ -20,8 +20,8 @@ def jumps_vs_distance(*,
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input jumps data
     jump_res : float, optional
         Resolution of the bins in Angstrom
     n_parts : int
@@ -33,12 +33,10 @@ def jumps_vs_distance(*,
         Output figure
     """
     sites = jumps.sites
-    structure = sites.structure
-    trajectory = sites.trajectory
+    trajectory = jumps.trajectory
     lattice = trajectory.get_lattice()
 
-    pdist = lattice.get_all_distances(structure.frac_coords,
-                                      structure.frac_coords)
+    pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
 
     bin_max = (1 + pdist.max() // jump_res) * jump_res
     n_bins = int(bin_max / jump_res) + 1
@@ -62,19 +60,12 @@ def jumps_vs_distance(*,
     std = grouped.std().reset_index().rename(columns={'count': 'std'})
     df = mean.merge(std, how='inner')
 
-    df['specie'] = sites.floating_specie
-
     if n_parts == 1:
-        fig = px.bar(df,
-                     x='Displacement',
-                     y='mean',
-                     color='specie',
-                     barmode='stack')
+        fig = px.bar(df, x='Displacement', y='mean', barmode='stack')
     else:
         fig = px.bar(df,
                      x='Displacement',
                      y='mean',
-                     color='specie',
                      error_y='std',
                      barmode='stack')
 
@@ -93,8 +84,8 @@ def jumps_vs_time(*,
 
     Parameters
     ----------
-    sites : SitesData
-        Input sites data
+    jumps : Jumps
+        Input jumps data
     bins : int, optional
         Number of bins
     n_parts : int
@@ -105,9 +96,7 @@ def jumps_vs_time(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-    sites = jumps.sites
-
-    maxlen = len(sites.trajectory) / n_parts
+    maxlen = len(jumps.trajectory) / n_parts
     binsize = maxlen / bins + 1
     data = []
 
@@ -125,16 +114,138 @@ def jumps_vs_time(*,
 
     df = pd.DataFrame(data=zip(columns, mean, std),
                       columns=['time', 'count', 'std'])
-    df['specie'] = sites.floating_specie
 
     if n_parts > 1:
-        fig = px.bar(df, x='time', y='count', color='specie', error_y='std')
+        fig = px.bar(df, x='time', y='count', error_y='std')
     else:
-        fig = px.bar(df, x='time', y='count', color='specie')
+        fig = px.bar(df, x='time', y='count')
 
     fig.update_layout(bargap=0.2,
                       title='Jumps vs. time',
                       xaxis_title='Time (steps)',
                       yaxis_title='Number of jumps')
+
+    return fig
+
+
+def collective_jumps(*, jumps: Jumps) -> go.Figure:
+    """Plot collective jumps per jump-type combination.
+
+    Parameters
+    ----------
+    jumps : Jumps
+        Input data
+
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+        Output figure
+    """
+
+    matrix = jumps.collective().site_pair_count_matrix()
+    labels = jumps.collective().site_pair_count_matrix_labels()
+
+    fig = px.imshow(matrix)
+
+    ticks = [_ for _ in range(len(labels))]
+
+    fig.update_layout(xaxis=dict(tickmode='array',
+                                 tickvals=ticks,
+                                 ticktext=labels),
+                      yaxis=dict(tickmode='array',
+                                 tickvals=ticks,
+                                 ticktext=labels),
+                      title='Cooperative jumps per jump-type combination')
+
+    return fig
+
+
+def jumps_3d(*, jumps: Jumps) -> go.Figure:
+    """Plot jumps in 3D.
+
+    Parameters
+    ----------
+    jumps : Jumps
+        Input data
+
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+        Output figure
+    """
+    from ._density import plot_structure
+    trajectory = jumps.trajectory
+    sites = jumps.sites
+
+    fig = go.Figure()
+    plot_structure(sites, fig=fig)
+
+    coords = sites.frac_coords
+    lattice = trajectory.get_lattice()
+
+    for i, j in zip(*np.triu_indices(len(coords), k=1)):
+        count = jumps.matrix()[i, j] + jumps.matrix()[j, i]
+        if count == 0:
+            continue
+
+        coord_i = tuple(coords[i].tolist())
+        coord_j = tuple(coords[j].tolist())
+
+        lw = 1 + np.log(count)
+
+        length, image = lattice.get_distance_and_image(coord_i, coord_j)
+
+        if np.any(image != 0):
+            lines = [(coord_i, coord_j + image), (coord_i - image, coord_j)]
+        else:
+            lines = [(coord_i, coord_j)]
+
+        for line in lines:
+            line = lattice.get_cartesian_coords(line)
+            line_t = [_ for _ in zip(*line)]  # transpose, but pythonic
+
+            fig.add_trace(
+                go.Scatter3d(
+                    x=line_t[0],
+                    y=line_t[1],
+                    z=line_t[2],
+                    mode='lines',
+                    showlegend=False,
+                    line_dash='dashdot' if any(image) != 0 else 'solid',
+                    line_width=lw * 3,
+                    line_color='black',
+                ))
+
+    zoom = 0.1
+
+    fig.update_layout(title='Jumps between sites',
+                      scene={
+                          'aspectmode': 'manual',
+                          'aspectratio': {
+                              'x': lattice.a * zoom,
+                              'y': lattice.b * zoom,
+                              'z': lattice.c * zoom,
+                          },
+                          'xaxis_title': 'X (Ångstrom)',
+                          'yaxis_title': 'Y (Ångstrom)',
+                          'zaxis_title': 'Z (Ångstrom)'
+                      },
+                      showlegend=True,
+                      margin={
+                          'l': 0,
+                          'r': 0,
+                          'b': 0,
+                          't': 0
+                      },
+                      scene_camera={
+                          'projection': {
+                              'type': 'orthographic'
+                          },
+                          'eye': {
+                              'x': -lattice.a * 0.05,
+                              'y': -lattice.b * 0.2,
+                              'z': lattice.c * 0.15,
+                          }
+                      })
 
     return fig

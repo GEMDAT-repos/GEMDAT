@@ -33,7 +33,6 @@ def test_volume(vasp_vol, vasp_traj):
         assert data[s].sum() != 0
 
 
-# @pytest.mark.skip(reason='https://github.com/GEMDAT-repos/GEMDAT/issues/138')
 @pytest.vaspxml_available  # type: ignore
 def test_volume_to_structure_centroid(vasp_vol):
     structure = vasp_vol.to_structure(specie='Li', pad=5, method='centroid')
@@ -119,9 +118,9 @@ def test_vibration_metrics(vasp_traj):
 
 @pytest.vaspxml_available  # type: ignore
 def test_msd(vasp_traj):
-    msd = vasp_traj.mean_squared_displacement()
+    msd = vasp_traj[-100:].mean_squared_displacement()
 
-    assert msd.shape == (104, 3750)
-    assert np.isclose(msd[10, -1], 0.03396214706964429)
-    assert np.isclose(msd[52, -1], 0.30140820020960746)
-    assert np.isclose(msd[85, -1], 11.927261505164097)
+    assert msd.shape == (104, 100)
+    assert np.isclose(msd[10, -1], 0.0711843146266915)
+    assert np.isclose(msd[52, -1], 0.597740065985704)
+    assert np.isclose(msd[85, -1], 1.1881148711032665)

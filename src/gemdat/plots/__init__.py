@@ -4,11 +4,7 @@ from __future__ import annotations
 # Matplotlib plots
 from .matplotlib import (
     bond_length_distribution,
-    collective_jumps,
-    displacement_per_site,
     energy_along_path,
-    frequency_vs_occurence,
-    jumps_3d,
     jumps_3d_animation,
     path_on_grid,
     radial_distribution,
@@ -18,13 +14,16 @@ from .matplotlib import (
 
 # Plotly plots (matplotlib version might be available)
 from .plotly import (
+    collective_jumps,
     density,
     displacement_histogram,
+    displacement_per_atom,
     displacement_per_element,
+    frequency_vs_occurence,
+    jumps_3d,
     jumps_vs_distance,
     jumps_vs_time,
     msd_per_element,
-    path_on_landscape,
     vibrational_amplitudes,
 )
 
@@ -33,8 +32,8 @@ __all__ = [
     'collective_jumps',
     'density',
     'displacement_histogram',
+    'displacement_per_atom',
     'displacement_per_element',
-    'displacement_per_site',
     'frequency_vs_occurence',
     'jumps_3d',
     'jumps_3d_animation',
@@ -47,5 +46,4 @@ __all__ = [
     'vibrational_amplitudes',
     'energy_along_path',
     'path_on_grid',
-    'path_on_landscape',
 ]

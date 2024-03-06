@@ -86,9 +86,7 @@ def test_shape_analyzer_to_structure(shape_analyzer):
     assert len(structure) == 2
     assert [sp.name for sp in structure.species] == ['Si', 'Si']
 
-    with pytest.raises(AssertionError):
-        # This will be fixed in a future version of pymatgen
-        assert structure.labels == ['A', 'A']
+    assert structure.labels == ['A', 'A']
 
 
 def test_shape_analyzer_shift_sites(shape_analyzer):

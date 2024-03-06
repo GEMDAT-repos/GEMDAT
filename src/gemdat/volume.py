@@ -18,7 +18,7 @@ from skimage.measure import regionprops
 from .segmentation import watershed_pbc
 
 if TYPE_CHECKING:
-    from pymatgen.core import Lattice
+    from pymatgen.core import Lattice, PeriodicSite
     from skimage.measure._regionprops import RegionProperties
 
     from gemdat.trajectory import Trajectory
@@ -61,17 +61,63 @@ class Volume:
                                            self.data.shape))  # type: ignore
 
     @classmethod
-    def from_volumetric_data(cls, vol: VolumetricData):
+    def from_volumetric_data(cls, volume: VolumetricData):
         """Create instance from VolumetricData.
 
         Parameters
         ----------
-        vol : pymatgen.io.common.VolumetricData
+        volume : pymatgen.io.common.VolumetricData
             Input volumetric data
         """
-        return cls(data=vol.data['total'],
-                   lattice=vol.structure.lattice,
+        return cls(data=volume.data['total'],
+                   lattice=volume.structure.lattice,
                    resolution=None)
+
+    def voxel_to_frac_coords(self, voxel: tuple[int, int, int]) -> np.ndarray:
+        """Convert voxel coordinates to fractional coordinates.
+
+        Parameters
+        ----------
+        voxel : tuple[int, int, int]
+            Input voxel coordinates
+
+        Returns
+        -------
+        np.ndarray
+            Output fractional coordinates
+        """
+        return (np.array(voxel) + 0.5) / np.array(self.data.shape)
+
+    def frac_coords_to_voxel(self, frac_coords: tuple[int, int,
+                                                      int]) -> np.ndarray:
+        """Convert fractional coordinates to voxel coordinates.
+
+        Parameters
+        ----------
+        frac_coords : tuple[int, int, int]
+            Input fractional coordinates
+
+        Returns
+        -------
+        np.ndarray
+            Output voxel coordinates
+        """
+        return (np.array(frac_coords) * np.array(self.data.shape)).astype(int)
+
+    def site_to_voxel(self, site: PeriodicSite) -> np.ndarray:
+        """Convert site coordinates to voxel coordinates.
+
+        Parameters
+        ----------
+        site : PeriodicSite
+            Input site
+
+        Returns
+        -------
+        np.ndarray
+            Output voxel coordinates
+        """
+        return self.frac_coords_to_voxel(site.frac_coords)
 
     def find_peaks(
         self,
@@ -258,7 +304,7 @@ class Volume:
         peaks : Optional[np.ndarray]
             Voxel coordinates to use as starting points for watershed algorithm.
         **kwargs : dict
-            These keywords parameters are passed to [Volume.find_peaks][].
+            These keywords parameters are passed to [gemdat.Volume.find_peaks][].
             Only applies if `peaks == None`.
 
         Returns
@@ -314,6 +360,11 @@ class Volume:
         free_energy = -temperature * physical_constants[
             'Boltzmann constant in eV/K'][0] * np.log(prob)
         return np.nan_to_num(free_energy)
+
+    def plot_density(self, **kwargs):
+        """See [gemdat.plots.density][] for more info."""
+        from gemdat import plots
+        return plots.density(volume=self, **kwargs)
 
 
 def trajectory_to_volume(

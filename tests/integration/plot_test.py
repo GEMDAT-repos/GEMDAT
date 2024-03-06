@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 from helpers import image_comparison2
 
 from gemdat.io import load_known_material
@@ -12,10 +11,10 @@ def test_displacement_per_element(vasp_traj):
     plots.displacement_per_element(trajectory=vasp_traj)
 
 
-@image_comparison2(baseline_images=['displacement_per_site'])
-def test_displacement_per_site(vasp_traj):
+@image_comparison2(baseline_images=['displacement_per_atom'])
+def test_displacement_per_atom(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
-    plots.displacement_per_site(trajectory=diff_trajectory)
+    plots.displacement_per_atom(trajectory=diff_trajectory)
 
 
 @image_comparison2(baseline_images=['displacement_histogram'])
@@ -61,9 +60,8 @@ def test_jumps_3d_animation(vasp_jumps):
     plots.jumps_3d_animation(jumps=vasp_jumps, t_start=1000, t_stop=1001)
 
 
-@pytest.mark.xfail(reason='Needs to be checked')
 @image_comparison2(baseline_images=['rdf1', 'rdf2', 'rdf3'])
-def test_rdf23(vasp_rdf_data):
+def test_rdf(vasp_rdf_data):
     assert len(vasp_rdf_data) == 3
     for rdfs in vasp_rdf_data.values():
         plots.radial_distribution(rdfs)
@@ -78,12 +76,12 @@ def test_shape(vasp_shape_data):
 
 @image_comparison2(baseline_images=['msd'])
 def test_msd_per_element(vasp_traj):
-    plots.msd_per_element(trajectory=vasp_traj)
+    plots.msd_per_element(trajectory=vasp_traj[-500:])
 
 
 @image_comparison2(baseline_images=['path_energy'])
 def test_path_energy(vasp_full_vol, vasp_full_path):
     structure = load_known_material('argyrodite')
-    plots.energy_along_path(path=vasp_full_path,
+    plots.energy_along_path(paths=vasp_full_path,
                             volume=vasp_full_vol,
                             structure=structure)

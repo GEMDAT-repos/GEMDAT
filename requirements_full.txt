@@ -100,7 +100,7 @@ pybtex==0.24.0
     # via pymatgen
 pygments==2.16.1
     # via rich
-pymatgen==2023.12.18
+pymatgen==2024.1.27
     # via GEMDAT (pyproject.toml)
 pyparsing==3.1.1
     # via matplotlib

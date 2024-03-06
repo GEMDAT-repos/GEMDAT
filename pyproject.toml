@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 [project]
 name = "GEMDAT"
-version = "1.0.1"
+version = "1.1.0"
 description = "Generalized Molecular Dynamics Analysis Tool"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,7 +35,7 @@ dependencies = [
   'matplotlib >= 3.6.0',
   'MDAnalysis',
   'numpy',
-  'pymatgen >= 2023.11.10',
+  'pymatgen >= 2024.1.26, != 2024.2.20',
   'rich',
   'scikit-image',
   'scipy',
@@ -104,7 +104,7 @@ allow_redefinition = true
 ignore_missing_imports = true
 
 [tool.bumpversion]
-current_version = "1.0.1"
+current_version = "1.1.0"
 
 [[tool.bumpversion.files]]
 filename = "src/gemdat/__init__.py"

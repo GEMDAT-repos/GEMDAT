@@ -8,8 +8,8 @@ import numpy as np
 from gemdat.trajectory import Trajectory
 
 
-def displacement_per_site(*, trajectory: Trajectory) -> plt.Figure:
-    """Plot displacement per site.
+def displacement_per_atom(*, trajectory: Trajectory) -> plt.Figure:
+    """Plot displacement per atom.
 
     Parameters
     ----------
