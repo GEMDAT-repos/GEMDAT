@@ -3,6 +3,7 @@ from __future__ import annotations
 
 # Matplotlib plots
 from .matplotlib import (
+    bond_length_distribution,
     collective_jumps,
     displacement_per_site,
     energy_along_path,
@@ -28,6 +29,7 @@ from .plotly import (
 )
 
 __all__ = [
+    'bond_length_distribution',
     'collective_jumps',
     'density',
     'displacement_histogram',

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from gemdat.trajectory import Trajectory
@@ -12,7 +11,7 @@ from gemdat.trajectory import Trajectory
 class Orientations:
     """Container for orientational data. It computes trajectories of normalized
     unit vectors defined as the distance between a central and satellite atoms,
-    meant to track orientation of moleules or clusters.
+    meant to track orientation of molecules or clusters.
 
     Parameters
     ----------
@@ -23,7 +22,7 @@ class Orientations:
     satellite_type: str
         Type of the satellite atoms
     nr_central_atoms: int
-        Number of central atoms (? ask Theo ?)
+        Number of central atoms, which corresponds to the number of cluster molecules
     nr_ligands: optional[int]
         Number of ligands
     """
@@ -169,7 +168,7 @@ class Orientations:
     def _compute_unit_vectors_traj(self, normalize: bool) -> None:
         """Computes trajectories of normalized unit vectors defined as the
         distance between a central and satellite atoms, meant to track
-        orientation of moleules or clusters.
+        orientation of molecules or clusters.
 
         Parameters
         ----------
@@ -195,7 +194,7 @@ class Orientations:
     def get_unit_vectors_traj(self, normalize: bool = False) -> np.ndarray:
         """Returns trajectories of normalized unit vectors defined as the
         distance between a central and satellite atoms, meant to track
-        orientation of moleules or clusters.
+        orientation of molecules or clusters.
 
         Parameters
         ----------
@@ -215,7 +214,10 @@ class Orientations:
 
     def _compute_conventional_form(self, normalize: bool = False) -> None:
         """Converts the trajectory of unit vectors from fractional to
-        conventional coordinates.
+        conventional coordinates. A conventional unit cell only contains one
+        lattice point, while the primitive cell contains the Bravais lattice.
+        This means that the conventional form is simpler to visualize and
+        compare.
 
         Parameters
         ----------
@@ -234,6 +236,8 @@ class Orientations:
 
     def get_conventional_form(self, normalize: bool = False) -> np.ndarray:
         """Returns the trajectory of unit vectors in conventional coordinates.
+        Conventional coordinates are the coordinates of the unit vectors in the
+        conventional unit cell.
 
         Parameters
         ----------
@@ -243,16 +247,17 @@ class Orientations:
         Returns
         -------
         conventional_traj: np.ndarray
-            Trajectory of the unit vectors in conventional coordinates (? @Theo)
+            Trajectory of the unit vectors in conventional coordinates
         """
         if not hasattr(self, '_conventional_form'):
             self._compute_conventional_form(normalize)
         return self._conventional_form
 
-
-    def _compute_symmetric_traj(self, sym_matrix: np.ndarray, normalize: bool =False) -> None:
-        """Apply symmetry elements of Oh space group with vectorized
-        operations. It starts from the unit vectors trajectory in conventional coordinates.
+    def _compute_symmetric_traj(self,
+                                sym_matrix: np.ndarray,
+                                normalize: bool = False) -> None:
+        """Apply symmetry elements to the trajectory to improve statistics. It
+        requires the unit vectors trajectory in conventional coordinates.
 
         Parameters
         ----------
@@ -269,16 +274,16 @@ class Orientations:
 
         direction_sym = np.zeros((n_ts, n_bonds * n_symops, 3))
         for m in range(n_ts):
-            for l in range(n_bonds):
+            for p in range(n_bonds):
                 for k in range(n_symops):
-                    direction_sym[m, l * n_symops + k, :] = np.matmul(
-                        sym_matrix[:, :, k], direction[m, l, :])
+                    direction_sym[m, p * n_symops + k, :] = np.matmul(
+                        sym_matrix[:, :, k], direction[m, p, :])
 
         self._symmetric_traj = direction_sym
 
-
-    def get_symmetric_traj(self, 
-                       sym_matrix: np.ndarray, normalize: bool=False) -> np.ndaray:
+    def get_symmetric_traj(self,
+                           sym_matrix: np.ndarray,
+                           normalize: bool = False) -> np.ndarray:
         """Returns the symmetric trajectory.
 
         Parameters
@@ -294,12 +299,11 @@ class Orientations:
             Trajectory of the unit vectors after applying symmetry operations
         """
         if not hasattr(self, '_symmetric_traj'):
-            self._compute_symmetric_traj(sym_matrix,normalize)
+            self._compute_symmetric_traj(sym_matrix, normalize)
         return self._symmetric_traj
 
-
-    def _cart2sph(self, x: float, y: float,
-                  z: float) -> tuple[float, float, float]:
+    def _cart2sph(self, x: np.ndarray, y: np.ndarray,
+                  z: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Transform cartesian coordinates to spherical coordinates.
 
         Parameters
@@ -358,7 +362,14 @@ class Orientations:
 
 @dataclass
 class Oh_point_group:
-    """Container for the symmetry operations of the Oh point group."""
+    """Container for the symmetry operations of the Oh point group.
+
+    It creates the 48 matrices corresponding to the Oh point group
+    symmetry operations. They can be used to apply symmetry operations
+    to the unit vectors trajectory. To understand the notation, you can
+    follow this link:
+    https://en.wikiversity.org/wiki/Full_octahedral_group#8%C3%976_matrix.
+    """
 
     @property
     def sym_ops_Oh_firstcolumn(self):
@@ -400,12 +411,12 @@ class Oh_point_group:
                     sym_ops_Oh_firstrow[j, :, :])
 
         # Reshape to make it easier to iterate on (only on 3rd dimension)
-        return sym_ops_Oh.reshape(3, 3, -1)
+        return sym_ops_Oh.reshape(-1, 3, 3).transpose(1, 2, 0)
 
 
 def calculate_spherical_areas(shape: tuple, radius: float = 1) -> np.ndarray:
     """Calculate the areas of a section of a sphere, defined in spherical
-    coordinates.
+    coordinates. Useful for normalization purposes.
 
     Parameters
     ----------
@@ -419,7 +430,6 @@ def calculate_spherical_areas(shape: tuple, radius: float = 1) -> np.ndarray:
     areas : np.ndarray
         Areas of the section
     """
-    azimuthal_angles = np.linspace(0, 360, shape[1])
     elevation_angles = np.linspace(0, 180, shape[0])
 
     areas = np.zeros(shape, dtype=float)
@@ -436,62 +446,45 @@ def calculate_spherical_areas(shape: tuple, radius: float = 1) -> np.ndarray:
     return areas
 
 
-def sph_prob(direction_spherical_deg, shape=(360, 180)):
+def autocorrelation(traj: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Compute the autocorrelation of the trajectory using FFT.
 
-    az = direction_spherical_deg[:, :, 0].flatten()
-    el = direction_spherical_deg[:, :, 1].flatten()
+    Parameters
+    ----------
+    traj : np.ndarray
+        The input signal in direct cartesian coordinates. It is expected
+        to have shape (n_times, n_particles, n_coordinates)
 
-    # Compute the 2D histogram - for reasons, x-y inversed
-    hist, xedges, yedges = np.histogram2d(el, az, shape)
+    Returns
+    -------
+    autocorr.mean : np.ndarray
+        The autocorrelation of the signal mediated over the number of particles.
+    autocorr.std : np.ndarray
+        The standard deviation of the autocorrelation of the signal.
+    """
 
-    def calculate_spherical_areas(shape, radius=1):
-        azimuthal_angles = np.linspace(0, 360, shape[0])
-        elevation_angles = np.linspace(0, 180, shape[1])
+    n_times, n_particles, n_coordinates = traj.shape
 
-        areas = np.zeros(shape, dtype=float)
+    # Sum the coordinates to get the magnitude of the signal
+    signal = np.sum(traj, axis=2)
 
-        for i in range(shape[0]):
-            for j in range(shape[1]):
-                azimuthal_increment = np.deg2rad(1)
-                elevation_increment = np.deg2rad(1)
+    # Compute the FFT of the magnitude
+    fft_magnitude = np.fft.fft(signal, n=2 * n_times - 1, axis=0)
 
-                areas[i, j] = (radius**2) * azimuthal_increment * np.sin(
-                    np.deg2rad(elevation_angles[j])) * elevation_increment
-                #hacky way to get rid of singularity on poles
-                areas[:, 0] = areas[:, -1]
-        return areas
+    # Compute the power spectral density
+    psd = np.abs(fft_magnitude)**2
 
-    areas = calculate_spherical_areas(shape)
+    # Compute the inverse FFT of the power spectral density
+    autocorr = np.fft.ifft(psd, axis=0)
 
-    hist = np.divide(hist, areas)
+    # Only keep the positive time lags
+    autocorr = autocorr[:n_times, :]
 
-    #replace values at the poles where normalization breaks - hacky
-    hist[:, 0] = hist[:, 1]
-    hist[:, -1] = hist[:, -2]
-    return hist
+    # Normalize
+    autocorr = autocorr.T
+    autocorr /= np.arange(n_times, 0, -1)
 
+    # and get the real part
+    autocorr = autocorr.real
 
-def rectilinear_plot(grid):
-    """Plot a rectilinear projection of a spherical function."""
-    values = grid.T
-    phi = np.linspace(0, 360, np.ma.size(values, 0))
-    theta = np.linspace(0, 180, np.ma.size(values, 1))
-
-    theta, phi = np.meshgrid(theta, phi)
-
-    fig, ax = plt.subplots(subplot_kw=dict(projection='rectilinear'))
-    cs = ax.contourf(phi, theta, values, cmap='viridis')
-    ax.set_yticks(np.arange(0, 190, 45))
-    ax.set_xticks(np.arange(0, 370, 45))
-
-    ax.set_xlabel(r'azimuthal angle φ $[\degree$]')
-    ax.set_ylabel(r'elevation θ $[\degree$]')
-
-    ax.grid(visible=True)
-    cbar = fig.colorbar(cs, label='areal probability', format='')
-
-    # Rotate the colorbar label by 180 degrees
-    cbar.ax.yaxis.set_label_coords(2.5,
-                                   0.5)  # Adjust the position of the label
-    cbar.set_label('areal probability', rotation=270, labelpad=15)
-    return
+    return autocorr.mean(axis=0), autocorr.std(axis=0)
