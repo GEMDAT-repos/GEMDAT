@@ -13,6 +13,8 @@ from scipy.spatial import cKDTree
 # shortcut to test data
 VASPRUN = Path(__file__).parents[
     2] / 'tests' / 'data' / 'short_simulation' / 'vasprun.xml'
+VASPCACHE_ROTATIONS = Path(__file__).parents[
+    2] / 'tests' / 'data' / 'short_simulation' / 'vasprun_rotations.cache'
 
 DATA = files('gemdat') / 'data'
 

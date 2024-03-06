@@ -8,12 +8,14 @@ from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
 from gemdat.path import find_best_perc_path, free_energy_graph
 from gemdat.rdf import radial_distribution
+from gemdat.rotations import Oh_point_group, Orientations
 from gemdat.shape import ShapeAnalyzer
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
 VASP_XML = DATA_DIR / 'short_simulation' / 'vasprun.xml'
+VASP_ROTO_CACHE = DATA_DIR / 'short_simulation' / 'vasprun_rotations.cache'
 
 
 def pytest_configure():
@@ -23,12 +25,24 @@ def pytest_configure():
         ('Simulation data from vasprun.xml example is required for this test. '
          'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
          '-xjf tests/data/short_simulation/vasprun.xml.bz2`'))
+    pytest.vasprotocache_available = pytest.mark.skipif(
+        not VASP_ROTO_CACHE.exists(),
+        reason=
+        ('Simulation data from vasprun_rotations.cache example is required for this test. '
+         'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
+         '-xjf tests/data/short_simulation/vasprun.xml.bz2`'))
 
 
 @pytest.fixture(scope='module')
 def vasp_traj():
     trajectory = Trajectory.from_vasprun(VASP_XML)
     trajectory = trajectory[1250:]
+    return trajectory
+
+
+@pytest.fixture(scope='module')
+def vasp_traj_rotations():
+    trajectory = Trajectory.from_cache(VASP_ROTO_CACHE)
     return trajectory
 
 
@@ -117,3 +131,26 @@ def vasp_F_graph(vasp_path_vol):
     F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
 
     return F_graph
+
+
+@pytest.fixture(scope='module')
+def vasp_orientations(vasp_traj_rotations):
+    central_atoms = 'S'
+    satellite_atoms = 'O'
+    n_expected_neigh = 8
+    bd = Orientations(vasp_traj_rotations, central_atoms, satellite_atoms,
+                      n_expected_neigh)
+    return bd
+
+
+@pytest.fixture(scope='module')
+def Oh_sym_matrices():
+    return Oh_point_group().sym_ops_Oh
+
+
+@pytest.fixture(scope='module')
+def vasp_orientations_spherical(vasp_orientations):
+    cf = vasp_orientations.get_conventional_form(normalize=False)
+    cf_spheric = vasp_orientations.cartesian_to_spherical(direct_cart=cf,
+                                                          degrees=True)
+    return cf_spheric

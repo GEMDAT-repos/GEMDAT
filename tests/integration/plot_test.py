@@ -85,3 +85,24 @@ def test_path_energy(vasp_full_vol, vasp_full_path):
     plots.energy_along_path(paths=vasp_full_path,
                             volume=vasp_full_vol,
                             structure=structure)
+
+
+@image_comparison2(baseline_images=['rectilinear'])
+def test_rectilinear(vasp_orientations_spherical):
+    plots.rectilinear_plot(trajectory=vasp_orientations_spherical,
+                           normalize=False)
+
+
+@image_comparison2(baseline_images=['bond_length_distribution'])
+def test_bond_length_distribution(vasp_orientations_spherical):
+    print(vasp_orientations_spherical)
+    plots.bond_length_distribution(direction=vasp_orientations_spherical,
+                                   bins=1000)
+
+
+@image_comparison2(baseline_images=['unit_vector_autocorrelation'])
+def test_unit_vector_autocorrelation(vasp_orientations):
+    normalized_direct_cart = vasp_orientations.get_unit_vectors_traj(
+        normalize=False)
+    plots.unit_vector_autocorrelation(trajectory=normalized_direct_cart,
+                                      time_units=2e-15)
