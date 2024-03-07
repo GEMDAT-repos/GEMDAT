@@ -56,10 +56,15 @@ class Volume:
 
         self.dims = self.data['total'].shape
 
-    def normalized_data(self, key: str = 'total') -> np.ndarray:
+    def normalized(self, key: str = 'total') -> np.ndarray:
         """Return normalized data."""
         data = self.data[key]
         return data / data.max()
+
+    def probability(self, key: str = 'total') -> np.ndarray:
+        """Return probability data."""
+        data = self.data[key]
+        return data / data.sum()
 
     @property
     def voxel_size(self) -> tuple[float, float, float]:
@@ -158,7 +163,7 @@ class Volume:
         kwargs.setdefault('threshold', 0.01)
 
         # normalize data
-        data = self.normalized_data()
+        data = self.normalized()
         data = np.pad(data, pad_width=pad, mode='wrap')
 
         coords = blob_dog(data, **kwargs)[:, 0:3]
@@ -208,7 +213,7 @@ class Volume:
 
         Return regionprops.
         """
-        data = self.normalized_data()
+        data = self.normalized()
 
         background_level = background_level * data.max()
 
@@ -346,7 +351,7 @@ class Volume:
     def get_free_energy(
         self,
         temperature: float,
-    ) -> np.ndarray:
+    ) -> Volume:
         """Estimate the free energy from volume.
 
         Parameters
@@ -359,7 +364,7 @@ class Volume:
         free_energy : ndarray
             Free energy in eV on the voxel grid
         """
-        prob = self.normalized_data()
+        prob = self.probability()
         free_energy = -temperature * physical_constants[
             'Boltzmann constant in eV/K'][0] * np.log(prob)
 
@@ -371,15 +376,10 @@ class Volume:
             lattice=self.lattice,
         )
 
-    def plot_density(self, **kwargs):
+    def plot(self, key: str = 'total', **kwargs):
         """See [gemdat.plots.density][] for more info."""
         from gemdat import plots
-        return plots.density(volume=self, **kwargs)
-
-    def plot(self, key: str = 'total', **kwargs):
-        """TODO: Not implemented yet"""
-        from gemdat import plots
-        return plots.volume(volume=self, key=key, **kwargs)
+        return plots.density(volume=self, key=key, **kwargs)
 
 
 def trajectory_to_volume(
@@ -441,7 +441,7 @@ def trajectory_to_volume(
                                           len(trajectory.species))
 
     return Volume(
-        data=data,
+        data={'total': data},
         resolution=resolution,
         lattice=lattice,
         # find better place to store these

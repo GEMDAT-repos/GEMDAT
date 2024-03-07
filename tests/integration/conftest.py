@@ -104,7 +104,6 @@ def vasp_path_vol(vasp_full_traj):
 def vasp_full_path(vasp_path_vol):
     F = vasp_path_vol.get_free_energy(temperature=650.0)
     path = find_best_perc_path(F,
-                               vasp_path_vol,
                                percolate_x=True,
                                percolate_y=False,
                                percolate_z=False)

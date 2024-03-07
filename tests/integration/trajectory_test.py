@@ -19,7 +19,7 @@ def vasp_vol(vasp_traj):
 
 @pytest.vaspxml_available  # type: ignore
 def test_volume(vasp_vol, vasp_traj):
-    data = vasp_vol.data
+    data = vasp_vol.data['total']
 
     n_species = sum(sp.symbol == 'Li' for sp in vasp_traj.species)
 
@@ -61,9 +61,9 @@ def test_volume_to_structure_cluster(vasp_vol):
 @pytest.vaspxml_available  # type: ignore
 def test_volume_get_free_energy(vasp_vol):
     free_energy = vasp_vol.get_free_energy(temperature=1)
-    assert isclose(np.min(free_energy), 0.00061389695902)
-    assert isclose(np.average(free_energy[free_energy < 10**5]),
-                   0.0008802950738)
+    data = free_energy.data['free_energy']
+    assert isclose(np.min(data), 0.00061389695902)
+    assert isclose(np.average(data[data < 10**5]), 0.0008802950738)
 
 
 @pytest.vaspxml_available  # type: ignore

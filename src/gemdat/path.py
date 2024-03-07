@@ -89,7 +89,7 @@ class Pathway:
             frac_sites.append(tuple(fractional_coords))
         return frac_sites
 
-    def wrap(self, F: np.ndarray):
+    def wrap(self, dims: tuple[int, int, int]):
         """Wrap path in periodic boundary conditions in-place.
 
         Parameters
@@ -100,7 +100,7 @@ class Pathway:
         if self.sites is None:
             raise ValueError('Voxel coordinates of the path are required.')
 
-        X, Y, Z = F.shape
+        X, Y, Z = dims
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
 
     def path_over_structure(
@@ -166,14 +166,14 @@ class Pathway:
         return self.sites[-1]
 
 
-def free_energy_graph(F: np.ndarray,
+def free_energy_graph(F: np.ndarray | Volume,
                       max_energy_threshold: float = 1e20,
                       diagonal: bool = True) -> nx.Graph:
     """Compute the graph of the free energy for networkx functions.
 
     Parameters
     ----------
-    F : np.ndarray
+    F : data
         Free energy on the 3d grid
     max_energy_threshold : float, optional
         Maximum energy threshold for the path to be considered valid
@@ -199,14 +199,21 @@ def free_energy_graph(F: np.ndarray,
         movements = np.vstack((movements, diagonal_movements))
 
     G = nx.Graph()
-    for index, Fi in np.ndenumerate(F):
+
+    if isinstance(F, Volume):
+        data = F.data['free_energy']
+    else:
+        data = F
+
+    for index, Fi in np.ndenumerate(data):
         if 0 <= Fi < max_energy_threshold:
             G.add_node(index, energy=Fi)
+
     for node in G.nodes:
         for move in movements:
-            neighbor = tuple((node + move) % F.shape)
+            neighbor = tuple((node + move) % data.shape)
             if neighbor in G.nodes:
-                weight = 0.5 * (F[node] + F[neighbor])
+                weight = 0.5 * (data[node] + data[neighbor])
                 exp_n_energy = np.exp(weight)
                 if exp_n_energy < max_energy_threshold:
                     weight_exp = exp_n_energy
@@ -450,8 +457,7 @@ def _optimal_path_minmax_energy(
     return optimal_path
 
 
-def find_best_perc_path(F: np.ndarray,
-                        volume: Volume,
+def find_best_perc_path(F: Volume,
                         percolate_x: bool = True,
                         percolate_y: bool = False,
                         percolate_z: bool = False) -> Pathway:
@@ -461,8 +467,6 @@ def find_best_perc_path(F: np.ndarray,
     ----------
     F : np.ndarray
         Energy grid that will be used to calculate the shortest path
-    volume : Volume
-        Volume object containing the grid information
     percolate_x : bool
         If True, consider paths that percolate along the x dimension
     percolate_y : bool
@@ -475,7 +479,7 @@ def find_best_perc_path(F: np.ndarray,
     best_percolating_path: Pathway
         Optimal path that percolates the graph in the specified directions
     """
-    xyz_real = F.shape
+    xyz_real = F.dims
 
     # Find percolation using virtual images along the required dimensions
     if not any([percolate_x, percolate_y, percolate_z]):
@@ -483,11 +487,12 @@ def find_best_perc_path(F: np.ndarray,
         return Pathway()
 
     # Tile the grind in the percolation directions
-    F_periodic = np.tile(F,
-                         (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
+    F_data_periodic = np.tile(
+        F.data['free_energy'],
+        (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
 
     # Get F on a graph
-    F_graph = free_energy_graph(F_periodic,
+    F_graph = free_energy_graph(F_data_periodic,
                                 max_energy_threshold=1e7,
                                 diagonal=True)
 
@@ -500,7 +505,7 @@ def find_best_perc_path(F: np.ndarray,
     best_cost = float('inf')
     best_path = Pathway()
 
-    peaks = volume.find_peaks()
+    peaks = F.find_peaks()
     for start_point in peaks:
 
         # Get the stop point which is a periodic image of the peak
@@ -523,6 +528,6 @@ def find_best_perc_path(F: np.ndarray,
             best_path = path
 
     # Before returning, wrap the path in the original volume
-    best_path.wrap(F)
+    best_path.wrap(F.dims)
 
     return best_path
