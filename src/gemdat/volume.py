@@ -30,7 +30,7 @@ class Volume:
 
     Parameters
     ----------
-    data : np.ndarray
+    data : dict[str, np.ndarray]
         Input volume as 3D numpy array
     lattice : pymatgen.core.lattice.Lattice
         Lattice parameters for the volume
@@ -43,22 +43,30 @@ class Volume:
         Integer array that maps `positions` onto
         flattened voxel indices
     """
-    data: np.ndarray
+    data: dict[str, np.ndarray]
     lattice: Lattice
     resolution: float | None = None
+    # Find better place to store these
     positions: np.ndarray | None = None
     voxel_mapping: np.ndarray | None = None
 
-    @property
-    def normalized_data(self) -> np.ndarray:
+    def __post_init__(self):
+        if isinstance(self.data, np.ndarray):
+            self.data = {'total': self.data}
+
+        self.dims = self.data['total'].shape
+
+    def normalized_data(self, key: str = 'total') -> np.ndarray:
         """Return normalized data."""
-        return self.data / self.data.max()
+        data = self.data[key]
+        return data / data.max()
 
     @property
     def voxel_size(self) -> tuple[float, float, float]:
         """Return voxel size in Angstrom."""
-        return tuple(a / b for a, b in zip(self.lattice.lengths,
-                                           self.data.shape))  # type: ignore
+        return tuple(
+            a / b
+            for a, b in zip(self.lattice.lengths, self.dims))  # type: ignore
 
     @classmethod
     def from_volumetric_data(cls, volume: VolumetricData):
@@ -69,7 +77,7 @@ class Volume:
         volume : pymatgen.io.common.VolumetricData
             Input volumetric data
         """
-        return cls(data=volume.data['total'],
+        return cls(data=volume.data,
                    lattice=volume.structure.lattice,
                    resolution=None)
 
@@ -86,7 +94,7 @@ class Volume:
         np.ndarray
             Output fractional coordinates
         """
-        return (np.array(voxel) + 0.5) / np.array(self.data.shape)
+        return (np.array(voxel) + 0.5) / np.array(self.dims)
 
     def frac_coords_to_voxel(self, frac_coords: tuple[int, int,
                                                       int]) -> np.ndarray:
@@ -102,7 +110,7 @@ class Volume:
         np.ndarray
             Output voxel coordinates
         """
-        return (np.array(frac_coords) * np.array(self.data.shape)).astype(int)
+        return (np.array(frac_coords) * np.array(self.dims)).astype(int)
 
     def site_to_voxel(self, site: PeriodicSite) -> np.ndarray:
         """Convert site coordinates to voxel coordinates.
@@ -150,14 +158,14 @@ class Volume:
         kwargs.setdefault('threshold', 0.01)
 
         # normalize data
-        data = self.normalized_data
+        data = self.normalized_data()
         data = np.pad(data, pad_width=pad, mode='wrap')
 
         coords = blob_dog(data, **kwargs)[:, 0:3]
         coords = coords - np.array((pad, pad, pad))
 
         if remove_outside:
-            imax, jmax, kmax = self.data.shape
+            imax, jmax, kmax = self.dims
             imin, jmin, kmin = 0, 0, 0
 
             c0 = (coords[:, 0] >= imin) & (coords[:, 0] < imax)
@@ -188,10 +196,10 @@ class Volume:
         """
         if filename:
             vol_path = Path(filename).with_suffix('.vasp')
-            vol_vasp = VolumetricData(structure=structure,
-                                      data={
-                                          'total': self.data
-                                      }).write_file(vol_path)
+            vol_vasp = VolumetricData(
+                structure=structure,
+                data=self.data,
+            ).write_file(vol_path)
         return vol_vasp
 
     def _peaks_to_props(self, peaks: np.ndarray,
@@ -200,7 +208,7 @@ class Volume:
 
         Return regionprops.
         """
-        data = self.normalized_data
+        data = self.normalized_data()
 
         background_level = background_level * data.max()
 
@@ -224,7 +232,7 @@ class Volume:
             coords = prop.coords
 
             for axis in (0, 1, 2):
-                dim = self.data.shape[axis]
+                dim = self.dims[axis]
                 if prop.image.shape[axis] == dim:
                     sel = (coords[:, axis] < dim / 2)
                     coords[sel, axis] += dim
@@ -234,7 +242,7 @@ class Volume:
         centroids = np.array(centroids)
 
         # Move coords to voxel center by shifting 0.5
-        frac_coords = (centroids + 0.5) / np.array(self.data.shape)
+        frac_coords = (centroids + 0.5) / np.array(self.dims)
 
         return np.array(frac_coords)
 
@@ -258,7 +266,7 @@ class Volume:
 
         for prop in track(props, transient=True):
             prop_coords_idx = np.ravel_multi_index(prop.coords.T,
-                                                   dims=self.data.shape,
+                                                   dims=self.dims,
                                                    mode='wrap')
 
             prop_pos_idx = np.isin(voxel_mapping, prop_coords_idx)
@@ -335,11 +343,6 @@ class Volume:
 
         return structure
 
-    def to_probability(self, ) -> Volume:
-        """Normalize the volume to use it as a probability."""
-        self.data = self.data / self.data.sum()
-        return self
-
     def get_free_energy(
         self,
         temperature: float,
@@ -356,15 +359,27 @@ class Volume:
         free_energy : ndarray
             Free energy in eV on the voxel grid
         """
-        prob = self.data / self.data.sum()
+        prob = self.normalized_data()
         free_energy = -temperature * physical_constants[
             'Boltzmann constant in eV/K'][0] * np.log(prob)
-        return np.nan_to_num(free_energy)
+
+        data = {k: v for k, v in self.data.items()}
+        data['free_energy'] = np.nan_to_num(free_energy)
+
+        return Volume(
+            data=data,
+            lattice=self.lattice,
+        )
 
     def plot_density(self, **kwargs):
         """See [gemdat.plots.density][] for more info."""
         from gemdat import plots
         return plots.density(volume=self, **kwargs)
+
+    def plot(self, key: str = 'total', **kwargs):
+        """TODO: Not implemented yet"""
+        from gemdat import plots
+        return plots.volume(volume=self, key=key, **kwargs)
 
 
 def trajectory_to_volume(
