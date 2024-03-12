@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 import scipy.ndimage as ndi
 from pymatgen.core import Structure
+from pymatgen.core.units import Unit
 from pymatgen.io.vasp import VolumetricData
-from rich.progress import track
 from scipy.constants import physical_constants
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
@@ -30,31 +30,26 @@ class Volume:
 
     Parameters
     ----------
-    data : dict[str, np.ndarray]
-        Dictionary that contains the input volume as 3D numpy array under the key 'total', and allows storage of additional data, e.g. 'free_energy'
+    data : np.ndarray
+        Input volume as 3D numpy array
     lattice : pymatgen.core.lattice.Lattice
         Lattice parameters for the volume
     resolution : optional[float]
         The minimum resolution in Angstrom that the volume
         was generated at.
-    positions : optional[np.ndarray]
-        Input trajectory coordinates
-    voxel_mapping : optional[np.ndarray]
-        Integer array that maps `positions` onto
-        flattened voxel indices
+    label : str
+        Label for the Volume
+    units : Unit | None
+        Optional unit for the data
     """
-    data: dict[str, np.ndarray]
+    data: np.ndarray
     lattice: Lattice
     resolution: float | None = None
-    # Find better place to store these
-    positions: np.ndarray | None = None
-    voxel_mapping: np.ndarray | None = None
+    label: str = 'volume'
+    units: Unit | None = None
 
     def __post_init__(self):
-        if isinstance(self.data, np.ndarray):
-            self.data = {'total': self.data}
-
-        self.dims = self.data['total'].shape
+        self.dims = self.data.shape
 
     def normalized(self, key: str = 'total') -> np.ndarray:
         """Return normalized data."""
@@ -251,54 +246,17 @@ class Volume:
 
         return np.array(frac_coords)
 
-    def _props_to_frac_coords_cluster(
-        self,
-        *,
-        props: list[RegionProperties],
-        **kwargs,
-    ) -> np.ndarray:
-        """Generate fractional coords using cluster method."""
-        voxel_mapping = self.voxel_mapping
-        positions = self.positions
-
-        if (voxel_mapping is None) or (positions is None):
-            raise ValueError(
-                '`self.voxel_mapping` and `self.positions` must be defined.')
-
-        frac_coords = []
-
-        tol = 0.95
-
-        for prop in track(props, transient=True):
-            prop_coords_idx = np.ravel_multi_index(prop.coords.T,
-                                                   dims=self.dims,
-                                                   mode='wrap')
-
-            prop_pos_idx = np.isin(voxel_mapping, prop_coords_idx)
-            prop_pos = positions[prop_pos_idx]
-
-            extent = prop_pos.max(axis=0) - prop_pos.min(axis=0)
-
-            for axis in (0, 1, 2):
-                if extent[axis] > tol:
-                    sel = (prop_pos[:, axis] < 0.5)
-                    prop_pos[sel, axis] += 1
-
-            frac_coord = prop_pos.mean(axis=0)
-            frac_coords.append(frac_coord)
-
-        return np.array(frac_coords)
-
     def to_structure(
         self,
         *,
         specie: str = 'X',
         background_level: float = 0.1,
-        method: str = 'centroid',
         peaks: Optional[np.ndarray] = None,
         **kwargs,
     ) -> Structure:
-        """Converts a volume back to a structure using peak detection.
+        """Converts a volume back to a structure using peak detection. Uses the
+        'centroid' method that takes the weighted centroid of all voxels in a
+        labeled region (fast),
 
         Parameters
         ----------
@@ -309,11 +267,6 @@ class Volume:
             Essentially sets `vol_min = background_level * max(vol)`.
             All values below `vol_min` are masked in the peak search.
             Must be between 0 and 1
-        method : str
-            Select method to use for calculating fractional coordinates.
-            'centroid' takes the weighted centroid of all voxels in a labeled region (fast),
-            'cluster' takes the mean of all trajectory coordinates that contributed to
-            that voxel (slow, but more accurate).
         peaks : Optional[np.ndarray]
             Voxel coordinates to use as starting points for watershed algorithm.
         **kwargs : dict
@@ -331,10 +284,7 @@ class Volume:
         props = self._peaks_to_props(peaks=peaks,
                                      background_level=background_level)
 
-        props_to_frac_coords = {
-            'centroid': self._props_to_frac_coords_centroid,
-            'cluster': self._props_to_frac_coords_cluster,
-        }[method]
+        props_to_frac_coords = self._props_to_frac_coords_centroid
 
         frac_coords = props_to_frac_coords(props=props)
 
@@ -368,12 +318,11 @@ class Volume:
         free_energy = -temperature * physical_constants[
             'Boltzmann constant in eV/K'][0] * np.log(prob)
 
-        data = {k: v for k, v in self.data.items()}
-        data['free_energy'] = np.nan_to_num(free_energy)
-
         return Volume(
-            data=data,
+            data=np.nan_to_num(free_energy),
             lattice=self.lattice,
+            label='free_energy',
+            units=Unit('eV K-1'),
         )
 
     def plot(self, key: str = 'total', **kwargs):
@@ -435,16 +384,11 @@ def trajectory_to_volume(
 
     data = np.zeros((nx - 1, ny - 1, nz - 1), dtype=int)
     data[i, j, k] = counts
-    voxel_mapping = np.ravel_multi_index(tuple(digitized_coords.T),
-                                         tuple(data.shape))
-    voxel_mapping = voxel_mapping.reshape(len(trajectory),
-                                          len(trajectory.species))
 
     return Volume(
-        data={'total': data},
+        data=data,
         resolution=resolution,
         lattice=lattice,
-        # find better place to store these
-        positions=trajectory.positions,
-        voxel_mapping=voxel_mapping,
+        label='trajectory',
+        units=None,
     )
