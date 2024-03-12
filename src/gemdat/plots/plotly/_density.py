@@ -116,7 +116,6 @@ def plot_structure(structure: Structure, *, fig: go.Figure):
 def plot_volume(
     volume: Volume,
     *,
-    key: str = 'total',
     fig: go.Figure,
     lattice: Lattice | None = None,
     colors: list[str] = ['red', 'yellow', 'cyan'],
@@ -129,8 +128,6 @@ def plot_volume(
     ----------
     volume : Volume
         Input volume
-    key : str
-        Which data item from Volume to plot, defaults to 'total'
     fig : go.Figure
         Plotly figure to add traces too
     lattice : Lattice | None
@@ -145,7 +142,7 @@ def plot_volume(
     if lattice is None:
         lattice = volume.lattice
 
-    data = volume.data[key]
+    data = volume.data
     data = gaussian_filter(data, sigma=1.0)
 
     assert len(colors) == len(isovals) == len(alphavals)
@@ -236,7 +233,6 @@ def plot_paths(
 def density(
     volume: Volume,
     *,
-    key: str = 'total',
     structure: Structure | None = None,
     paths: Pathway | list[Pathway] | None = None,
     force_lattice: Lattice | None = None,
@@ -249,8 +245,6 @@ def density(
     ---------
     volume : Volume
         Input volume
-    key : str
-        Which data item to plot from the Volume, defaults to 'total'
     structure : Structure, optional
         Input structure
     paths : Pathway | list[Pathway]
@@ -274,7 +268,7 @@ def density(
         lattice = volume.lattice
 
     plot_lattice_vectors(lattice, fig=fig)
-    plot_volume(volume, key=key, lattice=lattice, fig=fig)
+    plot_volume(volume, lattice=lattice, fig=fig)
 
     if structure:
         if force_lattice:

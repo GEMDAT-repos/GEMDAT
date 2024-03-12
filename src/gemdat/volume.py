@@ -51,15 +51,13 @@ class Volume:
     def __post_init__(self):
         self.dims = self.data.shape
 
-    def normalized(self, key: str = 'total') -> np.ndarray:
+    def normalized(self) -> np.ndarray:
         """Return normalized data."""
-        data = self.data[key]
-        return data / data.max()
+        return self.data / self.data.max()
 
-    def probability(self, key: str = 'total') -> np.ndarray:
+    def probability(self) -> np.ndarray:
         """Return probability data."""
-        data = self.data[key]
-        return data / data.sum()
+        return self.data / self.data.sum()
 
     @property
     def voxel_size(self) -> tuple[float, float, float]:
@@ -198,7 +196,9 @@ class Volume:
             vol_path = Path(filename).with_suffix('.vasp')
             vol_vasp = VolumetricData(
                 structure=structure,
-                data=self.data,
+                data={
+                    'total': self.data
+                },
             ).write_file(vol_path)
         return vol_vasp
 
@@ -325,10 +325,10 @@ class Volume:
             units=Unit('eV K-1'),
         )
 
-    def plot(self, key: str = 'total', **kwargs):
+    def plot(self, **kwargs):
         """See [gemdat.plots.density][] for more info."""
         from gemdat import plots
-        return plots.density(volume=self, key=key, **kwargs)
+        return plots.density(volume=self, **kwargs)
 
 
 def trajectory_to_volume(
