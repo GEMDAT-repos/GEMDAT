@@ -82,11 +82,7 @@ class Pathway:
         """
         if self.sites is None:
             raise ValueError('Voxel coordinates of the path are required.')
-        frac_sites = []
-        for site in self.sites:
-            fractional_coords = site / np.asarray(
-                [x // volume.resolution for x in volume.lattice.lengths])
-            frac_sites.append(tuple(fractional_coords))
+        frac_sites = (np.array(self.sites) / volume.dims).tolist()
         return frac_sites
 
     def wrap(self, dims: tuple[int, int, int]):

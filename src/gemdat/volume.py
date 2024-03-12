@@ -34,9 +34,6 @@ class Volume:
         Input volume as 3D numpy array
     lattice : pymatgen.core.lattice.Lattice
         Lattice parameters for the volume
-    resolution : optional[float]
-        The minimum resolution in Angstrom that the volume
-        was generated at.
     label : str
         Label for the Volume
     units : Unit | None
@@ -44,12 +41,16 @@ class Volume:
     """
     data: np.ndarray
     lattice: Lattice
-    resolution: float | None = None
     label: str = 'volume'
     units: Unit | None = None
 
     def __post_init__(self):
         self.dims = self.data.shape
+
+    @property
+    def resolution(self):
+        """Return resolution in Angstrom that the volume was generated at."""
+        return np.array(self.lattice.lengths) / self.dims
 
     def normalized(self) -> np.ndarray:
         """Return normalized data."""
@@ -75,9 +76,10 @@ class Volume:
         volume : pymatgen.io.common.VolumetricData
             Input volumetric data
         """
-        return cls(data=volume.data,
-                   lattice=volume.structure.lattice,
-                   resolution=None)
+        return cls(
+            data=volume.data,
+            lattice=volume.structure.lattice,
+        )
 
     def voxel_to_frac_coords(self, voxel: tuple[int, int, int]) -> np.ndarray:
         """Convert voxel coordinates to fractional coordinates.
@@ -387,7 +389,6 @@ def trajectory_to_volume(
 
     return Volume(
         data=data,
-        resolution=resolution,
         lattice=lattice,
         label='trajectory',
         units=None,
