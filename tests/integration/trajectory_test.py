@@ -19,7 +19,7 @@ def vasp_vol(vasp_traj):
 
 @pytest.vaspxml_available  # type: ignore
 def test_volume(vasp_vol, vasp_traj):
-    data = vasp_vol.data['total']
+    data = vasp_vol.data
 
     n_species = sum(sp.symbol == 'Li' for sp in vasp_traj.species)
 
@@ -35,21 +35,7 @@ def test_volume(vasp_vol, vasp_traj):
 
 @pytest.vaspxml_available  # type: ignore
 def test_volume_to_structure_centroid(vasp_vol):
-    structure = vasp_vol.to_structure(specie='Li', pad=5, method='centroid')
-
-    assert isinstance(structure, Structure)
-    assert len(structure) == 157
-    assert np.min(structure.frac_coords) >= 0
-    assert np.max(structure.frac_coords) < 1
-    assert all(sp.symbol == 'Li' for sp in structure.species)
-
-
-@pytest.vaspxml_available  # type: ignore
-def test_volume_to_structure_cluster(vasp_vol):
-    structure = vasp_vol.to_structure(specie='Li', pad=5, method='cluster')
-
-    assert hasattr(vasp_vol, 'positions')
-    assert hasattr(vasp_vol, 'voxel_mapping')
+    structure = vasp_vol.to_structure(specie='Li', pad=5)
 
     assert isinstance(structure, Structure)
     assert len(structure) == 157
@@ -61,7 +47,7 @@ def test_volume_to_structure_cluster(vasp_vol):
 @pytest.vaspxml_available  # type: ignore
 def test_volume_get_free_energy(vasp_vol):
     free_energy = vasp_vol.get_free_energy(temperature=1)
-    data = free_energy.data['free_energy']
+    data = free_energy.data
     assert isclose(np.min(data), 0.00061389695902)
     assert isclose(np.average(data[data < 10**5]), 0.0008802950738)
 

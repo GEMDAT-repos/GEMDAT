@@ -173,7 +173,7 @@ def free_energy_graph(F: np.ndarray | Volume,
 
     Parameters
     ----------
-    F : data
+    F : np.ndarray | Volume
         Free energy on the 3d grid
     max_energy_threshold : float, optional
         Maximum energy threshold for the path to be considered valid
@@ -200,10 +200,7 @@ def free_energy_graph(F: np.ndarray | Volume,
 
     G = nx.Graph()
 
-    if isinstance(F, Volume):
-        data = F.data['free_energy']
-    else:
-        data = F
+    data = F.data if isinstance(F, Volume) else F
 
     for index, Fi in np.ndenumerate(data):
         if 0 <= Fi < max_energy_threshold:
@@ -458,6 +455,7 @@ def _optimal_path_minmax_energy(
 
 
 def find_best_perc_path(F: Volume,
+                        peaks: np.ndarray,
                         percolate_x: bool = True,
                         percolate_y: bool = False,
                         percolate_z: bool = False) -> Pathway:
@@ -467,6 +465,8 @@ def find_best_perc_path(F: Volume,
     ----------
     F : Volume
         Energy grid that will be used to calculate the shortest path
+    peaks : np.ndarray
+        List of the peaks that correspond to high probability regions
     percolate_x : bool
         If True, consider paths that percolate along the x dimension
     percolate_y : bool
@@ -488,8 +488,7 @@ def find_best_perc_path(F: Volume,
 
     # Tile the grind in the percolation directions
     F_data_periodic = np.tile(
-        F.data['free_energy'],
-        (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
+        F.data, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
 
     # Get F on a graph
     F_graph = free_energy_graph(F_data_periodic,
@@ -505,7 +504,6 @@ def find_best_perc_path(F: Volume,
     best_cost = float('inf')
     best_path = Pathway()
 
-    peaks = F.find_peaks()
     for start_point in peaks:
 
         # Get the stop point which is a periodic image of the peak
