@@ -31,7 +31,7 @@ class Volume:
     Parameters
     ----------
     data : dict[str, np.ndarray]
-        Input volume as 3D numpy array
+        Dictionary that contains the input volume as 3D numpy array under the key 'total', and allows storage of additional data, e.g. 'free_energy'
     lattice : pymatgen.core.lattice.Lattice
         Lattice parameters for the volume
     resolution : optional[float]
