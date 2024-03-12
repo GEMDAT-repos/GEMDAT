@@ -465,7 +465,7 @@ def find_best_perc_path(F: Volume,
 
     Parameters
     ----------
-    F : np.ndarray
+    F : Volume
         Energy grid that will be used to calculate the shortest path
     percolate_x : bool
         If True, consider paths that percolate along the x dimension
