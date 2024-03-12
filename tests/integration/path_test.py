@@ -40,7 +40,7 @@ def test_optimal_path(vasp_F_graph, start, stop, method, expected):
 
 @pytest.vaspxml_available  # type: ignore
 def test_find_best_perc_path(vasp_full_path):
-    assert isclose(vasp_full_path.cost, 11.488013690080908)
+    assert isclose(vasp_full_path.total_energy, 11.488013690080908)
     assert vasp_full_path.start_site == (11, 9, 6)
 
 

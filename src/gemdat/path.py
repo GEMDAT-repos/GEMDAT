@@ -100,13 +100,6 @@ class Pathway:
         return nearest_structure_label, nearest_structure_coord
 
     @property
-    def cost(self) -> float:
-        """Calculate the path cost."""
-        if self.energy is None:
-            raise ValueError('Energy of the path is required.')
-        return np.sum(self.energy)
-
-    @property
     def start_site(self) -> tuple[int, int, int]:
         """Return first site."""
         if self.sites is None:
@@ -473,7 +466,7 @@ def find_best_perc_path(F: Volume,
         except nx.NetworkXNoPath:
             continue
 
-        cost = path.cost
+        cost = path.total_energy
 
         if cost < best_cost:
             best_cost = cost
