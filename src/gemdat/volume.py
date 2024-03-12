@@ -47,12 +47,6 @@ class Volume:
     def __post_init__(self):
         self.dims = self.data.shape
 
-    @property
-    def resolution(self) -> np.ndarray:
-        """Return voxel resolution in Angstrom that the volume was generated
-        at."""
-        return np.array(self.lattice.lengths) / self.dims
-
     def normalized(self) -> np.ndarray:
         """Return normalized data."""
         return self.data / self.data.max()
@@ -62,11 +56,9 @@ class Volume:
         return self.data / self.data.sum()
 
     @property
-    def voxel_size(self) -> tuple[float, float, float]:
+    def voxel_size(self) -> np.ndarray:
         """Return voxel size in Angstrom."""
-        return tuple(
-            a / b
-            for a, b in zip(self.lattice.lengths, self.dims))  # type: ignore
+        return np.array(self.lattice.lengths) / self.dims
 
     @classmethod
     def from_volumetric_data(cls, volume: VolumetricData):
