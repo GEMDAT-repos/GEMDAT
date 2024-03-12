@@ -27,8 +27,8 @@ class Pathway:
         List of the energy along the path
     """
 
-    sites: list[tuple[int, int, int]] | None = None
-    energy: list[float] | None = None
+    sites: list[tuple[int, int, int]]
+    energy: list[float]
 
     def __repr__(self):
         s = (
@@ -43,46 +43,6 @@ class Pathway:
     def total_energy(self):
         """Return total energy for path."""
         return sum(self.energy)
-
-    def cartesian_path(self,
-                       volume: Volume) -> list[tuple[float, float, float]]:
-        """Convert voxel coordinates to cartesian coordinates.
-
-        Parameters
-        ----------
-        volume : Volume
-            Volume object containing the grid information
-
-        Returns
-        -------
-        cart_sites: list[tuple]
-            List of cartesian coordinates of the sites defining the path
-        """
-        cart_sites = []
-        if self.sites is None:
-            raise ValueError('Voxel coordinates of the path are required.')
-        for site in self.fractional_path(volume=volume):
-            cartesian_coords = volume.lattice.get_cartesian_coords(site)
-            cart_sites.append(tuple(cartesian_coords))
-        return cart_sites
-
-    def fractional_path(self, volume: Volume) -> np.ndarray:
-        """Convert voxel coordinates to fractional coordinates.
-
-        Parameters
-        ----------
-        volume : Volume
-            Volume object containing the grid information
-
-        Returns
-        -------
-        frac_sites: np.ndarray
-            List of fractional coordinates of the sites defining the path
-        """
-        if self.sites is None:
-            raise ValueError('Voxel coordinates of the path are required.')
-        frac_sites = volume.voxel_to_frac_coords(np.array(self.sites))
-        return frac_sites
 
     def wrap(self, dims: tuple[int, int, int]):
         """Wrap path in periodic boundary conditions in-place.
@@ -119,7 +79,7 @@ class Pathway:
         nearest_structure_coord: list[np.ndarray]
             List of cartesian coordinates of the closest site of the reference structure
         """
-        frac_sites = self.fractional_path(volume)
+        frac_sites = volume.voxel_to_frac_coords(np.array(self.sites))
         nearest_structure_tree, nearest_structure_map = nearest_structure_reference(
             structure)
 
@@ -453,7 +413,7 @@ def find_best_perc_path(F: Volume,
                         peaks: np.ndarray,
                         percolate_x: bool = True,
                         percolate_y: bool = False,
-                        percolate_z: bool = False) -> Pathway:
+                        percolate_z: bool = False) -> Pathway | None:
     """Calculate the best percolating path.
 
     Parameters
@@ -478,8 +438,7 @@ def find_best_perc_path(F: Volume,
 
     # Find percolation using virtual images along the required dimensions
     if not any([percolate_x, percolate_y, percolate_z]):
-        print('Warning: percolation is not defined')
-        return Pathway()
+        raise ValueError('percolation is not defined')
 
     # Tile the grind in the percolation directions
     F_data_periodic = np.tile(
@@ -497,7 +456,7 @@ def find_best_perc_path(F: Volume,
 
     # Find the lowest cost path that percolates along the x dimension
     best_cost = float('inf')
-    best_path = Pathway()
+    best_path = None
 
     for start_point in peaks:
 
@@ -520,7 +479,8 @@ def find_best_perc_path(F: Volume,
             best_cost = cost
             best_path = path
 
-    # Before returning, wrap the path in the original volume
-    best_path.wrap(F.dims)
+    if best_path:
+        # Before returning, wrap the path in the original volume
+        best_path.wrap(F.dims)
 
     return best_path

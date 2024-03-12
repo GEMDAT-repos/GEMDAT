@@ -52,3 +52,17 @@ def test_volume_site_to_vox(volume, coord, expected):
 
     ret = volume.site_to_voxel(site)
     assert_allclose(ret, expected)
+
+
+TEST_DATA_VOX_TO_CART = (
+    # voxel, expected
+    ((-0.5, -0.5, -0.5), (0, 0, 0)),
+    ((0, 0, 0), [1., 1., 1.]),
+    ((3, 4, 5), [7., 9., 11.]),
+)
+
+
+@pytest.mark.parametrize('voxel,expected', TEST_DATA_VOX_TO_CART)
+def test_volume_vox_to_cart(volume, voxel, expected):
+    ret = volume.voxel_to_cart_coords(voxel)
+    assert_allclose(ret, expected)

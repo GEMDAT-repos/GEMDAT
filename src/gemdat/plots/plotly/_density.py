@@ -190,7 +190,7 @@ def plot_paths(
     else:
         optimal_path = paths
 
-    x_path, y_path, z_path = np.asarray(optimal_path.cartesian_path(volume)).T
+    x_path, y_path, z_path = volume.voxel_to_cart_coords(optimal_path.sites).T
 
     fig.add_trace(
         go.Scatter3d(
@@ -211,7 +211,7 @@ def plot_paths(
     # If available, plot the other pathways
     if isinstance(paths, list):
         for idx, path in enumerate(paths[1:]):
-            x_path, y_path, z_path = np.asarray(path.cartesian_path(volume)).T
+            x_path, y_path, z_path = volume.voxel_to_cart_coords(path.sites).T
 
             fig.add_trace(
                 go.Scatter3d(

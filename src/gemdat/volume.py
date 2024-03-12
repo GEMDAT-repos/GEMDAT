@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import numpy as np
 import scipy.ndimage as ndi
@@ -82,7 +82,25 @@ class Volume:
             lattice=volume.structure.lattice,
         )
 
-    def voxel_to_frac_coords(self, voxel: np.ndarray) -> np.ndarray:
+    def voxel_to_cart_coords(self,
+                             voxel: np.ndarray | list[Any]) -> np.ndarray:
+        """Convert voxel coordinates to cartesian coordinates.
+
+        Parameters
+        ----------
+        voxel : tuple[int, int, int]
+            Input voxel coordinates
+
+        Returns
+        -------
+        np.ndarray
+            Output cartesian coordinates
+        """
+        frac_coords = self.voxel_to_frac_coords(voxel)
+        return self.lattice.get_cartesian_coords(frac_coords)
+
+    def voxel_to_frac_coords(self,
+                             voxel: np.ndarray | list[Any]) -> np.ndarray:
         """Convert voxel coordinates to fractional coordinates.
 
         Parameters
