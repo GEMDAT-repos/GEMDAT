@@ -48,8 +48,9 @@ class Volume:
         self.dims = self.data.shape
 
     @property
-    def resolution(self):
-        """Return resolution in Angstrom that the volume was generated at."""
+    def resolution(self) -> np.ndarray:
+        """Return voxel resolution in Angstrom that the volume was generated
+        at."""
         return np.array(self.lattice.lengths) / self.dims
 
     def normalized(self) -> np.ndarray:
@@ -81,7 +82,7 @@ class Volume:
             lattice=volume.structure.lattice,
         )
 
-    def voxel_to_frac_coords(self, voxel: tuple[int, int, int]) -> np.ndarray:
+    def voxel_to_frac_coords(self, voxel: np.ndarray) -> np.ndarray:
         """Convert voxel coordinates to fractional coordinates.
 
         Parameters
@@ -96,8 +97,7 @@ class Volume:
         """
         return (np.array(voxel) + 0.5) / np.array(self.dims)
 
-    def frac_coords_to_voxel(self, frac_coords: tuple[int, int,
-                                                      int]) -> np.ndarray:
+    def frac_coords_to_voxel(self, frac_coords: np.ndarray) -> np.ndarray:
         """Convert fractional coordinates to voxel coordinates.
 
         Parameters

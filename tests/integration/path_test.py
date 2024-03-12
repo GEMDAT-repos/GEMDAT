@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from math import isclose
 
+import numpy as np
 import pytest
 
 from gemdat.io import load_known_material
@@ -12,12 +13,12 @@ from gemdat.path import multiple_paths, optimal_path
 def test_fractional_coordinates(vasp_path_vol, vasp_full_path):
     frac_sites = vasp_full_path.fractional_path(vasp_path_vol)
 
-    assert isclose(frac_sites[-1][0], 0.39285714285714285)
-    assert isclose(frac_sites[19][1], 0.6428571428571429)
-    assert isclose(frac_sites[10][2], 0.42857142857142855)
+    assert isclose(frac_sites[-1][0], 0.4107142857142857)
+    assert isclose(frac_sites[19][1], 0.6785714285714286)
+    assert isclose(frac_sites[10][2], 0.4642857142857143)
 
-    assert all(element < 1 for element in max(frac_sites))
-    assert all(element > 0 for element in max(frac_sites))
+    assert np.all(frac_sites <= 1)
+    assert np.all(frac_sites >= 0)
 
 
 TEST_DATA = (

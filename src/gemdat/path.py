@@ -66,8 +66,7 @@ class Pathway:
             cart_sites.append(tuple(cartesian_coords))
         return cart_sites
 
-    def fractional_path(self,
-                        volume: Volume) -> list[tuple[float, float, float]]:
+    def fractional_path(self, volume: Volume) -> np.ndarray:
         """Convert voxel coordinates to fractional coordinates.
 
         Parameters
@@ -77,12 +76,12 @@ class Pathway:
 
         Returns
         -------
-        frac_sites: list[tuple]
+        frac_sites: np.ndarray
             List of fractional coordinates of the sites defining the path
         """
         if self.sites is None:
             raise ValueError('Voxel coordinates of the path are required.')
-        frac_sites = (np.array(self.sites) / volume.dims).tolist()
+        frac_sites = volume.voxel_to_frac_coords(np.array(self.sites))
         return frac_sites
 
     def wrap(self, dims: tuple[int, int, int]):
