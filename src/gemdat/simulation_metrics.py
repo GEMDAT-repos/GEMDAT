@@ -109,26 +109,9 @@ class SimulationMetrics:
         ionic_conductivity : FloatWithUnit
             Tracer diffusivity in $m^2/s$
         """
-        # Todo: center_of_mass = Trajectory.center_of_mass()
-        from gemdat.trajectory import Trajectory
+        center_of_mass = self.trajectory.center_of_mass()
 
-        traj = self.trajectory
-        weights = [s.atomic_mass for s in traj.species]
-
-        positions_no_pbc = (traj.base_positions +
-                            traj.cumulative_displacements)
-
-        center_of_mass = np.average(positions_no_pbc, axis=1,
-                                    weights=weights).reshape(-1, 1, 3)
-
-        traj_com = Trajectory(
-            species=['X'],
-            coords=center_of_mass,
-            lattice=traj.get_lattice(),
-            time_step=traj.time_step,
-        )
-
-        metrics = SimulationMetrics(traj_com)
+        metrics = SimulationMetrics(center_of_mass)
 
         return metrics.tracer_diffusivity(dimensions=3)
 
