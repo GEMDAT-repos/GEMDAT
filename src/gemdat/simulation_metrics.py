@@ -96,6 +96,59 @@ class SimulationMetrics:
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
+    def ionic_conductivity(self, *, dimensions: int) -> FloatWithUnit:
+        """Calculate ionic conductivity.
+
+        Parameters
+        ----------
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        ionic_conductivity : FloatWithUnit
+            Tracer diffusivity in $m^2/s$
+        """
+        # Todo: center_of_mass = Trajectory.center_of_mass()
+        from gemdat.trajectory import Trajectory
+
+        traj = self.trajectory
+        weights = [s.atomic_mass for s in traj.species]
+
+        positions_no_pbc = (traj.base_positions +
+                            traj.cumulative_displacements)
+
+        center_of_mass = np.average(positions_no_pbc, axis=1,
+                                    weights=weights).reshape(-1, 1, 3)
+
+        traj_com = Trajectory(
+            species=['X'],
+            coords=center_of_mass,
+            lattice=traj.get_lattice(),
+            time_step=traj.time_step,
+        )
+
+        metrics = SimulationMetrics(traj_com)
+
+        return metrics.tracer_diffusivity(dimensions=3)
+
+    @weak_lru_cache()
+    def haven_ratio(self, *, dimensions: int) -> float:
+        """Calculate Haven's ratio.
+
+        Parameters
+        ----------
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        ionic_conductivity : float
+        """
+        return self.tracer_diffusivity(
+            dimensions=dimensions) / self.ionic_conductivity(
+                dimensions=dimensions)
+
     @weak_lru_cache()
     def tracer_conductivity(self, *, z_ion: int,
                             dimensions: int) -> FloatWithUnit:
