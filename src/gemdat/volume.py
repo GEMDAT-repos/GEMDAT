@@ -186,8 +186,11 @@ class Volume:
 
         return coords[:, 0:3].astype(int)
 
-    def to_vasp_volume(self, structure: Structure, *,
-                       filename: Optional[str]) -> VolumetricData:
+    def to_vasp_volume(self,
+                       structure: Structure,
+                       *,
+                       filename: str | None = None,
+                       other: list[Volume] | None = None) -> VolumetricData:
         """Convert to vasp volume.
 
         Parameters
@@ -198,20 +201,32 @@ class Volume:
             and show the host structure.
         filename : Optional[str]
             If specified, save volume to this filename.
+        other : list[Volume]
+            Other volumes to store to the vasp volume. Lattice must match to this
+            volumes lattice. The volume label is used as the key in the output
+            volumetric data.
 
         Returns
         -------
         vol_vasp : pymatgen.io.vasp.VolumetricData
             Output volume
         """
+        data = {'total': self.data}
+
+        if other:
+            for volume in other:
+                assert volume.lattice == self.lattice
+                data[volume.label] = volume.data
+
+        vol_vasp = VolumetricData(
+            structure=structure,
+            data=data,
+        )
+
         if filename:
             vol_path = Path(filename).with_suffix('.vasp')
-            vol_vasp = VolumetricData(
-                structure=structure,
-                data={
-                    'total': self.data
-                },
-            ).write_file(vol_path)
+            vol_vasp.write_file(vol_path)
+
         return vol_vasp
 
     def _peaks_to_props(self, peaks: np.ndarray,
