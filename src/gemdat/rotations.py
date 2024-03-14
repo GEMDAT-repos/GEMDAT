@@ -30,6 +30,7 @@ class Orientations:
     center_type: str
     satellite_type: str
     nr_central_atoms: int
+    normalize_traj: bool = False
 
     @property
     def _traj_cent(self) -> Trajectory:
@@ -64,22 +65,16 @@ class Orientations:
         return dist
 
     def _fractional_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
-        """Return fractional coordinates of central atoms and sattelite
+        """Return fractional coordinates of central atoms and satellite
         atoms."""
         return self._traj_cent.positions, self._traj_sat.positions
-
-    def _starting_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
-        """Return starting coordinates of all central atoms and all satellite
-        atoms."""
-        return self._traj_cent.positions[1, :, :], self._traj_sat.positions[
-            1, :, :]
 
     @property
     def _distances(self) -> np.ndarray:
         """Calculate distances between every central atom and all satellite
         atoms."""
-        central_start_coord, satellite_start_coord = self._starting_coordinates(
-        )
+        central_start_coord = self._traj_cent.base_positions
+        satellite_start_coord = self._traj_sat.base_positions
         distance = np.array([[
             self._pbc_dist(central, satellite)
             for satellite in satellite_start_coord
@@ -101,7 +96,7 @@ class Orientations:
         Returns
         -------
         matching_matrix: np.ndarray
-            Matrix that shows which center-satellite pair is closer than the matchin criteria
+            Matrix that shows which center-satellite pair is closer than the matching criteria
         """
         # The matching criteria is defined here
         match_criteria = 1.5 * np.min(distance)
@@ -164,41 +159,24 @@ class Orientations:
         direction = np.where(direction < -0.5, direction + 1, direction)
         return direction
 
-    def _compute_unit_vectors_traj(self, normalize: bool) -> None:
+    def _compute_unit_vectors_traj(self) -> None:
         """Computes trajectories of normalized unit vectors defined as the
         distance between a central and satellite atoms, meant to track
-        orientation of molecules or clusters.
-
-        Parameters
-        ----------
-        normalize: bool
-            If true, normalize the trajectories
-
-        Returns
-        -------
-        unit_vec_traj: np.ndarray
-            Trajectories of the unit vectors
-        """
+        orientation of molecules or clusters."""
         lattice = self.traj.lattice
         direction = self.fractional_directions(self._distances)
         unit_vec_traj = np.matmul(direction, lattice)
 
-        if normalize:
+        if self.normalize_traj:
             unit_vec_traj = unit_vec_traj / np.linalg.norm(
                 unit_vec_traj, axis=-1, keepdims=True)
 
         self._unit_vectors_traj = unit_vec_traj
-        self._unit_vectors_traj_norm = normalize
 
-    def get_unit_vectors_traj(self, normalize: bool = False) -> np.ndarray:
+    def get_unit_vectors_traj(self) -> np.ndarray:
         """Returns trajectories of normalized unit vectors defined as the
         distance between a central and satellite atoms, meant to track
         orientation of molecules or clusters.
-
-        Parameters
-        ----------
-        normalize: bool
-            If true, normalize the trajectories
 
         Returns
         -------
@@ -206,25 +184,19 @@ class Orientations:
             Trajectories of the unit vectors
         """
         # Recompute also if normalized differently as expected
-        if not hasattr(self, '_unit_vectors_traj'
-                       ) or self._unit_vectors_traj_norm != normalize:
-            self._compute_unit_vectors_traj(normalize)
+        if not hasattr(self, '_unit_vectors_traj'):
+            self._compute_unit_vectors_traj()
         return self._unit_vectors_traj
 
-    def _compute_conventional_coordinates(self,
-                                          normalize: bool = False) -> None:
+    def _compute_conventional_coordinates(self, ) -> None:
         """Converts the trajectory of unit vectors from fractional to
-        conventional coordinates. A conventional unit cell only contains one
-        lattice point, while the primitive cell contains the Bravais lattice.
-        This means that the conventional form is simpler to visualize and
-        compare.
+        conventional coordinates.
 
-        Parameters
-        ----------
-        normalize: bool
-            If true, normalize the trajectories
+        A conventional unit cell only contains one lattice point, while
+        the primitive cell contains the Bravais lattice. This means that
+        the conventional form is simpler to visualize and compare.
         """
-        unit_vec_traj = self.get_unit_vectors_traj(normalize=normalize)
+        unit_vec_traj = self.get_unit_vectors_traj()
         # Matrix to transform primitive unit cell coordinates to conventional unit cell coordinates
         prim_to_conv_matrix = np.array(
             [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)],
@@ -234,16 +206,10 @@ class Orientations:
         self._conventional_coordinates = np.matmul(unit_vec_traj,
                                                    prim_to_conv_matrix.T)
 
-    def get_conventional_coordinates(self,
-                                     normalize: bool = False) -> np.ndarray:
+    def get_conventional_coordinates(self, ) -> np.ndarray:
         """Returns the trajectory of unit vectors in conventional coordinates.
         Conventional coordinates are the coordinates of the unit vectors in the
         conventional unit cell.
-
-        Parameters
-        ----------
-        normalize: bool
-            If true, normalize the trajectories
 
         Returns
         -------
@@ -251,44 +217,41 @@ class Orientations:
             Trajectory of the unit vectors in conventional coordinates
         """
         if not hasattr(self, '_conventional_coordinates'):
-            self._compute_conventional_coordinates(normalize)
+            self._compute_conventional_coordinates()
         return self._conventional_coordinates
 
-    def _compute_symmetric_traj(self,
-                                sym_matrix: np.ndarray,
-                                normalize: bool = False) -> None:
-        """Apply symmetry elements to the trajectory to improve statistics. It
-        requires the unit vectors trajectory in conventional coordinates.
+    def _compute_symmetric_traj(self, ) -> None:
+        """Apply symmetry elements to the trajectory to improve statistics.
 
-        Parameters
-        ----------
-        sym_matrix: np.ndarray
-            Matrix of symmetry operations
-        normalize: bool
-            If true, normalize the trajectories
+        It requires the unit vectors trajectory in conventional
+        coordinates.
         """
-        direction = self.get_conventional_coordinates(normalize=normalize)
+        direction = self.get_conventional_coordinates()
 
         n_ts = direction.shape[0]
         n_bonds = direction.shape[1]
-        n_symops = sym_matrix.shape[2]
+        n_symops = self.sym_matrix.shape[2]
 
-        direction_sym = np.einsum('tbi,ijk->tbkj', direction, sym_matrix)
+        direction_sym = np.einsum('tbi,ijk->tbkj', direction, self.sym_matrix)
         direction_sym = direction_sym.reshape(n_ts, n_bonds * n_symops, 3)
-        #
+
         self._symmetric_traj = direction_sym
 
-    def get_symmetric_traj(self,
-                           sym_matrix: np.ndarray,
-                           normalize: bool = False) -> np.ndarray:
-        """Returns the symmetric trajectory.
+    def set_symmetry_operations(
+        self,
+        sym_matrix: np.ndarray,
+    ) -> None:
+        """Set the symmetry operations.
 
         Parameters
         ----------
         sym_matrix: np.ndarray
             Matrix of symmetry operations
-        normalize: bool
-            If true, normalize the trajectories
+        """
+        self.sym_matrix = sym_matrix
+
+    def get_symmetric_traj(self, ) -> np.ndarray:
+        """Returns the symmetric trajectory.
 
         Returns
         -------
@@ -296,65 +259,67 @@ class Orientations:
             Trajectory of the unit vectors after applying symmetry operations
         """
         if not hasattr(self, '_symmetric_traj'):
-            self._compute_symmetric_traj(sym_matrix, normalize)
+            self._compute_symmetric_traj()
         return self._symmetric_traj
 
-    def _cart2sph(self, x: np.ndarray, y: np.ndarray,
-                  z: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Transform cartesian coordinates to spherical coordinates.
 
-        Parameters
-        ----------
-        x : float
-            x coordinate
-        y : float
-            y coordinate
-        z : float
-            z coordinate
+def _cart2sph(x: np.ndarray, y: np.ndarray,
+              z: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transform cartesian coordinates to spherical coordinates.
 
-        Returns
-        -------
-        az : float
-            azimuthal angle
-        el : float
-            elevation angle
-        r : float
-            radius
-        """
-        r = np.sqrt(x**2 + y**2 + z**2)
-        el = np.arcsin(z / r)
-        az = np.arctan2(y, x)
-        return az, el, r
+    Parameters
+    ----------
+    x : float
+        x coordinate
+    y : float
+        y coordinate
+    z : float
+        z coordinate
 
-    def cartesian_to_spherical(self, direct_cart: np.ndarray,
-                               degrees: bool) -> np.ndarray:
-        """Trajectory from cartesian coordinates to spherical coordinates.
+    Returns
+    -------
+    az : float
+        azimuthal angle
+    el : float
+        elevation angle
+    r : float
+        radius
+    """
+    r = np.sqrt(x**2 + y**2 + z**2)
+    el = np.arcsin(z / r)
+    az = np.arctan2(y, x)
+    return az, el, r
 
-        Parameters
-        ----------
-        direct_cart : np.ndarray
-            Trajectory of the unit vectors in conventional coordinates
-        degrees : bool
-            If true, return angles in degrees
 
-        Returns
-        -------
-        direction_spherical : np.ndarray
-            Trajectory of the unit vectors in spherical coordinates
-        """
-        x = direct_cart[:, :, 0]
-        y = direct_cart[:, :, 1]
-        z = direct_cart[:, :, 2]
+def cartesian_to_spherical(direct_cart: np.ndarray,
+                           degrees: bool) -> np.ndarray:
+    """Trajectory from cartesian coordinates to spherical coordinates.
 
-        az, el, r = self._cart2sph(x, y, z)
+    Parameters
+    ----------
+    direct_cart : np.ndarray
+        Trajectory of the unit vectors in conventional coordinates
+    degrees : bool
+        If true, return angles in degrees
 
-        if degrees:
-            az = np.degrees(az)
-            el = np.degrees(el)
+    Returns
+    -------
+    direction_spherical : np.ndarray
+        Trajectory of the unit vectors in spherical coordinates
+    """
+    x = direct_cart[:, :, 0]
+    y = direct_cart[:, :, 1]
+    z = direct_cart[:, :, 2]
 
-        direction_spherical = np.stack((az, el, r), axis=-1)
+    az, el, r = _cart2sph(x, y, z)
 
-        return direction_spherical
+    if degrees:
+        az = np.degrees(az)
+        el = np.degrees(el)
+
+    direction_spherical = np.stack((az, el, r), axis=-1)
+
+    return direction_spherical
 
 
 @dataclass

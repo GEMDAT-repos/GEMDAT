@@ -8,7 +8,7 @@ from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
 from gemdat.path import find_best_perc_path, free_energy_graph
 from gemdat.rdf import radial_distribution
-from gemdat.rotations import Oh_point_group, Orientations
+from gemdat.rotations import Oh_point_group, Orientations, cartesian_to_spherical
 from gemdat.shape import ShapeAnalyzer
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume
@@ -150,7 +150,6 @@ def Oh_sym_matrices():
 
 @pytest.fixture(scope='module')
 def vasp_orientations_spherical(vasp_orientations):
-    cf = vasp_orientations.get_conventional_coordinates(normalize=False)
-    cf_spheric = vasp_orientations.cartesian_to_spherical(direct_cart=cf,
-                                                          degrees=True)
+    cf = vasp_orientations.get_conventional_coordinates()
+    cf_spheric = cartesian_to_spherical(cf, degrees=True)
     return cf_spheric

@@ -5,19 +5,22 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
-from gemdat.rotations import autocorrelation, calculate_spherical_areas
+from gemdat.rotations import Orientations, autocorrelation, calculate_spherical_areas, cartesian_to_spherical
 
 
 def rectilinear_plot(*,
-                     trajectory: np.ndarray,
+                     data: Orientations,
                      shape: tuple[int, int] = (90, 360),
+                     symmetrize: bool = True,
                      normalize: bool = True) -> plt.Figure:
     """Plot a rectilinear projection of a spherical function.
 
     Parameters
     ----------
-    trajectory : np.ndarray
-        The trajectory in spherical coordinates
+    data : Orientations
+        The unit vector trajectories
+    symmetrize : bool, optional
+        If True, use the symmetrized trajectory
     shape : tuple
         The shape of the spherical sector in which the trajectory is plotted
     normalize : bool, optional
@@ -28,6 +31,13 @@ def rectilinear_plot(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
+
+    if symmetrize:
+        trajectory = data.get_symmetric_traj()
+    else:
+        trajectory = data.get_conventional_coordinates()
+    # Convert the trajectory to spherical coordinates
+    trajectory = cartesian_to_spherical(trajectory, degrees=True)
 
     az = trajectory[:, :, 0].flatten()
     el = trajectory[:, :, 1].flatten()
@@ -68,14 +78,17 @@ def rectilinear_plot(*,
 
 
 def bond_length_distribution(*,
-                             direction: np.ndarray,
+                             data: Orientations,
+                             symmetrize: bool = True,
                              bins: int = 1000) -> plt.Figure:
     """Plot the bond length probability distribution.
 
     Parameters
     ----------
-    direction : np.ndarray
-        The direction of the bonds in polar coordinates
+    data : Orientations
+        The unit vector trajectories
+    symmetrize : bool, optional
+        If True, use the symmetrized trajectory
     bins : int, optional
         The number of bins, by default 1000
 
@@ -85,9 +98,16 @@ def bond_length_distribution(*,
         Output figure
     """
 
+    if symmetrize:
+        trajectory = data.get_symmetric_traj()
+    else:
+        trajectory = data.get_conventional_coordinates()
+    # Convert the trajectory to spherical coordinates
+    trajectory = cartesian_to_spherical(trajectory, degrees=True)
+
     fig, ax = plt.subplots()
 
-    bond_lengths = direction[:, :, 2].flatten()
+    bond_lengths = trajectory[:, :, 2].flatten()
 
     # Plot the normalized histogram
     hist, edges = np.histogram(bond_lengths, bins=bins, density=True)
@@ -125,15 +145,14 @@ def bond_length_distribution(*,
     return fig
 
 
-def unit_vector_autocorrelation(*, trajectory: np.ndarray,
+def unit_vector_autocorrelation(*, data: Orientations,
                                 time_units: float) -> plt.Figure:
     """Plot the autocorrelation function of the unit vectors series.
 
     Parameters
     ----------
-    trajectory : np.ndarray
-        The trajectory in direct cartesian coordinates. It is expected
-        to have shape (n_times, n_particles, n_coordinates)
+    data : Orientations
+        The unit vector trajectories
     time_units : float
         The time step of the simulation in seconds, the default unit of pymatgen.trajectory.time_unit
 
@@ -142,6 +161,9 @@ def unit_vector_autocorrelation(*, trajectory: np.ndarray,
     fig : matplotlib.figure.Figure
         Output figure
     """
+
+    # The trajectory is expected to have shape (n_times, n_particles, n_coordinates)
+    trajectory = data.get_unit_vectors_traj()
 
     ac, std_ac = autocorrelation(trajectory)
 

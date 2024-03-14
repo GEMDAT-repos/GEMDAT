@@ -4,6 +4,8 @@ from math import isclose
 
 import pytest
 
+from gemdat.rotations import cartesian_to_spherical
+
 
 @pytest.vasprotocache_available  # type: ignore
 def test_Oh_point_group(Oh_sym_matrices):
@@ -13,22 +15,22 @@ def test_Oh_point_group(Oh_sym_matrices):
 
 @pytest.vasprotocache_available  # type: ignore
 def test_direct_coordinates(vasp_orientations):
-    dc = vasp_orientations.get_unit_vectors_traj(normalize=False)
+    dc = vasp_orientations.get_unit_vectors_traj()
     assert isclose(dc.mean(), -0.0005719846079221715)
 
 
 @pytest.vasprotocache_available  # type: ignore
 def test_conventional_coordinates(vasp_orientations):
-    cf = vasp_orientations.get_conventional_coordinates(normalize=True)
-    cf_spheric = vasp_orientations.cartesian_to_spherical(direct_cart=cf,
-                                                          degrees=True)
+    cf = vasp_orientations.get_conventional_coordinates()
+    cf_spheric = cartesian_to_spherical(cf, degrees=True)
 
-    assert isclose(cf.mean(), -0.00020323016902595493)
-    assert isclose(cf_spheric.mean(), 0.07124811161160129)
+    assert isclose(cf.mean(), -0.00039676020882101193)
+    assert isclose(cf_spheric.mean(), 0.23810303372936106)
 
 
 @pytest.vasprotocache_available  # type: ignore
 def test_symmetrize_traj(vasp_orientations, Oh_sym_matrices):
-    sym_t = vasp_orientations.get_symmetric_traj(Oh_sym_matrices[:, :, :6])
+    vasp_orientations.set_symmetry_operations(Oh_sym_matrices[:, :, :6])
+    sym_t = vasp_orientations.get_symmetric_traj()
 
-    assert isclose(sym_t.mean(), -0.00020323016902595498)
+    assert isclose(sym_t.mean(), -0.000396760208821012)
