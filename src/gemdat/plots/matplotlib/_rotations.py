@@ -10,7 +10,7 @@ from gemdat.rotations import autocorrelation, calculate_spherical_areas
 
 def rectilinear_plot(*,
                      trajectory: np.ndarray,
-                     shape: tuple = (90, 360),
+                     shape: tuple[int, int] = (90, 360),
                      normalize: bool = True) -> plt.Figure:
     """Plot a rectilinear projection of a spherical function.
 
