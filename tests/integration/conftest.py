@@ -8,9 +8,10 @@ from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
 from gemdat.path import find_best_perc_path, free_energy_graph
 from gemdat.rdf import radial_distribution
-from gemdat.rotations import Oh_point_group, Orientations, cartesian_to_spherical
+from gemdat.rotations import Oh_point_group, Orientations
 from gemdat.shape import ShapeAnalyzer
 from gemdat.trajectory import Trajectory
+from gemdat.utils import cartesian_to_spherical
 from gemdat.volume import trajectory_to_volume
 
 DATA_DIR = Path(__file__).parents[1] / 'data'

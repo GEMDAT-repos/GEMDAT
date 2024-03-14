@@ -4,7 +4,7 @@ from math import isclose
 
 import pytest
 
-from gemdat.rotations import cartesian_to_spherical
+from gemdat.utils import cartesian_to_spherical
 
 
 @pytest.vasprotocache_available  # type: ignore

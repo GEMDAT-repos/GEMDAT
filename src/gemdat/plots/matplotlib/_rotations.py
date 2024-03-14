@@ -5,7 +5,8 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
-from gemdat.rotations import Orientations, autocorrelation, calculate_spherical_areas, cartesian_to_spherical
+from gemdat.rotations import Orientations, autocorrelation, calculate_spherical_areas
+from gemdat.utils import cartesian_to_spherical
 
 
 def rectilinear_plot(*,

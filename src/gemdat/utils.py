@@ -199,3 +199,62 @@ def warn_lattice_not_close(a: Lattice, b: Lattice):
         warnings.warn(
             'Lattices are not similar.'
             f'a: {a.parameters}, b: {b.parameters}', UserWarning)
+
+
+def _cart2sph(x: np.ndarray, y: np.ndarray,
+              z: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Transform cartesian coordinates to spherical coordinates.
+
+    Parameters
+    ----------
+    x : float
+        x coordinate
+    y : float
+        y coordinate
+    z : float
+        z coordinate
+
+    Returns
+    -------
+    az : float
+        azimuthal angle
+    el : float
+        elevation angle
+    r : float
+        radius
+    """
+    r = np.sqrt(x**2 + y**2 + z**2)
+    el = np.arcsin(z / r)
+    az = np.arctan2(y, x)
+    return az, el, r
+
+
+def cartesian_to_spherical(direct_cart: np.ndarray,
+                           degrees: bool) -> np.ndarray:
+    """Trajectory from cartesian coordinates to spherical coordinates.
+
+    Parameters
+    ----------
+    direct_cart : np.ndarray
+        Trajectory of the unit vectors in conventional coordinates
+    degrees : bool
+        If true, return angles in degrees
+
+    Returns
+    -------
+    direction_spherical : np.ndarray
+        Trajectory of the unit vectors in spherical coordinates
+    """
+    x = direct_cart[:, :, 0]
+    y = direct_cart[:, :, 1]
+    z = direct_cart[:, :, 2]
+
+    az, el, r = _cart2sph(x, y, z)
+
+    if degrees:
+        az = np.degrees(az)
+        el = np.degrees(el)
+
+    direction_spherical = np.stack((az, el, r), axis=-1)
+
+    return direction_spherical
