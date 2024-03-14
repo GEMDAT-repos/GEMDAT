@@ -173,5 +173,5 @@ def jumps_3d(*, jumps: Jumps) -> go.Figure:
     fig : plotly.graph_objects.Figure
         Output figure
     """
-    from ._density import plot_3d
+    from ._plot3d import plot_3d
     return plot_3d(jumps=jumps, structure=jumps.sites)

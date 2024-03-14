@@ -14,6 +14,7 @@ from ._jumps import (
     jumps_vs_distance,
     jumps_vs_time,
 )
+from ._plot3d import plot_3d
 from ._vibration import (
     frequency_vs_occurence,
     vibrational_amplitudes,
@@ -29,6 +30,7 @@ __all__ = [
     'jumps_3d',
     'jumps_vs_distance',
     'jumps_vs_time',
+    'plot_3d',
     'msd_per_element',
     'vibrational_amplitudes',
 ]
