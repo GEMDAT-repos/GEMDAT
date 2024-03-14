@@ -147,14 +147,18 @@ def collective_jumps(*, jumps: Jumps) -> go.Figure:
 
     fig = px.imshow(matrix)
 
-    ticks = [_ for _ in range(len(labels))]
+    ticks = list(range(len(labels)))
 
-    fig.update_layout(xaxis=dict(tickmode='array',
-                                 tickvals=ticks,
-                                 ticktext=labels),
-                      yaxis=dict(tickmode='array',
-                                 tickvals=ticks,
-                                 ticktext=labels),
+    fig.update_layout(xaxis={
+        'tickmode': 'array',
+        'tickvals': ticks,
+        'ticktext': labels
+    },
+                      yaxis={
+                          'tickmode': 'array',
+                          'tickvals': ticks,
+                          'ticktext': labels
+                      },
                       title='Cooperative jumps per jump-type combination')
 
     return fig
