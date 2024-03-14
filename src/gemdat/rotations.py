@@ -233,7 +233,8 @@ class Orientations:
         self._conventional_form = np.matmul(unit_vec_traj,
                                             prim_to_conv_matrix.T)
 
-    def get_conventional_form(self, normalize: bool = False) -> np.ndarray:
+    def get_conventional_coordinates(self, normalize: bool = False) -> np.ndarray:
+
         """Returns the trajectory of unit vectors in conventional coordinates.
         Conventional coordinates are the coordinates of the unit vectors in the
         conventional unit cell.
