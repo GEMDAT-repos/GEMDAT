@@ -38,9 +38,8 @@ def rectilinear_plot(*,
         # Normalize by the area of the bins
         areas = calculate_spherical_areas(shape)
         hist = np.divide(hist, areas)
-        #replace values at the poles where normalization breaks - hacky
-        hist[0, :] = hist[1, :]
-        hist[-1, :] = hist[-2, :]
+        # Drop the bins at the poles where normalization is not possible
+        hist = hist[1:-1, :]
 
     values = hist.T
     phi = np.linspace(0, 360, np.ma.size(values, 0))
