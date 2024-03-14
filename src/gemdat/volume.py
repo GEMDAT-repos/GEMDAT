@@ -352,10 +352,10 @@ class Volume:
             units=Unit('eV K-1'),
         )
 
-    def plot(self, **kwargs):
-        """See [gemdat.plots.density][] for more info."""
+    def plot_3d(self, **kwargs):
+        """See [gemdat.plots.plot_3d][] for more info."""
         from gemdat import plots
-        return plots.density(volume=self, **kwargs)
+        return plots.plot_3d(volume=self, **kwargs)
 
 
 def trajectory_to_volume(
