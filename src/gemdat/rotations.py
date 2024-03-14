@@ -30,7 +30,6 @@ class Orientations:
     center_type: str
     satellite_type: str
     nr_central_atoms: int
-    nr_ligands: int | None = None
 
     @property
     def _traj_cent(self) -> Trajectory:
