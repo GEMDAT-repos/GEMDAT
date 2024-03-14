@@ -42,8 +42,10 @@ def rectilinear_plot(*,
         hist = hist[1:-1, :]
 
     values = hist.T
-    phi = np.linspace(0, 360, np.ma.size(values, 0))
-    theta = np.linspace(0, 180, np.ma.size(values, 1))
+    axis_phi, axis_theta = values.shape
+
+    phi = np.linspace(0, 360, axis_phi)
+    theta = np.linspace(0, 180, axis_theta)
 
     theta, phi = np.meshgrid(theta, phi)
 
