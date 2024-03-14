@@ -11,6 +11,7 @@ from skimage import measure
 if TYPE_CHECKING:
     from pymatgen.core import Lattice, Structure
 
+    from gemdat.jumps import Jumps
     from gemdat.path import Pathway
     from gemdat.volume import Volume
 
@@ -99,17 +100,27 @@ def plot_points(points: np.ndarray,
                          showlegend=False))
 
 
-def plot_structure(structure: Structure, *, fig: go.Figure):
+def plot_structure(structure: Structure,
+                   *,
+                   lattice: Lattice | None = None,
+                   fig: go.Figure):
     """Plot structure using plotly.
 
     Parameters
     ----------
     structure : Structure
         Input structure
+    lattice : Lattice | None
+        If specified, use this lattic instead of `structure.lattice`.
     fig : go.Figure
         Plotly figure to add traces too
     """
-    plot_points(structure.cart_coords, labels=structure.labels, fig=fig)
+    if lattice:
+        cart_coords = lattice.get_cartesian_coords(structure.frac_coords)
+    else:
+        cart_coords = structure.cart_coords
+
+    plot_points(cart_coords, labels=structure.labels, fig=fig)
     plot_lattice_vectors(structure.lattice, fig=fig)
 
 
@@ -183,7 +194,7 @@ def plot_paths(
     volume : Volume
         Input volume to create the landscape
     fig : go.Figure
-        Plotly figure to add traces too
+        Plotly figure to add paths too
     """
     if isinstance(paths, list):
         optimal_path = paths[0]
@@ -230,6 +241,149 @@ def plot_paths(
                 ))
 
 
+def plot_jumps(jumps: Jumps, *, fig: go.Figure):
+    """Ploth jumps in 3D.
+
+    Arguments
+    ---------
+    paths : Jumps
+        Jumps object containing the jumps to plot
+    fig : go.Figure
+        Plotly figure to add traces too
+    """
+    coords = jumps.sites.frac_coords
+    lattice = jumps.trajectory.get_lattice()
+
+    for i, j in zip(*np.triu_indices(len(coords), k=1)):
+        count = jumps.matrix()[i, j] + jumps.matrix()[j, i]
+        if count == 0:
+            continue
+
+        coord_i = tuple(coords[i].tolist())
+        coord_j = tuple(coords[j].tolist())
+
+        lw = 1 + np.log(count)
+
+        length, image = lattice.get_distance_and_image(coord_i, coord_j)
+
+        if np.any(image != 0):
+            lines = [(coord_i, coord_j + image), (coord_i - image, coord_j)]
+        else:
+            lines = [(coord_i, coord_j)]
+
+        for line in lines:
+            line = lattice.get_cartesian_coords(line)
+            line_t = [_ for _ in zip(*line)]  # transpose, but pythonic
+
+            fig.add_trace(
+                go.Scatter3d(
+                    x=line_t[0],
+                    y=line_t[1],
+                    z=line_t[2],
+                    mode='lines',
+                    showlegend=False,
+                    line_dash='dashdot' if any(image) != 0 else 'solid',
+                    line_width=lw * 3,
+                    line_color='black',
+                ))
+
+
+def update_layout(*,
+                  lattice: Lattice,
+                  fig: go.Figure,
+                  title: str = 'Gemdat 3D plot',
+                  zoom: float = 0.1):
+    """Update layout, title, scene, etc for figure.
+
+    Arguments
+    ---------
+    lattice : Lattice
+        Lattice information to determine the aspect ratio and camera position
+    fig : go.Figure
+        Plotly figure to update layout of
+    zoom : float, optional
+        Zoom level
+    title : str
+        Title of the plot
+    """
+    fig.update_layout(title=title,
+                      scene={
+                          'aspectmode': 'manual',
+                          'aspectratio': {
+                              'x': lattice.a * zoom,
+                              'y': lattice.b * zoom,
+                              'z': lattice.c * zoom,
+                          },
+                          'xaxis_title': 'X (Ångstrom)',
+                          'yaxis_title': 'Y (Ångstrom)',
+                          'zaxis_title': 'Z (Ångstrom)'
+                      },
+                      legend={
+                          'orientation': 'h',
+                          'yanchor': 'bottom',
+                          'xanchor': 'left',
+                          'x': 0,
+                          'y': -0.1
+                      },
+                      showlegend=True,
+                      margin={
+                          'l': 0,
+                          'r': 0,
+                          'b': 0,
+                          't': 0
+                      },
+                      scene_camera={
+                          'projection': {
+                              'type': 'orthographic'
+                          },
+                          'eye': {
+                              'x': -lattice.a * 0.05,
+                              'y': -lattice.b * 0.2,
+                              'z': lattice.c * 0.15,
+                          }
+                      })
+
+
+def plot_3d(*,
+            volume: Volume | None = None,
+            structure: Structure | None = None,
+            paths: Pathway | list[Pathway] | None = None,
+            jumps: Jumps | None = None,
+            lattice: Lattice | None = None,
+            title: str = '3D plot') -> go.Figure:
+    """Plot 3d."""
+    fig = go.Figure()
+
+    if not lattice:
+        if volume:
+            lattice = volume.lattice
+        elif structure:
+            lattice = structure.lattice
+        elif jumps:
+            lattice = jumps.trajectory.get_lattice()
+    else:
+        raise ValueError('Cannot derive lattice from input.')
+
+    plot_lattice_vectors(lattice, fig=fig)
+
+    if volume:
+        plot_volume(volume, lattice=lattice, fig=fig)
+
+    if structure:
+        plot_structure(structure=structure, lattice=lattice, fig=fig)
+
+    if paths:
+        # TODO: Does this need the volume?
+        plot_paths(paths=paths, volume=volume, fig=fig)
+
+    if jumps:
+        plot_jumps(jumps=jumps, fig=fig)
+
+    update_layout(title=title, lattice=lattice, fig=fig)
+
+    return fig
+
+
 def density(
     volume: Volume,
     *,
@@ -258,64 +412,7 @@ def density(
     fig : go.Figure
         Output as plotly figure
     """
-    zoom = 0.1
-
-    fig = go.Figure()
-
-    if force_lattice:
-        lattice = force_lattice
-    else:
-        lattice = volume.lattice
-
-    plot_lattice_vectors(lattice, fig=fig)
-    plot_volume(volume, lattice=lattice, fig=fig)
-
-    if structure:
-        if force_lattice:
-            plot_points(lattice.get_cartesian_coords(structure.frac_coords),
-                        structure.labels,
-                        fig=fig)
-        else:
-            plot_structure(structure, fig=fig)
-
-    if paths:
-        plot_paths(paths=paths, volume=volume, fig=fig)
-
-    fig.update_layout(title='Density',
-                      scene={
-                          'aspectmode': 'manual',
-                          'aspectratio': {
-                              'x': volume.lattice.a * zoom,
-                              'y': volume.lattice.b * zoom,
-                              'z': volume.lattice.c * zoom,
-                          },
-                          'xaxis_title': 'X (Ångstrom)',
-                          'yaxis_title': 'Y (Ångstrom)',
-                          'zaxis_title': 'Z (Ångstrom)'
-                      },
-                      legend={
-                          'orientation': 'h',
-                          'yanchor': 'bottom',
-                          'xanchor': 'left',
-                          'x': 0,
-                          'y': -0.1
-                      },
-                      showlegend=True,
-                      margin={
-                          'l': 0,
-                          'r': 0,
-                          'b': 0,
-                          't': 0
-                      },
-                      scene_camera={
-                          'projection': {
-                              'type': 'orthographic'
-                          },
-                          'eye': {
-                              'x': -volume.lattice.a * 0.05,
-                              'y': -volume.lattice.b * 0.2,
-                              'z': volume.lattice.c * 0.15,
-                          }
-                      })
-
-    return fig
+    return plot_3d(volume=volume,
+                   structure=structure,
+                   paths=paths,
+                   lattice=force_lattice)
