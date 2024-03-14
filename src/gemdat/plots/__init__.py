@@ -35,5 +35,5 @@ __all__ = [
     'jumps_3d_animation', 'jumps_vs_distance', 'jumps_vs_time',
     'msd_per_element', 'radial_distribution', 'rectilinear_plot', 'shape',
     'vibrational_amplitudes', 'energy_along_path', 'path_on_grid',
-    'unit_vector_autocorrelation'
+    'unit_vector_autocorrelation',
 ]
