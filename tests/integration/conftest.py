@@ -150,7 +150,7 @@ def Oh_sym_matrices():
 
 @pytest.fixture(scope='module')
 def vasp_orientations_spherical(vasp_orientations):
-    cf = vasp_orientations.get_conventional_form(normalize=False)
+    cf = vasp_orientations.get_conventional_coordinates(normalize=False)
     cf_spheric = vasp_orientations.cartesian_to_spherical(direct_cart=cf,
                                                           degrees=True)
     return cf_spheric

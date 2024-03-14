@@ -18,8 +18,8 @@ def test_direct_coordinates(vasp_orientations):
 
 
 @pytest.vasprotocache_available  # type: ignore
-def test_conventional_form(vasp_orientations):
-    cf = vasp_orientations.get_conventional_form(normalize=True)
+def test_conventional_coordinates(vasp_orientations):
+    cf = vasp_orientations.get_conventional_coordinates(normalize=True)
     cf_spheric = vasp_orientations.cartesian_to_spherical(direct_cart=cf,
                                                           degrees=True)
 
@@ -29,6 +29,6 @@ def test_conventional_form(vasp_orientations):
 
 @pytest.vasprotocache_available  # type: ignore
 def test_symmetrize_traj(vasp_orientations, Oh_sym_matrices):
-    sym_t = vasp_orientations.get_symmetric_traj(Oh_sym_matrices[:, :, :3])
+    sym_t = vasp_orientations.get_symmetric_traj(Oh_sym_matrices[:, :, :6])
 
     assert isclose(sym_t.mean(), -0.00020323016902595498)

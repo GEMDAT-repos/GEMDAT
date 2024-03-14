@@ -211,7 +211,8 @@ class Orientations:
             self._compute_unit_vectors_traj(normalize)
         return self._unit_vectors_traj
 
-    def _compute_conventional_form(self, normalize: bool = False) -> None:
+    def _compute_conventional_coordinates(self,
+                                          normalize: bool = False) -> None:
         """Converts the trajectory of unit vectors from fractional to
         conventional coordinates. A conventional unit cell only contains one
         lattice point, while the primitive cell contains the Bravais lattice.
@@ -230,11 +231,11 @@ class Orientations:
              [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
              [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
 
-        self._conventional_form = np.matmul(unit_vec_traj,
-                                            prim_to_conv_matrix.T)
+        self._conventional_coordinates = np.matmul(unit_vec_traj,
+                                                   prim_to_conv_matrix.T)
 
-    def get_conventional_coordinates(self, normalize: bool = False) -> np.ndarray:
-
+    def get_conventional_coordinates(self,
+                                     normalize: bool = False) -> np.ndarray:
         """Returns the trajectory of unit vectors in conventional coordinates.
         Conventional coordinates are the coordinates of the unit vectors in the
         conventional unit cell.
@@ -249,9 +250,9 @@ class Orientations:
         conventional_traj: np.ndarray
             Trajectory of the unit vectors in conventional coordinates
         """
-        if not hasattr(self, '_conventional_form'):
-            self._compute_conventional_form(normalize)
-        return self._conventional_form
+        if not hasattr(self, '_conventional_coordinates'):
+            self._compute_conventional_coordinates(normalize)
+        return self._conventional_coordinates
 
     def _compute_symmetric_traj(self,
                                 sym_matrix: np.ndarray,
@@ -266,19 +267,15 @@ class Orientations:
         normalize: bool
             If true, normalize the trajectories
         """
-        direction = self.get_conventional_form(normalize=normalize)
+        direction = self.get_conventional_coordinates(normalize=normalize)
 
         n_ts = direction.shape[0]
         n_bonds = direction.shape[1]
         n_symops = sym_matrix.shape[2]
 
-        direction_sym = np.zeros((n_ts, n_bonds * n_symops, 3))
-        for m in range(n_ts):
-            for p in range(n_bonds):
-                for k in range(n_symops):
-                    direction_sym[m, p * n_symops + k, :] = np.matmul(
-                        sym_matrix[:, :, k], direction[m, p, :])
-
+        direction_sym = np.einsum('tbi,ijk->tbkj', direction, sym_matrix)
+        direction_sym = direction_sym.reshape(n_ts, n_bonds * n_symops, 3)
+        #
         self._symmetric_traj = direction_sym
 
     def get_symmetric_traj(self,
