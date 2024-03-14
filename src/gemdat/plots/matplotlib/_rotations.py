@@ -68,7 +68,7 @@ def rectilinear_plot(*,
 
 def _skewed_gaussian(xgrid: np.ndarray, loc: float, scale: float,
                      skew: float) -> np.ndarray:
-    """Returnd the probability distribution function of a skewed gaussian
+    """Return the probability distribution function of a skewed gaussian
     distribution, using scipy.stats.skewnorm.
 
     Parameters
