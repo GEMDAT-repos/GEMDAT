@@ -66,33 +66,6 @@ def rectilinear_plot(*,
     return fig
 
 
-def _skewed_gaussian(xgrid: np.ndarray, loc: float, scale: float,
-                     skew: float) -> np.ndarray:
-    """Return the probability distribution function of a skewed gaussian
-    distribution, using scipy.stats.skewnorm.
-
-    Parameters
-    ----------
-    xgrid : np.ndarray
-        The grid points at which to evaluate the function
-    loc : float
-        The location parameter which defines the mean of the distribution and
-        it is used to shift the distribution along the x-axis
-    scale : float
-        The scale parameter which defines the standard deviation of the distribution
-    skew : float
-        The skew parameter which defines the asymmetry of the distribution.
-        A positive value indicates a right-skewed distribution, a negative value
-        indicates a left-skewed distribution, and a value of 0 indicates a normal distribution.
-
-    Returns
-    -------
-    np.ndarray
-        The value of the skewed Gaussian distribution function at the given grid points
-    """
-    return skewnorm.pdf(xgrid, a=skew, loc=loc, scale=scale)
-
-
 def bond_length_distribution(*,
                              direction: np.ndarray,
                              bins: int = 1000) -> plt.Figure:
@@ -120,10 +93,15 @@ def bond_length_distribution(*,
     bin_centers = (edges[:-1] + edges[1:]) / 2
 
     # Fit a skewed Gaussian distribution to the data
-    params, covariance = curve_fit(_skewed_gaussian,
-                                   bin_centers,
-                                   hist,
-                                   p0=[1.5, 1, 1.5])
+    params, covariance = curve_fit(
+        lambda x, a, loc, scale: skewnorm.pdf(x, a, loc, scale),
+        bin_centers,
+        hist,
+        p0=[1.5, 1, 1.5])
+
+    # Create a new function using the fitted parameters
+    def _skewnorm_fit(x):
+        return skewnorm.pdf(x, *params)
 
     # Plot the histogram
     ax.hist(bond_lengths,
@@ -135,10 +113,7 @@ def bond_length_distribution(*,
 
     # Plot the fitted skewed Gaussian distribution
     x_fit = np.linspace(min(bin_centers), max(bin_centers), 1000)
-    ax.plot(x_fit,
-            _skewed_gaussian(x_fit, *params),
-            'r-',
-            label='Skewed Gaussian Fit')
+    ax.plot(x_fit, _skewnorm_fit(x_fit), 'r-', label='Skewed Gaussian Fit')
 
     ax.set_xlabel(r'Bond length $[\AA]$')
     ax.set_ylabel(r'Probability density $[\AA^{-1}]$')
