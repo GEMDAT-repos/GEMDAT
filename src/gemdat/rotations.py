@@ -258,14 +258,15 @@ class Orientations:
         return self._symmetric_traj
 
 
-def calculate_spherical_areas(shape: tuple, radius: float = 1) -> np.ndarray:
+def calculate_spherical_areas(shape: tuple[int, int],
+                              radius: float = 1) -> np.ndarray:
     """Calculate the areas of a section of a sphere, defined in spherical
     coordinates. Useful for normalization purposes.
 
     Parameters
     ----------
     shape : tuple
-        Shape of the grid
+        Shape of the grid in integer degrees
     radius : float
         Radius of the sphere
 
