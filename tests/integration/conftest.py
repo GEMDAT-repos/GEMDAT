@@ -8,7 +8,7 @@ from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
 from gemdat.path import find_best_perc_path, free_energy_graph
 from gemdat.rdf import radial_distribution
-from gemdat.rotations import Oh_point_group, Orientations
+from gemdat.rotations import Orientations
 from gemdat.shape import ShapeAnalyzer
 from gemdat.trajectory import Trajectory
 from gemdat.utils import cartesian_to_spherical
@@ -142,11 +142,6 @@ def vasp_orientations(vasp_traj_rotations):
     bd = Orientations(vasp_traj_rotations, central_atoms, satellite_atoms,
                       n_expected_neigh)
     return bd
-
-
-@pytest.fixture(scope='module')
-def Oh_sym_matrices():
-    return Oh_point_group().sym_ops_Oh
 
 
 @pytest.fixture(scope='module')

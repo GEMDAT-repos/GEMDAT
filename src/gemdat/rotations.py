@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
 
@@ -218,16 +219,31 @@ class Orientations:
 
     def set_symmetry_operations(
         self,
-        sym_matrix: np.ndarray,
+        sym_group: str | None = None,
+        explicit_sym: np.ndarray | None = None,
     ) -> None:
         """Set the symmetry operations.
 
         Parameters
         ----------
-        sym_matrix: np.ndarray
+        sym_group: str
+            Name of the symmetry group in Hermann-Mauguin notation
+        explicit_sym: np.ndarray
             Matrix of symmetry operations
         """
-        self.sym_matrix = sym_matrix
+        if sym_group is not None and explicit_sym is not None:
+            raise ValueError(
+                'Only one of sym_group or explicit_sym must be provided')
+        elif sym_group is not None:
+            g = PointGroup(sym_group)
+            self.sym_matrix = np.array([
+                element.rotation_matrix for element in g.symmetry_ops
+            ]).transpose(1, 2, 0)
+        elif explicit_sym is not None:
+            self.sym_matrix = explicit_sym
+        else:
+            raise ValueError(
+                'At least one of sym_group or explicit_sym must be provided')
 
     def get_symmetric_traj(self, ) -> np.ndarray:
         """Returns the symmetric trajectory.
@@ -242,58 +258,58 @@ class Orientations:
         return self._symmetric_traj
 
 
-@dataclass
-class Oh_point_group:
-    """Container for the symmetry operations of the Oh point group.
-
-    It creates the 48 matrices corresponding to the Oh point group
-    symmetry operations. They can be used to apply symmetry operations
-    to the unit vectors trajectory. To understand the notation, you can
-    follow this link:
-    https://en.wikiversity.org/wiki/Full_octahedral_group#8%C3%976_matrix.
-    """
-
-    @property
-    def sym_ops_Oh_firstcolumn(self):
-        """Returns the symmetry operations for the first column."""
-        return np.array([
-            np.eye(3),
-            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]),
-            np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]),
-            np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]]),
-            np.array([[1, 0, 0], [0, 1, 0], [0, 0, -1]]),
-            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
-            np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
-            np.array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]])
-        ])
-
-    @property
-    def sym_ops_Oh_firstrow(self):
-        """Returns the symmetry operation for the first row."""
-        return np.array([
-            np.eye(3),
-            np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1]]),
-            np.array([[1, 0, 0], [0, 0, 1], [0, 1, 0]]),
-            np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]]),
-            np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]),
-            np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])
-        ])
-
-    @property
-    def sym_ops_Oh(self):
-        """Multiply row by column the sym_ops to get 8x6 matrix of
-        transformation matrices."""
-        sym_ops_Oh = np.zeros((8, 6, 3, 3))
-        sym_ops_Oh_firstcolumn = self.sym_ops_Oh_firstcolumn
-        sym_ops_Oh_firstrow = self.sym_ops_Oh_firstrow
-        for i in range(len(sym_ops_Oh_firstcolumn)):
-            for j in range(len(sym_ops_Oh_firstrow)):
-                sym_ops_Oh[i, j, :, :] = np.matmul(
-                    sym_ops_Oh_firstcolumn[i, :, :],
-                    sym_ops_Oh_firstrow[j, :, :])
-
-        # Reshape to make it easier to iterate on (only on 3rd dimension)
-        return sym_ops_Oh.reshape(-1, 3, 3).transpose(1, 2, 0)
+#@dataclass
+#class Oh_point_group:
+#    """Container for the symmetry operations of the Oh point group.
+#
+#    It creates the 48 matrices corresponding to the Oh point group
+#    symmetry operations. They can be used to apply symmetry operations
+#    to the unit vectors trajectory. To understand the notation, you can
+#    follow this link:
+#    https://en.wikiversity.org/wiki/Full_octahedral_group#8%C3%976_matrix.
+#    """
+#
+#    @property
+#    def sym_ops_Oh_firstcolumn(self):
+#        """Returns the symmetry operations for the first column."""
+#        return np.array([
+#            np.eye(3),
+#            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+#            np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]),
+#            np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]]),
+#            np.array([[1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+#            np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]),
+#            np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]]),
+#            np.array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]])
+#        ])
+#
+#    @property
+#    def sym_ops_Oh_firstrow(self):
+#        """Returns the symmetry operation for the first row."""
+#        return np.array([
+#            np.eye(3),
+#            np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1]]),
+#            np.array([[1, 0, 0], [0, 0, 1], [0, 1, 0]]),
+#            np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]]),
+#            np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]),
+#            np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])
+#        ])
+#
+#    @property
+#    def sym_ops_Oh(self):
+#        """Multiply row by column the sym_ops to get 8x6 matrix of
+#        transformation matrices."""
+#        sym_ops_Oh = np.zeros((8, 6, 3, 3))
+#        sym_ops_Oh_firstcolumn = self.sym_ops_Oh_firstcolumn
+#        sym_ops_Oh_firstrow = self.sym_ops_Oh_firstrow
+#        for i in range(len(sym_ops_Oh_firstcolumn)):
+#            for j in range(len(sym_ops_Oh_firstrow)):
+#                sym_ops_Oh[i, j, :, :] = np.matmul(
+#                    sym_ops_Oh_firstcolumn[i, :, :],
+#                    sym_ops_Oh_firstrow[j, :, :])
+#
+#        # Reshape to make it easier to iterate on (only on 3rd dimension)
+#        return sym_ops_Oh.reshape(-1, 3, 3).transpose(1, 2, 0)
 
 
 def calculate_spherical_areas(shape: tuple, radius: float = 1) -> np.ndarray:
