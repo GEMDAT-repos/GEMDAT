@@ -29,7 +29,7 @@ def test_symmetrize_traj(vasp_orientations):
     vasp_orientations.set_symmetry_operations(sym_group='m-3m')
     sym_t = vasp_orientations.get_symmetric_traj()
 
-    assert isclose(sym_t.mean(), 8.255218061662474e-21)
+    assert isclose((sym_t * sym_t).mean(), 0.7514309384768313)
 
 
 @pytest.vasprotocache_available  # type: ignore
