@@ -42,28 +42,6 @@ class Orientations:
         """Return trajectory of satellite atoms."""
         return self.traj.filter(self.satellite_type)
 
-    def _pbc_dist(self, frac1: np.ndarray, frac2: np.ndarray) -> np.floating:
-        """Computes the distance using periodic boundary conditions.
-
-        Parameters
-        ----------
-        frac1: np.ndarray
-            Fractional coordinates of atom1
-        frac2: np.ndarray
-            Fractional coordinates of atom2
-
-        Returns
-        -------
-        dist: np.floating
-            Distance between atom1 and atom2 considering the pbc
-        """
-        lattice = self.traj.lattice
-        frac = np.subtract(frac2, frac1)
-        frac = np.mod(frac + 0.5, 1) - 0.5
-        cart = np.dot(frac, lattice)
-        dist = np.linalg.norm(cart)
-        return dist
-
     def _fractional_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
         """Return fractional coordinates of central atoms and satellite
         atoms."""
@@ -75,8 +53,9 @@ class Orientations:
         atoms."""
         central_start_coord = self._traj_cent.base_positions
         satellite_start_coord = self._traj_sat.base_positions
+        lattice = self.traj.get_lattice()
         distance = np.array([[
-            self._pbc_dist(central, satellite)
+            lattice.get_all_distances(central, satellite)
             for satellite in satellite_start_coord
         ] for central in central_start_coord])
         return distance
