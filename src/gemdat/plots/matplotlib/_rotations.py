@@ -115,11 +115,10 @@ def bond_length_distribution(*,
     bin_centers = (edges[:-1] + edges[1:]) / 2
 
     # Fit a skewed Gaussian distribution to the orientations
-    params, covariance = curve_fit(
-        lambda x, a, loc, scale: skewnorm.pdf(x, a, loc, scale),
-        bin_centers,
-        hist,
-        p0=[1.5, 1, 1.5])
+    params, covariance = curve_fit(skewnorm.pdf,
+                                   bin_centers,
+                                   hist,
+                                   p0=[1.5, 1, 1.5])
 
     # Create a new function using the fitted parameters
     def _skewnorm_fit(x):
