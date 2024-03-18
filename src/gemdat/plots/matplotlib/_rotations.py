@@ -79,7 +79,7 @@ def rectilinear_plot(*,
 
 
 def bond_length_distribution(*,
-                             data: Orientations,
+                             orientations: Orientations,
                              symmetrize: bool = True,
                              bins: int = 1000) -> plt.Figure:
     """Plot the bond length probability distribution.
