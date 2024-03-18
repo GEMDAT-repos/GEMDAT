@@ -146,7 +146,7 @@ def bond_length_distribution(*,
     return fig
 
 
-def unit_vector_autocorrelation(*, data: Orientations,
+def unit_vector_autocorrelation(*, orientations: Orientations,
                                 time_units: float) -> plt.Figure:
     """Plot the autocorrelation function of the unit vectors series.
 
