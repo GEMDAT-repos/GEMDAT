@@ -35,6 +35,11 @@ class Orientations:
     normalize_trajectory: bool = False
 
     @property
+    def _time_step(self) -> float:
+        """Return the time step of the trajectory."""
+        return self.trajectory.time_step
+
+    @property
     def _trajectory_cent(self) -> Trajectory:
         """Return trajectory of center atoms."""
         return self.trajectory.filter(self.center_type)

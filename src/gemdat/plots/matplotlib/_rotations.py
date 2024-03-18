@@ -146,16 +146,16 @@ def bond_length_distribution(*,
     return fig
 
 
-def unit_vector_autocorrelation(*, orientations: Orientations,
-                                time_units: float) -> plt.Figure:
+def unit_vector_autocorrelation(
+    *,
+    orientations: Orientations,
+) -> plt.Figure:
     """Plot the autocorrelation function of the unit vectors series.
 
     Parameters
     ----------
     orientations : Orientations
         The unit vector trajectories
-    time_units : float
-        The time step of the simulation in seconds, the default unit of pymatgen.trajectory.time_unit
 
     Returns
     -------
@@ -169,7 +169,7 @@ def unit_vector_autocorrelation(*, orientations: Orientations,
     ac, std_ac = autocorrelation(trajectory)
 
     # Since we want to plot in picosecond, we convert the time units
-    time_ps = time_units * 1e12
+    time_ps = orientations._time_step * 1e12
     t_values = np.arange(len(ac)) * time_ps
 
     # and now we can plot the autocorrelation function
