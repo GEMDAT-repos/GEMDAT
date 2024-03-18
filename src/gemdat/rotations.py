@@ -152,7 +152,7 @@ class Orientations:
             unit_vec_traj = unit_vec_traj / np.linalg.norm(
                 unit_vec_traj, axis=-1, keepdims=True)
 
-        self._unit_vectors_traj = unit_vec_traj
+        return unit_vec_traj
 
     def get_unit_vectors_traj(self) -> np.ndarray:
         """Returns trajectories of normalized unit vectors defined as the
@@ -166,8 +166,9 @@ class Orientations:
         """
         # Recompute also if normalized differently as expected
         if not hasattr(self, '_unit_vectors_traj'):
-            self._compute_unit_vectors_traj()
+            self._unit_vectors_traj = self._compute_unit_vectors_traj()
         return self._unit_vectors_traj
+
 
     def _compute_conventional_coordinates(self, ) -> None:
         """Converts the trajectory of unit vectors from fractional to
