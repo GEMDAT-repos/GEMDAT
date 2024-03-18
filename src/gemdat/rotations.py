@@ -16,7 +16,7 @@ class Orientations:
 
     Parameters
     ----------
-    traj : Trajectory
+    trajectory : Trajectory
         Input trajectory
     center_type: str
         Type of the central atoms
@@ -32,30 +32,30 @@ class Orientations:
     center_type: str
     satellite_type: str
     nr_central_atoms: int
-    normalize_traj: bool = False
+    normalize_trajectory: bool = False
 
     @property
-    def _traj_cent(self) -> Trajectory:
+    def _trajectory_cent(self) -> Trajectory:
         """Return trajectory of center atoms."""
-        return self.traj.filter(self.center_type)
+        return self.trajectory.filter(self.center_type)
 
     @property
-    def _traj_sat(self) -> Trajectory:
+    def _trajectory_sat(self) -> Trajectory:
         """Return trajectory of satellite atoms."""
-        return self.traj.filter(self.satellite_type)
+        return self.trajectory.filter(self.satellite_type)
 
     def _fractional_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
         """Return fractional coordinates of central atoms and satellite
         atoms."""
-        return self._traj_cent.positions, self._traj_sat.positions
+        return self._trajectory_cent.positions, self._trajectory_sat.positions
 
     @property
     def _distances(self) -> np.ndarray:
         """Calculate distances between every central atom and all satellite
         atoms."""
-        central_start_coord = self._traj_cent.base_positions
-        satellite_start_coord = self._traj_sat.base_positions
-        lattice = self.traj.get_lattice()
+        central_start_coord = self._trajectory_cent.base_positions
+        satellite_start_coord = self._trajectory_sat.base_positions
+        lattice = self.trajectory.get_lattice()
         distance = np.array([[
             lattice.get_all_distances(central, satellite)
             for satellite in satellite_start_coord
@@ -140,37 +140,37 @@ class Orientations:
         direction = np.where(direction < -0.5, direction + 1, direction)
         return direction
 
-    def _compute_unit_vectors_traj(self) -> None:
+    def _compute_unit_vectors_trajectory(self) -> np.ndarray:
         """Computes trajectories of normalized unit vectors defined as the
         distance between a central and satellite atoms, meant to track
         orientation of molecules or clusters."""
-        lattice = self.traj.lattice
+        lattice = self.trajectory.lattice
         direction = self.fractional_directions(self._distances)
-        unit_vec_traj = np.matmul(direction, lattice)
+        unit_vec_trajectory = np.matmul(direction, lattice)
 
-        if self.normalize_traj:
-            unit_vec_traj = unit_vec_traj / np.linalg.norm(
-                unit_vec_traj, axis=-1, keepdims=True)
+        if self.normalize_trajectory:
+            unit_vec_trajectory = unit_vec_trajectory / np.linalg.norm(
+                unit_vec_trajectory, axis=-1, keepdims=True)
 
-        return unit_vec_traj
+        return unit_vec_trajectory
 
-    def get_unit_vectors_traj(self) -> np.ndarray:
+    def get_unit_vectors_trajectory(self) -> np.ndarray:
         """Returns trajectories of normalized unit vectors defined as the
         distance between a central and satellite atoms, meant to track
         orientation of molecules or clusters.
 
         Returns
         -------
-        unit_vec_traj: np.ndarray
+        unit_vec_trajectory: np.ndarray
             Trajectories of the unit vectors
         """
         # Recompute also if normalized differently as expected
-        if not hasattr(self, '_unit_vectors_traj'):
-            self._unit_vectors_traj = self._compute_unit_vectors_traj()
-        return self._unit_vectors_traj
+        if not hasattr(self, '_unit_vectors_trajectory'):
+            self._unit_vectors_trajectory = self._compute_unit_vectors_trajectory(
+            )
+        return self._unit_vectors_trajectory
 
-
-    def _compute_conventional_coordinates(self, ) -> None:
+    def _compute_conventional_coordinates(self, ) -> np.ndarray:
         """Converts the trajectory of unit vectors from fractional to
         conventional coordinates.
 
@@ -178,15 +178,14 @@ class Orientations:
         the primitive cell contains the Bravais lattice. This means that
         the conventional form is simpler to visualize and compare.
         """
-        unit_vec_traj = self.get_unit_vectors_traj()
+        unit_vec_trajectory = self.get_unit_vectors_trajectory()
         # Matrix to transform primitive unit cell coordinates to conventional unit cell coordinates
         prim_to_conv_matrix = np.array(
             [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)],
              [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
              [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
 
-        return np.matmul(unit_vec_traj,
-                                                   prim_to_conv_matrix.T)
+        return np.matmul(unit_vec_trajectory, prim_to_conv_matrix.T)
 
     def get_conventional_coordinates(self, ) -> np.ndarray:
         """Returns the trajectory of unit vectors in conventional coordinates.
@@ -195,15 +194,15 @@ class Orientations:
 
         Returns
         -------
-        conventional_traj: np.ndarray
+        conventional_trajectory: np.ndarray
             Trajectory of the unit vectors in conventional coordinates
         """
         if not hasattr(self, '_conventional_coordinates'):
-            self._conventional_coordinates = self._compute_conventional_coordinates()
+            self._conventional_coordinates = self._compute_conventional_coordinates(
+            )
         return self._conventional_coordinates
 
-
-    def _compute_symmetric_traj(self, ) -> None:
+    def _compute_symmetric_trajectory(self, ) -> np.ndarray:
         """Apply symmetry elements to the trajectory to improve statistics.
 
         It requires the unit vectors trajectory in conventional
@@ -218,7 +217,7 @@ class Orientations:
         direction_sym = np.einsum('tbi,ijk->tbkj', direction, self.sym_matrix)
         direction_sym = direction_sym.reshape(n_ts, n_bonds * n_symops, 3)
 
-        self._symmetric_traj = direction_sym
+        return direction_sym
 
     def set_symmetry_operations(
         self,
@@ -248,7 +247,7 @@ class Orientations:
             raise ValueError(
                 'At least one of sym_group or explicit_sym must be provided')
 
-    def get_symmetric_traj(self, ) -> np.ndarray:
+    def get_symmetric_trajectory(self, ) -> np.ndarray:
         """Returns the symmetric trajectory.
 
         Returns
@@ -256,10 +255,9 @@ class Orientations:
         direction_sym: np.ndarray
             Trajectory of the unit vectors after applying symmetry operations
         """
-        if not hasattr(self, '_symmetric_traj'):
-            self._symmetric_traj = self._compute_symmetric_traj()
-        return self._symmetric_traj
-
+        if not hasattr(self, '_symmetric_trajectory'):
+            self._symmetric_trajectory = self._compute_symmetric_trajectory()
+        return self._symmetric_trajectory
 
 
 def calculate_spherical_areas(shape: tuple[int, int],
@@ -284,7 +282,7 @@ def calculate_spherical_areas(shape: tuple[int, int],
     areas = np.zeros(shape, dtype=float)
     azimuthal_increment = np.deg2rad(1)
     elevation_increment = np.deg2rad(1)
-    
+
     for i in range(shape[1]):
         for j in range(shape[0]):
 
@@ -295,12 +293,12 @@ def calculate_spherical_areas(shape: tuple[int, int],
     return areas
 
 
-def autocorrelation(traj: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def autocorrelation(trajectory: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Compute the autocorrelation of the trajectory using FFT.
 
     Parameters
     ----------
-    traj : np.ndarray
+    trajectory : np.ndarray
         The input signal in direct cartesian coordinates. It is expected
         to have shape (n_times, n_particles, n_coordinates)
 
@@ -312,10 +310,10 @@ def autocorrelation(traj: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         The standard deviation of the autocorrelation of the signal.
     """
 
-    n_times, n_particles, n_coordinates = traj.shape
+    n_times, n_particles, n_coordinates = trajectory.shape
 
     # Sum the coordinates to get the magnitude of the signal
-    signal = np.sum(traj, axis=2)
+    signal = np.sum(trajectory, axis=2)
 
     # Compute the FFT of the magnitude
     fft_magnitude = np.fft.fft(signal, n=2 * n_times - 1, axis=0)

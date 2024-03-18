@@ -18,7 +18,7 @@ def rectilinear_plot(*,
 
     Parameters
     ----------
-    data : Orientations
+    orientations : Orientations
         The unit vector trajectories
     symmetrize : bool, optional
         If True, use the symmetrized trajectory
@@ -34,9 +34,9 @@ def rectilinear_plot(*,
     """
 
     if symmetrize:
-        trajectory = data.get_symmetric_traj()
+        trajectory = orientations.get_symmetric_trajectory()
     else:
-        trajectory = data.get_conventional_coordinates()
+        trajectory = orientations.get_conventional_coordinates()
     # Convert the trajectory to spherical coordinates
     trajectory = cartesian_to_spherical(trajectory, degrees=True)
 
@@ -86,7 +86,7 @@ def bond_length_distribution(*,
 
     Parameters
     ----------
-    data : Orientations
+    orientations : Orientations
         The unit vector trajectories
     symmetrize : bool, optional
         If True, use the symmetrized trajectory
@@ -100,9 +100,9 @@ def bond_length_distribution(*,
     """
 
     if symmetrize:
-        trajectory = data.get_symmetric_traj()
+        trajectory = orientations.get_symmetric_trajectory()
     else:
-        trajectory = data.get_conventional_coordinates()
+        trajectory = orientations.get_conventional_coordinates()
     # Convert the trajectory to spherical coordinates
     trajectory = cartesian_to_spherical(trajectory, degrees=True)
 
@@ -114,7 +114,7 @@ def bond_length_distribution(*,
     hist, edges = np.histogram(bond_lengths, bins=bins, density=True)
     bin_centers = (edges[:-1] + edges[1:]) / 2
 
-    # Fit a skewed Gaussian distribution to the data
+    # Fit a skewed Gaussian distribution to the orientations
     params, covariance = curve_fit(
         lambda x, a, loc, scale: skewnorm.pdf(x, a, loc, scale),
         bin_centers,
@@ -152,7 +152,7 @@ def unit_vector_autocorrelation(*, orientations: Orientations,
 
     Parameters
     ----------
-    data : Orientations
+    orientations : Orientations
         The unit vector trajectories
     time_units : float
         The time step of the simulation in seconds, the default unit of pymatgen.trajectory.time_unit
@@ -164,7 +164,7 @@ def unit_vector_autocorrelation(*, orientations: Orientations,
     """
 
     # The trajectory is expected to have shape (n_times, n_particles, n_coordinates)
-    trajectory = data.get_unit_vectors_traj()
+    trajectory = orientations.get_unit_vectors_trajectory()
 
     ac, std_ac = autocorrelation(trajectory)
 
