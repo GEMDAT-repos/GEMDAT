@@ -89,18 +89,18 @@ def test_path_energy(vasp_full_vol, vasp_full_path):
 
 @image_comparison2(baseline_images=['rectilinear'])
 def test_rectilinear(vasp_orientations):
-    plots.rectilinear_plot(data=vasp_orientations,
+    plots.rectilinear_plot(orientations=vasp_orientations,
                            symmetrize=False,
                            normalize=False)
 
 
 @image_comparison2(baseline_images=['bond_length_distribution'])
 def test_bond_length_distribution(vasp_orientations):
-    plots.bond_length_distribution(data=vasp_orientations,
+    plots.bond_length_distribution(orientations=vasp_orientations,
                                    symmetrize=False,
                                    bins=1000)
 
 
 @image_comparison2(baseline_images=['unit_vector_autocorrelation'])
 def test_unit_vector_autocorrelation(vasp_orientations):
-    plots.unit_vector_autocorrelation(data=vasp_orientations, time_units=2e-15)
+    plots.unit_vector_autocorrelation(orientations=vasp_orientations)

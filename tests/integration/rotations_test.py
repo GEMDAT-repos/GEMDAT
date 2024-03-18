@@ -11,7 +11,7 @@ from gemdat.utils import cartesian_to_spherical
 
 @pytest.vasprotocache_available  # type: ignore
 def test_direct_coordinates(vasp_orientations):
-    dc = vasp_orientations.get_unit_vectors_traj()
+    dc = vasp_orientations.get_unit_vectors_trajectory()
     assert isclose(dc.mean(), -0.0005719846079221715)
 
 
@@ -27,7 +27,7 @@ def test_conventional_coordinates(vasp_orientations):
 @pytest.vasprotocache_available  # type: ignore
 def test_symmetrize_traj(vasp_orientations):
     vasp_orientations.set_symmetry_operations(sym_group='m-3m')
-    sym_t = vasp_orientations.get_symmetric_traj()
+    sym_t = vasp_orientations.get_symmetric_trajectory()
 
     assert isclose((sym_t * sym_t).mean(), 0.7514309384768313)
 
