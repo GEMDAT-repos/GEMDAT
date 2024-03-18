@@ -185,7 +185,7 @@ class Orientations:
              [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
              [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
 
-        self._conventional_coordinates = np.matmul(unit_vec_traj,
+        return np.matmul(unit_vec_traj,
                                                    prim_to_conv_matrix.T)
 
     def get_conventional_coordinates(self, ) -> np.ndarray:
@@ -199,8 +199,9 @@ class Orientations:
             Trajectory of the unit vectors in conventional coordinates
         """
         if not hasattr(self, '_conventional_coordinates'):
-            self._compute_conventional_coordinates()
+            self._conventional_coordinates = self._compute_conventional_coordinates()
         return self._conventional_coordinates
+
 
     def _compute_symmetric_traj(self, ) -> None:
         """Apply symmetry elements to the trajectory to improve statistics.
