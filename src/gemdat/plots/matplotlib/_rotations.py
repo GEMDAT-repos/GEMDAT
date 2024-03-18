@@ -10,7 +10,7 @@ from gemdat.utils import cartesian_to_spherical
 
 
 def rectilinear_plot(*,
-                     data: Orientations,
+                     orientations: Orientations,
                      shape: tuple[int, int] = (90, 360),
                      symmetrize: bool = True,
                      normalize: bool = True) -> plt.Figure:
