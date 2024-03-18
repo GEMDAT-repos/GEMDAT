@@ -257,8 +257,9 @@ class Orientations:
             Trajectory of the unit vectors after applying symmetry operations
         """
         if not hasattr(self, '_symmetric_traj'):
-            self._compute_symmetric_traj()
+            self._symmetric_traj = self._compute_symmetric_traj()
         return self._symmetric_traj
+
 
 
 def calculate_spherical_areas(shape: tuple[int, int],
