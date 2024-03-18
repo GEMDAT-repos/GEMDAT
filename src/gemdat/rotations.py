@@ -282,11 +282,11 @@ def calculate_spherical_areas(shape: tuple[int, int],
     elevation_angles = np.linspace(0, 180, shape[0])
 
     areas = np.zeros(shape, dtype=float)
-
+    azimuthal_increment = np.deg2rad(1)
+    elevation_increment = np.deg2rad(1)
+    
     for i in range(shape[1]):
         for j in range(shape[0]):
-            azimuthal_increment = np.deg2rad(1)
-            elevation_increment = np.deg2rad(1)
 
             areas[j, i] = (radius**2) * azimuthal_increment * np.sin(
                 np.deg2rad(elevation_angles[j])) * elevation_increment
