@@ -27,7 +27,8 @@ class Orientations:
     nr_ligands: optional[int]
         Number of ligands
     """
-    traj: Trajectory
+    trajectory: Trajectory
+
     center_type: str
     satellite_type: str
     nr_central_atoms: int
