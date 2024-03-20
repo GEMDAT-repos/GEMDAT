@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Collection, Optional
 
 import numpy as np
+from numba import njit, prange
 from pymatgen.core import Lattice
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
@@ -62,15 +63,54 @@ def _unwrap_pbcs(coords: np.ndarray) -> np.ndarray:
     timesteps, nparticles, _ = coords.shape
     unwrapped_coords = np.copy(coords)
 
-    for particle in range(nparticles):
-        for t in range(1, timesteps):
-            displacement = coords[t, particle] - coords[t - 1, particle]
-            crossed_boundaries = np.abs(displacement) > 0.5
+    displacements = np.diff(coords, axis=0)
 
-            unwrapped_coords[
-                t:, particle] -= np.sign(displacement) * crossed_boundaries
+    # Identify where boundaries have been crossed
+    crossed_boundaries = np.abs(displacements) > 0.5
+
+    # Correct coordinates for boundary crossings
+    corrections = np.cumsum(np.sign(displacements) * crossed_boundaries,
+                            axis=0)
+    corrections = np.concatenate((np.zeros((1, nparticles, 3)), corrections))
+
+    unwrapped_coords -= corrections
 
     return unwrapped_coords
+
+
+@njit(parallel=True)
+def _direct_mean_squared_displacement(r: np.ndarray,
+                                      nstarts: int) -> np.ndarray:
+    """Computes the mean squared displacement using nstarts starting points.
+    It uses [numba](https://numba.pydata.org/) to speed up the calculation.
+
+    Parameters
+    ----------
+    r : np.ndarray
+        Input array with positions of shape (n_times, n_particles, 3)
+    nstarts : int
+        Number of starting points to use
+
+    Returns
+    -------
+    msd : np.ndarray
+        Output array with mean squared displacement per particle
+    """
+    n_times = r.shape[0]
+    msd = np.zeros((nstarts, n_times))
+
+    # Select equispaced starting points
+    dt = n_times - np.floor_divide(n_times, nstarts)
+    start_indices = np.arange(0, dt, dtype=np.int32)
+
+    for s in prange(nstarts):
+        start_index = start_indices[s]
+        for t in range(1, n_times):
+            squared_displacements = np.sum(
+                (r[t + start_index:] - r[start_index:-t])**2, axis=2)
+            msd[s, t] = np.mean(squared_displacements)
+
+    return msd
 
 
 class Trajectory(PymatgenTrajectory):
@@ -456,21 +496,47 @@ class Trajectory(PymatgenTrajectory):
 
         return subtrajectories
 
-    def mean_squared_displacement(self) -> np.ndarray:
-        """Computes the mean squared displacement usig fast Fourier transform.
-        The algorithm is described in [https://doi.org/10.1051/sfn/201112010].
-        See also [https://stackoverflow.com/questions/34222272/computing-mean-square-displacement-using-python-and-fft].
+    def mean_squared_displacement(self, nstarts: int = 1) -> np.ndarray:
+        """Compute the mean squared displacement using the specified number of
+        starting points. This number defaults to 1, but can be increased to
+        improve statistics. If the number is set to -1, all possible starting
+        points are used using the FFT method. The algorithm also defaults to
+        using the FFT method if the number of starting points is greater than
+        the lenght of the trajectory.
 
         Returns
         -------
-        MSD : np.ndarray
+        msd : np.ndarray
             Output array with mean squared displacement per particle
         """
         r = self.positions
         r = _unwrap_pbcs(r)
-
         lattice = self.get_lattice()
         r = lattice.get_cartesian_coords(r)
+
+        if nstarts == -1 or nstarts > len(self) - 1:
+            msd = self._fft_mean_squared_displacement(r)
+        else:
+            msd = _direct_mean_squared_displacement(r, nstarts)
+
+        return msd.mean(axis=0)
+
+    def _fft_mean_squared_displacement(self, r: np.ndarray) -> np.ndarray:
+        """Computes the mean squared displacement using fast Fourier transform.
+        The algorithm is described in [https://doi.org/10.1051/sfn/201112010].
+        See also [https://stackoverflow.com/questions/34222272/computing-mean-square-displacement-using-python-and-fft].
+
+        Parameters
+        ----------
+        r : np.ndarray
+            Input array with positions of shape (n_times, n_particles, 3)
+
+        Returns
+        -------
+        msd : np.ndarray
+            Output array with mean squared displacement per particle
+        """
+        print('FFT method')
         pos = np.transpose(r, (1, 0, 2))
         n_times = pos.shape[1]
 
@@ -500,8 +566,8 @@ class Trajectory(PymatgenTrajectory):
         S1 = (double_sum_D - cumsum_D)[:, :-1] / (n_times -
                                                   np.arange(n_times)[None, :])
 
-        MSD = S1 - 2 * S2
-        return MSD
+        msd = S1 - 2 * S2
+        return msd
 
     def transitions_between_sites(
         self,
