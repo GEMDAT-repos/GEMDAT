@@ -79,7 +79,7 @@ def msd_per_element(*,
         Input trajectory
     nstarts : int
         Number of starts to use for the MSD calculation. If -1, all starts are
-        used.
+        used throughout the FFT algorithm.
 
     Returns
     -------
@@ -90,15 +90,26 @@ def msd_per_element(*,
 
     fig, ax = plt.subplots()
 
+    # Since we want to plot in picosecond, we convert the time units
+    time_ps = trajectory.time_step * 1e12
+
     for sp in species:
         traj = trajectory.filter(sp.symbol)
-        ax.plot(traj.mean_squared_displacement(nstarts),
-                lw=0.5,
-                label=sp.symbol)
+        msd = traj.mean_squared_displacement(nstarts)
+        msd_mean = np.mean(msd, axis=0)
+        msd_std = np.std(msd, axis=0)
+        t_values = np.arange(len(msd_mean)) * time_ps
+        ax.plot(t_values, msd_mean, lw=0.5, label=sp.symbol)
+        last_color = ax.lines[-1].get_color()
+        ax.fill_between(t_values,
+                        msd_mean - msd_std,
+                        msd_mean + msd_std,
+                        color=last_color,
+                        alpha=0.2)
 
     ax.legend()
     ax.set(title='Mean squared displacement per element',
-           xlabel='Time step',
+           xlabel='Time lag [ps]',
            ylabel='MSD (Angstrom$^2$)')
 
     return fig

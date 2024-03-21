@@ -496,10 +496,10 @@ class Trajectory(PymatgenTrajectory):
 
         return subtrajectories
 
-    def mean_squared_displacement(self, nstarts: int = 1) -> np.ndarray:
+    def mean_squared_displacement(self, nstarts: int = -1) -> np.ndarray:
         """Compute the mean squared displacement using the specified number of
-        starting points. This number defaults to 1, but can be increased to
-        improve statistics.
+        starting points. This number defaults to -1, corresponding to the FFT
+        method.
 
         Parameters
         ----------
@@ -507,7 +507,7 @@ class Trajectory(PymatgenTrajectory):
             Number of starting points to use for the MSD calculation. If set to -1,
             all possible starting points are used using the FFT method. The algorithm
             also defaults to using the FFT method if the number of starting points is
-            greater than the lenght of the trajectory.
+            greater than the length of the trajectory.
 
         Returns
         -------
@@ -527,7 +527,7 @@ class Trajectory(PymatgenTrajectory):
             # ignoring the nan values created by splitting the trajectory
             msd = np.nanmean(msd, axis=0).transpose(1, 0)
 
-        return msd  #.mean(axis=0)
+        return msd
 
     def _fft_mean_squared_displacement(self, r: np.ndarray) -> np.ndarray:
         """Computes the mean squared displacement using fast Fourier transform.
@@ -544,7 +544,6 @@ class Trajectory(PymatgenTrajectory):
         msd : np.ndarray
             Output array with mean squared displacement per particle
         """
-        print('FFT method')
         pos = np.transpose(r, (1, 0, 2))
         n_times = pos.shape[1]
 
