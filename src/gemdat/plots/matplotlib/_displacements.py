@@ -68,13 +68,18 @@ def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
     return fig
 
 
-def msd_per_element(*, trajectory: Trajectory) -> plt.Figure:
+def msd_per_element(*,
+                    trajectory: Trajectory,
+                    nstarts: int = -1) -> plt.Figure:
     """Plot mean squared displacement per element.
 
     Parameters
     ----------
     trajectory : Trajectory
         Input trajectory
+    nstarts : int
+        Number of starts to use for the MSD calculation. If -1, all starts are
+        used.
 
     Returns
     -------
@@ -87,7 +92,7 @@ def msd_per_element(*, trajectory: Trajectory) -> plt.Figure:
 
     for sp in species:
         traj = trajectory.filter(sp.symbol)
-        ax.plot(traj.mean_squared_displacement().mean(axis=0),
+        ax.plot(traj.mean_squared_displacement(nstarts),
                 lw=0.5,
                 label=sp.symbol)
 
