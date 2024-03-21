@@ -74,9 +74,10 @@ def test_shape(vasp_shape_data):
         plots.shape(shape)
 
 
-@image_comparison2(baseline_images=['msd'])
+@image_comparison2(baseline_images=['msd1', 'msd2'])
 def test_msd_per_element(vasp_traj):
     plots.msd_per_element(trajectory=vasp_traj[-500:])
+    plots.msd_per_element(trajectory=vasp_traj[-500:], nstarts=1)
 
 
 @image_comparison2(baseline_images=['path_energy'])
