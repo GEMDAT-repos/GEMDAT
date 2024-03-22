@@ -519,7 +519,7 @@ class Trajectory(PymatgenTrajectory):
         lattice = self.get_lattice()
         r = lattice.get_cartesian_coords(r)
 
-        if nstarts == -1 or nstarts > len(self) - 1:
+        if nstarts == -1 or nstarts > len(self):
             msd = self._fft_mean_squared_displacement(r)
         else:
             msd = _direct_mean_squared_displacement(r, nstarts)
