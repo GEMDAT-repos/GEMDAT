@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from math import isclose
 
+import numpy as np
 import pytest
 
 from gemdat.io import load_known_material
@@ -10,14 +11,14 @@ from gemdat.path import multiple_paths, optimal_path
 
 @pytest.vaspxml_available  # type: ignore
 def test_fractional_coordinates(vasp_path_vol, vasp_full_path):
-    frac_sites = vasp_full_path.fractional_path(vasp_path_vol)
+    frac_sites = vasp_path_vol.voxel_to_frac_coords(vasp_full_path.sites)
 
-    assert isclose(frac_sites[-1][0], 0.39285714285714285)
-    assert isclose(frac_sites[19][1], 0.6428571428571429)
-    assert isclose(frac_sites[10][2], 0.42857142857142855)
+    assert isclose(frac_sites[-1][0], 0.4107142857142857)
+    assert isclose(frac_sites[19][1], 0.6785714285714286)
+    assert isclose(frac_sites[10][2], 0.4642857142857143)
 
-    assert all(element < 1 for element in max(frac_sites))
-    assert all(element > 0 for element in max(frac_sites))
+    assert np.all(frac_sites <= 1)
+    assert np.all(frac_sites >= 0)
 
 
 TEST_DATA = (
@@ -39,7 +40,7 @@ def test_optimal_path(vasp_F_graph, start, stop, method, expected):
 
 @pytest.vaspxml_available  # type: ignore
 def test_find_best_perc_path(vasp_full_path):
-    assert isclose(vasp_full_path.cost, 11.488013690080908)
+    assert isclose(vasp_full_path.total_energy, 11.488013690080908)
     assert vasp_full_path.start_site == (11, 9, 6)
 
 
