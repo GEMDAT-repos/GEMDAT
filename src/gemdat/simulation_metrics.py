@@ -96,6 +96,42 @@ class SimulationMetrics:
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
+    def ionic_conductivity(self, *, dimensions: int) -> FloatWithUnit:
+        """Calculate ionic conductivity.
+
+        Parameters
+        ----------
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        ionic_conductivity : FloatWithUnit
+            Tracer diffusivity in $m^2/s$
+        """
+        center_of_mass = self.trajectory.center_of_mass()
+
+        metrics = SimulationMetrics(center_of_mass)
+
+        return metrics.tracer_diffusivity(dimensions=3)
+
+    @weak_lru_cache()
+    def haven_ratio(self, *, dimensions: int) -> float:
+        """Calculate Haven's ratio.
+
+        Parameters
+        ----------
+        dimensions : int
+            Number of diffusion dimensions
+
+        Returns
+        -------
+        ionic_conductivity : float
+        """
+        return self.tracer_diffusivity(
+            dimensions=dimensions) / self.ionic_conductivity(
+                dimensions=dimensions)
+
     @weak_lru_cache()
     def tracer_conductivity(self, *, z_ion: int,
                             dimensions: int) -> FloatWithUnit:

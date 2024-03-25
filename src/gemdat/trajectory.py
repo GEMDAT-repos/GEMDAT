@@ -320,6 +320,22 @@ class Trajectory(PymatgenTrajectory):
 
         return all_distances
 
+    def center_of_mass(self) -> Trajectory:
+        """Return trajectory with center of mass for positions."""
+        weights = [s.atomic_mass for s in self.species]
+
+        positions_no_pbc = (self.base_positions +
+                            self.cumulative_displacements)
+
+        center_of_mass = np.average(positions_no_pbc, axis=1,
+                                    weights=weights).reshape(-1, 1, 3)
+
+        return self.__class__(species=['X'],
+                              coords=center_of_mass,
+                              lattice=self.get_lattice(),
+                              metadata=self.metadata,
+                              time_step=self.time_step)
+
     def drift(
         self,
         *,

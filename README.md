@@ -15,10 +15,10 @@ With Gemdat, you can:
 
 - Explore your MD simulation via an easy-to-use Python API
 - Load and analyze trajectories from VASP simulation data
-- Characterize and visualize diffusivity
 - Find jumps and transitions between sites
+- Effortlessly calculate tracer and jump diffusivity
+- Characterize and visualize diffusion pathways
 - Plot radial distribution functions
-- Analyze results via an interactive dashboard
 
 To install:
 
@@ -32,12 +32,10 @@ Suggestions, improvements, and edits are most welcome.
 
 ## Usage
 
-The following snippet can be used to test the code using VASP data.
+The following snippet to analyze the diffusion trajectory from VASP data.
 
 ```python
 from gemdat import Trajectory
-from gemdat.io import load_known_material
-import matplotlib.pyplot as plt
 
 trajectory = Trajectory.from_vasprun('../example/vasprun.xml')
 
@@ -49,6 +47,12 @@ diff_trajectory.plot_displacement_per_atom()
 diff_trajectory.plot_displacement_histogram()
 diff_trajectory.plot_frequency_vs_occurence()
 diff_trajectory.plot_vibrational_amplitudes()
+```
+
+Characterize transitions and jumps between sites:
+
+```python
+from gemdat.io import load_known_material
 
 sites = load_known_material('argyrodite', supercell=(2, 1, 1))
 
@@ -64,7 +68,21 @@ jumps.plot_jumps_vs_time()
 jumps.plot_collective_jumps()
 jumps.plot_jumps_3d()
 
-plt.show()
+jumps.jump_diffusivity(dimensions=3)
+```
+
+To calculate different metrics, such as tracer diffusivity:
+
+```python
+from gemdat import SimulationMetrics
+
+metrics = SimulationMetrics(diff_trajectory)
+
+metrics.tracer_diffusivity(dimensions=3)
+metrics.haven_ratio(dimensions=3)
+metrics.tracer_conductivity(dimensions=3)
+metrics.particle_density()
+metrics.vibration_amplitude()
 ```
 
 ## Development

@@ -67,22 +67,35 @@ def test_volume_get_free_energy(vasp_vol):
 
 
 @pytest.vaspxml_available  # type: ignore
-def test_tracer(vasp_traj):
+def test_metrics_other(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
     metrics = SimulationMetrics(diff_trajectory)
 
     assert isclose(metrics.particle_density(), 2.4557e28, rel_tol=1e-4)
     assert isclose(metrics.mol_per_liter(), 40.777, rel_tol=1e-4)
     assert isclose(
+        metrics.tracer_conductivity(z_ion=1, dimensions=3),
+        110.322,
+        rel_tol=1e-4,
+    )
+
+
+@pytest.vaspxml_available  # type: ignore
+def test_metrics_haven(vasp_traj):
+    diff_trajectory = vasp_traj.filter('Li')
+    metrics = SimulationMetrics(diff_trajectory)
+
+    assert isclose(
         metrics.tracer_diffusivity(dimensions=3),
         1.5706e-09,
         rel_tol=1e-4,
     )
     assert isclose(
-        metrics.tracer_conductivity(z_ion=1, dimensions=3),
-        110.322,
+        metrics.ionic_conductivity(dimensions=3),
+        5.38169e-11,
         rel_tol=1e-4,
     )
+    assert isclose(metrics.haven_ratio(dimensions=3), 29.1844, rel_tol=1e-4)
 
 
 @pytest.vaspxml_available  # type: ignore
