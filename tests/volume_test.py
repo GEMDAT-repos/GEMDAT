@@ -3,7 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
-from pymatgen.core import Lattice, PeriodicSite
+from pymatgen.core import Lattice, PeriodicSite, Structure
+from pymatgen.io.vasp import VolumetricData
 
 from gemdat import Volume
 
@@ -52,3 +53,33 @@ def test_volume_site_to_vox(volume, coord, expected):
 
     ret = volume.site_to_voxel(site)
     assert_allclose(ret, expected)
+
+
+TEST_DATA_VOX_TO_CART = (
+    # voxel, expected
+    ((-0.5, -0.5, -0.5), (0, 0, 0)),
+    ((0, 0, 0), (1., 1., 1.)),
+    ((3, 4, 5), (7., 9., 11.)),
+)
+
+
+@pytest.mark.parametrize('voxel,expected', TEST_DATA_VOX_TO_CART)
+def test_volume_vox_to_cart(volume, voxel, expected):
+    ret = volume.voxel_to_cart_coords(voxel)
+    assert_allclose(ret, expected)
+
+
+def test_voxel_size(volume):
+    assert_allclose(volume.voxel_size, (2., 2., 2.))
+
+
+def test_to_vasp_volume(volume):
+    structure = Structure(lattice=volume.lattice,
+                          coords=[(0, 0, 0), (0.5, 0.5, 0.5)],
+                          species=['Si', 'Si'])
+    volume2 = Volume(data=volume.data,
+                     lattice=volume.lattice,
+                     label='free_energy')
+    vol_data = volume.to_vasp_volume(structure=structure, other=[volume2])
+    assert isinstance(vol_data, VolumetricData)
+    assert set(vol_data.data.keys()) == {'total', 'free_energy'}
