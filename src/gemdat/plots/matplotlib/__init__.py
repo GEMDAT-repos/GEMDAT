@@ -20,6 +20,11 @@ from ._paths import (
     path_on_grid,
 )
 from ._rdf import radial_distribution
+from ._rotations import (
+    bond_length_distribution,
+    rectilinear_plot,
+    unit_vector_autocorrelation,
+)
 from ._shape import shape
 from ._vibration import (
     frequency_vs_occurence,
@@ -27,6 +32,7 @@ from ._vibration import (
 )
 
 __all__ = [
+    'bond_length_distribution',
     'collective_jumps',
     'displacement_histogram',
     'displacement_per_atom',
@@ -40,6 +46,8 @@ __all__ = [
     'msd_per_element',
     'path_on_grid',
     'radial_distribution',
+    'rectilinear_plot',
     'shape',
+    'unit_vector_autocorrelation',
     'vibrational_amplitudes',
 ]

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
 
-from gemdat.utils import bfill, ffill, integer_remap, meanfreq
+from gemdat.utils import bfill, cartesian_to_spherical, ffill, integer_remap, meanfreq
 
 
 @pytest.fixture
@@ -87,3 +87,29 @@ def test_meanfreq():
     expected = np.array([[0.2303359], [0.21308077], [0.17074241]])
 
     assert_allclose(ret, expected)
+
+
+def test_cartesian_to_spherical():
+    x = np.array([1, 0])
+    y = np.array([0, 1])
+    z = np.array([1, 1])
+    xyz = np.expand_dims(np.stack((x, y, z), axis=-1), axis=0)
+    # test in radians
+    ret = cartesian_to_spherical(xyz, degrees=False)
+    expected = np.array([[[0, np.arccos(1 / np.sqrt(2)),
+                           np.sqrt(2)],
+                          [np.pi / 2,
+                           np.arccos(1 / np.sqrt(2)),
+                           np.sqrt(2)]]])
+    assert_allclose(ret, expected, rtol=1e-5)
+
+    ret = cartesian_to_spherical(xyz, degrees=True)
+    expected = np.array(
+        [[[0, np.degrees(np.arccos(1 / np.sqrt(2))),
+           np.sqrt(2)],
+          [
+              np.degrees(np.pi / 2),
+              np.degrees(np.arccos(1 / np.sqrt(2))),
+              np.sqrt(2)
+          ]]])
+    assert_allclose(ret, expected, rtol=1e-5)
