@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from numba import njit
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
@@ -298,45 +299,93 @@ def calculate_spherical_areas(shape: tuple[int, int],
     return areas
 
 
-def autocorrelation(trajectory: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the autocorrelation of the trajectory using FFT.
+def mean_squared_angular_displacement(
+        trajectory: np.ndarray,
+        n_tgrid: int = -1) -> tuple[np.ndarray, np.ndarray]:
+    """Compute the mean squared angular displacement on a logarithmic grid
+    containing n_tgrid points.
 
     Parameters
     ----------
     trajectory : np.ndarray
         The input signal in direct cartesian coordinates. It is expected
         to have shape (n_times, n_particles, n_coordinates)
+    n_tgrid: int
+        Number of t-intervals for which we compute the MSAD. If set to -1,
+        all possible values of t are used using the FFT method. The algorithm
+        also defaults to using the FFT method if the number of points is
+        greater than the length of the trajectory.
 
     Returns
     -------
-    autocorr.mean : np.ndarray
-        The autocorrelation of the signal mediated over the number of particles.
-    autocorr.std : np.ndarray
-        The standard deviation of the autocorrelation of the signal.
+    msad:
+        The mean squared angular displacement
+    tgrid:
+        The time grid
     """
-
     n_times, n_particles, n_coordinates = trajectory.shape
 
-    # Sum the coordinates to get the magnitude of the signal
-    signal = np.sum(trajectory, axis=2)
+    if n_tgrid == -1 or n_tgrid > n_times:
+        msad = _fft_msad(trajectory)
+        tgrid = np.arange(msad.shape[1])
+    else:
+        msad, tgrid = _direct_msad(trajectory, n_tgrid=n_tgrid)
+        msad = msad.transpose(1, 0)
 
-    # Compute the FFT of the magnitude
-    fft_magnitude = np.fft.fft(signal, n=2 * n_times - 1, axis=0)
+    # Normalize the msad such that it starts from 1
+    msad = msad / msad[:, 0, np.newaxis]
 
-    # Compute the power spectral density
-    psd = np.abs(fft_magnitude)**2
+    return msad, tgrid
 
-    # Compute the inverse FFT of the power spectral density
-    autocorr = np.fft.ifft(psd, axis=0)
 
-    # Only keep the positive time lags
-    autocorr = autocorr[:n_times, :]
+def _fft_msad(trajectory: np.ndarray) -> np.ndarray:
+    """Compute the mean squared angular displacement using the FFT method."""
+    n_times, n_particles, n_coordinates = trajectory.shape
 
-    # Normalize
-    autocorr = autocorr.T
-    autocorr /= np.arange(n_times, 0, -1)
+    autocorr = np.zeros((n_particles, n_times))
+    normalization = np.arange(n_times, 0, -1)
 
-    # and get the real part
-    autocorr = autocorr.real
+    for c in range(n_coordinates):
+        signal = trajectory[:, :, c]
 
-    return autocorr.mean(axis=0), autocorr.std(axis=0)
+        # Compute the FFT of the signal
+        fft_signal = np.fft.rfft(signal, n=2 * n_times - 1, axis=0)
+        # Compute the power spectral density in-place
+        np.square(np.abs(fft_signal), out=fft_signal)
+        # Compute the inverse FFT of the power spectral density
+        autocorr_c = np.fft.irfft(fft_signal, axis=0)
+
+        # Only keep the positive times
+        autocorr_c = autocorr_c[:n_times, :]
+
+        autocorr += autocorr_c.T / normalization
+
+    # Average the autocorrelation over the coordinates
+    autocorr /= n_coordinates
+
+    return autocorr
+
+
+@njit(parallel=True)
+def _direct_msad(trajectory: np.ndarray,
+                 n_tgrid: int) -> tuple[np.ndarray, np.ndarray]:
+    """Compute the mean squared angular displacement using the direct
+    method."""
+    n_times, n_particles, n_coordinates = trajectory.shape
+
+    # Measure the MSAD only on a logspaced t grid
+    tgrid = np.empty(n_tgrid - 1, dtype=np.int32)
+    for i in range(n_tgrid - 1):
+        tgrid[i] = int(round(10**((i / (n_tgrid - 2)) *
+                                  np.log10(n_times - 1))))
+
+    tgrid = np.unique(tgrid)
+
+    msad = np.full((len(tgrid), n_particles), np.nan)
+
+    for k, dt in enumerate(tgrid):
+        autocorr = np.sum(trajectory[:-dt] * trajectory[dt:],
+                          axis=-1).astype(np.float32)
+        msad[k, :] = np.mean(autocorr)
+
+    return msad, tgrid
