@@ -102,6 +102,10 @@ def test_bond_length_distribution(vasp_orientations):
                                    bins=1000)
 
 
-@image_comparison2(baseline_images=['unit_vector_autocorrelation'])
+@image_comparison2(baseline_images=[
+    'unit_vector_autocorrelation1', 'unit_vector_autocorrelation2'
+])
 def test_unit_vector_autocorrelation(vasp_orientations):
     plots.unit_vector_autocorrelation(orientations=vasp_orientations)
+    plots.unit_vector_autocorrelation(orientations=vasp_orientations,
+                                      n_tgrid=50)

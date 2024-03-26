@@ -148,6 +148,7 @@ def bond_length_distribution(*,
 def unit_vector_autocorrelation(
     *,
     orientations: Orientations,
+    n_tgrid: int = -1,
 ) -> plt.Figure:
     """Plot the autocorrelation function of the unit vectors series.
 
@@ -155,6 +156,9 @@ def unit_vector_autocorrelation(
     ----------
     orientations : Orientations
         The unit vector trajectories
+    n_tgrid : int, optional
+        Number of time points to use for the autocorrelation function.
+        If -1 (default), all time points are used via the FFT algorithm.
 
     Returns
     -------
@@ -165,7 +169,7 @@ def unit_vector_autocorrelation(
     # The trajectory is expected to have shape (n_times, n_particles, n_coordinates)
     trajectory = orientations.get_unit_vectors_trajectory()
 
-    ac, tgrid = mean_squared_angular_displacement(trajectory)
+    ac, tgrid = mean_squared_angular_displacement(trajectory, n_tgrid=n_tgrid)
     ac_mean = ac.mean(axis=0)
     ac_std = ac.std(axis=0)
 
