@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
-from gemdat.rotations import Orientations, autocorrelation, calculate_spherical_areas
+from gemdat.rotations import Orientations, calculate_spherical_areas, mean_squared_angular_displacement
 from gemdat.utils import cartesian_to_spherical
 
 
@@ -165,17 +165,19 @@ def unit_vector_autocorrelation(
     # The trajectory is expected to have shape (n_times, n_particles, n_coordinates)
     trajectory = orientations.get_unit_vectors_trajectory()
 
-    ac, std_ac = autocorrelation(trajectory)
+    ac, tgrid = mean_squared_angular_displacement(trajectory)
+    ac_mean = ac.mean(axis=0)
+    ac_std = ac.std(axis=0)
 
     # Since we want to plot in picosecond, we convert the time units
     time_ps = orientations._time_step * 1e12
-    t_values = np.arange(len(ac)) * time_ps
+    tgrid = tgrid * time_ps
 
     # and now we can plot the autocorrelation function
     fig, ax = plt.subplots()
 
-    ax.plot(t_values, ac, label='FFT-Autocorrelation')
-    ax.fill_between(t_values, ac - std_ac, ac + std_ac, alpha=0.2)
+    ax.plot(tgrid, ac_mean, label='FFT-Autocorrelation')
+    ax.fill_between(tgrid, ac_mean - ac_std, ac_mean + ac_std, alpha=0.2)
     ax.set_xlabel('Time lag [ps]')
     ax.set_ylabel('Autocorrelation')
 
