@@ -99,16 +99,13 @@ def displacement_per_element(*, trajectory: Trajectory) -> go.Figure:
     return fig
 
 
-def msd_per_element(*, trajectory: Trajectory, nstarts: int = -1) -> go.Figure:
+def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
     """Plot mean squared displacement per element.
 
     Parameters
     ----------
     trajectory : Trajectory
         Input trajectory
-    nstarts : int
-        Number of starts to use for the MSD calculation. If -1, all starts are
-        used throughout the FFT algorithm.
 
     Returns
     -------
@@ -126,7 +123,7 @@ def msd_per_element(*, trajectory: Trajectory, nstarts: int = -1) -> go.Figure:
     for sp in species:
         traj = trajectory.filter(sp.symbol)
 
-        msd = traj.mean_squared_displacement(nstarts)
+        msd = traj.mean_squared_displacement()
         msd_mean = np.mean(msd, axis=0)
         msd_std = np.std(msd, axis=0)
         t_values = np.arange(len(msd_mean)) * time_ps

@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Collection, Optional
 
 import numpy as np
-from numba import njit, prange
 from pymatgen.core import Lattice
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
@@ -76,41 +75,6 @@ def _unwrap_pbcs(coords: np.ndarray) -> np.ndarray:
     unwrapped_coords -= corrections
 
     return unwrapped_coords
-
-
-@njit(parallel=True)
-def _direct_mean_squared_displacement(r: np.ndarray,
-                                      nstarts: int) -> np.ndarray:
-    """Computes the mean squared displacement using nstarts starting points.
-    It uses [numba](https://numba.pydata.org/) to speed up the calculation.
-
-    Parameters
-    ----------
-    r : np.ndarray
-        Input array with positions of shape (n_times, n_particles, 3)
-    nstarts : int
-        Number of starting points to use
-
-    Returns
-    -------
-    msd : np.ndarray
-        Output array with mean squared displacement per particle
-    """
-    n_times, n_particles, _ = r.shape
-    msd = np.full((nstarts, n_times, n_particles), np.nan)
-
-    # Select equispaced starting points
-    dt = n_times - np.floor_divide(n_times - 1, nstarts)
-    start_indices = np.arange(0, dt, dtype=np.int32)
-
-    for s in prange(nstarts):
-        start_index = start_indices[s]
-        for t in range(1, n_times - start_index):
-            squared_displacements = np.sum(
-                (r[t + start_index] - r[start_index])**2, axis=-1)
-            msd[s, t, :] = squared_displacements
-
-    return msd
 
 
 class Trajectory(PymatgenTrajectory):
@@ -512,54 +476,17 @@ class Trajectory(PymatgenTrajectory):
 
         return subtrajectories
 
-    def mean_squared_displacement(self, nstarts: int = -1) -> np.ndarray:
-        """Compute the mean squared displacement using the specified number of
-        starting points. This number defaults to -1, corresponding to the FFT
-        method.
+    def mean_squared_displacement(self) -> np.ndarray:
+        """Computes the mean squared displacement using fast Fourier transform.
 
-        Parameters
-        ----------
-        nstarts : int
-            Number of starting points to use for the MSD calculation. If set to -1,
-            all possible starting points are used using the FFT method. The algorithm
-            also defaults to using the FFT method if the number of starting points is
-            greater than the length of the trajectory.
-
-        Returns
-        -------
-        msd : np.ndarray
-            Output array with mean squared displacement per particle
+        The algorithm is described in [https://doi.org/10.1051/sfn/201112010].
+        See also [https://stackoverflow.com/questions/34222272/computing-mean-square-displacement-using-python-and-fft].
         """
         r = self.positions
         r = _unwrap_pbcs(r)
         lattice = self.get_lattice()
         r = lattice.get_cartesian_coords(r)
 
-        if nstarts == -1 or nstarts > len(self):
-            msd = self._fft_mean_squared_displacement(r)
-        else:
-            msd = _direct_mean_squared_displacement(r, nstarts)
-            # Before returning, we need to average over the starting points
-            # ignoring the nan values created by splitting the trajectory
-            msd = np.nanmean(msd, axis=0).transpose(1, 0)
-
-        return msd
-
-    def _fft_mean_squared_displacement(self, r: np.ndarray) -> np.ndarray:
-        """Computes the mean squared displacement using fast Fourier transform.
-        The algorithm is described in [https://doi.org/10.1051/sfn/201112010].
-        See also [https://stackoverflow.com/questions/34222272/computing-mean-square-displacement-using-python-and-fft].
-
-        Parameters
-        ----------
-        r : np.ndarray
-            Input array with positions of shape (n_times, n_particles, 3)
-
-        Returns
-        -------
-        msd : np.ndarray
-            Output array with mean squared displacement per particle
-        """
         pos = np.transpose(r, (1, 0, 2))
         n_times = pos.shape[1]
 

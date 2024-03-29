@@ -74,10 +74,9 @@ def test_shape(vasp_shape_data):
         plots.shape(shape)
 
 
-@image_comparison2(baseline_images=['msd1', 'msd2'])
+@image_comparison2(baseline_images=['msd'])
 def test_msd_per_element(vasp_traj):
     plots.msd_per_element(trajectory=vasp_traj[-500:])
-    plots.msd_per_element(trajectory=vasp_traj[-500:], nstarts=1)
 
 
 @image_comparison2(baseline_images=['path_energy'])
@@ -102,10 +101,6 @@ def test_bond_length_distribution(vasp_orientations):
                                    bins=1000)
 
 
-@image_comparison2(baseline_images=[
-    'unit_vector_autocorrelation1', 'unit_vector_autocorrelation2'
-])
+@image_comparison2(baseline_images=['unit_vector_autocorrelation'])
 def test_unit_vector_autocorrelation(vasp_orientations):
     plots.unit_vector_autocorrelation(orientations=vasp_orientations)
-    plots.unit_vector_autocorrelation(orientations=vasp_orientations,
-                                      n_tgrid=50)

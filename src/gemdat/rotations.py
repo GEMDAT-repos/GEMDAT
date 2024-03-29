@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from numba import njit
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
@@ -299,50 +298,23 @@ def calculate_spherical_areas(shape: tuple[int, int],
     return areas
 
 
-def mean_squared_angular_displacement(
-        trajectory: np.ndarray,
-        n_tgrid: int = -1) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the mean squared angular displacement on a logarithmic grid
-    containing n_tgrid points.
+def mean_squared_angular_displacement(trajectory: np.ndarray) -> np.ndarray:
+    """Compute the mean squared angular displacement using FFT.
 
     Parameters
     ----------
     trajectory : np.ndarray
         The input signal in direct cartesian coordinates. It is expected
         to have shape (n_times, n_particles, n_coordinates)
-    n_tgrid: int
-        Number of t-intervals for which we compute the MSAD. If set to -1,
-        all possible values of t are used using the FFT method. The algorithm
-        also defaults to using the FFT method if the number of points is
-        greater than the length of the trajectory.
 
     Returns
     -------
     msad:
         The mean squared angular displacement
-    tgrid:
-        The time grid
     """
     n_times, n_particles, n_coordinates = trajectory.shape
 
-    if n_tgrid == -1 or n_tgrid > n_times:
-        msad = _fft_msad(trajectory)
-        tgrid = np.arange(msad.shape[1])
-    else:
-        msad, tgrid = _direct_msad(trajectory, n_tgrid=n_tgrid)
-        msad = msad.transpose(1, 0)
-
-    # Normalize the msad such that it starts from 1
-    msad = msad / msad[:, 0, np.newaxis]
-
-    return msad, tgrid
-
-
-def _fft_msad(trajectory: np.ndarray) -> np.ndarray:
-    """Compute the mean squared angular displacement using the FFT method."""
-    n_times, n_particles, n_coordinates = trajectory.shape
-
-    autocorr = np.zeros((n_particles, n_times))
+    msad = np.zeros((n_particles, n_times))
     normalization = np.arange(n_times, 0, -1)
 
     for c in range(n_coordinates):
@@ -358,34 +330,13 @@ def _fft_msad(trajectory: np.ndarray) -> np.ndarray:
         # Only keep the positive times
         autocorr_c = autocorr_c[:n_times, :]
 
-        autocorr += autocorr_c.T / normalization
+        msad += autocorr_c.T / normalization
 
-    # Average the autocorrelation over the coordinates
-    autocorr /= n_coordinates
+    ## Average the autocorrelation over the coordinates
+    #msad /= n_coordinates
 
-    return autocorr
+    # Normalize the msad such that it starts from 1
+    # (this makes the normalization independent on the dimensions)
+    msad = msad / msad[:, 0, np.newaxis]
 
-
-@njit(parallel=True)
-def _direct_msad(trajectory: np.ndarray,
-                 n_tgrid: int) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the mean squared angular displacement using the direct
-    method."""
-    n_times, n_particles, n_coordinates = trajectory.shape
-
-    # Measure the MSAD only on a logspaced t grid
-    tgrid = np.empty(n_tgrid - 1, dtype=np.int32)
-    for i in range(n_tgrid - 1):
-        tgrid[i] = int(round(10**((i / (n_tgrid - 2)) *
-                                  np.log10(n_times - 1))))
-
-    tgrid = np.unique(tgrid)
-
-    msad = np.full((len(tgrid), n_particles), np.nan)
-
-    for k, dt in enumerate(tgrid):
-        autocorr = np.sum(trajectory[:-dt] * trajectory[dt:],
-                          axis=-1).astype(np.float32)
-        msad[k, :] = np.mean(autocorr)
-
-    return msad, tgrid
+    return msad
