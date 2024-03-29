@@ -35,7 +35,6 @@ dependencies = [
   'matplotlib >= 3.6.0',
   'MDAnalysis',
   'numpy',
-  'numba',
   'pymatgen >= 2024.1.26, != 2024.2.20',
   'rich',
   'scikit-image',

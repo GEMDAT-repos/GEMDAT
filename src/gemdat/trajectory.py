@@ -46,37 +46,6 @@ def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
     return np.sqrt(lengths_sq)
 
 
-def _unwrap_pbcs(coords: np.ndarray) -> np.ndarray:
-    """Unwrap coordinates using periodic boundary conditions.
-
-    Parameters
-    ----------
-    coords : np.ndarray
-        Input coordinates
-
-    Returns
-    -------
-    unwrapped_coords : np.ndarray
-        Output coordinates where periodic boundary conditions have been removed
-    """
-    timesteps, nparticles, _ = coords.shape
-    unwrapped_coords = np.copy(coords)
-
-    displacements = np.diff(coords, axis=0)
-
-    # Identify where boundaries have been crossed
-    crossed_boundaries = np.abs(displacements) > 0.5
-
-    # Correct coordinates for boundary crossings
-    corrections = np.cumsum(np.sign(displacements) * crossed_boundaries,
-                            axis=0)
-    corrections = np.concatenate((np.zeros((1, nparticles, 3)), corrections))
-
-    unwrapped_coords -= corrections
-
-    return unwrapped_coords
-
-
 class Trajectory(PymatgenTrajectory):
     """Trajectory of sites from a molecular dynamics simulation."""
 
@@ -482,8 +451,7 @@ class Trajectory(PymatgenTrajectory):
         The algorithm is described in [https://doi.org/10.1051/sfn/201112010].
         See also [https://stackoverflow.com/questions/34222272/computing-mean-square-displacement-using-python-and-fft].
         """
-        r = self.positions
-        r = _unwrap_pbcs(r)
+        r = self.cumulative_displacements
         lattice = self.get_lattice()
         r = lattice.get_cartesian_coords(r)
 

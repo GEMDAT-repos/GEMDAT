@@ -332,9 +332,6 @@ def mean_squared_angular_displacement(trajectory: np.ndarray) -> np.ndarray:
 
         msad += autocorr_c.T / normalization
 
-    ## Average the autocorrelation over the coordinates
-    #msad /= n_coordinates
-
     # Normalize the msad such that it starts from 1
     # (this makes the normalization independent on the dimensions)
     msad = msad / msad[:, 0, np.newaxis]
