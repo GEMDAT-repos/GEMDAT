@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 import numpy as np
 from pymatgen.symmetry.groups import PointGroup
@@ -8,10 +9,67 @@ from pymatgen.symmetry.groups import PointGroup
 from gemdat.trajectory import Trajectory
 
 
+class uv_transformation(ABC):
+    """Abstract class for the transformation of unit vectors
+    transformations."""
+
+    @abstractmethod
+    def transform(self, orientation: Orientations):
+        """Execute the transformation of unit vectors."""
+        pass
+
+
+class Normalize(uv_transformation):
+    """Normalize the trajectory of unit vectors."""
+
+    def transform(self, orientation: Orientations):
+        orientation.transformed_trajectory = orientation.transformed_trajectory / np.linalg.norm(
+            orientation.transformed_trajectory, axis=-1, keepdims=True)
+
+
+class Conventional(uv_transformation):
+    """Convert the trajectory of unit vectors from fractional to conventional
+    coordinates.
+
+    A conventional unit cell only contains one lattice point, while the
+    primitive cell contains the Bravais lattice. This means that the
+    conventional form is simpler to visualize and compare.
+    """
+
+    def transform(self, orientation: Orientations):
+        # Matrix to transform primitive unit cell coordinates to conventional unit cell coordinates
+        prim_to_conv_matrix = np.array(
+            [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)],
+             [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
+             [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
+
+        orientation.transformed_trajectory = np.matmul(
+            orientation.transformed_trajectory, prim_to_conv_matrix.T)
+
+
+class Symmetrize(uv_transformation):
+    """Apply symmetry elements to the trajectory to improve statistics."""
+
+    def transform(self, orientation: Orientations):
+        if not hasattr(orientation, 'sym_matrix'):
+            raise ValueError('Symmetry operations not set')
+
+        n_ts = orientation.transformed_trajectory.shape[0]
+        n_bonds = orientation.transformed_trajectory.shape[1]
+        n_symops = orientation.sym_matrix.shape[2]
+        print(n_ts, n_bonds, n_symops)
+
+        direction_sym = np.einsum('tbi,ijk->tbkj',
+                                  orientation.transformed_trajectory,
+                                  orientation.sym_matrix)
+        orientation.transformed_trajectory = direction_sym.reshape(
+            n_ts, n_bonds * n_symops, 3)
+
+
 @dataclass
 class Orientations:
-    """Container for orientational data. It computes trajectories of normalized
-    unit vectors defined as the distance between a central and satellite atoms,
+    """Container for orientational data. It computes trajectories of unit
+    vectors defined as the distance between a central and satellite atoms,
     meant to track orientation of molecules or clusters.
 
     Parameters
@@ -32,7 +90,17 @@ class Orientations:
     center_type: str
     satellite_type: str
     nr_central_atoms: int
-    normalize_trajectory: bool = False
+
+    transformations: list[uv_transformation] = field(default_factory=list)
+
+    def __post_init__(self):
+        """Computes trajectories of unit vectors defined as the distance
+        between a central and satellite atoms, meant to track orientation of
+        molecules or clusters."""
+        lattice = self.trajectory.lattice
+        direction = self._fractional_directions(self._distances)
+        self.unit_vec_trajectory = np.matmul(direction, lattice)
+        self.transformed_trajectory = self.unit_vec_trajectory
 
     @property
     def _time_step(self) -> float:
@@ -117,7 +185,7 @@ class Orientations:
                                  for j in matching_matrix[i, :]])
         return combinations
 
-    def fractional_directions(self, distance: np.ndarray) -> np.ndarray:
+    def _fractional_directions(self, distance: np.ndarray) -> np.ndarray:
         """Get all fractional coordinate vectors going from central atom to its
         ligands.
 
@@ -145,85 +213,6 @@ class Orientations:
         direction = np.where(direction < -0.5, direction + 1, direction)
         return direction
 
-    def _compute_unit_vectors_trajectory(self) -> np.ndarray:
-        """Computes trajectories of normalized unit vectors defined as the
-        distance between a central and satellite atoms, meant to track
-        orientation of molecules or clusters."""
-        lattice = self.trajectory.lattice
-        direction = self.fractional_directions(self._distances)
-        unit_vec_trajectory = np.matmul(direction, lattice)
-
-        if self.normalize_trajectory:
-            unit_vec_trajectory = unit_vec_trajectory / np.linalg.norm(
-                unit_vec_trajectory, axis=-1, keepdims=True)
-
-        return unit_vec_trajectory
-
-    def get_unit_vectors_trajectory(self) -> np.ndarray:
-        """Returns trajectories of normalized unit vectors defined as the
-        distance between a central and satellite atoms, meant to track
-        orientation of molecules or clusters.
-
-        Returns
-        -------
-        unit_vec_trajectory: np.ndarray
-            Trajectories of the unit vectors
-        """
-        # Recompute also if normalized differently as expected
-        if not hasattr(self, '_unit_vectors_trajectory'):
-            self._unit_vectors_trajectory = self._compute_unit_vectors_trajectory(
-            )
-        return self._unit_vectors_trajectory
-
-    def _compute_conventional_coordinates(self, ) -> np.ndarray:
-        """Converts the trajectory of unit vectors from fractional to
-        conventional coordinates.
-
-        A conventional unit cell only contains one lattice point, while
-        the primitive cell contains the Bravais lattice. This means that
-        the conventional form is simpler to visualize and compare.
-        """
-        unit_vec_trajectory = self.get_unit_vectors_trajectory()
-        # Matrix to transform primitive unit cell coordinates to conventional unit cell coordinates
-        prim_to_conv_matrix = np.array(
-            [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)],
-             [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
-             [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
-
-        return np.matmul(unit_vec_trajectory, prim_to_conv_matrix.T)
-
-    def get_conventional_coordinates(self, ) -> np.ndarray:
-        """Returns the trajectory of unit vectors in conventional coordinates.
-        Conventional coordinates are the coordinates of the unit vectors in the
-        conventional unit cell.
-
-        Returns
-        -------
-        conventional_trajectory: np.ndarray
-            Trajectory of the unit vectors in conventional coordinates
-        """
-        if not hasattr(self, '_conventional_coordinates'):
-            self._conventional_coordinates = self._compute_conventional_coordinates(
-            )
-        return self._conventional_coordinates
-
-    def _compute_symmetric_trajectory(self, ) -> np.ndarray:
-        """Apply symmetry elements to the trajectory to improve statistics.
-
-        It requires the unit vectors trajectory in conventional
-        coordinates.
-        """
-        direction = self.get_conventional_coordinates()
-
-        n_ts = direction.shape[0]
-        n_bonds = direction.shape[1]
-        n_symops = self.sym_matrix.shape[2]
-
-        direction_sym = np.einsum('tbi,ijk->tbkj', direction, self.sym_matrix)
-        direction_sym = direction_sym.reshape(n_ts, n_bonds * n_symops, 3)
-
-        return direction_sym
-
     def set_symmetry_operations(
         self,
         sym_group: str | None = None,
@@ -247,22 +236,44 @@ class Orientations:
                 element.rotation_matrix for element in g.symmetry_ops
             ]).transpose(1, 2, 0)
         elif explicit_sym is not None:
+            if explicit_sym.ndim != 3:
+                # reshape if a single transformation is provided
+                explicit_sym = explicit_sym.reshape(1, 3, 3)
             self.sym_matrix = explicit_sym
         else:
             raise ValueError(
                 'At least one of sym_group or explicit_sym must be provided')
 
-    def get_symmetric_trajectory(self, ) -> np.ndarray:
-        """Returns the symmetric trajectory.
+    def set_transformation(self, transformations: list[str] | None = None):
+        """Set the list of transformations to be executed.
+
+        If None, return the original trajectory.
+        """
+        if transformations is None:
+            self.transformations = []
+            self.transformed_trajectory = self.unit_vec_trajectory
+        else:
+            self.transformations = [
+                globals()[name]() for name in transformations
+            ]
+            # Set to None to force re-execution of transformations
+            self.transformed_trajectory = None
+
+    def execute_transformations(self) -> np.ndarray:
+        """Execute all transformations in the list of transformations.
 
         Returns
         -------
-        direction_sym: np.ndarray
-            Trajectory of the unit vectors after applying symmetry operations
+        transformed_trajectory : np.ndarray
+            the unit vector trajectory after the transformations.
         """
-        if not hasattr(self, '_symmetric_trajectory'):
-            self._symmetric_trajectory = self._compute_symmetric_trajectory()
-        return self._symmetric_trajectory
+        if self.transformed_trajectory is None:
+            # Restart from the original unit vector trajectory
+            self.transformed_trajectory = self.unit_vec_trajectory
+            # then apply all transformations
+            for transformation in self.transformations:
+                transformation.transform(self)
+        return self.transformed_trajectory
 
 
 def calculate_spherical_areas(shape: tuple[int, int],

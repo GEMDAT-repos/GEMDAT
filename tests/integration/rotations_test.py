@@ -6,35 +6,28 @@ import numpy as np
 import pytest
 
 from gemdat.rotations import calculate_spherical_areas
-from gemdat.utils import cartesian_to_spherical
+
+TEST_TRANSFORM = (
+    # transforms, expected
+    (None, 0.8668509741071079),
+    (['Normalize'], 0.5773501929401034),
+    (['Normalize', 'Symmetrize'], 0.577350269189626),
+    (['Normalize', 'Conventional', 'Symmetrize'], 0.5773502691896262),
+    (['Conventional', 'Conventional', 'Symmetrize'], 0.8668511628167985),
+)
 
 
 @pytest.vasprotocache_available  # type: ignore
-def test_direct_coordinates(vasp_orientations):
-    dc = vasp_orientations.get_unit_vectors_trajectory()
-    assert isclose(dc.mean(), -0.0005719846079221715)
-
-
-@pytest.vasprotocache_available  # type: ignore
-def test_conventional_coordinates(vasp_orientations):
-    cf = vasp_orientations.get_conventional_coordinates()
-    cf_spheric = cartesian_to_spherical(cf, degrees=True)
-
-    assert isclose(cf.mean(), -0.00039676020882101193)
-    assert isclose(cf_spheric.mean(), 0.23810303372936106)
-
-
-@pytest.vasprotocache_available  # type: ignore
-def test_symmetrize_traj(vasp_orientations):
-    vasp_orientations.set_symmetry_operations(sym_group='m-3m')
-    sym_t = vasp_orientations.get_symmetric_trajectory()
-
-    assert isclose((sym_t * sym_t).mean(), 0.7514309384768313)
+@pytest.mark.parametrize('transforms,expected', TEST_TRANSFORM)
+def test_transforms(vasp_orientations, transforms, expected):
+    vasp_orientations.set_transformation(transforms)
+    transformed_traj = vasp_orientations.execute_transformations()
+    assert isclose(transformed_traj.std(), expected)
 
 
 @pytest.vasprotocache_available  # type: ignore
 def test_fractional_coordinates(vasp_orientations):
-    direction = vasp_orientations.fractional_directions(
+    direction = vasp_orientations._fractional_directions(
         vasp_orientations._distances)
 
     assert isclose(direction.mean(), -2.8363494021277384e-05)
