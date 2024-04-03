@@ -227,21 +227,6 @@ class Orientations:
         direction = np.where(direction < -0.5, direction + 1, direction)
         return direction
 
-    def set_primitive_matrix(self, primitive_matrix: np.ndarray) -> None:
-        """Set the matrix representing the primitive unit cell, used to
-        transform the unit vectors to conventional coordinates.
-
-        A conventional unit cell only contains one lattice point, while
-        the primitive cell contains the Bravais lattice. This means that
-        the conventional form is simpler to visualize and compare.
-
-        By Default this is set to np.array(     [[1 / np.sqrt(2), -1 /
-        np.sqrt(6), 1 / np.sqrt(3)],      [1 / np.sqrt(2), 1 /
-        np.sqrt(6), -1 / np.sqrt(3)],      [0, 2 / np.sqrt(6), 1 /
-        np.sqrt(3)]])
-        """
-        self.prim_to_conv_matrix = primitive_matrix
-
     def set_symmetry_operations(
         self,
         sym_group: str | None = None,
