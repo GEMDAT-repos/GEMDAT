@@ -37,6 +37,7 @@ __all__ = [
     'displacement_per_atom',
     'displacement_per_element',
     'frequency_vs_occurence',
+    'msd_per_element',
     'jumps_3d',
     'jumps_3d_animation',
     'jumps_vs_distance',
