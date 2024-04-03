@@ -34,17 +34,18 @@ class Conventional(uv_transformation):
     A conventional unit cell only contains one lattice point, while the
     primitive cell contains the Bravais lattice. This means that the
     conventional form is simpler to visualize and compare.
+
+    This transformation requires the definition of the conversion matrix
+    Orientations._prim_to_conv_matrix. By default this is set to
+    np.array(     [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)], [1
+    / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],      [0, 2 /
+    np.sqrt(6), 1 / np.sqrt(3)]])
     """
 
     def transform(self, orientation: Orientations):
-        # Matrix to transform primitive unit cell coordinates to conventional unit cell coordinates
-        prim_to_conv_matrix = np.array(
-            [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)],
-             [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
-             [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
-
         orientation.transformed_trajectory = np.matmul(
-            orientation.transformed_trajectory, prim_to_conv_matrix.T)
+            orientation.transformed_trajectory,
+            orientation._prim_to_conv_matrix.T)
 
 
 class Symmetrize(uv_transformation):
@@ -57,7 +58,6 @@ class Symmetrize(uv_transformation):
         n_ts = orientation.transformed_trajectory.shape[0]
         n_bonds = orientation.transformed_trajectory.shape[1]
         n_symops = orientation.sym_matrix.shape[2]
-        print(n_ts, n_bonds, n_symops)
 
         direction_sym = np.einsum('tbi,ijk->tbkj',
                                   orientation.transformed_trajectory,
@@ -101,6 +101,20 @@ class Orientations:
         direction = self._fractional_directions(self._distances)
         self.unit_vec_trajectory = np.matmul(direction, lattice)
         self.transformed_trajectory = self.unit_vec_trajectory
+        self._prim_to_conv_matrix = np.array(
+            [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)],
+             [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
+             [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
+
+    @property
+    def prim_to_conv_matrix(self):
+        return self._prim_to_conv_matrix
+
+    @prim_to_conv_matrix.setter
+    def prim_to_conv_matrix(self, value):
+        if np.shape(value) != (3, 3):
+            raise ValueError('prim_to_conv_matrix must be a 3x3 matrix')
+        self._prim_to_conv_matrix = value
 
     @property
     def _time_step(self) -> float:
@@ -212,6 +226,21 @@ class Orientations:
         direction = np.where(direction > 0.5, direction - 1, direction)
         direction = np.where(direction < -0.5, direction + 1, direction)
         return direction
+
+    def set_primitive_matrix(self, primitive_matrix: np.ndarray) -> None:
+        """Set the matrix representing the primitive unit cell, used to
+        transform the unit vectors to conventional coordinates.
+
+        A conventional unit cell only contains one lattice point, while
+        the primitive cell contains the Bravais lattice. This means that
+        the conventional form is simpler to visualize and compare.
+
+        By Default this is set to np.array(     [[1 / np.sqrt(2), -1 /
+        np.sqrt(6), 1 / np.sqrt(3)],      [1 / np.sqrt(2), 1 /
+        np.sqrt(6), -1 / np.sqrt(3)],      [0, 2 / np.sqrt(6), 1 /
+        np.sqrt(3)]])
+        """
+        self.prim_to_conv_matrix = primitive_matrix
 
     def set_symmetry_operations(
         self,
