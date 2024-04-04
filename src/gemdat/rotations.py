@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 from pymatgen.symmetry.groups import PointGroup
@@ -82,16 +82,12 @@ class Orientations:
         Type of the satellite atoms
     nr_central_atoms: int
         Number of central atoms, which corresponds to the number of cluster molecules
-    transformations: list
-        List of the transformations to apply to the unit vector trajectory
     """
     trajectory: Trajectory
 
     center_type: str
     satellite_type: str
     nr_central_atoms: int
-
-    transformations: list[BaseTransformation] = field(default_factory=list)
 
     def __post_init__(self):
         """Computes trajectories of unit vectors defined as the distance
