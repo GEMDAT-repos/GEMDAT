@@ -324,8 +324,8 @@ def calculate_spherical_areas(shape: tuple[int, int],
     return areas
 
 
-def autocorrelation(trajectory: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the autocorrelation of the trajectory using FFT.
+def mean_squared_angular_displacement(trajectory: np.ndarray) -> np.ndarray:
+    """Compute the mean squared angular displacement using FFT.
 
     Parameters
     ----------
@@ -335,34 +335,31 @@ def autocorrelation(trajectory: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     Returns
     -------
-    autocorr.mean : np.ndarray
-        The autocorrelation of the signal mediated over the number of particles.
-    autocorr.std : np.ndarray
-        The standard deviation of the autocorrelation of the signal.
+    msad:
+        The mean squared angular displacement
     """
-
     n_times, n_particles, n_coordinates = trajectory.shape
 
-    # Sum the coordinates to get the magnitude of the signal
-    signal = np.sum(trajectory, axis=2)
+    msad = np.zeros((n_particles, n_times))
+    normalization = np.arange(n_times, 0, -1)
 
-    # Compute the FFT of the magnitude
-    fft_magnitude = np.fft.fft(signal, n=2 * n_times - 1, axis=0)
+    for c in range(n_coordinates):
+        signal = trajectory[:, :, c]
 
-    # Compute the power spectral density
-    psd = np.abs(fft_magnitude)**2
+        # Compute the FFT of the signal
+        fft_signal = np.fft.rfft(signal, n=2 * n_times - 1, axis=0)
+        # Compute the power spectral density in-place
+        np.square(np.abs(fft_signal), out=fft_signal)
+        # Compute the inverse FFT of the power spectral density
+        autocorr_c = np.fft.irfft(fft_signal, axis=0)
 
-    # Compute the inverse FFT of the power spectral density
-    autocorr = np.fft.ifft(psd, axis=0)
+        # Only keep the positive times
+        autocorr_c = autocorr_c[:n_times, :]
 
-    # Only keep the positive time lags
-    autocorr = autocorr[:n_times, :]
+        msad += autocorr_c.T / normalization
 
-    # Normalize
-    autocorr = autocorr.T
-    autocorr /= np.arange(n_times, 0, -1)
+    # Normalize the msad such that it starts from 1
+    # (this makes the normalization independent on the dimensions)
+    msad = msad / msad[:, 0, np.newaxis]
 
-    # and get the real part
-    autocorr = autocorr.real
-
-    return autocorr.mean(axis=0), autocorr.std(axis=0)
+    return msad

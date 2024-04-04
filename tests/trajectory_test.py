@@ -135,3 +135,11 @@ def test_trajectory_extend(trajectory):
     assert len(trajectory) == 10
     assert_allclose(trajectory.positions[:, 0, 0],
                     [0.2, 0.4, 0.6, 0.8, 0.1, 0.2, 0.4, 0.6, 0.8, 0.1])
+
+
+def test_mean_squared_displacement(trajectory):
+    msd = trajectory.mean_squared_displacement()
+    assert len(msd) == 4
+    assert_allclose(msd[0], [0.0, 0.0525, 0.19, 0.425, 0.81])
+    assert isinstance(msd, np.ndarray)
+    assert_allclose(msd.mean(), 0.073875)
