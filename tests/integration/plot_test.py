@@ -89,6 +89,8 @@ def test_path_energy(vasp_full_vol, vasp_full_path):
 
 @image_comparison2(baseline_images=['rectilinear'])
 def test_rectilinear(vasp_orientations):
+    vasp_orientations.set_transformation(['Normalize', 'Conventional'])
+    _ = vasp_orientations.execute_transformations()
     plots.rectilinear_plot(orientations=vasp_orientations,
                            normalize_histo=False)
 

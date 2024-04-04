@@ -10,7 +10,6 @@ from gemdat.trajectory import Trajectory
 
 
 class BaseTransformation(ABC):
-
     """Abstract class for the transformation of unit vectors
     transformations."""
 
@@ -20,7 +19,7 @@ class BaseTransformation(ABC):
         pass
 
 
-class Normalize(uv_transformation):
+class Normalize(BaseTransformation):
     """Normalize the trajectory of unit vectors."""
 
     def transform(self, orientation: Orientations):
@@ -28,7 +27,7 @@ class Normalize(uv_transformation):
             orientation.transformed_trajectory, axis=-1, keepdims=True)
 
 
-class Conventional(uv_transformation):
+class Conventional(BaseTransformation):
     """Convert the trajectory of unit vectors from fractional to conventional
     coordinates.
 
@@ -49,7 +48,7 @@ class Conventional(uv_transformation):
             orientation._prim_to_conv_matrix.T)
 
 
-class Symmetrize(uv_transformation):
+class Symmetrize(BaseTransformation):
     """Apply symmetry elements to the trajectory to improve statistics."""
 
     def transform(self, orientation: Orientations):
@@ -83,8 +82,8 @@ class Orientations:
         Type of the satellite atoms
     nr_central_atoms: int
         Number of central atoms, which corresponds to the number of cluster molecules
-    nr_ligands: optional[int]
-        Number of ligands
+    transformations: list
+        List of the transformations to apply to the unit vector trajectory
     """
     trajectory: Trajectory
 
@@ -92,7 +91,7 @@ class Orientations:
     satellite_type: str
     nr_central_atoms: int
 
-    transformations: list[uv_transformation] = field(default_factory=list)
+    transformations: list[BaseTransformation] = field(default_factory=list)
 
     def __post_init__(self):
         """Computes trajectories of unit vectors defined as the distance
