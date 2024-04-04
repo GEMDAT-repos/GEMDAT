@@ -9,7 +9,8 @@ from pymatgen.symmetry.groups import PointGroup
 from gemdat.trajectory import Trajectory
 
 
-class uv_transformation(ABC):
+class BaseTransformation(ABC):
+
     """Abstract class for the transformation of unit vectors
     transformations."""
 
