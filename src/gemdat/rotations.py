@@ -273,7 +273,8 @@ class Orientations:
             # Set to None to force re-execution of transformations
             self.transformed_trajectory = None
 
-    def execute_transformations(self) -> np.ndarray:
+    def transform(self,
+                  transformations: list[str] | None = None) -> np.ndarray:
         """Execute all transformations in the list of transformations.
 
         Returns
@@ -281,11 +282,15 @@ class Orientations:
         transformed_trajectory : np.ndarray
             the unit vector trajectory after the transformations.
         """
-        if self.transformed_trajectory is None:
+        if transformations is None:
+            self.transformed_trajectory = self.unit_vec_trajectory
+        else:
+            t_operators = [globals()[name]() for name in transformations]
+
             # Restart from the original unit vector trajectory
             self.transformed_trajectory = self.unit_vec_trajectory
             # then apply all transformations
-            for transformation in self.transformations:
+            for transformation in t_operators:
                 transformation.transform(self)
         return self.transformed_trajectory
 

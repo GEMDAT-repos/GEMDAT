@@ -20,8 +20,7 @@ TEST_TRANSFORM = (
 @pytest.vasprotocache_available  # type: ignore
 @pytest.mark.parametrize('transforms,expected', TEST_TRANSFORM)
 def test_transforms(vasp_orientations, transforms, expected):
-    vasp_orientations.set_transformation(transforms)
-    transformed_traj = vasp_orientations.execute_transformations()
+    transformed_traj = vasp_orientations.transform(transforms)
     assert isclose(transformed_traj.std(), expected)
 
 

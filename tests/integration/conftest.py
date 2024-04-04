@@ -143,6 +143,7 @@ def vasp_orientations(vasp_traj_rotations):
     bd = Orientations(vasp_traj_rotations, central_atoms, satellite_atoms,
                       n_expected_neigh)
     bd.set_symmetry_operations(sym_group='m-3m')
+    bd.transform(['Normalize', 'Conventional'])
     return bd
 
 
