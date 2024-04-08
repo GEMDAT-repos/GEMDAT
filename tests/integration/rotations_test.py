@@ -6,35 +6,73 @@ import numpy as np
 import pytest
 
 from gemdat.rotations import calculate_spherical_areas
-from gemdat.utils import cartesian_to_spherical
+
+PRIM_TO_CONV_MATRIX = np.array(
+    [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
+     [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5], [0, 2 / 6**0.5, 1 / 3**0.5]], )
 
 
 @pytest.vasprotocache_available  # type: ignore
-def test_direct_coordinates(vasp_orientations):
-    dc = vasp_orientations.get_unit_vectors_trajectory()
-    assert isclose(dc.mean(), -0.0005719846079221715)
+def test_normalize(vasp_orientations):
+    ret = vasp_orientations.normalize()
+    assert isclose(ret.vectors.std(), 0.5773501929401034)
+    first = ret.vectors[0, 0]
+    np.testing.assert_allclose(first, [0.300804, 0.433833, -0.849297],
+                               atol=1e-06)
 
 
 @pytest.vasprotocache_available  # type: ignore
-def test_conventional_coordinates(vasp_orientations):
-    cf = vasp_orientations.get_conventional_coordinates()
-    cf_spheric = cartesian_to_spherical(cf, degrees=True)
-
-    assert isclose(cf.mean(), -0.00039676020882101193)
-    assert isclose(cf_spheric.mean(), 0.23810303372936106)
+def test_conventional(vasp_orientations):
+    ret = vasp_orientations.conventional(
+        prim_to_conv_matrix=PRIM_TO_CONV_MATRIX)
+    assert isclose(ret.vectors.std(), 0.8668510720176622)
+    first = ret.vectors[0, 0]
+    np.testing.assert_allclose(first, [-0.712261, 1.378551, -0.213198],
+                               atol=1e-06)
 
 
 @pytest.vasprotocache_available  # type: ignore
-def test_symmetrize_traj(vasp_orientations):
-    vasp_orientations.set_symmetry_operations(sym_group='m-3m')
-    sym_t = vasp_orientations.get_symmetric_trajectory()
+def test_symmetrize(vasp_orientations):
+    ret = vasp_orientations.symmetrize(sym_group='m-3m')
+    assert isclose(ret.vectors.std(), 0.8668511628167984)
+    first = ret.vectors[0, 0]
+    np.testing.assert_allclose(first, [1.330221, -0.679495, -0.471138],
+                               atol=1e-06)
 
-    assert isclose((sym_t * sym_t).mean(), 0.7514309384768313)
+
+@pytest.vasprotocache_available  # type: ignore
+def test_normalize_symmetrize(vasp_orientations):
+    ret = vasp_orientations.normalize().symmetrize(sym_group='m-3m')
+    assert isclose(ret.vectors.std(), 0.577350269189626)
+    first = ret.vectors[0, 0]
+    np.testing.assert_allclose(first, [0.849297, -0.433833, -0.300804],
+                               atol=1e-06)
+
+
+@pytest.vasprotocache_available  # type: ignore
+def test_normalize_conventional_symmetrize(vasp_orientations):
+    ret = vasp_orientations.normalize().conventional(
+        prim_to_conv_matrix=PRIM_TO_CONV_MATRIX).symmetrize(sym_group='m-3m')
+    assert isclose(ret.vectors.std(), 0.577350269189626)
+    first = ret.vectors[0, 0]
+    np.testing.assert_allclose(first, [0.136119, -0.880154, 0.454753],
+                               atol=1e-06)
+
+
+@pytest.vasprotocache_available  # type: ignore
+def test_conventional_normalize_symmetrize(vasp_orientations):
+    ret = vasp_orientations.conventional(
+        prim_to_conv_matrix=PRIM_TO_CONV_MATRIX).normalize().symmetrize(
+            sym_group='m-3m')
+    assert isclose(ret.vectors.std(), 0.577350269189626)
+    first = ret.vectors[0, 0]
+    np.testing.assert_allclose(first, [0.136119, -0.880154, 0.454753],
+                               atol=1e-06)
 
 
 @pytest.vasprotocache_available  # type: ignore
 def test_fractional_coordinates(vasp_orientations):
-    direction = vasp_orientations.fractional_directions(
+    direction = vasp_orientations._fractional_directions(
         vasp_orientations._distances)
 
     assert isclose(direction.mean(), -2.8363494021277384e-05)

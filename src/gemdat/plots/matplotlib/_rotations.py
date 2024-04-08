@@ -5,26 +5,28 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
-from gemdat.rotations import Orientations, calculate_spherical_areas, mean_squared_angular_displacement
+from gemdat.rotations import (
+    Orientations,
+    calculate_spherical_areas,
+    mean_squared_angular_displacement,
+)
 from gemdat.utils import cartesian_to_spherical
 
 
 def rectilinear_plot(*,
                      orientations: Orientations,
                      shape: tuple[int, int] = (90, 360),
-                     symmetrize: bool = True,
-                     normalize: bool = True) -> plt.Figure:
-    """Plot a rectilinear projection of a spherical function.
+                     normalize_histo: bool = True) -> plt.Figure:
+    """Plot a rectilinear projection of a spherical function. This function
+    uses the transformed trajectory.
 
     Parameters
     ----------
     orientations : Orientations
         The unit vector trajectories
-    symmetrize : bool, optional
-        If True, use the symmetrized trajectory
     shape : tuple
         The shape of the spherical sector in which the trajectory is plotted
-    normalize : bool, optional
+    normalize_histo : bool, optional
         If True, normalize the histogram by the area of the bins, by default True
 
     Returns
@@ -32,20 +34,15 @@ def rectilinear_plot(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-
-    if symmetrize:
-        trajectory = orientations.get_symmetric_trajectory()
-    else:
-        trajectory = orientations.get_conventional_coordinates()
     # Convert the trajectory to spherical coordinates
-    trajectory = cartesian_to_spherical(trajectory, degrees=True)
+    trajectory = cartesian_to_spherical(orientations.vectors, degrees=True)
 
     az = trajectory[:, :, 0].flatten()
     el = trajectory[:, :, 1].flatten()
 
     hist, xedges, yedges = np.histogram2d(el, az, shape)
 
-    if normalize:
+    if normalize_histo:
         # Normalize by the area of the bins
         areas = calculate_spherical_areas(shape)
         hist = np.divide(hist, areas)
@@ -80,7 +77,6 @@ def rectilinear_plot(*,
 
 def bond_length_distribution(*,
                              orientations: Orientations,
-                             symmetrize: bool = True,
                              bins: int = 1000) -> plt.Figure:
     """Plot the bond length probability distribution.
 
@@ -88,8 +84,6 @@ def bond_length_distribution(*,
     ----------
     orientations : Orientations
         The unit vector trajectories
-    symmetrize : bool, optional
-        If True, use the symmetrized trajectory
     bins : int, optional
         The number of bins, by default 1000
 
@@ -99,12 +93,8 @@ def bond_length_distribution(*,
         Output figure
     """
 
-    if symmetrize:
-        trajectory = orientations.get_symmetric_trajectory()
-    else:
-        trajectory = orientations.get_conventional_coordinates()
     # Convert the trajectory to spherical coordinates
-    trajectory = cartesian_to_spherical(trajectory, degrees=True)
+    trajectory = cartesian_to_spherical(orientations.vectors, degrees=True)
 
     fig, ax = plt.subplots()
 
@@ -163,7 +153,7 @@ def unit_vector_autocorrelation(
     """
 
     # The trajectory is expected to have shape (n_times, n_particles, n_coordinates)
-    trajectory = orientations.get_unit_vectors_trajectory()
+    trajectory = orientations.vectors
 
     ac = mean_squared_angular_displacement(trajectory)
     ac_std = ac.std(axis=0)

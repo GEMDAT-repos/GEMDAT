@@ -140,9 +140,10 @@ def vasp_orientations(vasp_traj_rotations):
     central_atoms = 'S'
     satellite_atoms = 'O'
     n_expected_neigh = 8
-    bd = Orientations(vasp_traj_rotations, central_atoms, satellite_atoms,
-                      n_expected_neigh)
-    return bd
+    orientations = Orientations(vasp_traj_rotations, central_atoms,
+                                satellite_atoms, n_expected_neigh)
+
+    return orientations
 
 
 @pytest.fixture(scope='module')
