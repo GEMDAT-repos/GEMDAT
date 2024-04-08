@@ -14,11 +14,11 @@ jobs:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
-        python-version: '3.12'
+        python-version: '3.11'
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip pip-tools
+        python -m pip install --upgrade pip pip-tools setuptools
 
     - name: Set configuration
       run: |
