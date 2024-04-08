@@ -9,9 +9,6 @@ from gemdat.rotations import (
     Orientations,
     calculate_spherical_areas,
     mean_squared_angular_displacement,
-    transform_conventional,
-    transform_normalize,
-    transform_symmetrize,
 )
 
 
@@ -27,51 +24,41 @@ def test_orientations_init(trajectory):
     assert orientations.nr_central_atoms == 1
 
 
-def test_set_symmetry_operations(trajectory):
+def test_normalize(trajectory):
     orientations = Orientations(trajectory=trajectory,
                                 center_type='B',
                                 satellite_type='Si',
-                                nr_central_atoms=1)
-
-    sym_matrix = np.array([[[0, -1, 0], [1, 0, 0], [0, 0, -1]]])
-    orientations.set_symmetry_operations(explicit_sym=sym_matrix)
-
-    assert np.array_equal(orientations.sym_matrix, sym_matrix)
-
-
-def test_normalize(trajectory):
-    orientation = Orientations(trajectory=trajectory,
-                               center_type='B',
-                               satellite_type='Si',
-                               nr_central_atoms=1)
-    orientation.vectors = np.array([[1, 2, 2], [2, 2, 1]], dtype=float)
-    ret = transform_normalize(orientation)
+                                nr_central_atoms=1,
+                                in_vectors=np.array([[1, 2, 2], [2, 2, 1]],
+                                                    dtype=float))
+    ret = orientations.normalize()
     assert np.allclose(
         ret.vectors, np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]]))
 
 
 def test_conventional(trajectory):
-    orientation = Orientations(trajectory=trajectory,
-                               center_type='B',
-                               satellite_type='Si',
-                               nr_central_atoms=1)
-    orientation.vectors = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-                                   dtype=float)
-    orientation.prim_to_conv_matrix = np.eye(3) * [1, 2, 3]
-    ret = transform_conventional(orientation)
+    orientations = Orientations(trajectory=trajectory,
+                                center_type='B',
+                                satellite_type='Si',
+                                nr_central_atoms=1,
+                                in_vectors=np.array(
+                                    [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                                    dtype=float))
+    prim_to_conv_matrix = np.eye(3) * [1, 2, 3]
+    ret = orientations.conventional(prim_to_conv_matrix=prim_to_conv_matrix)
     assert np.allclose(ret.vectors, np.array([[1, 0, 0], [0, 2, 0], [0, 0,
                                                                      3]]))
 
 
 def test_symmetrize(trajectory):
-    orientation = Orientations(trajectory=trajectory,
-                               center_type='B',
-                               satellite_type='Si',
-                               nr_central_atoms=1)
-    orientation.vectors = np.array([[[1, 0, 0]], [[0, 1, 0]]], dtype=float)
-    orientation.set_symmetry_operations(
-        explicit_sym=np.array([[0, -1, 0], [1, 0, 0], [0, 0, -1]]))
-    ret = transform_symmetrize(orientation)
+    orientations = Orientations(trajectory=trajectory,
+                                center_type='B',
+                                satellite_type='Si',
+                                nr_central_atoms=1,
+                                in_vectors=np.array([[[1, 0, 0]], [[0, 1, 0]]],
+                                                    dtype=float))
+    sym_ops = np.array([[0, -1, 0], [1, 0, 0], [0, 0, -1]])
+    ret = orientations.symmetrize(sym_ops=sym_ops)
     assert np.allclose(
         ret.vectors,
         np.array([[[0., 1., 0.], [-1., 0., 0.], [0., 0., -1.]],
