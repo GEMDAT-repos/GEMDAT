@@ -87,9 +87,9 @@ class Orientations:
         self.unit_vec_trajectory = np.matmul(direction, lattice)
         self.transformed_trajectory = self.unit_vec_trajectory
         self._prim_to_conv_matrix = np.array(
-            [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)],
-             [1 / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],
-             [0, 2 / np.sqrt(6), 1 / np.sqrt(3)]])
+            [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
+             [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5],
+             [0, 2 / 6**0.5, 1 / 3**0.5]])
 
     @property
     def prim_to_conv_matrix(self):
