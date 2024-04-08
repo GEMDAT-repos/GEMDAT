@@ -57,13 +57,12 @@ def test_conventional(trajectory):
                                center_type='B',
                                satellite_type='Si',
                                nr_central_atoms=1)
-    orientation.transformed_trajectory = np.array([[1, 0, 0], [0, 1, 0]],
-                                                  dtype=float)
+    orientation.transformed_trajectory = np.array(
+        [[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=float)
+    orientation.prim_to_conv_matrix = np.eye(3) * [1, 2, 3]
     transform_conventional(orientation)
-    assert np.allclose(
-        orientation.transformed_trajectory,
-        np.array([[1 / np.sqrt(2), 1 / np.sqrt(2), 0],
-                  [-1 / np.sqrt(6), 1 / np.sqrt(6), 2 / np.sqrt(6)]]))
+    assert np.allclose(orientation.transformed_trajectory,
+                       np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]]))
 
 
 def test_symmetrize(trajectory):

@@ -23,10 +23,7 @@ def transform_conventional(orientation: Orientations):
     conventional form is simpler to visualize and compare.
 
     This transformation requires the definition of the conversion matrix
-    Orientations._prim_to_conv_matrix. By default this is set to
-    np.array(     [[1 / np.sqrt(2), -1 / np.sqrt(6), 1 / np.sqrt(3)], [1
-    / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],      [0, 2 /
-    np.sqrt(6), 1 / np.sqrt(3)]])
+    Orientations._prim_to_conv_matrix.
     """
     orientation.transformed_trajectory = np.matmul(
         orientation.transformed_trajectory, orientation._prim_to_conv_matrix.T)
@@ -82,24 +79,21 @@ class Orientations:
         """Computes trajectories of unit vectors defined as the distance
         between a central and satellite atoms, meant to track orientation of
         molecules or clusters."""
-        lattice = self.trajectory.lattice
+        lattice = self.trajectory.get_lattice()
         direction = self._fractional_directions(self._distances)
-        self.unit_vec_trajectory = np.matmul(direction, lattice)
+        self.unit_vec_trajectory = lattice.get_cartesian_coords(direction)
         self.transformed_trajectory = self.unit_vec_trajectory
-        self._prim_to_conv_matrix = np.array(
-            [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
-             [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5],
-             [0, 2 / 6**0.5, 1 / 3**0.5]])
+        self._prim_to_conv_matrix = np.eye(3)
 
     @property
     def prim_to_conv_matrix(self):
         return self._prim_to_conv_matrix
 
     @prim_to_conv_matrix.setter
-    def prim_to_conv_matrix(self, value):
-        if np.shape(value) != (3, 3):
+    def prim_to_conv_matrix(self, mat: np.ndarray):
+        if mat.shape != (3, 3):
             raise ValueError('prim_to_conv_matrix must be a 3x3 matrix')
-        self._prim_to_conv_matrix = value
+        self._prim_to_conv_matrix = mat
 
     @property
     def _time_step(self) -> float:
@@ -170,7 +164,7 @@ class Orientations:
         ----------
         distance: np.ndarray
             Distance between all the central-satellite pairs
-        frac_coord_cent; np.ndarray
+        frac_coord_cent: np.ndarray
             Fractional coordinates of all the central atoms
 
         Returns
@@ -198,18 +192,19 @@ class Orientations:
         direction: np.ndarray
             Contains the direction between central atoms and their ligands.
         """
-
         frac_coord_cent, frac_coord_sat = self._fractional_coordinates()
         combinations = self._central_satellite_matrix(distance,
                                                       frac_coord_cent)
-        direction = frac_coord_sat[:,
-                                   combinations[:,
-                                                1], :] - frac_coord_cent[:,
-                                                                         combinations[:,
-                                                                                      0], :]
+
+        sat = frac_coord_sat[:, combinations[:, 1], :]
+        cent = frac_coord_cent[:, combinations[:, 0], :]
+
+        direction = sat - cent
+
         # Take the periodic boundary conditions into account.
         direction = np.where(direction > 0.5, direction - 1, direction)
         direction = np.where(direction < -0.5, direction + 1, direction)
+
         return direction
 
     def set_symmetry_operations(
@@ -243,21 +238,6 @@ class Orientations:
             raise ValueError(
                 'At least one of sym_group or explicit_sym must be provided')
 
-    def set_transformation(self, transformations: list[str] | None = None):
-        """Set the list of transformations to be executed.
-
-        If None, return the original trajectory.
-        """
-        if transformations is None:
-            self.transformations = []
-            self.transformed_trajectory = self.unit_vec_trajectory
-        else:
-            self.transformations = [
-                TRANSFORM_DISPATCH[name] for name in transformations
-            ]
-            # Set to None to force re-execution of transformations
-            self.transformed_trajectory = None
-
     def transform(self,
                   transformations: list[str] | None = None) -> np.ndarray:
         """Execute all transformations in the list of transformations.
@@ -279,6 +259,7 @@ class Orientations:
             # then apply all transformations
             for t_op in t_operators:
                 t_op(self)
+
         return self.transformed_trajectory
 
 
