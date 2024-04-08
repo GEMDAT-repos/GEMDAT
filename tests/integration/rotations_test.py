@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from math import isclose
+from typing import Any, Sequence
 
 import numpy as np
 import pytest
 
 from gemdat.rotations import calculate_spherical_areas
 
-TEST_TRANSFORM = (
+TEST_TRANSFORM: Sequence[Any] = (
     # transforms, expected
-    (None, (0.8668509741071079, [0.47113781, 0.67949494, -1.33022098])),
+    ([], (0.8668509741071079, [0.47113781, 0.67949494, -1.33022098])),
     (['normalize'], (0.5773501929401034, [0.300804, 0.433833, -0.849297])),
     (['conventional'], (0.8668510720176622, [-0.712261, 1.378551, -0.213198])),
     (['symmetrize'], (0.8668511628167984, [1.330221, -0.679495, -0.471138])),
@@ -26,11 +27,11 @@ TEST_TRANSFORM = (
 @pytest.mark.parametrize('transforms,expected', TEST_TRANSFORM)
 def test_transforms(vasp_orientations, transforms, expected):
     expected_std, expected_first = expected
-    transformed_traj = vasp_orientations.transform(transforms)
+    ret = vasp_orientations.transform(transforms)
 
-    assert isclose(transformed_traj.std(), expected_std)
+    assert isclose(ret.vectors.std(), expected_std)
 
-    first = transformed_traj[0, 0]
+    first = ret.vectors[0, 0]
     np.testing.assert_allclose(first, expected_first, atol=1e-06)
 
 

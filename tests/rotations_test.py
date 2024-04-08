@@ -44,12 +44,10 @@ def test_normalize(trajectory):
                                center_type='B',
                                satellite_type='Si',
                                nr_central_atoms=1)
-    orientation.transformed_trajectory = np.array([[1, 2, 2], [2, 2, 1]],
-                                                  dtype=float)
-    transform_normalize(orientation)
+    orientation.vectors = np.array([[1, 2, 2], [2, 2, 1]], dtype=float)
+    ret = transform_normalize(orientation)
     assert np.allclose(
-        orientation.transformed_trajectory,
-        np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]]))
+        ret.vectors, np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]]))
 
 
 def test_conventional(trajectory):
@@ -57,12 +55,12 @@ def test_conventional(trajectory):
                                center_type='B',
                                satellite_type='Si',
                                nr_central_atoms=1)
-    orientation.transformed_trajectory = np.array(
-        [[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=float)
+    orientation.vectors = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+                                   dtype=float)
     orientation.prim_to_conv_matrix = np.eye(3) * [1, 2, 3]
-    transform_conventional(orientation)
-    assert np.allclose(orientation.transformed_trajectory,
-                       np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]]))
+    ret = transform_conventional(orientation)
+    assert np.allclose(ret.vectors, np.array([[1, 0, 0], [0, 2, 0], [0, 0,
+                                                                     3]]))
 
 
 def test_symmetrize(trajectory):
@@ -70,13 +68,12 @@ def test_symmetrize(trajectory):
                                center_type='B',
                                satellite_type='Si',
                                nr_central_atoms=1)
-    orientation.transformed_trajectory = np.array([[[1, 0, 0]], [[0, 1, 0]]],
-                                                  dtype=float)
+    orientation.vectors = np.array([[[1, 0, 0]], [[0, 1, 0]]], dtype=float)
     orientation.set_symmetry_operations(
         explicit_sym=np.array([[0, -1, 0], [1, 0, 0], [0, 0, -1]]))
-    transform_symmetrize(orientation)
+    ret = transform_symmetrize(orientation)
     assert np.allclose(
-        orientation.transformed_trajectory,
+        ret.vectors,
         np.array([[[0., 1., 0.], [-1., 0., 0.], [0., 0., -1.]],
                   [[0., 1., 0.], [-1., 0., 0.], [0., 0., -1.]]]))
 

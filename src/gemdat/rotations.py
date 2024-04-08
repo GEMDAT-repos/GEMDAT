@@ -8,13 +8,24 @@ from pymatgen.symmetry.groups import PointGroup
 from gemdat.trajectory import Trajectory
 
 
-def transform_normalize(orientation: Orientations):
+def transform_normalize(orientations: Orientations):
     """Normalize the trajectory of unit vectors."""
-    orientation.transformed_trajectory = orientation.transformed_trajectory / np.linalg.norm(
-        orientation.transformed_trajectory, axis=-1, keepdims=True)
+    vectors = orientations.vectors / np.linalg.norm(
+        orientations.vectors, axis=-1, keepdims=True)
+
+    new = Orientations(
+        trajectory=orientations.trajectory,
+        center_type=orientations.center_type,
+        satellite_type=orientations.satellite_type,
+        nr_central_atoms=orientations.nr_central_atoms,
+        vectors=vectors,
+    )
+    new.prim_to_conv_matrix = orientations.prim_to_conv_matrix
+    new.sym_matrix = orientations.sym_matrix
+    return new
 
 
-def transform_conventional(orientation: Orientations):
+def transform_conventional(orientations: Orientations):
     """Convert the trajectory of unit vectors from fractional to conventional
     coordinates.
 
@@ -25,24 +36,42 @@ def transform_conventional(orientation: Orientations):
     This transformation requires the definition of the conversion matrix
     Orientations._prim_to_conv_matrix.
     """
-    orientation.transformed_trajectory = np.matmul(
-        orientation.transformed_trajectory, orientation._prim_to_conv_matrix.T)
+    vectors = np.matmul(orientations.vectors,
+                        orientations._prim_to_conv_matrix.T)
+
+    new = Orientations(
+        trajectory=orientations.trajectory,
+        center_type=orientations.center_type,
+        satellite_type=orientations.satellite_type,
+        nr_central_atoms=orientations.nr_central_atoms,
+        vectors=vectors,
+    )
+    new.sym_matrix = orientations.sym_matrix
+    return new
 
 
-def transform_symmetrize(orientation: Orientations):
+def transform_symmetrize(orientations: Orientations):
     """Apply symmetry elements to the trajectory to improve statistics."""
-    if not hasattr(orientation, 'sym_matrix'):
+    if not hasattr(orientations, 'sym_matrix'):
         raise ValueError('Symmetry operations not set')
 
-    n_ts = orientation.transformed_trajectory.shape[0]
-    n_bonds = orientation.transformed_trajectory.shape[1]
-    n_symops = orientation.sym_matrix.shape[2]
+    n_ts = orientations.vectors.shape[0]
+    n_bonds = orientations.vectors.shape[1]
+    n_symops = orientations.sym_matrix.shape[2]
 
-    direction_sym = np.einsum('tbi,ijk->tbkj',
-                              orientation.transformed_trajectory,
-                              orientation.sym_matrix)
-    orientation.transformed_trajectory = direction_sym.reshape(
-        n_ts, n_bonds * n_symops, 3)
+    direction_sym = np.einsum('tbi,ijk->tbkj', orientations.vectors,
+                              orientations.sym_matrix)
+    vectors = direction_sym.reshape(n_ts, n_bonds * n_symops, 3)
+
+    new = Orientations(
+        trajectory=orientations.trajectory,
+        center_type=orientations.center_type,
+        satellite_type=orientations.satellite_type,
+        nr_central_atoms=orientations.nr_central_atoms,
+        vectors=vectors,
+    )
+    new.prim_to_conv_matrix = orientations.prim_to_conv_matrix
+    return new
 
 
 TRANSFORM_DISPATCH = {
@@ -68,22 +97,26 @@ class Orientations:
         Type of the satellite atoms
     nr_central_atoms: int
         Number of central atoms, which corresponds to the number of cluster molecules
+    vectors: np.ndarray
+        Vectors representing rotation direction
     """
     trajectory: Trajectory
 
     center_type: str
     satellite_type: str
     nr_central_atoms: int
+    vectors: np.ndarray
 
     def __post_init__(self):
         """Computes trajectories of unit vectors defined as the distance
         between a central and satellite atoms, meant to track orientation of
         molecules or clusters."""
-        lattice = self.trajectory.get_lattice()
-        direction = self._fractional_directions(self._distances)
-        self.unit_vec_trajectory = lattice.get_cartesian_coords(direction)
-        self.transformed_trajectory = self.unit_vec_trajectory
+        if self.vectors is None:
+            lattice = self.trajectory.get_lattice()
+            direction = self._fractional_directions(self._distances)
+            self.vectors = lattice.get_cartesian_coords(direction)
         self._prim_to_conv_matrix = np.eye(3)
+        self.sym_matrix = []
 
     @property
     def prim_to_conv_matrix(self):
@@ -239,28 +272,25 @@ class Orientations:
                 'At least one of sym_group or explicit_sym must be provided')
 
     def transform(self,
-                  transformations: list[str] | None = None) -> np.ndarray:
+                  transformations: list[str] | None = None) -> Orientations:
         """Execute all transformations in the list of transformations.
 
         Returns
         -------
-        transformed_trajectory : np.ndarray
+        transformed_vectors : np.ndarray
             the unit vector trajectory after the transformations.
         """
-        if transformations is None:
-            self.transformed_trajectory = self.unit_vec_trajectory
-        else:
-            t_operators = [
-                TRANSFORM_DISPATCH[name] for name in transformations
-            ]
+        if not transformations:
+            transformations = []
 
-            # Restart from the original unit vector trajectory
-            self.transformed_trajectory = self.unit_vec_trajectory
-            # then apply all transformations
-            for t_op in t_operators:
-                t_op(self)
+        t_operators = [TRANSFORM_DISPATCH[name] for name in transformations]
 
-        return self.transformed_trajectory
+        orientations = self
+
+        for t_operator in t_operators:
+            orientations = t_operator(orientations)
+
+        return orientations
 
 
 def calculate_spherical_areas(shape: tuple[int, int],

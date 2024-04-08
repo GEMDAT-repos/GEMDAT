@@ -34,11 +34,8 @@ def rectilinear_plot(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-
-    trajectory = orientations.transformed_trajectory
-
     # Convert the trajectory to spherical coordinates
-    trajectory = cartesian_to_spherical(trajectory, degrees=True)
+    trajectory = cartesian_to_spherical(orientations.vectors, degrees=True)
 
     az = trajectory[:, :, 0].flatten()
     el = trajectory[:, :, 1].flatten()
@@ -97,8 +94,7 @@ def bond_length_distribution(*,
     """
 
     # Convert the trajectory to spherical coordinates
-    trajectory = cartesian_to_spherical(orientations.unit_vec_trajectory,
-                                        degrees=True)
+    trajectory = cartesian_to_spherical(orientations.vectors, degrees=True)
 
     fig, ax = plt.subplots()
 
@@ -157,7 +153,7 @@ def unit_vector_autocorrelation(
     """
 
     # The trajectory is expected to have shape (n_times, n_particles, n_coordinates)
-    trajectory = orientations.unit_vec_trajectory
+    trajectory = orientations.vectors
 
     ac = mean_squared_angular_displacement(trajectory)
     ac_std = ac.std(axis=0)
