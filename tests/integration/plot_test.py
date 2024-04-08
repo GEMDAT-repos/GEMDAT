@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 from helpers import image_comparison2
 
 from gemdat.io import load_known_material
@@ -89,7 +90,12 @@ def test_path_energy(vasp_full_vol, vasp_full_path):
 
 @image_comparison2(baseline_images=['rectilinear'])
 def test_rectilinear(vasp_orientations):
-    orientations = vasp_orientations.transform(['normalize', 'conventional'])
+    prim_to_conv_matrix = np.array(
+        [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
+         [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5], [0, 2 / 6**0.5, 1 / 3**0.5]], )
+
+    orientations = vasp_orientations.normalize().conventional(
+        prim_to_conv_matrix=prim_to_conv_matrix)
     plots.rectilinear_plot(orientations=orientations, normalize_histo=False)
 
 

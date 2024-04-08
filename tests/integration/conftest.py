@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from gemdat.io import load_known_material
@@ -143,11 +142,7 @@ def vasp_orientations(vasp_traj_rotations):
     n_expected_neigh = 8
     orientations = Orientations(vasp_traj_rotations, central_atoms,
                                 satellite_atoms, n_expected_neigh)
-    orientations.prim_to_conv_matrix = np.array(
-        [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
-         [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5], [0, 2 / 6**0.5, 1 / 3**0.5]], )
 
-    orientations.set_symmetry_operations(sym_group='m-3m')
     return orientations
 
 

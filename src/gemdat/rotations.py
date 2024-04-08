@@ -28,7 +28,6 @@ class Orientations:
         Vectors representing rotation direction
     """
     trajectory: Trajectory
-
     center_type: str
     satellite_type: str
     nr_central_atoms: int
@@ -38,7 +37,13 @@ class Orientations:
     def __post_init__(self, in_vectors: np.ndarray | None = None):
         """Computes trajectories of unit vectors defined as the distance
         between a central and satellite atoms, meant to track orientation of
-        molecules or clusters."""
+        molecules or clusters.
+
+        Parameters
+        ----------
+        in_vectors : np.ndarray
+            Bypass creation of vectors and use these instead.
+        """
         if in_vectors is not None:
             self.vectors = in_vectors
         else:
@@ -96,7 +101,6 @@ class Orientations:
         matching_matrix: np.ndarray
             Matrix that shows which center-satellite pair is closer than the matching criteria
         """
-        # The matching criteria is defined here
         match_criteria = 1.5 * np.min(distance)
 
         distance_match = np.where(distance < match_criteria, distance, 0)
@@ -159,7 +163,12 @@ class Orientations:
         return direction
 
     def normalize(self) -> Orientations:
-        """Normalize the trajectory of unit vectors."""
+        """Normalize the trajectory of unit vectors.
+
+        Returns
+        -------
+        Orientations
+        """
         vectors = self.vectors / np.linalg.norm(
             self.vectors, axis=-1, keepdims=True)
 
@@ -170,31 +179,38 @@ class Orientations:
                    sym_ops: np.ndarray | None = None) -> Orientations:
         """Apply symmetry elements to the trajectory to improve statistics.
 
+        One of `sym_group` and `sym_ops` must be supplied.
+
         Parameters
         ----------
         sym_group: str
             Name of the symmetry group in Hermann-Mauguin notation
         sym_ops: np.ndarray
-            Matrix of symmetry operations
+            Matrix of symmetry operations, overrides `sym_group`
+
+        Returns
+        -------
+        Orientations
         """
         if sym_ops is not None:
             if sym_ops.ndim != 3:
                 # reshape if a single transformation is provided
                 sym_ops = sym_ops.reshape(1, 3, 3)
-            sym_matrix = sym_ops
+            sym_ops = sym_ops
         elif sym_group:
             g = PointGroup(sym_group)
-            sym_matrix = np.array([
+            sym_ops = np.array([
                 element.rotation_matrix for element in g.symmetry_ops
             ]).transpose(1, 2, 0)
         else:
             raise ValueError(
                 'At least one of `sym_group` or `sym_ops` must be provided')
 
-        n_ts, n_bonds, *_ = self.vectors.shape
-        n_symops = len(sym_matrix.shape)
+        n_ts = self.vectors.shape[0]
+        n_bonds = self.vectors.shape[1]
+        n_symops = sym_ops.shape[2]
 
-        direction_sym = np.einsum('tbi,ijk->tbkj', self.vectors, sym_matrix)
+        direction_sym = np.einsum('tbi,ijk->tbkj', self.vectors, sym_ops)
         vectors = direction_sym.reshape(n_ts, n_bonds * n_symops, 3)
 
         return replace(self, in_vectors=vectors)
@@ -212,11 +228,16 @@ class Orientations:
         Parameters
         ----------
         prim_to_conv_matrix: np.array
+            Matrix for vector transformation
+
+        Returns
+        -------
+        Orientations
         """
         if prim_to_conv_matrix.shape != (3, 3):
             raise ValueError('prim_to_conv_matrix must be a 3x3 matrix')
 
-        vectors = np.matmul(self.vectors, prim_to_conv_matrix.T)
+        vectors = np.dot(self.vectors, prim_to_conv_matrix.T)
 
         return replace(self, in_vectors=vectors)
 
