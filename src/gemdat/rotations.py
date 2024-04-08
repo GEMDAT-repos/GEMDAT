@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
@@ -9,25 +8,13 @@ from pymatgen.symmetry.groups import PointGroup
 from gemdat.trajectory import Trajectory
 
 
-class BaseTransformation(ABC):
-    """Abstract class for the transformation of unit vectors
-    transformations."""
-
-    @abstractmethod
-    def transform(self, orientation: Orientations):
-        """Execute the transformation of unit vectors."""
-        pass
-
-
-class Normalize(BaseTransformation):
+def transform_normalize(orientation: Orientations):
     """Normalize the trajectory of unit vectors."""
-
-    def transform(self, orientation: Orientations):
-        orientation.transformed_trajectory = orientation.transformed_trajectory / np.linalg.norm(
-            orientation.transformed_trajectory, axis=-1, keepdims=True)
+    orientation.transformed_trajectory = orientation.transformed_trajectory / np.linalg.norm(
+        orientation.transformed_trajectory, axis=-1, keepdims=True)
 
 
-class Conventional(BaseTransformation):
+def transform_conventional(orientation: Orientations):
     """Convert the trajectory of unit vectors from fractional to conventional
     coordinates.
 
@@ -41,29 +28,31 @@ class Conventional(BaseTransformation):
     / np.sqrt(2), 1 / np.sqrt(6), -1 / np.sqrt(3)],      [0, 2 /
     np.sqrt(6), 1 / np.sqrt(3)]])
     """
-
-    def transform(self, orientation: Orientations):
-        orientation.transformed_trajectory = np.matmul(
-            orientation.transformed_trajectory,
-            orientation._prim_to_conv_matrix.T)
+    orientation.transformed_trajectory = np.matmul(
+        orientation.transformed_trajectory, orientation._prim_to_conv_matrix.T)
 
 
-class Symmetrize(BaseTransformation):
+def transform_symmetrize(orientation: Orientations):
     """Apply symmetry elements to the trajectory to improve statistics."""
+    if not hasattr(orientation, 'sym_matrix'):
+        raise ValueError('Symmetry operations not set')
 
-    def transform(self, orientation: Orientations):
-        if not hasattr(orientation, 'sym_matrix'):
-            raise ValueError('Symmetry operations not set')
+    n_ts = orientation.transformed_trajectory.shape[0]
+    n_bonds = orientation.transformed_trajectory.shape[1]
+    n_symops = orientation.sym_matrix.shape[2]
 
-        n_ts = orientation.transformed_trajectory.shape[0]
-        n_bonds = orientation.transformed_trajectory.shape[1]
-        n_symops = orientation.sym_matrix.shape[2]
+    direction_sym = np.einsum('tbi,ijk->tbkj',
+                              orientation.transformed_trajectory,
+                              orientation.sym_matrix)
+    orientation.transformed_trajectory = direction_sym.reshape(
+        n_ts, n_bonds * n_symops, 3)
 
-        direction_sym = np.einsum('tbi,ijk->tbkj',
-                                  orientation.transformed_trajectory,
-                                  orientation.sym_matrix)
-        orientation.transformed_trajectory = direction_sym.reshape(
-            n_ts, n_bonds * n_symops, 3)
+
+TRANSFORM_DISPATCH = {
+    'normalize': transform_normalize,
+    'conventional': transform_conventional,
+    'symmetrize': transform_symmetrize,
+}
 
 
 @dataclass
@@ -264,7 +253,7 @@ class Orientations:
             self.transformed_trajectory = self.unit_vec_trajectory
         else:
             self.transformations = [
-                globals()[name]() for name in transformations
+                TRANSFORM_DISPATCH[name] for name in transformations
             ]
             # Set to None to force re-execution of transformations
             self.transformed_trajectory = None
@@ -281,13 +270,15 @@ class Orientations:
         if transformations is None:
             self.transformed_trajectory = self.unit_vec_trajectory
         else:
-            t_operators = [globals()[name]() for name in transformations]
+            t_operators = [
+                TRANSFORM_DISPATCH[name] for name in transformations
+            ]
 
             # Restart from the original unit vector trajectory
             self.transformed_trajectory = self.unit_vec_trajectory
             # then apply all transformations
-            for transformation in t_operators:
-                transformation.transform(self)
+            for t_op in t_operators:
+                t_op(self)
         return self.transformed_trajectory
 
 

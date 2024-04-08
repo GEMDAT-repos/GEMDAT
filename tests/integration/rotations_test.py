@@ -10,10 +10,10 @@ from gemdat.rotations import calculate_spherical_areas
 TEST_TRANSFORM = (
     # transforms, expected
     (None, 0.8668509741071079),
-    (['Normalize'], 0.5773501929401034),
-    (['Normalize', 'Symmetrize'], 0.577350269189626),
-    (['Normalize', 'Conventional', 'Symmetrize'], 0.5773502691896262),
-    (['Conventional', 'Conventional', 'Symmetrize'], 0.8668511628167985),
+    (['normalize'], 0.5773501929401034),
+    (['normalize', 'symmetrize'], 0.577350269189626),
+    (['normalize', 'conventional', 'symmetrize'], 0.5773502691896262),
+    (['conventional', 'conventional', 'symmetrize'], 0.8668511628167985),
 )
 
 

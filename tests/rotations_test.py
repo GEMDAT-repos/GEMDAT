@@ -6,12 +6,12 @@ import numpy as np
 from pymatgen.core import Species
 
 from gemdat.rotations import (
-    Conventional,
-    Normalize,
     Orientations,
-    Symmetrize,
     calculate_spherical_areas,
     mean_squared_angular_displacement,
+    transform_conventional,
+    transform_normalize,
+    transform_symmetrize,
 )
 
 
@@ -46,7 +46,7 @@ def test_normalize(trajectory):
                                nr_central_atoms=1)
     orientation.transformed_trajectory = np.array([[1, 2, 2], [2, 2, 1]],
                                                   dtype=float)
-    Normalize().transform(orientation)
+    transform_normalize(orientation)
     assert np.allclose(
         orientation.transformed_trajectory,
         np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]]))
@@ -59,7 +59,7 @@ def test_conventional(trajectory):
                                nr_central_atoms=1)
     orientation.transformed_trajectory = np.array([[1, 0, 0], [0, 1, 0]],
                                                   dtype=float)
-    Conventional().transform(orientation)
+    transform_conventional(orientation)
     assert np.allclose(
         orientation.transformed_trajectory,
         np.array([[1 / np.sqrt(2), 1 / np.sqrt(2), 0],
@@ -75,7 +75,7 @@ def test_symmetrize(trajectory):
                                                   dtype=float)
     orientation.set_symmetry_operations(
         explicit_sym=np.array([[0, -1, 0], [1, 0, 0], [0, 0, -1]]))
-    Symmetrize().transform(orientation)
+    transform_symmetrize(orientation)
     assert np.allclose(
         orientation.transformed_trajectory,
         np.array([[[0., 1., 0.], [-1., 0., 0.], [0., 0., -1.]],
