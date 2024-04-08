@@ -18,7 +18,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip pip-tools
+        python -m pip install --upgrade pip pip-tools setuptools
 
     - name: Set configuration
       run: |
