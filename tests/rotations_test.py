@@ -44,8 +44,8 @@ def test_conventional(trajectory):
                                 in_vectors=np.array(
                                     [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
                                     dtype=float))
-    prim_to_conv_matrix = np.eye(3) * [1, 2, 3]
-    ret = orientations.conventional(prim_to_conv_matrix=prim_to_conv_matrix)
+    matrix = np.eye(3) * [1, 2, 3]
+    ret = orientations.transform(matrix=matrix)
     assert np.allclose(ret.vectors, np.array([[1, 0, 0], [0, 2, 0], [0, 0,
                                                                      3]]))
 

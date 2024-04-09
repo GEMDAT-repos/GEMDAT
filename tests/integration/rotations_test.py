@@ -7,7 +7,7 @@ import pytest
 
 from gemdat.rotations import calculate_spherical_areas
 
-PRIM_TO_CONV_MATRIX = np.array(
+matrix = np.array(
     [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
      [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5], [0, 2 / 6**0.5, 1 / 3**0.5]], )
 
@@ -23,8 +23,7 @@ def test_normalize(vasp_orientations):
 
 @pytest.vasprotocache_available  # type: ignore
 def test_conventional(vasp_orientations):
-    ret = vasp_orientations.conventional(
-        prim_to_conv_matrix=PRIM_TO_CONV_MATRIX)
+    ret = vasp_orientations.transform(matrix=matrix)
     assert isclose(ret.vectors.std(), 0.8668510720176622)
     first = ret.vectors[0, 0]
     np.testing.assert_allclose(first, [-0.712261, 1.378551, -0.213198],
@@ -51,8 +50,8 @@ def test_normalize_symmetrize(vasp_orientations):
 
 @pytest.vasprotocache_available  # type: ignore
 def test_normalize_conventional_symmetrize(vasp_orientations):
-    ret = vasp_orientations.normalize().conventional(
-        prim_to_conv_matrix=PRIM_TO_CONV_MATRIX).symmetrize(sym_group='m-3m')
+    ret = vasp_orientations.normalize().transform(matrix=matrix).symmetrize(
+        sym_group='m-3m')
     assert isclose(ret.vectors.std(), 0.577350269189626)
     first = ret.vectors[0, 0]
     np.testing.assert_allclose(first, [0.136119, -0.880154, 0.454753],
@@ -61,9 +60,8 @@ def test_normalize_conventional_symmetrize(vasp_orientations):
 
 @pytest.vasprotocache_available  # type: ignore
 def test_conventional_normalize_symmetrize(vasp_orientations):
-    ret = vasp_orientations.conventional(
-        prim_to_conv_matrix=PRIM_TO_CONV_MATRIX).normalize().symmetrize(
-            sym_group='m-3m')
+    ret = vasp_orientations.transform(matrix=matrix).normalize().symmetrize(
+        sym_group='m-3m')
     assert isclose(ret.vectors.std(), 0.577350269189626)
     first = ret.vectors[0, 0]
     np.testing.assert_allclose(first, [0.136119, -0.880154, 0.454753],

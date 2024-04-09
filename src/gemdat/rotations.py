@@ -215,9 +215,9 @@ class Orientations:
 
         return replace(self, in_vectors=vectors)
 
-    def conventional(self, prim_to_conv_matrix: np.ndarray) -> Orientations:
-        """Convert the trajectory of unit vectors from fractional to
-        conventional coordinates.
+    def transform(self, matrix: np.ndarray) -> Orientations:
+        """Convert the trajectory of unit vectors e.g. from primitive to
+        conventional setting.
 
         A conventional unit cell only contains one lattice point, while the
         primitive cell contains the Bravais lattice. This means that the
@@ -227,17 +227,17 @@ class Orientations:
 
         Parameters
         ----------
-        prim_to_conv_matrix: np.array
+        matrix: np.array
             Matrix for vector transformation
 
         Returns
         -------
-        Orientations
+        orientations : Orientations
         """
-        if prim_to_conv_matrix.shape != (3, 3):
-            raise ValueError('prim_to_conv_matrix must be a 3x3 matrix')
+        if matrix.shape != (3, 3):
+            raise ValueError('matrix must be a 3x3 matrix')
 
-        vectors = np.dot(self.vectors, prim_to_conv_matrix.T)
+        vectors = np.dot(self.vectors, matrix.T)
 
         return replace(self, in_vectors=vectors)
 
