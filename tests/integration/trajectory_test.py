@@ -60,7 +60,7 @@ def test_metrics_other(vasp_traj):
     assert isclose(metrics.particle_density(), 2.4557e28, rel_tol=1e-4)
     assert isclose(metrics.mol_per_liter(), 40.777, rel_tol=1e-4)
     assert isclose(
-        metrics.tracer_conductivity(z_ion=1, dimensions=3),
+        metrics.tracer_conductivity(z_ion=1),
         110.322,
         rel_tol=1e-4,
     )
@@ -72,16 +72,16 @@ def test_metrics_haven(vasp_traj):
     metrics = SimulationMetrics(diff_trajectory)
 
     assert isclose(
-        metrics.tracer_diffusivity(dimensions=3),
+        metrics.tracer_diffusivity(),
         1.5706e-09,
         rel_tol=1e-4,
     )
     assert isclose(
-        metrics.ionic_conductivity(dimensions=3),
+        metrics.tracer_diffusivity_center_of_mass(),
         5.38169e-11,
         rel_tol=1e-4,
     )
-    assert isclose(metrics.haven_ratio(dimensions=3), 29.1844, rel_tol=1e-4)
+    assert isclose(metrics.haven_ratio(), 29.1844, rel_tol=1e-4)
 
 
 @pytest.vaspxml_available  # type: ignore

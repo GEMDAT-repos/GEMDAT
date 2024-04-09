@@ -73,7 +73,7 @@ class SimulationMetrics:
         return FloatWithUnit(mol_per_liter, 'mol l^-1')
 
     @weak_lru_cache()
-    def tracer_diffusivity(self, *, dimensions: int) -> FloatWithUnit:
+    def tracer_diffusivity(self, *, dimensions: int = 3) -> FloatWithUnit:
         """Calculate tracer diffusivity.
 
         Defined as: MSD / (2*dimensions*time)
@@ -96,8 +96,13 @@ class SimulationMetrics:
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
-    def ionic_conductivity(self, *, dimensions: int) -> FloatWithUnit:
-        """Calculate ionic conductivity.
+    @weak_lru_cache()
+    def tracer_diffusivity_center_of_mass(
+        self,
+        *,
+        dimensions: int = 3,
+    ) -> FloatWithUnit:
+        """Calculate the tracer diffusivity of the center of mass.
 
         Parameters
         ----------
@@ -106,17 +111,17 @@ class SimulationMetrics:
 
         Returns
         -------
-        ionic_conductivity : FloatWithUnit
+        tracer_diffusivity : FloatWithUnit
             Tracer diffusivity in $m^2/s$
         """
         center_of_mass = self.trajectory.center_of_mass()
 
         metrics = SimulationMetrics(center_of_mass)
 
-        return metrics.tracer_diffusivity(dimensions=3)
+        return metrics.tracer_diffusivity(dimensions=dimensions)
 
     @weak_lru_cache()
-    def haven_ratio(self, *, dimensions: int) -> float:
+    def haven_ratio(self, *, dimensions: int = 3) -> float:
         """Calculate Haven's ratio.
 
         Parameters
@@ -126,15 +131,17 @@ class SimulationMetrics:
 
         Returns
         -------
-        ionic_conductivity : float
+        haven_ratio : float
         """
         return self.tracer_diffusivity(
-            dimensions=dimensions) / self.ionic_conductivity(
+            dimensions=dimensions) / self.tracer_diffusivity_center_of_mass(
                 dimensions=dimensions)
 
     @weak_lru_cache()
-    def tracer_conductivity(self, *, z_ion: int,
-                            dimensions: int) -> FloatWithUnit:
+    def tracer_conductivity(self,
+                            *,
+                            z_ion: int,
+                            dimensions: int = 3) -> FloatWithUnit:
         """Return tracer conductivity as S/m.
 
         Defined as: elementary_charge^2 * charge_ion^2 * diffusivity *
