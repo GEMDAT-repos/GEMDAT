@@ -241,6 +241,23 @@ class Orientations:
 
         return replace(self, in_vectors=vectors)
 
+    def get_vectors_spherical(self, degrees: bool = True) -> np.ndarray:
+        """Return vectors in spherical coordinates.
+
+        Parameters
+        ----------
+        degrees : bool
+            If True, return angles as degrees, else radians
+
+        Returns
+        -------
+        np.array
+            azimuth, elevation, length
+        """
+
+        from gemdat.utils import cartesian_to_spherical
+        return cartesian_to_spherical(self.vectors)
+
 
 def calculate_spherical_areas(shape: tuple[int, int],
                               radius: float = 1) -> np.ndarray:

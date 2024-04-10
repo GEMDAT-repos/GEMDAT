@@ -11,7 +11,6 @@ from gemdat.rdf import radial_distribution
 from gemdat.rotations import Orientations
 from gemdat.shape import ShapeAnalyzer
 from gemdat.trajectory import Trajectory
-from gemdat.utils import cartesian_to_spherical
 from gemdat.volume import trajectory_to_volume
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
@@ -149,5 +148,5 @@ def vasp_orientations(vasp_traj_rotations):
 @pytest.fixture(scope='module')
 def vasp_orientations_spherical(vasp_orientations):
     cf = vasp_orientations.get_conventional_coordinates()
-    cf_spheric = cartesian_to_spherical(cf, degrees=True)
+    cf_spheric = cf.get_vectors_spherical()
     return cf_spheric

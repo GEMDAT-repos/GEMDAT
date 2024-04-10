@@ -229,25 +229,26 @@ def _cart2sph(x: np.ndarray, y: np.ndarray,
     return az, el, r
 
 
-def cartesian_to_spherical(direct_cart: np.ndarray,
-                           degrees: bool) -> np.ndarray:
+def cartesian_to_spherical(cart_coords: np.ndarray,
+                           *,
+                           degrees: bool = True) -> np.ndarray:
     """Trajectory from cartesian coordinates to spherical coordinates.
 
     Parameters
     ----------
-    direct_cart : np.ndarray
-        Trajectory of the unit vectors in conventional coordinates
+    cart_coords : np.ndarray
+        Trajectory of the unit vectors in cartesian setting
     degrees : bool
         If true, return angles in degrees
 
     Returns
     -------
-    direction_spherical : np.ndarray
+    spherical_coords : np.ndarray
         Trajectory of the unit vectors in spherical coordinates
     """
-    x = direct_cart[:, :, 0]
-    y = direct_cart[:, :, 1]
-    z = direct_cart[:, :, 2]
+    x = cart_coords[:, :, 0]
+    y = cart_coords[:, :, 1]
+    z = cart_coords[:, :, 2]
 
     az, el, r = _cart2sph(x, y, z)
 
@@ -255,6 +256,6 @@ def cartesian_to_spherical(direct_cart: np.ndarray,
         az = np.degrees(az)
         el = np.degrees(el)
 
-    direction_spherical = np.stack((az, el, r), axis=-1)
+    spherical_coords = np.stack((az, el, r), axis=-1)
 
-    return direction_spherical
+    return spherical_coords

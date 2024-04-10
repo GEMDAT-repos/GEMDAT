@@ -10,7 +10,6 @@ from gemdat.rotations import (
     calculate_spherical_areas,
     mean_squared_angular_displacement,
 )
-from gemdat.utils import cartesian_to_spherical
 
 
 def rectilinear_plot(*,
@@ -35,7 +34,7 @@ def rectilinear_plot(*,
         Output figure
     """
     # Convert the trajectory to spherical coordinates
-    trajectory = cartesian_to_spherical(orientations.vectors, degrees=True)
+    trajectory = orientations.get_vectors_spherical()
 
     az = trajectory[:, :, 0].flatten()
     el = trajectory[:, :, 1].flatten()
@@ -92,9 +91,7 @@ def bond_length_distribution(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-
-    # Convert the trajectory to spherical coordinates
-    trajectory = cartesian_to_spherical(orientations.vectors, degrees=True)
+    trajectory = orientations.get_vectors_spherical()
 
     fig, ax = plt.subplots()
 
