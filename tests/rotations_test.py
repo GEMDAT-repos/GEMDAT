@@ -8,8 +8,8 @@ from pymatgen.core import Species
 from gemdat.rotations import (
     Orientations,
     calculate_spherical_areas,
-    mean_squared_angular_displacement,
 )
+from gemdat.utils import autocorrelation
 
 
 def test_orientations_init(trajectory):
@@ -90,9 +90,9 @@ def test_calculate_spherical_areas():
     assert areas.shape == shape
 
 
-def test_mean_squared_angular_displacement(trajectory):
-    msad = mean_squared_angular_displacement(trajectory.positions)
-    assert isinstance(msad, np.ndarray)
-    assert isclose(msad.mean(), 0.8142314269325723)
-    assert msad.shape == (trajectory.positions.shape[1],
-                          trajectory.positions.shape[0])
+def test_autocorrelation(trajectory):
+    autocorr = autocorrelation(trajectory.positions)
+    assert isinstance(autocorr, np.ndarray)
+    assert isclose(autocorr.mean(), 0.8142314269325723)
+    assert autocorr.shape == (trajectory.positions.shape[1],
+                              trajectory.positions.shape[0])

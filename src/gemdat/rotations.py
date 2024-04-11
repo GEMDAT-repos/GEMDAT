@@ -6,7 +6,7 @@ import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
-from gemdat.utils import cartesian_to_spherical
+from gemdat.utils import autocorrelation, cartesian_to_spherical
 
 
 @dataclass
@@ -257,6 +257,9 @@ class Orientations:
         """
         return cartesian_to_spherical(self.vectors)
 
+    def autocorrelation(self):
+        return autocorrelation(self.vectors)
+
     def plot_rectilinear(self, **kwargs):
         """See [gemdat.plots.rectilinear][] for more info."""
         from gemdat import plots
@@ -267,10 +270,10 @@ class Orientations:
         from gemdat import plots
         return plots.bond_length_distribution(orientations=self, **kwargs)
 
-    def plot_unit_vector_autocorrelation(self, **kwargs):
+    def plot_autocorrelation(self, **kwargs):
         """See [gemdat.plots.unit_vector_autocorrelation][] for more info."""
         from gemdat import plots
-        return plots.unit_vector_autocorrelation(orientations=self, **kwargs)
+        return plots.autocorrelation(orientations=self, **kwargs)
 
 
 def calculate_spherical_areas(shape: tuple[int, int],
@@ -304,44 +307,3 @@ def calculate_spherical_areas(shape: tuple[int, int],
             #hacky way to get rid of singularity on poles
             areas[0, :] = areas[-1, 0]
     return areas
-
-
-def mean_squared_angular_displacement(trajectory: np.ndarray) -> np.ndarray:
-    """Compute the mean squared angular displacement using FFT.
-
-    Parameters
-    ----------
-    trajectory : np.ndarray
-        The input signal in direct cartesian coordinates. It is expected
-        to have shape (n_times, n_particles, n_coordinates)
-
-    Returns
-    -------
-    msad:
-        The mean squared angular displacement
-    """
-    n_times, n_particles, n_coordinates = trajectory.shape
-
-    msad = np.zeros((n_particles, n_times))
-    normalization = np.arange(n_times, 0, -1)
-
-    for c in range(n_coordinates):
-        signal = trajectory[:, :, c]
-
-        # Compute the FFT of the signal
-        fft_signal = np.fft.rfft(signal, n=2 * n_times - 1, axis=0)
-        # Compute the power spectral density in-place
-        np.square(np.abs(fft_signal), out=fft_signal)
-        # Compute the inverse FFT of the power spectral density
-        autocorr_c = np.fft.irfft(fft_signal, axis=0)
-
-        # Only keep the positive times
-        autocorr_c = autocorr_c[:n_times, :]
-
-        msad += autocorr_c.T / normalization
-
-    # Normalize the msad such that it starts from 1
-    # (this makes the normalization independent on the dimensions)
-    msad = msad / msad[:, 0, np.newaxis]
-
-    return msad

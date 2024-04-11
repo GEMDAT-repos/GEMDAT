@@ -259,3 +259,44 @@ def cartesian_to_spherical(cart_coords: np.ndarray,
     spherical_coords = np.stack((az, el, r), axis=-1)
 
     return spherical_coords
+
+
+def autocorrelation(coords: np.ndarray) -> np.ndarray:
+    """Compute the autocorrelation of the given coordinates using FFT.
+
+    Parameters
+    ----------
+    coords : np.ndarray
+        The input signal in direct cartesian coordinates. It is expected
+        to have shape (n_times, n_particles, n_coordinates)
+
+    Returns
+    -------
+    autocorrelation: np.array
+        The autocorrelation of the input signal
+    """
+    n_times, n_particles, n_coordinates = coords.shape
+
+    autocorrelation = np.zeros((n_particles, n_times))
+    normalization = np.arange(n_times, 0, -1)
+
+    for c in range(n_coordinates):
+        signal = coords[:, :, c]
+
+        # Compute the FFT of the signal
+        fft_signal = np.fft.rfft(signal, n=2 * n_times - 1, axis=0)
+        # Compute the power spectral density in-place
+        np.square(np.abs(fft_signal), out=fft_signal)
+        # Compute the inverse FFT of the power spectral density
+        autocorr_c = np.fft.irfft(fft_signal, axis=0)
+
+        # Only keep the positive times
+        autocorr_c = autocorr_c[:n_times, :]
+
+        autocorrelation += autocorr_c.T / normalization
+
+    # Normalize the autocorrelation such that it starts from 1
+    # (this makes the normalization independent on the dimensions)
+    autocorrelation = autocorrelation / autocorrelation[:, 0, np.newaxis]
+
+    return autocorrelation

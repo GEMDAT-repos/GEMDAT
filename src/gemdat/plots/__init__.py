@@ -3,6 +3,7 @@ from __future__ import annotations
 
 # Matplotlib plots
 from .matplotlib import (
+    autocorrelation,
     bond_length_distribution,
     energy_along_path,
     jumps_3d_animation,
@@ -10,7 +11,6 @@ from .matplotlib import (
     radial_distribution,
     rectilinear,
     shape,
-    unit_vector_autocorrelation,
 )
 
 # Plotly plots (matplotlib version might be available)
@@ -50,5 +50,5 @@ __all__ = [
     'vibrational_amplitudes',
     'energy_along_path',
     'path_on_grid',
-    'unit_vector_autocorrelation',
+    'autocorrelation',
 ]

@@ -105,4 +105,4 @@ def test_bond_length_distribution(vasp_orientations):
 
 @image_comparison2(baseline_images=['unit_vector_autocorrelation'])
 def test_unit_vector_autocorrelation(vasp_orientations):
-    vasp_orientations.plot_unit_vector_autocorrelation()
+    vasp_orientations.plot_autocorrelation()

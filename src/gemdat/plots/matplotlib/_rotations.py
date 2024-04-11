@@ -8,7 +8,6 @@ from scipy.stats import skewnorm
 from gemdat.rotations import (
     Orientations,
     calculate_spherical_areas,
-    mean_squared_angular_displacement,
 )
 
 
@@ -132,7 +131,7 @@ def bond_length_distribution(*,
     return fig
 
 
-def unit_vector_autocorrelation(
+def autocorrelation(
     *,
     orientations: Orientations,
 ) -> plt.Figure:
@@ -148,11 +147,7 @@ def unit_vector_autocorrelation(
     fig : matplotlib.figure.Figure
         Output figure
     """
-
-    # The trajectory is expected to have shape (n_times, n_particles, n_coordinates)
-    trajectory = orientations.vectors
-
-    ac = mean_squared_angular_displacement(trajectory)
+    ac = orientations.autocorrelation()
     ac_std = ac.std(axis=0)
     ac_mean = ac.mean(axis=0)
 

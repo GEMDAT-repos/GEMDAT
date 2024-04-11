@@ -21,9 +21,9 @@ from ._paths import (
 )
 from ._rdf import radial_distribution
 from ._rotations import (
+    autocorrelation,
     bond_length_distribution,
     rectilinear,
-    unit_vector_autocorrelation,
 )
 from ._shape import shape
 from ._vibration import (
@@ -48,6 +48,6 @@ __all__ = [
     'radial_distribution',
     'rectilinear',
     'shape',
-    'unit_vector_autocorrelation',
+    'autocorrelation',
     'vibrational_amplitudes',
 ]
