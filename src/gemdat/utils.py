@@ -261,7 +261,7 @@ def cartesian_to_spherical(cart_coords: np.ndarray,
     return spherical_coords
 
 
-def autocorrelation(coords: np.ndarray) -> np.ndarray:
+def fft_autocorrelation(coords: np.ndarray) -> np.ndarray:
     """Compute the autocorrelation of the given coordinates using FFT.
 
     Parameters

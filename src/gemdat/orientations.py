@@ -6,7 +6,7 @@ import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
-from gemdat.utils import autocorrelation, cartesian_to_spherical
+from gemdat.utils import fft_autocorrelation, cartesian_to_spherical
 
 
 @dataclass
@@ -258,7 +258,8 @@ class Orientations:
         return cartesian_to_spherical(self.vectors)
 
     def autocorrelation(self):
-        return autocorrelation(self.vectors)
+        """Compute the autocorrelation of the orientation vectors using FFT."""
+        return fft_autocorrelation(self.vectors)
 
     def plot_rectilinear(self, **kwargs):
         """See [gemdat.plots.rectilinear][] for more info."""

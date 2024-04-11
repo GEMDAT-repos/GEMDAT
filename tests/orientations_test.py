@@ -9,7 +9,7 @@ from gemdat.orientations import (
     Orientations,
     calculate_spherical_areas,
 )
-from gemdat.utils import autocorrelation
+from gemdat.utils import fft_autocorrelation
 
 
 def test_orientations_init(trajectory):
@@ -90,8 +90,8 @@ def test_calculate_spherical_areas():
     assert areas.shape == shape
 
 
-def test_autocorrelation(trajectory):
-    autocorr = autocorrelation(trajectory.positions)
+def test_fft_autocorrelation(trajectory):
+    autocorr = fft_autocorrelation(trajectory.positions)
     assert isinstance(autocorr, np.ndarray)
     assert isclose(autocorr.mean(), 0.8142314269325723)
     assert autocorr.shape == (trajectory.positions.shape[1],
