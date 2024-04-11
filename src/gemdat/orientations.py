@@ -67,11 +67,6 @@ class Orientations:
         """Return trajectory of satellite atoms."""
         return self.trajectory.filter(self.satellite_type)
 
-    def _fractional_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
-        """Return fractional coordinates of central atoms and satellite
-        atoms."""
-        return self._trajectory_cent.positions, self._trajectory_sat.positions
-
     @property
     def _distances(self) -> np.ndarray:
         """Calculate distances between every central atom and all satellite
@@ -148,7 +143,9 @@ class Orientations:
         direction: np.ndarray
             Contains the direction between central atoms and their ligands.
         """
-        frac_coord_cent, frac_coord_sat = self._fractional_coordinates()
+        frac_coord_cent = self._trajectory_cent.positions
+        frac_coord_sat = self._trajectory_sat.positions
+
         combinations = self._central_satellite_matrix(distance,
                                                       frac_coord_cent)
 

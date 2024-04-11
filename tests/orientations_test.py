@@ -71,12 +71,6 @@ def test_orientations(orientations):
     assert orientations._trajectory_sat.species == [Species('Si')]
 
 
-def test_fractional_coordinates(orientations):
-    frac_coord_cent, frac_coord_sat = orientations._fractional_coordinates()
-    assert isinstance(frac_coord_cent, np.ndarray)
-    assert isinstance(frac_coord_sat, np.ndarray)
-
-
 def test_distances(orientations):
     distances = orientations._distances
     assert isinstance(distances, np.ndarray)
