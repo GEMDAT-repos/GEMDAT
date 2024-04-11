@@ -23,15 +23,12 @@ class Orientations:
         Type of the central atoms
     satellite_type: str
         Type of the satellite atoms
-    nr_central_atoms: int
-        Number of central atoms, which corresponds to the number of cluster molecules
     vectors: np.ndarray
         Vectors representing orientation direction
     """
     trajectory: Trajectory
     center_type: str
     satellite_type: str
-    nr_central_atoms: int
     vectors: np.ndarray = field(init=False)
     in_vectors: InitVar[np.ndarray | None] = None
 
@@ -123,7 +120,11 @@ class Orientations:
         combinations: np.ndarray
             Matrix of combinations between central and satellite atoms
         """
-        index_central_atoms = np.arange(self.nr_central_atoms)
+        nr_central_atoms = frac_coord_cent.shape[1]
+
+        index_central_atoms = np.arange(nr_central_atoms)
+
+        # index_central_atoms = np.arange(self.nr_central_atoms)
         matching_matrix = self._matching_matrix(distance, frac_coord_cent)
         combinations = np.array([(i, j) for i in index_central_atoms
                                  for j in matching_matrix[i, :]])

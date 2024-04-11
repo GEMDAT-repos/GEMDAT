@@ -138,9 +138,8 @@ def vasp_F_graph(vasp_path_vol):
 def vasp_orientations(vasp_traj_orientations):
     central_atoms = 'S'
     satellite_atoms = 'O'
-    n_expected_neigh = 8
     orientations = Orientations(vasp_traj_orientations, central_atoms,
-                                satellite_atoms, n_expected_neigh)
+                                satellite_atoms)
 
     return orientations
 

@@ -33,6 +33,4 @@ def trajectory():
 def orientations(trajectory):
     center_type = 'B'
     satellite_type = 'Si'
-    nr_central_atoms = 1
-    return Orientations(trajectory, center_type, satellite_type,
-                        nr_central_atoms)
+    return Orientations(trajectory, center_type, satellite_type)
