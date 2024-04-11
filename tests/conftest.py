@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from pymatgen.core import Species
 
-from gemdat.rotations import Orientations
+from gemdat.orientations import Orientations
 from gemdat.trajectory import Trajectory
 
 

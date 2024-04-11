@@ -26,7 +26,7 @@ class Orientations:
     nr_central_atoms: int
         Number of central atoms, which corresponds to the number of cluster molecules
     vectors: np.ndarray
-        Vectors representing rotation direction
+        Vectors representing orientation direction
     """
     trajectory: Trajectory
     center_type: str

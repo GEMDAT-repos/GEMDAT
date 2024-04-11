@@ -5,7 +5,7 @@ from math import isclose
 import numpy as np
 from pymatgen.core import Species
 
-from gemdat.rotations import (
+from gemdat.orientations import (
     Orientations,
     calculate_spherical_areas,
 )

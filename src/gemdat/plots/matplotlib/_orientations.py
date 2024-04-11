@@ -5,7 +5,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
-from gemdat.rotations import (
+from gemdat.orientations import (
     Orientations,
     calculate_spherical_areas,
 )

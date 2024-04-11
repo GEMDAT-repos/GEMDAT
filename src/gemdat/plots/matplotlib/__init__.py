@@ -20,7 +20,7 @@ from ._paths import (
     path_on_grid,
 )
 from ._rdf import radial_distribution
-from ._rotations import (
+from ._orientations import (
     autocorrelation,
     bond_length_distribution,
     rectilinear,
