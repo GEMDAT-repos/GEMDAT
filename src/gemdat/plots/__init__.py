@@ -8,7 +8,7 @@ from .matplotlib import (
     jumps_3d_animation,
     path_on_grid,
     radial_distribution,
-    rectilinear_plot,
+    rectilinear,
     shape,
     unit_vector_autocorrelation,
 )
@@ -45,7 +45,7 @@ __all__ = [
     'plot_3d',
     'msd_per_element',
     'radial_distribution',
-    'rectilinear_plot',
+    'rectilinear',
     'shape',
     'vibrational_amplitudes',
     'energy_along_path',

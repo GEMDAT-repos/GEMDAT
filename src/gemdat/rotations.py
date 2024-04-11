@@ -6,6 +6,7 @@ import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
+from gemdat.utils import cartesian_to_spherical
 
 
 @dataclass
@@ -254,9 +255,22 @@ class Orientations:
         np.array
             azimuth, elevation, length
         """
-
-        from gemdat.utils import cartesian_to_spherical
         return cartesian_to_spherical(self.vectors)
+
+    def plot_rectilinear(self, **kwargs):
+        """See [gemdat.plots.rectilinear][] for more info."""
+        from gemdat import plots
+        return plots.rectilinear(orientations=self, **kwargs)
+
+    def plot_bond_length_distribution(self, **kwargs):
+        """See [gemdat.plots.bond_length_distribution][] for more info."""
+        from gemdat import plots
+        return plots.bond_length_distribution(orientations=self, **kwargs)
+
+    def plot_unit_vector_autocorrelation(self, **kwargs):
+        """See [gemdat.plots.unit_vector_autocorrelation][] for more info."""
+        from gemdat import plots
+        return plots.unit_vector_autocorrelation(orientations=self, **kwargs)
 
 
 def calculate_spherical_areas(shape: tuple[int, int],

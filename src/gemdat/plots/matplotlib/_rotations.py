@@ -12,10 +12,10 @@ from gemdat.rotations import (
 )
 
 
-def rectilinear_plot(*,
-                     orientations: Orientations,
-                     shape: tuple[int, int] = (90, 360),
-                     normalize_histo: bool = True) -> plt.Figure:
+def rectilinear(*,
+                orientations: Orientations,
+                shape: tuple[int, int] = (90, 360),
+                normalize_histo: bool = True) -> plt.Figure:
     """Plot a rectilinear projection of a spherical function. This function
     uses the transformed trajectory.
 

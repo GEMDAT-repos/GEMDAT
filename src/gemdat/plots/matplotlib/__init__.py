@@ -22,7 +22,7 @@ from ._paths import (
 from ._rdf import radial_distribution
 from ._rotations import (
     bond_length_distribution,
-    rectilinear_plot,
+    rectilinear,
     unit_vector_autocorrelation,
 )
 from ._shape import shape
@@ -46,7 +46,7 @@ __all__ = [
     'msd_per_element',
     'path_on_grid',
     'radial_distribution',
-    'rectilinear_plot',
+    'rectilinear',
     'shape',
     'unit_vector_autocorrelation',
     'vibrational_amplitudes',
