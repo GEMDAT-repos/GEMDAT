@@ -149,6 +149,16 @@ class Pathway:
         """Return stop site."""
         return self.sites[-1]
 
+    def plot_energy_along_path(self, **kwargs):
+        """See [gemdat.plots.energy_along_path][] for more info."""
+        from gemdat import plots
+        return plots.energy_along_path(path=self, **kwargs)
+
+    def plot_path_on_grid(self, **kwargs):
+        """See [gemdat.plots.path_on_grid][] for more info."""
+        from gemdat import plots
+        return plots.path_on_grid(path=self, **kwargs)
+
 
 def free_energy_graph(F: np.ndarray | Volume,
                       max_energy_threshold: float = 1e20,

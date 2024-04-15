@@ -7,29 +7,27 @@ from gemdat.path import Pathway
 
 
 def energy_along_path(
+    path: Pathway,
     *,
-    paths: Pathway | list[Pathway],
     structure: Structure,
+    other_paths: list[Pathway] | None = None,
 ) -> plt.Figure:
     """Plot energy along specified path.
 
     Parameters
     ----------
-    paths : Pathway | list[Pathway]
+    path : Pathway | list[Pathway]
         Pathway object containing the energy along the path, or list of Pathways
     structure : Structure
         Structure object to get the site information
+    other_paths : Pathway | list[Pathway]
+        Optional list of alternative paths to plot
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         Output figure
     """
-    # The first Pathway in paths is assumed to be the optimal one
-    if isinstance(paths, list):
-        path = paths[0]
-    else:
-        path = paths
 
     fig, ax = plt.subplots(figsize=(8, 4))
 
@@ -90,8 +88,8 @@ def energy_along_path(
     ax_up.get_yaxis().set_visible(False)
 
     # If available, plot the other pathways
-    if isinstance(paths, list):
-        for idx, path in enumerate(paths[1:]):
+    if other_paths:
+        for idx, path in enumerate(other_paths):
             if path.energy is None:
                 raise ValueError('Pathway does not contain energy data')
             ax.plot(range(len(path.energy)),
@@ -102,7 +100,7 @@ def energy_along_path(
     return fig
 
 
-def path_on_grid(*, path: Pathway) -> plt.Figure:
+def path_on_grid(path: Pathway) -> plt.Figure:
     """Plot the 3d coordinates of the points that define a path.
 
     Parameters
@@ -115,11 +113,6 @@ def path_on_grid(*, path: Pathway) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    if path.energy is None:
-        raise ValueError('Pathway does not contain energy data')
-    if path.sites is None:
-        raise ValueError('Pathway does not contain site data')
-
     # Create a colormap to visualize the path
     colormap = plt.get_cmap()
     normalize = plt.Normalize(0, len(path.energy))
