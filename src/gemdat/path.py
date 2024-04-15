@@ -17,7 +17,7 @@ from gemdat.volume import Volume
 from .utils import nearest_structure_reference
 
 if TYPE_CHECKING:
-    from pymatgen.core import Lattice
+    from pymatgen.core import Lattice, PeriodicSite
 
 
 @dataclass
@@ -110,7 +110,7 @@ class Pathway:
     def path_over_structure(
         self,
         structure: Structure,
-    ) -> tuple[list[str], list[np.ndarray]]:
+    ) -> list[PeriodicSite]:
         """Find the nearest site of the structure to the path sites.
 
         Parameters
@@ -120,10 +120,8 @@ class Pathway:
 
         Returns
         -------
-        nearest_structure_label: list[str]
-            List of the label of the closest site of the reference structure
-        nearest_structure_coord: list[np.ndarray]
-            List of cartesian coordinates of the closest site of the reference structure
+        nearest_sites: list[PeriodicSite]
+            List closest sites of the reference structure
         """
         frac_sites = np.array(self.frac_sites(wrapped=True))
 
@@ -135,18 +133,11 @@ class Pathway:
             nearest_structure_tree.query(site)[1] for site in frac_sites
         ]
         # and use it to get its label and coordinates
-        nearest_structure_label = [
-            structure.labels[nearest_structure_map[index]]
+        nearest_sites = [
+            structure[nearest_structure_map[index]]
             for index in nearest_structure_indices
         ]
-        nearest_structure_coord = [
-            structure.cart_coords[nearest_structure_map[index]]
-            for index in nearest_structure_indices
-        ]
-
-        # TODO: Return as dict?
-
-        return nearest_structure_label, nearest_structure_coord
+        return nearest_sites
 
     @property
     def start_site(self) -> tuple[int, int, int]:

@@ -58,16 +58,16 @@ def test_nearest_structure_reference(vasp_path_vol, vasp_path):
 
     assert vasp_path_vol.dims == vasp_path.dims
 
-    nearest_structure_label, nearest_structure_coord = vasp_path.path_over_structure(
-        structure)
+    nearest_sites = vasp_path.path_over_structure(structure)
 
-    assert nearest_structure_label[0] == '48h'
-    assert nearest_structure_label[10] == '48h'
+    assert all(s.label == '48h' for s in nearest_sites)
 
-    assert isclose(nearest_structure_coord[0][0], 3.145908)
-    assert isclose(nearest_structure_coord[0][1], 8.107908)
-    assert isclose(nearest_structure_coord[20][2], 5.200176)
-    assert isclose(nearest_structure_coord[-1][-1], 5.200176)
+    np.testing.assert_allclose(nearest_sites[0].coords,
+                               [3.145908, 8.107908, 5.200176])
+    np.testing.assert_allclose(nearest_sites[20].coords,
+                               [1.816092, 6.778092, 5.200176])
+    np.testing.assert_allclose(nearest_sites[-1].coords,
+                               [3.145908, 8.107908, 5.200176])
 
 
 @pytest.vaspxml_available  # type: ignore
