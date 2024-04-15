@@ -4,6 +4,7 @@ from math import isclose
 
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 
 from gemdat.io import load_known_material
 from gemdat.path import multiple_paths, optimal_path
@@ -58,16 +59,13 @@ def test_nearest_structure_reference(vasp_path_vol, vasp_path):
 
     assert vasp_path_vol.dims == vasp_path.dims
 
-    nearest_sites = vasp_path.path_over_structure(structure)
+    nearest = vasp_path.path_over_structure(structure)
 
-    assert all(s.label == '48h' for s in nearest_sites)
+    assert all(s.label == '48h' for s in nearest)
 
-    np.testing.assert_allclose(nearest_sites[0].coords,
-                               [3.145908, 8.107908, 5.200176])
-    np.testing.assert_allclose(nearest_sites[20].coords,
-                               [1.816092, 6.778092, 5.200176])
-    np.testing.assert_allclose(nearest_sites[-1].coords,
-                               [3.145908, 8.107908, 5.200176])
+    assert_allclose(nearest[0].coords, [3.145908, 8.107908, 5.200176])
+    assert_allclose(nearest[20].coords, [1.816092, 6.778092, 5.200176])
+    assert_allclose(nearest[-1].coords, [3.145908, 8.107908, 5.200176])
 
 
 @pytest.vaspxml_available  # type: ignore

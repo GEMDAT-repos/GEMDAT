@@ -3,6 +3,7 @@ from __future__ import annotations
 from math import isclose
 
 import numpy as np
+from numpy.testing import assert_allclose
 from pymatgen.core import Species
 
 from gemdat.rotations import (
@@ -32,8 +33,8 @@ def test_normalize(trajectory):
                                 in_vectors=np.array([[1, 2, 2], [2, 2, 1]],
                                                     dtype=float))
     ret = orientations.normalize()
-    assert np.allclose(
-        ret.vectors, np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]]))
+    assert_allclose(ret.vectors,
+                    np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]]))
 
 
 def test_conventional(trajectory):
@@ -46,8 +47,7 @@ def test_conventional(trajectory):
                                     dtype=float))
     matrix = np.eye(3) * [1, 2, 3]
     ret = orientations.transform(matrix=matrix)
-    assert np.allclose(ret.vectors, np.array([[1, 0, 0], [0, 2, 0], [0, 0,
-                                                                     3]]))
+    assert_allclose(ret.vectors, np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]]))
 
 
 def test_symmetrize(trajectory):
@@ -59,7 +59,7 @@ def test_symmetrize(trajectory):
                                                     dtype=float))
     sym_ops = np.array([[0, -1, 0], [1, 0, 0], [0, 0, -1]])
     ret = orientations.symmetrize(sym_ops=sym_ops)
-    assert np.allclose(
+    assert_allclose(
         ret.vectors,
         np.array([[[0., 1., 0.], [-1., 0., 0.], [0., 0., -1.]],
                   [[0., 1., 0.], [-1., 0., 0.], [0., 0., -1.]]]))
