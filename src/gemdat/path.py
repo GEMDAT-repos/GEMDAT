@@ -25,16 +25,21 @@ class Pathway:
         List of voxel coordinates of the sites defining the path
     energy: list[float]
         List of the energy along the path
+    dims: [int, int, int] | None
+        Voxel dimensions of bounding box. If set (usually to `Volume.dims`),
+        enable some site transformations.
     """
 
     sites: list[tuple[int, int, int]]
     energy: list[float]
+    dims: tuple[int, int, int] | None = None
 
     def __repr__(self):
         s = (
             f'Path: {self.start_site} -> {self.stop_site}',
             f'Steps: {len(self.sites)}',
             f'Total energy: {self.total_energy:.3f} eV',
+            f'Dimensions: {self.dims}',
         )
 
         return '\n'.join(s)
@@ -44,21 +49,43 @@ class Pathway:
         """Return total energy for path."""
         return sum(self.energy)
 
-    def wrap(self, dims: tuple[int, int, int]):
-        """Wrap path in periodic boundary conditions in-place.
+    def wrapped_sites(self) -> list[tuple[int, int, int]]:
+        """Wrap sites to bounding box.
+
+        Returns
+        -------
+        np.ndarray
+            Voxel coordinates wrapped to bounding box.
+        """
+        if not self.dims:
+            raise AttributeError(
+                f'Dimensions are needed for this method {self.dims=}')
+        xdim, xdim, xdim = self.dims
+        return [(x % xdim, y % xdim, z % xdim) for x, y, z in self.sites]
+
+    def frac_sites(self, wrapped: bool = False) -> np.ndarray:
+        """Return fractional sites.
 
         Parameters
         ----------
-        F: np.ndarray
-            Grid in which the path sites will be wrapped
+        wrapped : bool
+            If True, wrap coordinates to bounding box using
+            `.wrapped_sites()`.
+
+        Returns
+        -------
+        np.ndarray
+            Fractional coordinates for sites
         """
-        X, Y, Z = dims
-        self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
+        if not self.dims:
+            raise AttributeError(
+                f'Dimensions are needed for this method {self.dims=}')
+        sites = self.wrapped_sites() if wrapped else self.sites
+        return (np.array(sites) + 0.5) / np.array(self.dims)
 
     def path_over_structure(
         self,
         structure: Structure,
-        volume: Volume,
     ) -> tuple[list[str], list[np.ndarray]]:
         """Find the nearest site of the structure to the path sites.
 
@@ -66,8 +93,6 @@ class Pathway:
         ----------
         structure : Structure
             Reference structure
-        volume : Volume
-            Volume object that contains the information about the nearest sites of the structure
 
         Returns
         -------
@@ -76,7 +101,8 @@ class Pathway:
         nearest_structure_coord: list[np.ndarray]
             List of cartesian coordinates of the closest site of the reference structure
         """
-        frac_sites = volume.voxel_to_frac_coords(np.array(self.sites))
+        frac_sites = np.array(self.frac_sites(wrapped=True))
+
         nearest_structure_tree, nearest_structure_map = nearest_structure_reference(
             structure)
 
@@ -93,6 +119,8 @@ class Pathway:
             structure.cart_coords[nearest_structure_map[index]]
             for index in nearest_structure_indices
         ]
+
+        # TODO: Return as dict?
 
         return nearest_structure_label, nearest_structure_coord
 
@@ -420,8 +448,6 @@ def find_best_perc_path(F: Volume,
     best_percolating_path: Pathway
         Optimal path that percolates the graph in the specified directions
     """
-    xyz_real = F.dims
-
     # Find percolation using virtual images along the required dimensions
     if not any([percolate_x, percolate_y, percolate_z]):
         raise ValueError('percolation is not defined')
@@ -438,7 +464,7 @@ def find_best_perc_path(F: Volume,
     # reaching the percolating image
     image = tuple(
         x * px
-        for x, px in zip(xyz_real, (percolate_x, percolate_y, percolate_z)))
+        for x, px in zip(F.dims, (percolate_x, percolate_y, percolate_z)))
 
     # Find the lowest cost path that percolates along the x dimension
     best_cost = float('inf')
@@ -466,7 +492,7 @@ def find_best_perc_path(F: Volume,
             best_path = path
 
     if best_path:
-        # Before returning, wrap the path in the original volume
-        best_path.wrap(F.dims)
+        # Before returning, set dimensions of original volume
+        best_path.dims = F.dims
 
     return best_path

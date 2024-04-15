@@ -46,7 +46,7 @@ def energy_along_path(
     ax.set(ylabel='Free energy [eV]')
 
     nearest_structure_label, nearest_structure_coord = path.path_over_structure(
-        structure, volume)
+        structure)
 
     # Create costum labels for the x axis to avoid consecutive repetitions
     site_xlabel = []

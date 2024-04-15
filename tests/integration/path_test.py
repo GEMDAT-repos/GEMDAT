@@ -11,7 +11,7 @@ from gemdat.path import multiple_paths, optimal_path
 
 @pytest.vaspxml_available  # type: ignore
 def test_fractional_coordinates(vasp_path_vol, vasp_path):
-    frac_sites = vasp_path_vol.voxel_to_frac_coords(vasp_path.sites)
+    frac_sites = vasp_path.frac_sites(wrapped=True)
 
     assert isclose(frac_sites[-1][0], 0.4107142857142857)
     assert isclose(frac_sites[19][1], 0.6785714285714286)
@@ -48,8 +48,10 @@ def test_find_best_perc_path(vasp_path):
 def test_nearest_structure_reference(vasp_path_vol, vasp_path):
     structure = load_known_material('argyrodite')
 
+    assert vasp_path_vol.dims == vasp_path.dims
+
     nearest_structure_label, nearest_structure_coord = vasp_path.path_over_structure(
-        structure, vasp_path_vol)
+        structure)
 
     assert nearest_structure_label[0] == '48h'
     assert nearest_structure_label[10] == '48h'
