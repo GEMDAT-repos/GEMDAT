@@ -84,7 +84,7 @@ class Pathway:
         if not self.dims:
             raise AttributeError(
                 f'Dimensions are needed for this method {self.dims=}')
-        xdim, xdim, xdim = self.dims
+        xdim, ydim, zdim = self.dims
         return [(x % xdim, y % xdim, z % xdim) for x, y, z in self.sites]
 
     def frac_sites(self, wrapped: bool = False) -> np.ndarray:
