@@ -4,14 +4,12 @@ import matplotlib.pyplot as plt
 from pymatgen.core import Structure
 
 from gemdat.path import Pathway
-from gemdat.volume import Volume
 
 
 def energy_along_path(
     *,
     paths: Pathway | list[Pathway],
     structure: Structure,
-    volume: Volume,
 ) -> plt.Figure:
     """Plot energy along specified path.
 
@@ -21,8 +19,6 @@ def energy_along_path(
         Pathway object containing the energy along the path, or list of Pathways
     structure : Structure
         Structure object to get the site information
-    volume : Volume
-        Volume object to get the site information
 
     Returns
     -------
@@ -35,41 +31,43 @@ def energy_along_path(
     else:
         path = paths
 
-    if path.energy is None:
-        raise ValueError('Pathway does not contain energy data')
-    if path.sites is None:
-        raise ValueError('Pathway does not contain site data')
-
     fig, ax = plt.subplots(figsize=(8, 4))
 
     ax.plot(path.energy, marker='o', color='r', label='Optimal path')
     ax.set(ylabel='Free energy [eV]')
 
-    nearest_structure_label, nearest_structure_coord = path.path_over_structure(
-        structure)
+    nearest_sites = path.path_over_structure(structure)
 
     # Create costum labels for the x axis to avoid consecutive repetitions
     site_xlabel = []
     sitecoord_xlabel = []
-    for i in range(len(path.sites)):
-        coord = nearest_structure_coord[i]
+
+    prev = nearest_sites[0]
+    for i, site in enumerate(nearest_sites):
         # only non repeated labels will get an entry
-        if (coord != nearest_structure_coord[i - 1]).any() or i == 0:
-            sitecoord_xlabel.append(', '.join([f'{val:.1f}' for val in coord]))
-            site_xlabel.append(f'{nearest_structure_label[i]}')
+        if (site.coords != prev.coords).any() or i == 0:
+            sitecoord_xlabel.append(', '.join(f'{val:.1f}'
+                                              for val in site.coords))
+            site_xlabel.append(site.label)
         else:
             sitecoord_xlabel.append('')
             site_xlabel.append('')
+
+        prev = site
+
     non_empty_ticks = [
         i for i, label in enumerate(sitecoord_xlabel) if label != ''
     ]
+
     extra_ticks = non_empty_ticks.copy()
     extra_ticks.append(ax.get_xlim()[1])
     centered_ticks = [(extra_ticks[i] + extra_ticks[i + 1]) / 2
                       for i in range(len(extra_ticks) - 1)]
+
     ax.set_xticks(centered_ticks)
     ax.set_xticklabels([sitecoord_xlabel[i] for i in non_empty_ticks],
                        rotation=45)
+
     # Change background color alternatively for different sites
     for i in range(0, len(non_empty_ticks), 2):
         if i + 1 < len(non_empty_ticks):
@@ -82,6 +80,7 @@ def energy_along_path(
                        max(non_empty_ticks),
                        facecolor='lightgray',
                        edgecolor='none')
+
     # and add on top the site labels
     ax_up = ax.twiny()
     ax_up.set_xlim(ax.get_xlim())
