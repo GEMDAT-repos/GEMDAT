@@ -4,15 +4,20 @@ between sites."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from itertools import pairwise
+from typing import TYPE_CHECKING, Literal
 
 import networkx as nx
 import numpy as np
 from pymatgen.core import Structure
+from pymatgen.core.units import FloatWithUnit
 
 from gemdat.volume import Volume
 
 from .utils import nearest_structure_reference
+
+if TYPE_CHECKING:
+    from pymatgen.core import Lattice
 
 
 @dataclass
@@ -48,6 +53,25 @@ class Pathway:
     def total_energy(self):
         """Return total energy for path."""
         return sum(self.energy)
+
+    def total_length(self, lattice: Lattice) -> FloatWithUnit:
+        """Return total length of pathway in Ångstrom.
+
+        Parameters
+        ----------
+        lattice : Lattice
+            Lattice parameters
+
+        Returns
+        -------
+        length : FloatWithUnit
+            Total distance in Ångstrom
+        """
+        length = 0
+        for a, b in pairwise(self.frac_sites()):
+            dist, _ = lattice.get_distance_and_image(a, b)
+            length += dist
+        return FloatWithUnit(length, 'ang')
 
     def wrapped_sites(self) -> list[tuple[int, int, int]]:
         """Wrap sites to bounding box.

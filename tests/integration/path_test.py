@@ -45,6 +45,14 @@ def test_find_best_perc_path(vasp_path):
 
 
 @pytest.vaspxml_available  # type: ignore
+def test_path_length(vasp_path_vol, vasp_path):
+    structure = load_known_material('argyrodite')
+    length = vasp_path.total_length(structure.lattice)
+    assert length == 20.10367043479136
+    assert str(length.unit) == 'ang'
+
+
+@pytest.vaspxml_available  # type: ignore
 def test_nearest_structure_reference(vasp_path_vol, vasp_path):
     structure = load_known_material('argyrodite')
 
