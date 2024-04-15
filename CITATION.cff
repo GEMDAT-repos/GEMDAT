@@ -2,7 +2,7 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: gemdat
+title: GEMDAT
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
@@ -34,5 +34,8 @@ keywords:
   - plastic crystals
   - molecular dynamics
   - batteries
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.8401669
 license: Apache-2.0
 version: 1.2.1
