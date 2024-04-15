@@ -102,13 +102,6 @@ def vasp_shape_data(vasp_traj):
 
 
 @pytest.fixture(scope='module')
-def vasp_full_vol(vasp_full_traj):
-    trajectory = vasp_full_traj
-    diff_trajectory = trajectory.filter('Li')
-    return trajectory_to_volume(trajectory=diff_trajectory, resolution=0.3)
-
-
-@pytest.fixture(scope='module')
 def vasp_path_vol(vasp_full_traj):
     trajectory = vasp_full_traj
     diff_trajectory = trajectory.filter('Li')
@@ -116,7 +109,7 @@ def vasp_path_vol(vasp_full_traj):
 
 
 @pytest.fixture(scope='module')
-def vasp_full_path(vasp_path_vol):
+def vasp_path(vasp_path_vol):
     peaks = vasp_path_vol.find_peaks()
     F = vasp_path_vol.get_free_energy(temperature=650.0)
     path = find_best_perc_path(F,
