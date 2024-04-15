@@ -52,9 +52,6 @@ class Pathway:
         F: np.ndarray
             Grid in which the path sites will be wrapped
         """
-        if self.sites is None:
-            raise ValueError('Voxel coordinates of the path are required.')
-
         X, Y, Z = dims
         self.sites = [(x % X, y % Y, z % Z) for x, y, z in self.sites]
 
@@ -102,15 +99,11 @@ class Pathway:
     @property
     def start_site(self) -> tuple[int, int, int]:
         """Return first site."""
-        if self.sites is None:
-            raise ValueError('Voxel coordinates of the path are required.')
         return self.sites[0]
 
     @property
     def stop_site(self) -> tuple[int, int, int]:
         """Return stop site."""
-        if self.sites is None:
-            raise ValueError('Voxel coordinates of the path are required.')
         return self.sites[-1]
 
 
