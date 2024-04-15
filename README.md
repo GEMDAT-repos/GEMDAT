@@ -90,7 +90,11 @@ metrics.vibration_amplitude()
 
 Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-development) to get started with development.
 
-## References
+## How to Cite
+
+Azizi, V., Smeets, S., Lavrinenko, A. K., & Ciarella, S. GEMDAT (Version 1.2.1) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
+
+## Credits
 
 The code in this repository is based on [Matlab code to analyse Molecular Dynamics simulations](https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/).
 
