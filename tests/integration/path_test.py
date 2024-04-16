@@ -7,7 +7,7 @@ import pytest
 from numpy.testing import assert_allclose
 
 from gemdat.io import load_known_material
-from gemdat.path import multiple_paths, optimal_path
+from gemdat.path import optimal_n_paths, optimal_path
 
 
 @pytest.vaspxml_available  # type: ignore
@@ -40,7 +40,7 @@ def test_optimal_path(vasp_F_graph, start, stop, method, expected):
 
 
 @pytest.vaspxml_available  # type: ignore
-def test_find_best_perc_path(vasp_path):
+def test_optimal_percolating_path(vasp_path):
     assert isclose(vasp_path.total_energy, 11.488013690080908)
     assert vasp_path.start_site == (11, 9, 6)
 
@@ -69,8 +69,8 @@ def test_nearest_structure_reference(vasp_path_vol, vasp_path):
 
 
 @pytest.vaspxml_available  # type: ignore
-def test_multiple_paths(vasp_F_graph):
-    paths = multiple_paths(F_graph=vasp_F_graph,
+def test_optimal_n_paths(vasp_F_graph):
+    paths = optimal_n_paths(F_graph=vasp_F_graph,
                            start=(10, 4, 13),
                            stop=(21, 3, 10),
                            n_paths=3,

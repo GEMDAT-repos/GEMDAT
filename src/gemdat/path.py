@@ -278,7 +278,7 @@ def _paths_too_similar(path: list, list_of_paths: list,
     return False
 
 
-def multiple_paths(
+def optimal_n_paths(
     F_graph: nx.Graph,
     *,
     start: Collection,
@@ -458,7 +458,7 @@ def _optimal_path_minmax_energy(
     return optimal_path
 
 
-def find_best_perc_path(F: FreeEnergyVolume,
+def optimal_percolating_path(F: FreeEnergyVolume,
                         *,
                         peaks: np.ndarray,
                         percolate_x: bool = True,

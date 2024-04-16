@@ -415,19 +415,19 @@ class FreeEnergyVolume(Volume):
         path.dims = self.dims
         return path
 
-    def multiple_paths(self,
+    def optimal_n_paths(self,
                        F_graph: nx.Graph | None = None,
                        **kwargs) -> list[Pathway]:
         """Calculate the n_paths shortest paths between two sites on the graph.
 
-        See [gemdat.path.multiple_paths][] for more info.
+        See [gemdat.path.optimal_n_paths][] for more info.
         """
-        from .path import multiple_paths
+        from .path import optimal_n_paths
 
         if not F_graph:
             F_graph = self.free_energy_graph(max_energy_threshold=1e7)
 
-        paths = multiple_paths(F_graph, **kwargs)
+        paths = optimal_n_paths(F_graph, **kwargs)
 
         for path in paths:
             path.dims = self.dims
@@ -436,10 +436,10 @@ class FreeEnergyVolume(Volume):
     def optimal_percolating_path(self, **kwargs) -> Pathway | None:
         """Calculate the optimal percolating path.
 
-        See [gemdat.path.find_best_perc_path][] for more info.
+        See [gemdat.path.optimal_percolating_path][] for more info.
         """
-        from .path import find_best_perc_path
-        return find_best_perc_path(self, **kwargs)
+        from .path import optimal_percolating_path
+        return optimal_percolating_path(self, **kwargs)
 
 
 def trajectory_to_volume(
