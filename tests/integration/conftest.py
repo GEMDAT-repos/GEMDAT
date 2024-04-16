@@ -6,7 +6,6 @@ import pytest
 
 from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
-from gemdat.path import optimal_percolating_path, free_energy_graph
 from gemdat.rdf import radial_distribution
 from gemdat.rotations import Orientations
 from gemdat.shape import ShapeAnalyzer
@@ -111,21 +110,15 @@ def vasp_path_vol(vasp_full_traj):
 @pytest.fixture(scope='module')
 def vasp_path(vasp_path_vol):
     peaks = vasp_path_vol.find_peaks()
-    F = vasp_path_vol.get_free_energy(temperature=650.0)
-    path = optimal_percolating_path(F,
-                               peaks=peaks,
-                               percolate_x=True,
-                               percolate_y=False,
-                               percolate_z=False)
+    free_energy = vasp_path_vol.get_free_energy(temperature=650.0)
+    path = free_energy.optimal_percolating_path(peaks=peaks, percolate='x')
     return path
 
 
 @pytest.fixture(scope='module')
 def vasp_F_graph(vasp_path_vol):
-    F = vasp_path_vol.get_free_energy(temperature=650.0)
-    F_graph = free_energy_graph(F, max_energy_threshold=1e7, diagonal=True)
-
-    return F_graph
+    free_energy = vasp_path_vol.get_free_energy(temperature=650.0)
+    return free_energy.free_energy_graph()
 
 
 @pytest.fixture(scope='module')
