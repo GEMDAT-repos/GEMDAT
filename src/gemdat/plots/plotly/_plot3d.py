@@ -205,24 +205,16 @@ def plot_paths(
     x_path, y_path, z_path = lattice.get_cartesian_coords(
         path.frac_sites(wrapped=True)).T
 
-    fig.add_trace(
-        go.Scatter3d(
-            x=x_path,
-            y=y_path,
-            z=z_path,
-            mode='markers+lines',
-            line={'width': 3},
-            marker={
-                'size': 6,
-                'color': 'teal',
-                'symbol': 'circle',
-                'opacity': 0.9
-            },
-            name='Optimal path',
-        ))
+    for idx, path in enumerate(paths):
+        if idx == 0:
+            name = 'Optimal path'
+            size = 6
+            color = 'teal'
+        else:
+            name = f'Alternative {idx+1}'
+            size = 5
+            color = None
 
-    # If available, plot the other pathways
-    for idx, path in enumerate(other_paths):
         x_path, y_path, z_path = lattice.get_cartesian_coords(
             path.frac_sites(wrapped=True)).T
 
@@ -234,12 +226,12 @@ def plot_paths(
                 mode='markers+lines',
                 line={'width': 3},
                 marker={
-                    'size': 5,
-                    #'color': color,
+                    'size': size,
+                    'color': color,
                     'symbol': 'circle',
                     'opacity': 0.9
                 },
-                name=f'Alternative {idx+1}',
+                name=name,
             ))
 
 
