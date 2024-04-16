@@ -59,12 +59,11 @@ class Volume:
         pbc = ' '.join(str(p).rjust(10) for p in self.lattice.pbc)
 
         s = (
-            f'Data: {self.data.shape}',
+            f'Data: {self.dims}',
             f'Lattice, abc: {abc}',
             f'      angles: {angles}',
             f'         pbc: {pbc}',
             f'Label: {self.label}{units}',
-            f'Dimensions: {self.dims}',
         )
         return '\n'.join(s)
 
