@@ -68,44 +68,6 @@ class Volume:
         )
         return '\n'.join(s)
 
-    def free_energy_graph(self, **kwargs) -> nx.Graph:
-        """Compute the graph of the free energy for networkx functions.
-
-        See [gemdat.path.free_energy_graph][] for more info.
-        """
-        from .path import free_energy_graph
-        return free_energy_graph(self.data, **kwargs)
-
-    def optimal_path(self, *args, F_graph: nx.Graph | None = None, **kwargs):
-        """Calculate the shortest cost-effective path using the desired method.
-
-        Parameters
-        ----------
-        F_graph : Graph | None
-            Optionally, define your own free energy graph. Otherwise,
-            it will be calculated on the fly using default parameters.
-        **kwargs:
-            These parameters are passed to [gemdat.path.optimal_path][].
-            See [gemdat.path.optimal_path][] for more info.
-
-        Returns
-        -------
-        path : Pathway
-            Voxel coordinates and energy of optimal path from start to stop.
-        """
-        if not self.label == 'free_energy':
-            return TypeError(
-                f'Cannot calculate path for class of type `{self.label}`')
-
-        from .path import optimal_path
-
-        if not F_graph:
-            F_graph = self.free_energy_graph(max_energy_threshold=1e7)
-
-        path = optimal_path(F_graph, *args, **kwargs)
-        path.dims = self.dims
-        return path
-
     def normalized(self) -> np.ndarray:
         """Return normalized data."""
         return self.data / self.data.max()
@@ -404,17 +366,52 @@ class Volume:
         free_energy = -temperature * physical_constants[
             'Boltzmann constant in eV/K'][0] * np.log(prob)
 
-        return Volume(
+        return FreeEnergyVolume(
             data=np.nan_to_num(free_energy),
             lattice=self.lattice,
-            label='free_energy',
-            units=Unit('eV K-1'),
         )
 
     def plot_3d(self, **kwargs):
         """See [gemdat.plots.plot_3d][] for more info."""
         from gemdat import plots
         return plots.plot_3d(volume=self, **kwargs)
+
+
+class FreeEnergyVolume(Volume):
+
+    def free_energy_graph(self, **kwargs) -> nx.Graph:
+        """Compute the graph of the free energy for networkx functions.
+
+        See [gemdat.path.free_energy_graph][] for more info.
+        """
+        from .path import free_energy_graph
+        return free_energy_graph(self.data, **kwargs)
+
+    def optimal_path(self, *args, F_graph: nx.Graph | None = None, **kwargs):
+        """Calculate the shortest cost-effective path using the desired method.
+
+        Parameters
+        ----------
+        F_graph : Graph | None
+            Optionally, define your own free energy graph. Otherwise,
+            it will be calculated on the fly using default parameters.
+        **kwargs:
+            These parameters are passed to [gemdat.path.optimal_path][].
+            See [gemdat.path.optimal_path][] for more info.
+
+        Returns
+        -------
+        path : Pathway
+            Voxel coordinates and energy of optimal path from start to stop.
+        """
+        from .path import optimal_path
+
+        if not F_graph:
+            F_graph = self.free_energy_graph(max_energy_threshold=1e7)
+
+        path = optimal_path(F_graph, *args, **kwargs)
+        path.dims = self.dims
+        return path
 
 
 def trajectory_to_volume(

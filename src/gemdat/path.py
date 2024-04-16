@@ -12,7 +12,7 @@ import numpy as np
 from pymatgen.core import Structure
 from pymatgen.core.units import FloatWithUnit
 
-from gemdat.volume import Volume
+from gemdat.volume import FreeEnergyVolume
 
 from .utils import nearest_structure_reference
 
@@ -160,14 +160,14 @@ class Pathway:
         return plots.path_on_grid(path=self, **kwargs)
 
 
-def free_energy_graph(F: np.ndarray | Volume,
+def free_energy_graph(F: np.ndarray | FreeEnergyVolume,
                       max_energy_threshold: float = 1e20,
                       diagonal: bool = True) -> nx.Graph:
     """Compute the graph of the free energy for networkx functions.
 
     Parameters
     ----------
-    F : np.ndarray | Volume
+    F : np.ndarray | FreeEnergyVolume
         Free energy on the 3d grid
     max_energy_threshold : float, optional
         Maximum energy threshold for the path to be considered valid
@@ -194,7 +194,7 @@ def free_energy_graph(F: np.ndarray | Volume,
 
     G = nx.Graph()
 
-    data = F.data if isinstance(F, Volume) else F
+    data = F.data if isinstance(F, FreeEnergyVolume) else F
 
     for index, Fi in np.ndenumerate(data):
         if 0 <= Fi < max_energy_threshold:
@@ -451,7 +451,7 @@ def _optimal_path_minmax_energy(
     return optimal_path
 
 
-def find_best_perc_path(F: Volume,
+def find_best_perc_path(F: FreeEnergyVolume,
                         peaks: np.ndarray,
                         percolate_x: bool = True,
                         percolate_y: bool = False,
@@ -460,7 +460,7 @@ def find_best_perc_path(F: Volume,
 
     Parameters
     ----------
-    F : Volume
+    F : FreeEnergyVolume
         Energy grid that will be used to calculate the shortest path
     peaks : np.ndarray
         List of the peaks that correspond to high probability regions
