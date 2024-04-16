@@ -458,12 +458,12 @@ def _optimal_path_minmax_energy(
     return optimal_path
 
 
-def optimal_percolating_path(F: FreeEnergyVolume,
-                        *,
-                        peaks: np.ndarray,
-                        percolate_x: bool = True,
-                        percolate_y: bool = False,
-                        percolate_z: bool = False) -> Pathway | None:
+def optimal_percolating_path(
+    F: FreeEnergyVolume,
+    *,
+    peaks: np.ndarray,
+    percolate: str,
+) -> Pathway | None:
     """Calculate the optimal percolating path.
 
     Parameters
@@ -472,19 +472,20 @@ def optimal_percolating_path(F: FreeEnergyVolume,
         Energy grid that will be used to calculate the shortest path
     peaks : np.ndarray
         List of the peaks that correspond to high probability regions
-    percolate_x : bool
-        If True, consider paths that percolate along the x dimension
-    percolate_y : bool
-        If True, consider paths that percolate along the y dimension
-    percolate_z : bool
-        If True, consider paths that percolate along the z dimension
+    percolate : str
+        Directions to percolate, e.g. 'x' to consider paths that
+        percolate along the x dimension, 'yz' for the y/z dimension,
+        or any other combinition of 'x', 'y', and 'z'.
 
     Returns
     -------
     best_percolating_path: Pathway
         Optimal path that percolates the graph in the specified directions
     """
-    # Find percolation using virtual images along the required dimensions
+    percolate_x = 'x' in percolate
+    percolate_y = 'y' in percolate
+    percolate_z = 'z' in percolate
+
     if not any([percolate_x, percolate_y, percolate_z]):
         raise ValueError('percolation is not defined')
 
