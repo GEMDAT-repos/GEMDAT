@@ -416,8 +416,8 @@ class FreeEnergyVolume(Volume):
         return path
 
     def optimal_n_paths(self,
-                       F_graph: nx.Graph | None = None,
-                       **kwargs) -> list[Pathway]:
+                        F_graph: nx.Graph | None = None,
+                        **kwargs) -> list[Pathway]:
         """Calculate the n_paths shortest paths between two sites on the graph.
 
         See [gemdat.path.optimal_n_paths][] for more info.

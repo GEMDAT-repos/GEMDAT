@@ -71,10 +71,10 @@ def test_nearest_structure_reference(vasp_path_vol, vasp_path):
 @pytest.vaspxml_available  # type: ignore
 def test_optimal_n_paths(vasp_F_graph):
     paths = optimal_n_paths(F_graph=vasp_F_graph,
-                           start=(10, 4, 13),
-                           stop=(21, 3, 10),
-                           n_paths=3,
-                           min_diff=0.1)
+                            start=(10, 4, 13),
+                            stop=(21, 3, 10),
+                            n_paths=3,
+                            min_diff=0.1)
 
     assert len(paths) == 3
     assert isclose(sum(paths[-1].energy), 5.351758190646607)
