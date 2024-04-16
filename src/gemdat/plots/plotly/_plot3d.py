@@ -181,28 +181,29 @@ def plot_volume(
 
 
 def plot_paths(
-    paths: Pathway | list[Pathway],
+    paths: Pathway | Collection[Pathway],
     *,
-    volume: Volume,
+    lattice: Lattice,
     fig: go.Figure,
 ):
     """Ploth paths over free energy.
 
     Arguments
     ---------
-    paths : Pathway | list[Pathway]
+    paths : Pathway | Collection[Pathway]
         Pathway object containing the energy along the path, or list of Pathways
-    volume : Volume
-        Input volume to create the landscape
+    lattice : Lattice
+        Input lattice for coordinate transformations
     fig : go.Figure
         Plotly figure to add paths too
     """
-    if isinstance(paths, Collection):
-        optimal_path = paths[0]
-    else:
-        optimal_path = paths
+    if not isinstance(paths, Collection):
+        paths = (paths, )
 
-    x_path, y_path, z_path = volume.voxel_to_cart_coords(optimal_path.sites).T
+    path, *other_paths = paths
+
+    x_path, y_path, z_path = lattice.get_cartesian_coords(
+        path.frac_sites(wrapped=True)).T
 
     fig.add_trace(
         go.Scatter3d(
@@ -221,25 +222,25 @@ def plot_paths(
         ))
 
     # If available, plot the other pathways
-    if isinstance(paths, list):
-        for idx, path in enumerate(paths[1:]):
-            x_path, y_path, z_path = volume.voxel_to_cart_coords(path.sites).T
+    for idx, path in enumerate(other_paths):
+        x_path, y_path, z_path = lattice.get_cartesian_coords(
+            path.frac_sites(wrapped=True)).T
 
-            fig.add_trace(
-                go.Scatter3d(
-                    x=x_path,
-                    y=y_path,
-                    z=z_path,
-                    mode='markers+lines',
-                    line={'width': 3},
-                    marker={
-                        'size': 5,
-                        #'color': color,
-                        'symbol': 'circle',
-                        'opacity': 0.9
-                    },
-                    name=f'Alternative {idx+1}',
-                ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=x_path,
+                y=y_path,
+                z=z_path,
+                mode='markers+lines',
+                line={'width': 3},
+                marker={
+                    'size': 5,
+                    #'color': color,
+                    'symbol': 'circle',
+                    'opacity': 0.9
+                },
+                name=f'Alternative {idx+1}',
+            ))
 
 
 def plot_jumps(jumps: Jumps, *, fig: go.Figure):
@@ -374,11 +375,7 @@ def plot_3d(*,
         plot_structure(structure=structure, lattice=lattice, fig=fig)
 
     if paths:
-        # TODO: Does this need the volume?
-        # Revise after https://github.com/GEMDAT-repos/GEMDAT/pull/282
-        if not volume:
-            raise NotImplementedError
-        plot_paths(paths=paths, volume=volume, fig=fig)
+        plot_paths(paths=paths, lattice=lattice, fig=fig)
 
     if jumps:
         plot_jumps(jumps=jumps, fig=fig)
