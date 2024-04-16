@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from pymatgen.core import Lattice, PeriodicSite
     from skimage.measure._regionprops import RegionProperties
 
+    from gemdat.path import Pathway
     from gemdat.trajectory import Trajectory
 
 
@@ -386,7 +387,9 @@ class FreeEnergyVolume(Volume):
         from .path import free_energy_graph
         return free_energy_graph(self.data, **kwargs)
 
-    def optimal_path(self, *args, F_graph: nx.Graph | None = None, **kwargs):
+    def optimal_path(self,
+                     F_graph: nx.Graph | None = None,
+                     **kwargs) -> Pathway:
         """Calculate the shortest cost-effective path using the desired method.
 
         Parameters
@@ -408,9 +411,35 @@ class FreeEnergyVolume(Volume):
         if not F_graph:
             F_graph = self.free_energy_graph(max_energy_threshold=1e7)
 
-        path = optimal_path(F_graph, *args, **kwargs)
+        path = optimal_path(F_graph, **kwargs)
         path.dims = self.dims
         return path
+
+    def multiple_paths(self,
+                       F_graph: nx.Graph | None = None,
+                       **kwargs) -> list[Pathway]:
+        """Calculate the n_paths shortest paths between two sites on the graph.
+
+        See [gemdat.path.multiple_paths][] for more info.
+        """
+        from .path import multiple_paths
+
+        if not F_graph:
+            F_graph = self.free_energy_graph(max_energy_threshold=1e7)
+
+        paths = multiple_paths(F_graph, **kwargs)
+
+        for path in paths:
+            path.dims = self.dims
+        return paths
+
+    def optimal_percolating_path(self, **kwargs) -> Pathway | None:
+        """Calculate the optimal percolating path.
+
+        See [gemdat.path.find_best_perc_path][] for more info.
+        """
+        from .path import find_best_perc_path
+        return find_best_perc_path(self, **kwargs)
 
 
 def trajectory_to_volume(

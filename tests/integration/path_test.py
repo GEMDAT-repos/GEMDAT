@@ -35,7 +35,7 @@ TEST_DATA = (
 @pytest.vaspxml_available  # type: ignore
 @pytest.mark.parametrize('start,stop,method,expected', TEST_DATA)
 def test_optimal_path(vasp_F_graph, start, stop, method, expected):
-    path = optimal_path(vasp_F_graph, start, stop, method)
+    path = optimal_path(vasp_F_graph, start=start, stop=stop, method=method)
     assert isclose(path.total_energy, expected)
 
 

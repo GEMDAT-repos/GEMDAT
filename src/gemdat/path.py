@@ -3,6 +3,7 @@ between sites."""
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from itertools import pairwise
 from typing import TYPE_CHECKING, Literal
@@ -278,15 +279,15 @@ def _paths_too_similar(path: list, list_of_paths: list,
 
 
 def multiple_paths(
-    *,
     F_graph: nx.Graph,
-    start: tuple,
-    stop: tuple,
+    *,
+    start: Collection,
+    stop: Collection,
     method: _PATHFINDING_METHODS = 'dijkstra',
     n_paths: int = 3,
     min_diff: float = 0.15,
 ) -> list[Pathway]:
-    """ Calculate the Np shortest paths between two sites on the graph.
+    """Calculate the n_paths shortest paths between two sites on the graph.
     This procedure is based the algorithm by Jin Y. Yen (https://doi.org/10.1287/mnsc.17.11.712)
     and its implementation in NetworkX. Only paths that are different by at least min_diff are considered.
 
@@ -294,9 +295,9 @@ def multiple_paths(
     ----------
     F_graph : nx.Graph
         Graph of the free energy
-    start : tuple
+    start : Collection
         Coordinates of the starting point
-    stop: tuple
+    stop: Collection
         Coordinates of the stopping point
     method : str
         Method used to calculate the shortest path. Options are:
@@ -315,9 +316,11 @@ def multiple_paths(
     list_of_paths: list[Pathway]
         List of the n_paths shortest paths between the start and stop sites
     """
+    start = tuple(start)
+    stop = tuple(stop)
 
     # First compute the optimal path
-    best_path = optimal_path(F_graph, start, stop, method)
+    best_path = optimal_path(F_graph, start=start, stop=stop, method=method)
 
     list_of_paths = [best_path]
 
@@ -343,8 +346,9 @@ def multiple_paths(
 
 def optimal_path(
     F_graph: nx.Graph,
-    start: tuple,
-    stop: tuple,
+    *,
+    start: Collection,
+    stop: Collection,
     method: _PATHFINDING_METHODS = 'dijkstra',
 ) -> Pathway:
     """Calculate the shortest cost-effective path using the desired method.
@@ -390,8 +394,10 @@ def optimal_path(
                                     method=method)
 
     if method == 'minmax-energy':
-        optimal_path = _optimal_path_minmax_energy(F_graph, start, stop,
-                                                   optimal_path)
+        optimal_path = _optimal_path_minmax_energy(F_graph,
+                                                   start=start,
+                                                   stop=stop,
+                                                   optimal_path=optimal_path)
     elif method not in ('dijkstra', 'bellman-ford', 'dijkstra-exp'):
         raise ValueError(f'Unknown method {method}')
 
@@ -402,6 +408,7 @@ def optimal_path(
 
 def _optimal_path_minmax_energy(
     F_graph: nx.Graph,
+    *,
     start: tuple[int, int, int],
     stop: tuple[int, int, int],
     optimal_path: list,
@@ -452,11 +459,12 @@ def _optimal_path_minmax_energy(
 
 
 def find_best_perc_path(F: FreeEnergyVolume,
+                        *,
                         peaks: np.ndarray,
                         percolate_x: bool = True,
                         percolate_y: bool = False,
                         percolate_z: bool = False) -> Pathway | None:
-    """Calculate the best percolating path.
+    """Calculate the optimal percolating path.
 
     Parameters
     ----------
@@ -507,8 +515,8 @@ def find_best_perc_path(F: FreeEnergyVolume,
         try:
             path = optimal_path(
                 F_graph,
-                tuple(start_point),
-                tuple(stop_point),
+                start=start_point,
+                stop=stop_point,
             )
         except nx.NetworkXNoPath:
             continue
