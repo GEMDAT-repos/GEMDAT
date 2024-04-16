@@ -353,9 +353,9 @@ def optimal_path(
     ----------
     F_graph : nx.Graph
         Graph of the free energy
-    start : tuple
+    start : Collection
         Coordinates of the starting point
-    stop: tuple
+    stop: Collection
         Coordinates of the stoping point
     method : str
         Method used to calculate the shortest path. Options are:
@@ -379,6 +379,9 @@ def optimal_path(
 
     if method in ('dijkstra-exp', 'minmax-energy', 'simple'):
         method = 'dijkstra'
+
+    start = tuple(start)
+    stop = tuple(stop)
 
     optimal_path = nx.shortest_path(F_graph,
                                     source=start,

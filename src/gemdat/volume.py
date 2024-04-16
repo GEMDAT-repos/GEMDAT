@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -18,6 +18,7 @@ from skimage.measure import regionprops
 from .segmentation import watershed_pbc
 
 if TYPE_CHECKING:
+    import networkx as nx
     from pymatgen.core import Lattice, PeriodicSite
     from skimage.measure._regionprops import RegionProperties
 
@@ -42,10 +43,68 @@ class Volume:
     data: np.ndarray
     lattice: Lattice
     label: str = 'volume'
-    units: Unit | None = None
+    units: Unit = field(default_factory=lambda: Unit(''))
 
     def __post_init__(self):
         self.dims = self.data.shape
+
+    def __repr__(self):
+        units = f' ({self.units})' if self.units else ''
+
+        def to_str(x):
+            return f'{x:>10.6f}'
+
+        abc = ' '.join(to_str(i) for i in self.lattice.abc)
+        angles = ' '.join(to_str(i) for i in self.lattice.angles)
+        pbc = ' '.join(str(p).rjust(10) for p in self.lattice.pbc)
+
+        s = (
+            f'Data: {self.data.shape}',
+            f'Lattice, abc: {abc}',
+            f'      angles: {angles}',
+            f'         pbc: {pbc}',
+            f'Label: {self.label}{units}',
+            f'Dimensions: {self.dims}',
+        )
+        return '\n'.join(s)
+
+    def free_energy_graph(self, **kwargs) -> nx.Graph:
+        """Compute the graph of the free energy for networkx functions.
+
+        See [gemdat.path.free_energy_graph][] for more info.
+        """
+        from .path import free_energy_graph
+        return free_energy_graph(self.data, **kwargs)
+
+    def optimal_path(self, *args, F_graph: nx.Graph | None = None, **kwargs):
+        """Calculate the shortest cost-effective path using the desired method.
+
+        Parameters
+        ----------
+        F_graph : Graph | None
+            Optionally, define your own free energy graph. Otherwise,
+            it will be calculated on the fly using default parameters.
+        **kwargs:
+            These parameters are passed to [gemdat.path.optimal_path][].
+            See [gemdat.path.optimal_path][] for more info.
+
+        Returns
+        -------
+        path : Pathway
+            Voxel coordinates and energy of optimal path from start to stop.
+        """
+        if not self.label == 'free_energy':
+            return TypeError(
+                f'Cannot calculate path for class of type `{self.label}`')
+
+        from .path import optimal_path
+
+        if not F_graph:
+            F_graph = self.free_energy_graph(max_energy_threshold=1e7)
+
+        path = optimal_path(F_graph, *args, **kwargs)
+        path.dims = self.dims
+        return path
 
     def normalized(self) -> np.ndarray:
         """Return normalized data."""
