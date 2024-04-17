@@ -95,14 +95,14 @@ def test_rectilinear(vasp_orientations):
          [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5], [0, 2 / 6**0.5, 1 / 3**0.5]], )
 
     orientations = vasp_orientations.normalize().transform(matrix=matrix)
-    plots.rectilinear_plot(orientations=orientations, normalize_histo=False)
+    orientations.plot_rectilinear(normalize_histo=False)
 
 
 @image_comparison2(baseline_images=['bond_length_distribution'])
 def test_bond_length_distribution(vasp_orientations):
-    plots.bond_length_distribution(orientations=vasp_orientations, bins=1000)
+    vasp_orientations.plot_bond_length_distribution(bins=1000)
 
 
 @image_comparison2(baseline_images=['unit_vector_autocorrelation'])
 def test_unit_vector_autocorrelation(vasp_orientations):
-    plots.unit_vector_autocorrelation(orientations=vasp_orientations)
+    vasp_orientations.plot_autocorrelation()

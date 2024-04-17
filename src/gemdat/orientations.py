@@ -6,6 +6,7 @@ import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
+from gemdat.utils import fft_autocorrelation, cartesian_to_spherical
 
 
 @dataclass
@@ -22,15 +23,12 @@ class Orientations:
         Type of the central atoms
     satellite_type: str
         Type of the satellite atoms
-    nr_central_atoms: int
-        Number of central atoms, which corresponds to the number of cluster molecules
     vectors: np.ndarray
-        Vectors representing rotation direction
+        Vectors representing orientation direction
     """
     trajectory: Trajectory
     center_type: str
     satellite_type: str
-    nr_central_atoms: int
     vectors: np.ndarray = field(init=False)
     in_vectors: InitVar[np.ndarray | None] = None
 
@@ -65,11 +63,6 @@ class Orientations:
     def _trajectory_sat(self) -> Trajectory:
         """Return trajectory of satellite atoms."""
         return self.trajectory.filter(self.satellite_type)
-
-    def _fractional_coordinates(self) -> tuple[np.ndarray, np.ndarray]:
-        """Return fractional coordinates of central atoms and satellite
-        atoms."""
-        return self._trajectory_cent.positions, self._trajectory_sat.positions
 
     @property
     def _distances(self) -> np.ndarray:
@@ -127,7 +120,11 @@ class Orientations:
         combinations: np.ndarray
             Matrix of combinations between central and satellite atoms
         """
-        index_central_atoms = np.arange(self.nr_central_atoms)
+        nr_central_atoms = frac_coord_cent.shape[1]
+
+        index_central_atoms = np.arange(nr_central_atoms)
+
+        # index_central_atoms = np.arange(self.nr_central_atoms)
         matching_matrix = self._matching_matrix(distance, frac_coord_cent)
         combinations = np.array([(i, j) for i in index_central_atoms
                                  for j in matching_matrix[i, :]])
@@ -147,7 +144,9 @@ class Orientations:
         direction: np.ndarray
             Contains the direction between central atoms and their ligands.
         """
-        frac_coord_cent, frac_coord_sat = self._fractional_coordinates()
+        frac_coord_cent = self._trajectory_cent.positions
+        frac_coord_sat = self._trajectory_sat.positions
+
         combinations = self._central_satellite_matrix(distance,
                                                       frac_coord_cent)
 
@@ -241,6 +240,36 @@ class Orientations:
 
         return replace(self, in_vectors=vectors)
 
+    @property
+    def vectors_spherical(self) -> np.ndarray:
+        """Return vectors in spherical coordinates in degrees.
+
+        Returns
+        -------
+        np.array
+            azimuth, elevation, length
+        """
+        return cartesian_to_spherical(self.vectors)
+
+    def autocorrelation(self):
+        """Compute the autocorrelation of the orientation vectors using FFT."""
+        return fft_autocorrelation(self.vectors)
+
+    def plot_rectilinear(self, **kwargs):
+        """See [gemdat.plots.rectilinear][] for more info."""
+        from gemdat import plots
+        return plots.rectilinear(orientations=self, **kwargs)
+
+    def plot_bond_length_distribution(self, **kwargs):
+        """See [gemdat.plots.bond_length_distribution][] for more info."""
+        from gemdat import plots
+        return plots.bond_length_distribution(orientations=self, **kwargs)
+
+    def plot_autocorrelation(self, **kwargs):
+        """See [gemdat.plots.unit_vector_autocorrelation][] for more info."""
+        from gemdat import plots
+        return plots.autocorrelation(orientations=self, **kwargs)
+
 
 def calculate_spherical_areas(shape: tuple[int, int],
                               radius: float = 1) -> np.ndarray:
@@ -273,44 +302,3 @@ def calculate_spherical_areas(shape: tuple[int, int],
             #hacky way to get rid of singularity on poles
             areas[0, :] = areas[-1, 0]
     return areas
-
-
-def mean_squared_angular_displacement(trajectory: np.ndarray) -> np.ndarray:
-    """Compute the mean squared angular displacement using FFT.
-
-    Parameters
-    ----------
-    trajectory : np.ndarray
-        The input signal in direct cartesian coordinates. It is expected
-        to have shape (n_times, n_particles, n_coordinates)
-
-    Returns
-    -------
-    msad:
-        The mean squared angular displacement
-    """
-    n_times, n_particles, n_coordinates = trajectory.shape
-
-    msad = np.zeros((n_particles, n_times))
-    normalization = np.arange(n_times, 0, -1)
-
-    for c in range(n_coordinates):
-        signal = trajectory[:, :, c]
-
-        # Compute the FFT of the signal
-        fft_signal = np.fft.rfft(signal, n=2 * n_times - 1, axis=0)
-        # Compute the power spectral density in-place
-        np.square(np.abs(fft_signal), out=fft_signal)
-        # Compute the inverse FFT of the power spectral density
-        autocorr_c = np.fft.irfft(fft_signal, axis=0)
-
-        # Only keep the positive times
-        autocorr_c = autocorr_c[:n_times, :]
-
-        msad += autocorr_c.T / normalization
-
-    # Normalize the msad such that it starts from 1
-    # (this makes the normalization independent on the dimensions)
-    msad = msad / msad[:, 0, np.newaxis]
-
-    return msad

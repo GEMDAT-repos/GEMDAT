@@ -13,7 +13,7 @@ from scipy.spatial import cKDTree
 # shortcut to test data
 VASPRUN = Path(__file__).parents[
     2] / 'tests' / 'data' / 'short_simulation' / 'vasprun.xml'
-VASPCACHE_ROTATIONS = Path(__file__).parents[
+VASPCACHE_ORIENTATIONS = Path(__file__).parents[
     2] / 'tests' / 'data' / 'short_simulation' / 'vasprun_rotations.cache'
 
 DATA = files('gemdat') / 'data'
@@ -229,25 +229,26 @@ def _cart2sph(x: np.ndarray, y: np.ndarray,
     return az, el, r
 
 
-def cartesian_to_spherical(direct_cart: np.ndarray,
-                           degrees: bool) -> np.ndarray:
+def cartesian_to_spherical(cart_coords: np.ndarray,
+                           *,
+                           degrees: bool = True) -> np.ndarray:
     """Trajectory from cartesian coordinates to spherical coordinates.
 
     Parameters
     ----------
-    direct_cart : np.ndarray
-        Trajectory of the unit vectors in conventional coordinates
+    cart_coords : np.ndarray
+        Trajectory of the unit vectors in cartesian setting
     degrees : bool
         If true, return angles in degrees
 
     Returns
     -------
-    direction_spherical : np.ndarray
+    spherical_coords : np.ndarray
         Trajectory of the unit vectors in spherical coordinates
     """
-    x = direct_cart[:, :, 0]
-    y = direct_cart[:, :, 1]
-    z = direct_cart[:, :, 2]
+    x = cart_coords[:, :, 0]
+    y = cart_coords[:, :, 1]
+    z = cart_coords[:, :, 2]
 
     az, el, r = _cart2sph(x, y, z)
 
@@ -255,6 +256,47 @@ def cartesian_to_spherical(direct_cart: np.ndarray,
         az = np.degrees(az)
         el = np.degrees(el)
 
-    direction_spherical = np.stack((az, el, r), axis=-1)
+    spherical_coords = np.stack((az, el, r), axis=-1)
 
-    return direction_spherical
+    return spherical_coords
+
+
+def fft_autocorrelation(coords: np.ndarray) -> np.ndarray:
+    """Compute the autocorrelation of the given coordinates using FFT.
+
+    Parameters
+    ----------
+    coords : np.ndarray
+        The input signal in direct cartesian coordinates. It is expected
+        to have shape (n_times, n_particles, n_coordinates)
+
+    Returns
+    -------
+    autocorrelation: np.array
+        The autocorrelation of the input signal, with shape (n_particles, n_times)
+    """
+    n_times, n_particles, n_coordinates = coords.shape
+
+    autocorrelation = np.zeros((n_particles, n_times))
+    normalization = np.arange(n_times, 0, -1)
+
+    for c in range(n_coordinates):
+        signal = coords[:, :, c]
+
+        # Compute the FFT of the signal
+        fft_signal = np.fft.rfft(signal, n=2 * n_times - 1, axis=0)
+        # Compute the power spectral density in-place
+        np.square(np.abs(fft_signal), out=fft_signal)
+        # Compute the inverse FFT of the power spectral density
+        autocorr_c = np.fft.irfft(fft_signal, axis=0)
+
+        # Only keep the positive times
+        autocorr_c = autocorr_c[:n_times, :]
+
+        autocorrelation += autocorr_c.T / normalization
+
+    # Normalize the autocorrelation such that it starts from 1
+    # and make it independent of n_coordinates
+    autocorrelation = autocorrelation / autocorrelation[:, 0, np.newaxis]
+
+    return autocorrelation
