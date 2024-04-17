@@ -22,6 +22,7 @@ def test_orientations_init(trajectory):
     assert orientations.satellite_type == 'Si'
     assert orientations.trajectory == trajectory
 
+
 def test_normalize(trajectory):
     orientations = Orientations(trajectory=trajectory,
                                 center_type='B',
