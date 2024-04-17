@@ -20,7 +20,7 @@ def test_orientations_init(trajectory):
     assert isinstance(orientations, Orientations)
     assert orientations.center_type == 'B'
     assert orientations.satellite_type == 'Si'
-
+    assert orientations.trajectory == trajectory
 
 def test_normalize(trajectory):
     orientations = Orientations(trajectory=trajectory,
