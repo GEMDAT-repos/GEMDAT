@@ -296,7 +296,7 @@ def fft_autocorrelation(coords: np.ndarray) -> np.ndarray:
         autocorrelation += autocorr_c.T / normalization
 
     # Normalize the autocorrelation such that it starts from 1
-    # (this makes the normalization independent on the dimensions)
+    # and make it independent of n_coordinates
     autocorrelation = autocorrelation / autocorrelation[:, 0, np.newaxis]
 
     return autocorrelation
