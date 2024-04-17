@@ -32,11 +32,10 @@ def rectilinear(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-    # Convert the trajectory to spherical coordinates
-    trajectory = orientations.get_vectors_spherical()
-
-    az = trajectory[:, :, 0].flatten()
-    el = trajectory[:, :, 1].flatten()
+    # Convert the vectors to spherical coordinates
+    az, el, _ = orientations.vectors_spherical.T
+    az = az.flatten()
+    el = el.flatten()
 
     hist, xedges, yedges = np.histogram2d(el, az, shape)
 
@@ -90,11 +89,10 @@ def bond_length_distribution(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-    trajectory = orientations.get_vectors_spherical()
+    *_, bond_lengths = orientations.vectors_spherical.T
+    bond_lengths = bond_lengths.flatten()
 
     fig, ax = plt.subplots()
-
-    bond_lengths = trajectory[:, :, 2].flatten()
 
     # Plot the normalized histogram
     hist, edges = np.histogram(bond_lengths, bins=bins, density=True)

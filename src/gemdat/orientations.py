@@ -240,13 +240,9 @@ class Orientations:
 
         return replace(self, in_vectors=vectors)
 
-    def get_vectors_spherical(self, degrees: bool = True) -> np.ndarray:
-        """Return vectors in spherical coordinates.
-
-        Parameters
-        ----------
-        degrees : bool
-            If True, return angles as degrees, else radians
+    @property
+    def vectors_spherical(self) -> np.ndarray:
+        """Return vectors in spherical coordinates in degrees.
 
         Returns
         -------
