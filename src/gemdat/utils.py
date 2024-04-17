@@ -273,7 +273,7 @@ def fft_autocorrelation(coords: np.ndarray) -> np.ndarray:
     Returns
     -------
     autocorrelation: np.array
-        The autocorrelation of the input signal
+        The autocorrelation of the input signal, with shape (n_particles, n_times)
     """
     n_times, n_particles, n_coordinates = coords.shape
 
