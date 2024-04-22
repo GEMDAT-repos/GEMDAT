@@ -16,8 +16,8 @@ def energy_along_path(
 
     Parameters
     ----------
-    path : Pathway | list[Pathway]
-        Pathway object containing the energy along the path, or list of Pathways
+    path : Pathway 
+        Pathway object containing the energy along the path
     structure : Structure
         Structure object to get the site information
     other_paths : Pathway | list[Pathway]
