@@ -16,7 +16,7 @@ def energy_along_path(
 
     Parameters
     ----------
-    path : Pathway 
+    path : Pathway
         Pathway object containing the energy along the path
     structure : Structure
         Structure object to get the site information
