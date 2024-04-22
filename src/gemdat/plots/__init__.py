@@ -3,14 +3,14 @@ from __future__ import annotations
 
 # Matplotlib plots
 from .matplotlib import (
+    autocorrelation,
     bond_length_distribution,
     energy_along_path,
     jumps_3d_animation,
     path_on_grid,
     radial_distribution,
-    rectilinear_plot,
+    rectilinear,
     shape,
-    unit_vector_autocorrelation,
 )
 
 # Plotly plots (matplotlib version might be available)
@@ -45,10 +45,10 @@ __all__ = [
     'plot_3d',
     'msd_per_element',
     'radial_distribution',
-    'rectilinear_plot',
+    'rectilinear',
     'shape',
     'vibrational_amplitudes',
     'energy_along_path',
     'path_on_grid',
-    'unit_vector_autocorrelation',
+    'autocorrelation',
 ]

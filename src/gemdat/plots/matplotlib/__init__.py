@@ -20,10 +20,10 @@ from ._paths import (
     path_on_grid,
 )
 from ._rdf import radial_distribution
-from ._rotations import (
+from ._orientations import (
+    autocorrelation,
     bond_length_distribution,
-    rectilinear_plot,
-    unit_vector_autocorrelation,
+    rectilinear,
 )
 from ._shape import shape
 from ._vibration import (
@@ -46,8 +46,8 @@ __all__ = [
     'msd_per_element',
     'path_on_grid',
     'radial_distribution',
-    'rectilinear_plot',
+    'rectilinear',
     'shape',
-    'unit_vector_autocorrelation',
+    'autocorrelation',
     'vibrational_amplitudes',
 ]

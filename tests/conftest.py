@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from pymatgen.core import Species
 
-from gemdat.rotations import Orientations
+from gemdat.orientations import Orientations
 from gemdat.trajectory import Trajectory
 
 
@@ -33,6 +33,4 @@ def trajectory():
 def orientations(trajectory):
     center_type = 'B'
     satellite_type = 'Si'
-    nr_central_atoms = 1
-    return Orientations(trajectory, center_type, satellite_type,
-                        nr_central_atoms)
+    return Orientations(trajectory, center_type, satellite_type)

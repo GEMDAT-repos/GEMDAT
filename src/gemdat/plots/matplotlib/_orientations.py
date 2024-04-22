@@ -5,18 +5,16 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
-from gemdat.rotations import (
+from gemdat.orientations import (
     Orientations,
     calculate_spherical_areas,
-    mean_squared_angular_displacement,
 )
-from gemdat.utils import cartesian_to_spherical
 
 
-def rectilinear_plot(*,
-                     orientations: Orientations,
-                     shape: tuple[int, int] = (90, 360),
-                     normalize_histo: bool = True) -> plt.Figure:
+def rectilinear(*,
+                orientations: Orientations,
+                shape: tuple[int, int] = (90, 360),
+                normalize_histo: bool = True) -> plt.Figure:
     """Plot a rectilinear projection of a spherical function. This function
     uses the transformed trajectory.
 
@@ -34,11 +32,10 @@ def rectilinear_plot(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-    # Convert the trajectory to spherical coordinates
-    trajectory = cartesian_to_spherical(orientations.vectors, degrees=True)
-
-    az = trajectory[:, :, 0].flatten()
-    el = trajectory[:, :, 1].flatten()
+    # Convert the vectors to spherical coordinates
+    az, el, _ = orientations.vectors_spherical.T
+    az = az.flatten()
+    el = el.flatten()
 
     hist, xedges, yedges = np.histogram2d(el, az, shape)
 
@@ -92,13 +89,10 @@ def bond_length_distribution(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-
-    # Convert the trajectory to spherical coordinates
-    trajectory = cartesian_to_spherical(orientations.vectors, degrees=True)
+    *_, bond_lengths = orientations.vectors_spherical.T
+    bond_lengths = bond_lengths.flatten()
 
     fig, ax = plt.subplots()
-
-    bond_lengths = trajectory[:, :, 2].flatten()
 
     # Plot the normalized histogram
     hist, edges = np.histogram(bond_lengths, bins=bins, density=True)
@@ -135,7 +129,7 @@ def bond_length_distribution(*,
     return fig
 
 
-def unit_vector_autocorrelation(
+def autocorrelation(
     *,
     orientations: Orientations,
 ) -> plt.Figure:
@@ -151,11 +145,7 @@ def unit_vector_autocorrelation(
     fig : matplotlib.figure.Figure
         Output figure
     """
-
-    # The trajectory is expected to have shape (n_times, n_particles, n_coordinates)
-    trajectory = orientations.vectors
-
-    ac = mean_squared_angular_displacement(trajectory)
+    ac = orientations.autocorrelation()
     ac_std = ac.std(axis=0)
     ac_mean = ac.mean(axis=0)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .io import load_known_material, read_cif
 from .jumps import Jumps
-from .rotations import Orientations
+from .orientations import Orientations
 from .shape import ShapeAnalyzer
 from .simulation_metrics import SimulationMetrics
 from .trajectory import Trajectory
