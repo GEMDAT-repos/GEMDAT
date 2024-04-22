@@ -478,33 +478,25 @@ def optimal_percolating_path(
     best_percolating_path: Pathway
         Optimal path that percolates the graph in the specified directions
     """
-    percolate_x = 'x' in percolate
-    percolate_y = 'y' in percolate
-    percolate_z = 'z' in percolate
+    percolate_xyz = np.array([dim in percolate for dim in 'xyz'])
 
-    if not any([percolate_x, percolate_y, percolate_z]):
+    if not percolate_xyz.any():
         raise ValueError('percolation is not defined')
 
     # Tile the grind in the percolation directions
-    F_data_periodic = np.tile(
-        F.data, (1 + percolate_x, 1 + percolate_y, 1 + percolate_z))
+    F_data_periodic = np.tile(F.data, tuple(1 + percolate_xyz))
 
     # Get F on a graph
-    F_graph = free_energy_graph(F_data_periodic,
-                                max_energy_threshold=1e7,
-                                diagonal=True)
+    F_graph = free_energy_graph(F_data_periodic, max_energy_threshold=1e7)
 
     # reaching the percolating image
-    image = tuple(
-        x * px
-        for x, px in zip(F.dims, (percolate_x, percolate_y, percolate_z)))
+    image = F.dims * percolate_xyz
 
     # Find the lowest cost path that percolates along the x dimension
     best_cost = float('inf')
     best_path = None
 
     for start_point in peaks:
-
         # Get the stop point which is a periodic image of the peak
         stop_point = start_point + image
 
