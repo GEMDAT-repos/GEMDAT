@@ -12,7 +12,7 @@ from gemdat.path import optimal_n_paths, optimal_path
 
 @pytest.vaspxml_available  # type: ignore
 def test_fractional_coordinates(vasp_path_vol, vasp_path):
-    frac_sites = vasp_path.frac_sites(wrapped=True)
+    frac_sites = vasp_path.frac_sites()
 
     assert isclose(frac_sites[-1][0], 0.4107142857142857)
     assert isclose(frac_sites[19][1], 0.6785714285714286)

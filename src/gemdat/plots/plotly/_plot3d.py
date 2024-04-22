@@ -202,8 +202,7 @@ def plot_paths(
 
     path, *other_paths = paths
 
-    x_path, y_path, z_path = lattice.get_cartesian_coords(
-        path.frac_sites(wrapped=True)).T
+    x_path, y_path, z_path = lattice.get_cartesian_coords(path.frac_sites()).T
 
     for idx, path in enumerate(paths):
         if idx == 0:
@@ -216,7 +215,7 @@ def plot_paths(
             color = None
 
         x_path, y_path, z_path = lattice.get_cartesian_coords(
-            path.frac_sites(wrapped=True)).T
+            path.frac_sites()).T
 
         fig.add_trace(
             go.Scatter3d(

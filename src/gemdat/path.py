@@ -88,14 +88,10 @@ class Pathway:
         xdim, ydim, zdim = self.dims
         return [(x % xdim, y % xdim, z % xdim) for x, y, z in self.sites]
 
-    def frac_sites(self, wrapped: bool = False) -> np.ndarray:
-        """Return fractional sites.
+    def frac_sites(self) -> np.ndarray:
+        """Return fractional site coordinates.
 
-        Parameters
-        ----------
-        wrapped : bool
-            If True, wrap coordinates to bounding box using
-            `.wrapped_sites()`.
+        Note that these wrap around the periodic boundary conditions.
 
         Returns
         -------
@@ -105,7 +101,7 @@ class Pathway:
         if not self.dims:
             raise AttributeError(
                 f'Dimensions are needed for this method {self.dims=}')
-        sites = self.wrapped_sites() if wrapped else self.sites
+        sites = self.wrapped_sites()
         return (np.array(sites) + 0.5) / np.array(self.dims)
 
     def path_over_structure(
@@ -124,7 +120,7 @@ class Pathway:
         nearest_sites: list[PeriodicSite]
             List closest sites of the reference structure
         """
-        frac_sites = np.array(self.frac_sites(wrapped=True))
+        frac_sites = np.array(self.frac_sites())
 
         nearest_structure_tree, nearest_structure_map = nearest_structure_reference(
             structure)
