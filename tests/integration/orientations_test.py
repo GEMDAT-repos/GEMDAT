@@ -5,7 +5,7 @@ from math import isclose
 import numpy as np
 import pytest
 
-from gemdat.orientations import calculate_spherical_areas
+from gemdat.utils import calculate_spherical_areas
 
 matrix = np.array(
     [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],

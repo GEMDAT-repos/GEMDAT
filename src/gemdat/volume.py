@@ -14,7 +14,7 @@ from pymatgen.io.vasp import VolumetricData
 from scipy.constants import physical_constants
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
-from gemdat.orientations import calculate_spherical_areas
+from gemdat.utils import calculate_spherical_areas
 
 from .segmentation import watershed_pbc
 
@@ -447,9 +447,46 @@ class FreeEnergyVolume(Volume):
 class OrientationalVolume(Volume):
     """Container for orientational volume data, that are in spherical
     coordinates."""
+    shape: tuple[int, int]
+    radii: np.ndarray
 
-    def _do_something(self):
-        pass
+    def __init__(self, shape, radii, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape = shape
+        self.radii = radii
+
+    def orientational_peaks(
+        self,
+        **kwargs,
+    ) -> list:
+        """Find peaks using the [Difference of
+        Gaussian][skimage.feature.blob_dog] function in [scikit-
+        image][skimage].
+
+        Parameters
+        ----------
+        **kwargs
+            Additional keyword arguments are passed to [skimage.feature.blob_dog][]
+
+        Returns
+        -------
+        peaks : list
+            List of coordinates of the peaks
+        """
+        kwargs.setdefault('threshold', 0.05)
+
+        theta, phi, values = self.data.T
+
+        x = theta
+        y = phi
+        z = values / values.max()
+
+        blobs = blob_dog(z, **kwargs)
+
+        peaks = [(y[int(i), int(j)], x[int(i), int(j)])
+                 for i, j, sigma in blobs]
+
+        return peaks
 
 
 def trajectory_to_volume(
@@ -516,22 +553,21 @@ def trajectory_to_volume(
 
 def orientations_to_volume(
     orientations: Orientations,
-    shape: tuple[int, int] = (90, 360),
-    normalize_area: bool = False,
+    shape: tuple[int, int],
+    normalize_area: bool,
 ) -> OrientationalVolume:
     """Calculate density volume from orientation.
 
-    All coordinates are binned into 2d . The value of each
-    voxel represents the number of coodinates that are associated
-    with it.
+    The orientations are converted in spherical coordinates,
+    and the azimutal and elevation angles are binned into a 2d histogram.
 
     Parameters
     ----------
     orientations : Orientations
         Input orientations
-    shape : tuple, optional
+    shape : tuple
         The shape of the spherical sector in which the trajectory is
-    normalize_area : bool, optional
+    normalize_area : bool
         If True, normalize the histogram by the area of the bins
 
     Returns
@@ -539,12 +575,11 @@ def orientations_to_volume(
     vol : OrientationalVolume
         Output volume
     """
-    az, el, _ = orientations.vectors_spherical.T
-    # Notice that we are ignoring the value of the radial coordinate
+    az, el, r = orientations.vectors_spherical.T
     az = az.flatten()
     el = el.flatten()
 
-    hist, xedges, yedges = np.histogram2d(el, az, shape)
+    hist, _, _ = np.histogram2d(el, az, shape)
 
     if normalize_area:
         # Normalize by the area of the bins
@@ -565,6 +600,8 @@ def orientations_to_volume(
 
     return OrientationalVolume(
         data=data,
+        shape=shape,
+        radii=r,
         lattice=orientations.trajectory.lattice,
         label='orientations',
         units=None,

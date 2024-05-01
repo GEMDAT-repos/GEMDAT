@@ -273,7 +273,7 @@ class Orientations:
 
     def to_volume(
         self,
-        shape: tuple[int, int] = (90, 360),
+        shape: tuple[int, int] = (180, 360),
         normalize_area: bool = False,
     ) -> OrientationalVolume:
         """Copy the docstring."""
@@ -281,36 +281,3 @@ class Orientations:
         return orientations_to_volume(self,
                                       shape=shape,
                                       normalize_area=normalize_area)
-
-
-def calculate_spherical_areas(shape: tuple[int, int],
-                              radius: float = 1) -> np.ndarray:
-    """Calculate the areas of a section of a sphere, defined in spherical
-    coordinates. Useful for normalization purposes.
-
-    Parameters
-    ----------
-    shape : tuple
-        Shape of the grid in integer degrees
-    radius : float
-        Radius of the sphere
-
-    Returns
-    -------
-    areas : np.ndarray
-        Areas of the section
-    """
-    elevation_angles = np.linspace(0, 180, shape[0])
-
-    areas = np.zeros(shape, dtype=float)
-    azimuthal_increment = np.deg2rad(1)
-    elevation_increment = np.deg2rad(1)
-
-    for i in range(shape[1]):
-        for j in range(shape[0]):
-
-            areas[j, i] = (radius**2) * azimuthal_increment * np.sin(
-                np.deg2rad(elevation_angles[j])) * elevation_increment
-            #hacky way to get rid of singularity on poles
-            areas[0, :] = areas[-1, 0]
-    return areas

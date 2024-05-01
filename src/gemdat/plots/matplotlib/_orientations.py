@@ -9,10 +9,13 @@ from gemdat.orientations import (
     Orientations, )
 
 
-def rectilinear(*,
-                orientations: Orientations,
-                shape: tuple[int, int] = (90, 360),
-                normalize_histo: bool = True) -> plt.Figure:
+def rectilinear(
+    *,
+    orientations: Orientations,
+    shape: tuple[int, int] = (180, 360),
+    normalize_histo: bool = True,
+    add_peaks: bool = True,
+) -> plt.Figure:
     """Plot a rectilinear projection of a spherical function. This function
     uses the transformed trajectory.
 
@@ -24,14 +27,16 @@ def rectilinear(*,
         The shape of the spherical sector in which the trajectory is plotted
     normalize_histo : bool, optional
         If True, normalize the histogram by the area of the bins, by default True
+    add_peaks : bool, optional
+        If True, plot the peaks of the histogram, by default True
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         Output figure
     """
-    theta, phi, values = orientations.to_volume(
-        shape=shape, normalize_area=normalize_histo).data.T
+    ov = orientations.to_volume(shape=shape, normalize_area=normalize_histo)
+    theta, phi, values = ov.data.T
 
     fig, ax = plt.subplots(subplot_kw=dict(projection='rectilinear'))
     cs = ax.contourf(phi, theta, values, cmap='viridis')
@@ -43,6 +48,12 @@ def rectilinear(*,
 
     ax.grid(visible=True)
     cbar = fig.colorbar(cs, label='areal probability', format='')
+
+    if add_peaks:
+        peaks = ov.orientational_peaks()
+        xp = [x for x, _ in peaks]
+        yp = [y for _, y in peaks]
+        ax.plot(xp, yp, 'ro', markersize=5)
 
     # Rotate the colorbar label by 180 degrees
     cbar.ax.yaxis.set_label_coords(2.5,
