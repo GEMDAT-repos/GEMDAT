@@ -473,7 +473,7 @@ class OrientationalVolume(Volume):
         peaks : list
             List of coordinates of the peaks
         """
-        kwargs.setdefault('threshold', 0.05)
+        kwargs.setdefault('threshold', 0.1)
 
         theta, phi, values = self.data.T
 

@@ -273,7 +273,7 @@ class Orientations:
 
     def to_volume(
         self,
-        shape: tuple[int, int] = (180, 360),
+        shape: tuple[int, int] = (180 * 4, 360 * 4),
         normalize_area: bool = False,
     ) -> OrientationalVolume:
         """Copy the docstring."""

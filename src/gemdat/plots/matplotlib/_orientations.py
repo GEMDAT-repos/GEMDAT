@@ -14,7 +14,8 @@ def rectilinear(
     orientations: Orientations,
     shape: tuple[int, int] = (180, 360),
     normalize_histo: bool = True,
-    add_peaks: bool = True,
+    add_peaks: bool = False,
+    **kwargs,
 ) -> plt.Figure:
     """Plot a rectilinear projection of a spherical function. This function
     uses the transformed trajectory.
@@ -28,7 +29,9 @@ def rectilinear(
     normalize_histo : bool, optional
         If True, normalize the histogram by the area of the bins, by default True
     add_peaks : bool, optional
-        If True, plot the peaks of the histogram, by default True
+        If True, plot the peaks of the histogram
+    **kwargs : dict
+        Additional keyword arguments for the `orientational_peaks` method
 
     Returns
     -------
@@ -50,7 +53,7 @@ def rectilinear(
     cbar = fig.colorbar(cs, label='areal probability', format='')
 
     if add_peaks:
-        peaks = ov.orientational_peaks()
+        peaks = ov.orientational_peaks(**kwargs)
         xp = [x for x, _ in peaks]
         yp = [y for _, y in peaks]
         ax.plot(xp, yp, 'ro', markersize=5)
