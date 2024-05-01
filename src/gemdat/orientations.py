@@ -6,6 +6,7 @@ import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
+from gemdat.volume import OrientationalVolume
 from gemdat.utils import fft_autocorrelation, cartesian_to_spherical
 
 
@@ -269,6 +270,17 @@ class Orientations:
         """See [gemdat.plots.unit_vector_autocorrelation][] for more info."""
         from gemdat import plots
         return plots.autocorrelation(orientations=self, **kwargs)
+
+    def to_volume(
+        self,
+        shape: tuple[int, int] = (90, 360),
+        normalize_area: bool = False,
+    ) -> OrientationalVolume:
+        """Copy the docstring."""
+        from gemdat.volume import orientations_to_volume
+        return orientations_to_volume(self,
+                                      shape=shape,
+                                      normalize_area=normalize_area)
 
 
 def calculate_spherical_areas(shape: tuple[int, int],

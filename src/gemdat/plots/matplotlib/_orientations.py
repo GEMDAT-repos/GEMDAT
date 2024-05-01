@@ -6,9 +6,7 @@ from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
 from gemdat.orientations import (
-    Orientations,
-    calculate_spherical_areas,
-)
+    Orientations, )
 
 
 def rectilinear(*,
@@ -32,27 +30,8 @@ def rectilinear(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-    # Convert the vectors to spherical coordinates
-    az, el, _ = orientations.vectors_spherical.T
-    az = az.flatten()
-    el = el.flatten()
-
-    hist, xedges, yedges = np.histogram2d(el, az, shape)
-
-    if normalize_histo:
-        # Normalize by the area of the bins
-        areas = calculate_spherical_areas(shape)
-        hist = np.divide(hist, areas)
-        # Drop the bins at the poles where normalization is not possible
-        hist = hist[1:-1, :]
-
-    values = hist.T
-    axis_phi, axis_theta = values.shape
-
-    phi = np.linspace(0, 360, axis_phi)
-    theta = np.linspace(0, 180, axis_theta)
-
-    theta, phi = np.meshgrid(theta, phi)
+    theta, phi, values = orientations.to_volume(
+        shape=shape, normalize_area=normalize_histo).data.T
 
     fig, ax = plt.subplots(subplot_kw=dict(projection='rectilinear'))
     cs = ax.contourf(phi, theta, values, cmap='viridis')

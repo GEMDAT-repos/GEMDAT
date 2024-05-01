@@ -14,6 +14,7 @@ from pymatgen.io.vasp import VolumetricData
 from scipy.constants import physical_constants
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
+from gemdat.orientations import calculate_spherical_areas
 
 from .segmentation import watershed_pbc
 
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
 
     from gemdat.path import Pathway
     from gemdat.trajectory import Trajectory
+    from gemdat.orientations import Orientations
 
 
 @dataclass
@@ -442,6 +444,14 @@ class FreeEnergyVolume(Volume):
         return optimal_percolating_path(self, **kwargs)
 
 
+class OrientationalVolume(Volume):
+    """Container for orientational volume data, that are in spherical
+    coordinates."""
+
+    def _do_something(self):
+        pass
+
+
 def trajectory_to_volume(
     trajectory: Trajectory,
     resolution: float = 0.2,
@@ -500,5 +510,62 @@ def trajectory_to_volume(
         data=data,
         lattice=lattice,
         label='trajectory',
+        units=None,
+    )
+
+
+def orientations_to_volume(
+    orientations: Orientations,
+    shape: tuple[int, int] = (90, 360),
+    normalize_area: bool = False,
+) -> OrientationalVolume:
+    """Calculate density volume from orientation.
+
+    All coordinates are binned into 2d . The value of each
+    voxel represents the number of coodinates that are associated
+    with it.
+
+    Parameters
+    ----------
+    orientations : Orientations
+        Input orientations
+    shape : tuple, optional
+        The shape of the spherical sector in which the trajectory is
+    normalize_area : bool, optional
+        If True, normalize the histogram by the area of the bins
+
+    Returns
+    -------
+    vol : OrientationalVolume
+        Output volume
+    """
+    az, el, _ = orientations.vectors_spherical.T
+    # Notice that we are ignoring the value of the radial coordinate
+    az = az.flatten()
+    el = el.flatten()
+
+    hist, xedges, yedges = np.histogram2d(el, az, shape)
+
+    if normalize_area:
+        # Normalize by the area of the bins
+        areas = calculate_spherical_areas(shape)
+        hist = np.divide(hist, areas)
+        # Drop the bins at the poles where normalization is not possible
+        hist = hist[1:-1, :]
+
+    values = hist.T
+    axis_phi, axis_theta = values.shape
+
+    phi = np.linspace(0, 360, axis_phi)
+    theta = np.linspace(0, 180, axis_theta)
+
+    theta, phi = np.meshgrid(theta, phi)
+
+    data = np.stack([theta, phi, values], axis=-1)
+
+    return OrientationalVolume(
+        data=data,
+        lattice=orientations.trajectory.lattice,
+        label='orientations',
         units=None,
     )
