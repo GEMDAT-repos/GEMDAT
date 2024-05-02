@@ -12,7 +12,7 @@ from gemdat.orientations import (
 def rectilinear(
     *,
     orientations: Orientations,
-    shape: tuple[int, int] = (180, 360),
+    shape: tuple[int, int] = (90, 360),
     normalize_histo: bool = True,
     add_peaks: bool = False,
     **kwargs,

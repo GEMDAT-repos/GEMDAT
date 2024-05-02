@@ -273,10 +273,28 @@ class Orientations:
 
     def to_volume(
         self,
-        shape: tuple[int, int] = (180 * 4, 360 * 4),
+        shape: tuple[int, int] = (90, 360),
         normalize_area: bool = False,
     ) -> OrientationalVolume:
-        """Copy the docstring."""
+        """Calculate density volume from orientation.
+
+        The orientations are converted in spherical coordinates,
+        and the azimutal and elevation angles are binned into a 2d histogram.
+
+        Parameters
+        ----------
+        orientations : Orientations
+            Input orientations
+        shape : tuple
+            The shape of the spherical sector in which the trajectory is
+        normalize_area : bool
+            If True, normalize the histogram by the area of the bins
+
+        Returns
+        -------
+        vol : OrientationalVolume
+            Output volume
+        """
         from gemdat.volume import orientations_to_volume
         return orientations_to_volume(self,
                                       shape=shape,

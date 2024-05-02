@@ -93,3 +93,21 @@ def test_calculate_spherical_areas():
 
     assert isclose(area_grid[0, 1], 3.7304874810631827e-20)
     assert isclose(area_grid.mean(), 0.00018727792392184294)
+
+
+@pytest.vasporicache_available  # type: ignore
+def test_orientations_to_volume(vasp_orientations):
+    ov = vasp_orientations.to_volume()
+    assert ov.label == 'orientations'
+    assert ov.data.shape == (360, 90, 3)
+    assert isclose(ov.data[-1].mean(), 153.43703703703704)
+
+
+@pytest.vasporicache_available  # type: ignore
+def test_orientational_peaks(vasp_orientations):
+    ov = vasp_orientations.to_volume()
+    peaks = ov.orientational_peaks()
+
+    assert len(peaks) == 17
+    assert isclose(peaks[0][1], 88.98876404494382)
+    assert isclose(peaks[-1][0], 197.54874651810584)

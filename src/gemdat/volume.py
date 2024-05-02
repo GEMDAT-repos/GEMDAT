@@ -602,7 +602,7 @@ def orientations_to_volume(
         data=data,
         shape=shape,
         radii=r,
-        lattice=orientations.trajectory.lattice,
+        lattice=orientations.trajectory.get_lattice(),
         label='orientations',
         units=None,
     )
