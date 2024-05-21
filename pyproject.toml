@@ -98,6 +98,10 @@ known-first-party=["gemdat"]
 known-third-party = ["pymatgen"]
 required-imports = ["from __future__ import annotations"]
 
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+
 [tool.mypy]
 files = ["src", "tests"]
 allow_redefinition = true
