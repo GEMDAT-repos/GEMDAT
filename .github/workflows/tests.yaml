@@ -50,11 +50,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          coverage run -p -m pytest
-
-      - name: Combine
-        run: |
-          coverage combine
+          coverage run -m pytest
 
       - name: Report coverage
         run: |
