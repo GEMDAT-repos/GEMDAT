@@ -22,11 +22,12 @@ def collective_jumps(*, jumps: Jumps) -> go.Figure:
     fig : plotly.graph_objects.Figure
         Output figure
     """
-
-    matrix = jumps.collective().site_pair_count_matrix()
-    labels = jumps.collective().site_pair_count_matrix_labels()
+    collective = jumps.collective()
+    matrix = collective.site_pair_count_matrix()
 
     fig = px.imshow(matrix)
+
+    labels = collective.site_pair_count_matrix_labels()
 
     ticks = list(range(len(labels)))
 
@@ -43,20 +44,3 @@ def collective_jumps(*, jumps: Jumps) -> go.Figure:
                       title='Cooperative jumps per jump-type combination')
 
     return fig
-
-
-def jumps_3d(*, jumps: Jumps) -> go.Figure:
-    """Plot jumps in 3D.
-
-    Parameters
-    ----------
-    jumps : Jumps
-        Input data
-
-    Returns
-    -------
-    fig : plotly.graph_objects.Figure
-        Output figure
-    """
-    from ._plot3d import plot_3d
-    return plot_3d(jumps=jumps, structure=jumps.sites)

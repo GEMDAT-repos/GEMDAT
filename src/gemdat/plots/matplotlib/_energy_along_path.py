@@ -32,7 +32,7 @@ def energy_along_path(
     fig, ax = plt.subplots(figsize=(8, 4))
 
     ax.plot(path.energy, marker='o', color='r', label='Optimal path')
-    ax.set(ylabel='Free energy [eV]')
+    ax.set(ylabel='Free energy (eV)')
 
     nearest_sites = path.path_over_structure(structure)
 

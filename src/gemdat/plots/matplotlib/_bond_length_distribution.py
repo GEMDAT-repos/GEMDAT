@@ -56,8 +56,8 @@ def bond_length_distribution(*,
     x_fit = np.linspace(min(bin_centers), max(bin_centers), 1000)
     ax.plot(x_fit, _skewnorm_fit(x_fit), 'r-', label='Skewed Gaussian Fit')
 
-    ax.set_xlabel(r'Bond length $[\AA]$')
-    ax.set_ylabel(r'Probability density $[\AA^{-1}]$')
+    ax.set_xlabel('Bond length (Å)')
+    ax.set_ylabel(r'Probability density (Å$^{-1}$)')
     ax.set_title('Bond Length Probability Distribution')
     ax.legend()
     ax.grid(True)

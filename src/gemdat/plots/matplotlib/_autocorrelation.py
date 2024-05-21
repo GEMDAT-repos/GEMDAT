@@ -36,7 +36,7 @@ def autocorrelation(
 
     ax.plot(tgrid, ac_mean, label='FFT-Autocorrelation')
     ax.fill_between(tgrid, ac_mean - ac_std, ac_mean + ac_std, alpha=0.2)
-    ax.set_xlabel('Time lag [ps]')
+    ax.set_xlabel('Time lag (ps)')
     ax.set_ylabel('Autocorrelation')
 
     return fig

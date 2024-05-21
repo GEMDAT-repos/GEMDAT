@@ -30,7 +30,7 @@ def radial_distribution(rdfs: Iterable[RDFData]) -> plt.Figure:
 
     ax.legend()
     ax.set(title=f'Radial distribution function ({states})',
-           xlabel='Distance (Ang)',
+           xlabel='Distance (Å)',
            ylabel='Counts')
 
     return fig

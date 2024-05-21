@@ -22,17 +22,20 @@ def collective_jumps(*, jumps: Jumps) -> plt.Figure:
         Output figure
     """
     fig, ax = plt.subplots()
-    matrix = jumps.collective().site_pair_count_matrix()
-    labels = jumps.collective().site_pair_count_matrix_labels()
 
-    mat = ax.imshow(matrix)
+    collective = jumps.collective()
 
+    matrix = collective.site_pair_count_matrix()
+
+    im = ax.imshow(matrix)
+
+    labels = collective.site_pair_count_matrix_labels()
     ticks = range(len(labels))
 
     ax.set_xticks(ticks, labels=labels, rotation=90)
     ax.set_yticks(ticks, labels=labels)
 
-    fig.colorbar(mat, ax=ax)
+    fig.colorbar(im, ax=ax)
 
     ax.set(title='Cooperative jumps per jump-type combination')
 

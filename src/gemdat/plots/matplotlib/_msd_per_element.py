@@ -45,7 +45,7 @@ def msd_per_element(
 
     ax.legend()
     ax.set(title='Mean squared displacement per element',
-           xlabel='Time lag [ps]',
-           ylabel='MSD (Ångstrom$^2$)')
+           xlabel='Time lag (ps)',
+           ylabel='MSD (Å$^2$)')
 
     return fig

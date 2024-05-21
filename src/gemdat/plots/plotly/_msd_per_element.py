@@ -48,7 +48,7 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
                        legendgroup=sp.symbol))
 
     fig.update_layout(title='Mean squared displacement per element',
-                      xaxis_title='Time lag [ps]',
-                      yaxis_title='MSD (Ångstrom<sup>2</sup>)')
+                      xaxis_title='Time lag (ps)',
+                      yaxis_title=r'MSD (Å<sup>2</sup>)')
 
     return fig
