@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
 
 from gemdat.simulation_metrics import SimulationMetrics
 from gemdat.trajectory import Trajectory
@@ -60,34 +59,5 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
 
     ax.set_ylim([0, y_max])
     ax.set_xlim([-0.1e13, 2.5e13])
-
-    return fig
-
-
-def vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
-    """Plot histogram of vibrational amplitudes with fitted Gaussian.
-
-    Parameters
-    ----------
-    trajectory : Trajectory
-        Input trajectory, i.e. for the diffusing atom
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        Output figure
-    """
-    metrics = SimulationMetrics(trajectory)
-
-    fig, ax = plt.subplots()
-    ax.hist(metrics.amplitudes(), bins=100, density=True)
-
-    x = np.linspace(-2, 2, 100)
-    y_gauss = stats.norm.pdf(x, 0, metrics.vibration_amplitude())
-    ax.plot(x, y_gauss, 'r')
-
-    ax.set(title='Histogram of vibrational amplitudes with fitted Gaussian',
-           xlabel='Amplitude (Angstrom)',
-           ylabel='Occurrence (a.u.)')
 
     return fig

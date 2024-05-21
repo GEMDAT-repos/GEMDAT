@@ -61,7 +61,9 @@ def test_jumps_3d_animation(vasp_jumps):
     plots.jumps_3d_animation(jumps=vasp_jumps, t_start=1000, t_stop=1001)
 
 
-@image_comparison2(baseline_images=['rdf1', 'rdf2', 'rdf3'])
+@image_comparison2(baseline_images=[
+    'radial_distribution_1', 'radial_distribution_2', 'radial_distribution_3'
+])
 def test_rdf(vasp_rdf_data):
     assert len(vasp_rdf_data) == 3
     for rdfs in vasp_rdf_data.values():
@@ -75,12 +77,12 @@ def test_shape(vasp_shape_data):
         plots.shape(shape)
 
 
-@image_comparison2(baseline_images=['msd'])
+@image_comparison2(baseline_images=['msd_per_element'])
 def test_msd_per_element(vasp_traj):
     plots.msd_per_element(trajectory=vasp_traj[-500:])
 
 
-@image_comparison2(baseline_images=['path_energy'])
+@image_comparison2(baseline_images=['energy_along_path'])
 def test_path_energy(vasp_path):
     structure = load_known_material('argyrodite')
     plots.energy_along_path(path=vasp_path, structure=structure)
@@ -101,6 +103,6 @@ def test_bond_length_distribution(vasp_orientations):
     vasp_orientations.plot_bond_length_distribution(bins=1000)
 
 
-@image_comparison2(baseline_images=['unit_vector_autocorrelation'])
+@image_comparison2(baseline_images=['autocorrelation'])
 def test_unit_vector_autocorrelation(vasp_orientations):
     vasp_orientations.plot_autocorrelation()
