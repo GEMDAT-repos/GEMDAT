@@ -38,10 +38,12 @@ def autocorrelation(
 
     ax.plot(tgrid, ac_mean, label='FFT autocorrelation')
 
+    last_color = ax.lines[-1].get_color()
+
     if show_traces:
         for i, ac_i in enumerate(ac):
             label = 'Trajectories' if (i == 0) else None
-            ax.plot(tgrid, ac_i, lw=0.1, label=label)
+            ax.plot(tgrid, ac_i, lw=0.1, c=last_color, label=label)
 
     ax.fill_between(tgrid,
                     ac_mean - ac_std,

@@ -42,7 +42,7 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
                                     array=msd_std,
                                     width=0.1,
                                     thickness=0.1),
-                       name=sp.symbol,
+                       name=f'{sp.symbol} mean+std',
                        mode='lines',
                        line={'width': 3},
                        legendgroup=sp.symbol))
