@@ -10,6 +10,7 @@ from gemdat.orientations import (
 def autocorrelation(
     *,
     orientations: Orientations,
+    show_traces: bool = True,
 ) -> plt.Figure:
     """Plot the autocorrelation function of the unit vectors series.
 
@@ -17,6 +18,8 @@ def autocorrelation(
     ----------
     orientations : Orientations
         The unit vector trajectories
+    show_traces : bool
+        If True, show traces of individual trajectories
 
     Returns
     -------
@@ -31,12 +34,22 @@ def autocorrelation(
     time_ps = orientations._time_step * 1e12
     tgrid = np.arange(ac_mean.shape[0]) * time_ps
 
-    # and now we can plot the autocorrelation function
     fig, ax = plt.subplots()
 
-    ax.plot(tgrid, ac_mean, label='FFT-Autocorrelation')
-    ax.fill_between(tgrid, ac_mean - ac_std, ac_mean + ac_std, alpha=0.2)
+    ax.plot(tgrid, ac_mean, label='FFT autocorrelation')
+
+    if show_traces:
+        for i, ac_i in enumerate(ac):
+            label = 'Trajectories' if (i == 0) else None
+            ax.plot(tgrid, ac_i, lw=0.1, label=label)
+
+    ax.fill_between(tgrid,
+                    ac_mean - ac_std,
+                    ac_mean + ac_std,
+                    alpha=0.2,
+                    label='Standard deviation')
     ax.set_xlabel('Time lag (ps)')
     ax.set_ylabel('Autocorrelation')
+    ax.legend()
 
     return fig
