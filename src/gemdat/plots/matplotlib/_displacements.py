@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from collections import defaultdict
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 from gemdat.trajectory import Trajectory
+
+from gemdat.plots._shared import _mean_displacements_per_element
 
 
 def displacement_per_atom(*, trajectory: Trajectory) -> plt.Figure:
@@ -28,7 +28,7 @@ def displacement_per_atom(*, trajectory: Trajectory) -> plt.Figure:
 
     ax.set(title='Displacement per site',
            xlabel='Time step',
-           ylabel='Displacement (Angstrom)')
+           ylabel='Displacement (Å)')
 
     return fig
 
@@ -46,24 +46,17 @@ def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    grouped = defaultdict(list)
-
-    species = trajectory.species
-
-    for sp, distances in zip(species,
-                             trajectory.distances_from_base_position()):
-        grouped[sp.symbol].append(distances)
+    displacements = _mean_displacements_per_element(trajectory)
 
     fig, ax = plt.subplots()
 
-    for symbol, distances in grouped.items():
-        mean_disp = np.mean(distances, axis=0)
-        ax.plot(mean_disp, lw=0.3, label=symbol)
+    for symbol, (mean, _) in displacements.items():
+        ax.plot(mean, lw=0.3, label=symbol)
 
     ax.legend()
     ax.set(title='Displacement per element',
            xlabel='Time step',
-           ylabel='Displacement (Angstrom)')
+           ylabel='Displacement (Å)')
 
     return fig
 
@@ -108,7 +101,7 @@ def msd_per_element(
     ax.legend()
     ax.set(title='Mean squared displacement per element',
            xlabel='Time lag [ps]',
-           ylabel='MSD (Angstrom$^2$)')
+           ylabel='MSD (Ångstrom$^2$)')
 
     return fig
 
@@ -128,8 +121,8 @@ def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
     """
     fig, ax = plt.subplots()
     ax.hist(trajectory.distances_from_base_position()[:, -1])
-    ax.set(title='Histogram of displacements',
-           xlabel='Displacement (Angstrom)',
+    ax.set(title='Displacement per element',
+           xlabel='Displacement (Å)',
            ylabel='Nr. of atoms')
 
     return fig

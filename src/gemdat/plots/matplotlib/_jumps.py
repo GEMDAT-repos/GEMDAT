@@ -9,7 +9,6 @@ from matplotlib import colormaps
 from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
-
     from gemdat import Jumps
 
 
@@ -53,7 +52,7 @@ def jumps_vs_distance(
     ax.bar(x, counts, width=(jump_res * 0.8))
 
     ax.set(title='Jumps vs. Distance',
-           xlabel='Distance (Angstrom)',
+           xlabel='Distance (Å)',
            ylabel='Number of jumps')
 
     return fig
@@ -199,9 +198,9 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
 
     ax.set(
         title='Jumps between sites',
-        xlabel="x' (ang)",
-        ylabel="y' (ang)",
-        zlabel="z' (ang)",
+        xlabel="x' (Å)",
+        ylabel="y' (Å)",
+        zlabel="z' (Å)",
     )
 
     ax.set_aspect('equal')  # only auto is supported
@@ -308,9 +307,9 @@ def jumps_3d_animation(
 
     ax.set(
         title='Jumps between sites',
-        xlabel="x' (ang)",
-        ylabel="y' (ang)",
-        zlabel="z' (ang)",
+        xlabel="x' (Å)",
+        ylabel="y' (Å)",
+        zlabel="z' (Å)",
     )
 
     ax.set_aspect('equal')  # only auto is supported

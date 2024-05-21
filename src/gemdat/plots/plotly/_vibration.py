@@ -149,7 +149,7 @@ def vibrational_amplitudes(*,
 
     fig.update_layout(
         title='Histogram of vibrational amplitudes with fitted Gaussian',
-        xaxis_title='Amplitude (Ångstrom)',
+        xaxis_title='Amplitude (Å)',
         yaxis_title='Occurrence (a.u.)')
 
     return fig

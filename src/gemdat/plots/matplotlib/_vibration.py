@@ -87,7 +87,7 @@ def vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
     ax.plot(x, y_gauss, 'r')
 
     ax.set(title='Histogram of vibrational amplitudes with fitted Gaussian',
-           xlabel='Amplitude (Angstrom)',
+           xlabel='Amplitude (Å)',
            ylabel='Occurrence (a.u.)')
 
     return fig

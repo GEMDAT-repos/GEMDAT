@@ -8,7 +8,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 if TYPE_CHECKING:
-
     from gemdat import Jumps
 
 
@@ -70,7 +69,7 @@ def jumps_vs_distance(*,
                      barmode='stack')
 
     fig.update_layout(title='Jumps vs. Distance',
-                      xaxis_title='Distance (Angstrom)',
+                      xaxis_title='Distance (Å)',
                       yaxis_title='Number of jumps')
 
     return fig

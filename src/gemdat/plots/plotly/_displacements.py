@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from collections import defaultdict
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
 from gemdat.trajectory import Trajectory
+from gemdat.plots._shared import _mean_displacements_per_element
 
 
 def displacement_per_atom(*, trajectory: Trajectory) -> go.Figure:
@@ -38,7 +37,7 @@ def displacement_per_atom(*, trajectory: Trajectory) -> go.Figure:
 
     fig.update_layout(title='Displacement per atom',
                       xaxis_title='Time step',
-                      yaxis_title='Displacement (Angstrom)')
+                      yaxis_title='Displacement (Å)')
 
     return fig
 
@@ -56,35 +55,26 @@ def displacement_per_element(*, trajectory: Trajectory) -> go.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
+    displacements = _mean_displacements_per_element(trajectory)
 
     fig = go.Figure()
 
-    grouped = defaultdict(list)
-
-    species = trajectory.species
-
-    for sp, distances in zip(species,
-                             trajectory.distances_from_base_position()):
-        grouped[sp.symbol].append(distances)
-
-    for symbol, distances in grouped.items():
-        mean_disp = np.mean(distances, axis=0)
-        std_disp = np.std(distances, axis=0)
+    for symbol, (mean, std) in displacements.items():
         fig.add_trace(
-            go.Scatter(y=mean_disp,
+            go.Scatter(y=mean,
                        name=symbol + ' + std',
                        mode='lines',
                        line={'width': 3},
                        legendgroup=symbol))
         fig.add_trace(
-            go.Scatter(y=mean_disp + std_disp,
+            go.Scatter(y=mean + std,
                        name=symbol + ' + std',
                        mode='lines',
                        line={'width': 0},
                        legendgroup=symbol,
                        showlegend=False))
         fig.add_trace(
-            go.Scatter(y=mean_disp - std_disp,
+            go.Scatter(y=mean - std,
                        name=symbol + ' + std',
                        mode='lines',
                        line={'width': 0},
@@ -94,7 +84,7 @@ def displacement_per_element(*, trajectory: Trajectory) -> go.Figure:
 
     fig.update_layout(title='Displacement per element',
                       xaxis_title='Time step',
-                      yaxis_title='Displacement (Angstrom)')
+                      yaxis_title='Displacement (Å)')
 
     return fig
 
@@ -142,7 +132,7 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
 
     fig.update_layout(title='Mean squared displacement per element',
                       xaxis_title='Time lag [ps]',
-                      yaxis_title='MSD (Angstrom<sup>2</sup>)')
+                      yaxis_title='MSD (Ångstrom<sup>2</sup>)')
 
     return fig
 
@@ -198,7 +188,7 @@ def displacement_histogram(trajectory: Trajectory,
                      barmode='stack')
 
         fig.update_layout(title='Displacement per element',
-                          xaxis_title='Displacement (Angstrom)',
+                          xaxis_title='Displacement (Å)',
                           yaxis_title='Nr. of atoms')
     else:
         interval = np.linspace(0, len(trajectory) - 1, n_parts + 1)
@@ -225,7 +215,7 @@ def displacement_histogram(trajectory: Trajectory,
         fig.update_layout(
             title=
             f'Displacement per element after {int(interval[1]-interval[0])} timesteps',
-            xaxis_title='Displacement (Angstrom)',
+            xaxis_title='Displacement (Å)',
             yaxis_title='Nr. of atoms')
 
     return fig

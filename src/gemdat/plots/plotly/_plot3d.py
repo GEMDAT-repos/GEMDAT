@@ -307,9 +307,9 @@ def update_layout(*,
                               'y': lattice.b * zoom,
                               'z': lattice.c * zoom,
                           },
-                          'xaxis_title': 'X (Ångstrom)',
-                          'yaxis_title': 'Y (Ångstrom)',
-                          'zaxis_title': 'Z (Ångstrom)'
+                          'xaxis_title': 'X (Å)',
+                          'yaxis_title': 'Y (Å)',
+                          'zaxis_title': 'Z (Å)'
                       },
                       legend={
                           'orientation': 'h',
