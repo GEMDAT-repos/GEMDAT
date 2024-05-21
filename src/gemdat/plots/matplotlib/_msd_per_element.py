@@ -10,6 +10,7 @@ def msd_per_element(
     *,
     trajectory: Trajectory,
     show_traces: bool = True,
+    show_shaded: bool = True,
 ) -> plt.Figure:
     """Plot mean squared displacement per element.
 
@@ -18,7 +19,9 @@ def msd_per_element(
     trajectory : Trajectory
         Input trajectory
     show_traces : bool
-        If True, show individual traces for each element
+        If True, show traces of individual trajectories for each element
+    show_shaded : bool
+        If True, show standard deviation as shaded area
 
     Returns
     -------
@@ -49,12 +52,13 @@ def msd_per_element(
                 label = f'{sp.symbol} trajectories' if (i == 0) else None
                 ax.plot(t_values, traj, lw=0.1, c=last_color, label=label)
 
-        ax.fill_between(t_values,
-                        msd_mean - msd_std,
-                        msd_mean + msd_std,
-                        color=last_color,
-                        alpha=0.2,
-                        label=f'{sp.symbol} std')
+        if show_shaded:
+            ax.fill_between(t_values,
+                            msd_mean - msd_std,
+                            msd_mean + msd_std,
+                            color=last_color,
+                            alpha=0.2,
+                            label=f'{sp.symbol} std')
 
     ax.legend()
     ax.set(title='Mean squared displacement per element',

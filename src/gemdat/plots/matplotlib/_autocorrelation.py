@@ -11,6 +11,7 @@ def autocorrelation(
     *,
     orientations: Orientations,
     show_traces: bool = True,
+    show_shaded: bool = True,
 ) -> plt.Figure:
     """Plot the autocorrelation function of the unit vectors series.
 
@@ -20,6 +21,8 @@ def autocorrelation(
         The unit vector trajectories
     show_traces : bool
         If True, show traces of individual trajectories
+    show_shaded : bool
+        If True, show standard deviation as shaded area
 
     Returns
     -------
@@ -45,11 +48,13 @@ def autocorrelation(
             label = 'Trajectories' if (i == 0) else None
             ax.plot(tgrid, ac_i, lw=0.1, c=last_color, label=label)
 
-    ax.fill_between(tgrid,
-                    ac_mean - ac_std,
-                    ac_mean + ac_std,
-                    alpha=0.2,
-                    label='Standard deviation')
+    if show_shaded:
+        ax.fill_between(tgrid,
+                        ac_mean - ac_std,
+                        ac_mean + ac_std,
+                        alpha=0.2,
+                        label='Standard deviation')
+
     ax.set_xlabel('Time lag (ps)')
     ax.set_ylabel('Autocorrelation')
     ax.legend()
