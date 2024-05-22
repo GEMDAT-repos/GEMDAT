@@ -27,6 +27,7 @@ from ._frequency_vs_occurence import frequency_vs_occurence
 from ._vibrational_amplitudes import vibrational_amplitudes
 
 __all__ = [
+    'autocorrelation',
     'bond_length_distribution',
     'collective_jumps',
     'displacement_histogram',
@@ -43,6 +44,5 @@ __all__ = [
     'radial_distribution',
     'rectilinear',
     'shape',
-    'autocorrelation',
     'vibrational_amplitudes',
 ]

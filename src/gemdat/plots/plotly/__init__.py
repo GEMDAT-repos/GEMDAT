@@ -24,7 +24,7 @@ __all__ = [
     'jumps_3d',
     'jumps_vs_distance',
     'jumps_vs_time',
-    'plot_3d',
     'msd_per_element',
+    'plot_3d',
     'vibrational_amplitudes',
 ]
