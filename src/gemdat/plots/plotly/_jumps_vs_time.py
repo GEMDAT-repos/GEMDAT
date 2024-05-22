@@ -28,7 +28,7 @@ def jumps_vs_time(*,
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
+    fig : plotly.graph_objects.Figure
         Output figure
     """
     maxlen = len(jumps.trajectory) / n_parts

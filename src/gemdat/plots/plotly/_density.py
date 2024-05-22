@@ -31,7 +31,7 @@ def density(
 
     Returns
     -------
-    fig : go.Figure
+    fig : plotly.graph_objects.Figure
         Output as plotly figure
     """
     from ._plot3d import plot_3d

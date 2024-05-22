@@ -25,7 +25,7 @@ def vibrational_amplitudes(*,
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
+    fig : plotly.graph_objects.Figure
         Output figure
     """
 

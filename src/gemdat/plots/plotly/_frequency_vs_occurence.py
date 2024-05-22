@@ -17,7 +17,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> go.Figure:
 
     Returns
     -------
-    fig : go.figure.Figure
+    fig : plotly.graph_objects.Figure.Figure
         Output figure
     """
     metrics = SimulationMetrics(trajectory)

@@ -16,10 +16,9 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
+    fig : plotly.graph_objects.Figure
         Output figure
     """
-
     fig = go.Figure()
 
     species = list(set(trajectory.species))

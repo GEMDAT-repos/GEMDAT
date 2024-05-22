@@ -24,7 +24,7 @@ def plot_lattice_vectors(lattice: Lattice, *, fig: go.Figure):
     ----------
     lattice : Lattice
         Input lattice
-    fig : go.Figure
+    fig : plotly.graph_objects.Figure
         Plotly figure to add traces to
     """
     org = lattice.get_cartesian_coords([0.0, 0.0, 0.0])
@@ -69,7 +69,7 @@ def plot_points(points: np.ndarray,
         Input points
     labels : Sequence
         Labels for points. Length must match points.
-    fig : go.Figure
+    fig : plotly.graph_objects.Figure
         Plotly figure to add traces to
     point_size : int, optional
         Size of the points
@@ -113,7 +113,7 @@ def plot_structure(structure: Structure,
         Input structure
     lattice : Lattice | None
         If specified, use this lattic instead of `structure.lattice`.
-    fig : go.Figure
+    fig : plotly.graph_objects.Figure
         Plotly figure to add traces too
     """
     if lattice:
@@ -140,7 +140,7 @@ def plot_volume(
     ----------
     volume : Volume
         Input volume
-    fig : go.Figure
+    fig : plotly.graph_objects.Figure
         Plotly figure to add traces too
     lattice : Lattice | None
         Use this lattice instead of `Volume.lattice`
@@ -194,7 +194,7 @@ def plot_paths(
         Pathway object containing the energy along the path, or list of Pathways
     lattice : Lattice
         Input lattice for coordinate transformations
-    fig : go.Figure
+    fig : plotly.graph_objects.Figure
         Plotly figure to add paths too
     """
     if not isinstance(paths, Collection):
@@ -241,7 +241,7 @@ def plot_jumps(jumps: Jumps, *, fig: go.Figure):
     ---------
     paths : Jumps
         Jumps object containing the jumps to plot
-    fig : go.Figure
+    fig : plotly.graph_objects.Figure
         Plotly figure to add traces too
     """
     coords = jumps.sites.frac_coords
@@ -292,7 +292,7 @@ def update_layout(*,
     ---------
     lattice : Lattice
         Lattice information to determine the aspect ratio and camera position
-    fig : go.Figure
+    fig : plotly.graph_objects.Figure
         Plotly figure to update layout of
     zoom : float, optional
         Zoom level
