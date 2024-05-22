@@ -100,7 +100,7 @@ def test_rectilinear(vasp_orientations):
 
 @image_comparison2(baseline_images=['bond_length_distribution'])
 def test_bond_length_distribution(vasp_orientations):
-    plots.bond_length_distribution(orientations=vasp_orientations, bins=1000)
+    plots.bond_length_distribution(orientations=vasp_orientations, bins=50)
 
 
 @image_comparison2(baseline_images=['autocorrelation'])

@@ -83,7 +83,7 @@ def test_rectilinear(vasp_orientations):
 
 
 def test_bond_length_distribution(vasp_orientations):
-    plots.bond_length_distribution(orientations=vasp_orientations, bins=1000)
+    plots.bond_length_distribution(orientations=vasp_orientations, bins=50)
 
 
 def test_autocorrelation(vasp_orientations):

@@ -4,15 +4,13 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 from gemdat.orientations import Orientations
-import pandas as pd
-import numpy as np
-from scipy.optimize import curve_fit
-from scipy.stats import skewnorm
+
+from .._shared import _orientations_to_histogram, _fit_skewnorm_to_hist
 
 
 def bond_length_distribution(*,
                              orientations: Orientations,
-                             bins: int = 1000) -> go.Figure:
+                             bins: int = 50) -> go.Figure:
     """Plot the bond length probability distribution.
 
     Parameters
@@ -20,43 +18,30 @@ def bond_length_distribution(*,
     orientations : Orientations
         The unit vector trajectories
     bins : int, optional
-        The number of bins, by default 1000
+        The number of bins
 
     Returns
     -------
     fig : plotly.graph_objects.Figure
         Output figure
     """
-    *_, bond_lengths = orientations.vectors_spherical.T
-    bond_lengths = bond_lengths.flatten()
-
-    hist, edges = np.histogram(bond_lengths, bins=bins, density=True)
-    bin_centers = bin_centers = (edges[:-1] + edges[1:]) / 2
-
-    params, covariance = curve_fit(skewnorm.pdf,
-                                   bin_centers,
-                                   hist,
-                                   p0=[1.5, 1, 1.5])
-
-    x_fit = np.linspace(min(bin_centers), max(bin_centers), 1000)
-    y_fit = skewnorm.pdf(x_fit, *params)
-
-    df = pd.DataFrame({'prob': hist, 'x': bin_centers})
+    hist_df = _orientations_to_histogram(orientations, bins=bins)
+    x, y = _fit_skewnorm_to_hist(hist_df, steps=100)
 
     fig = px.bar(
-        df,
-        x='x',
+        hist_df,
+        x='center',
         y='prob',
     )
 
     fig.add_trace(
-        go.Scatter(x=x_fit,
-                   y=y_fit,
+        go.Scatter(x=x,
+                   y=y,
                    name='Skewed Gaussian Fit',
                    mode='lines',
                    line={'width': 3}))
 
-    fig.update_layout(title='Bond Length Probability Distribution',
+    fig.update_layout(title='Bond length probability distribution',
                       xaxis_title='Bond length (Å)',
                       yaxis_title='Probability density (Å<sup>-1</sup>)')
 
