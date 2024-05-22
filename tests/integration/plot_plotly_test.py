@@ -87,6 +87,5 @@ def test_bond_length_distribution(vasp_orientations):
     plots.bond_length_distribution(orientations=vasp_orientations, bins=1000)
 
 
-@pytest.mark.xfail(reason='not implemented yet')
 def test_autocorrelation(vasp_orientations):
     plots.autocorrelation(orientations=vasp_orientations)
