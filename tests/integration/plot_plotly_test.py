@@ -82,7 +82,6 @@ def test_rectilinear(vasp_orientations):
     plots.rectilinear(orientations=orientations, normalize_histo=False)
 
 
-@pytest.mark.xfail(reason='not implemented yet')
 def test_bond_length_distribution(vasp_orientations):
     plots.bond_length_distribution(orientations=vasp_orientations, bins=1000)
 

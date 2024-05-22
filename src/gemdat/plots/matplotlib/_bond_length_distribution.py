@@ -40,10 +40,6 @@ def bond_length_distribution(*,
                                    hist,
                                    p0=[1.5, 1, 1.5])
 
-    # Create a new function using the fitted parameters
-    def _skewnorm_fit(x):
-        return skewnorm.pdf(x, *params)
-
     # Plot the histogram
     ax.hist(bond_lengths,
             bins=bins,
@@ -54,7 +50,8 @@ def bond_length_distribution(*,
 
     # Plot the fitted skewed Gaussian distribution
     x_fit = np.linspace(min(bin_centers), max(bin_centers), 1000)
-    ax.plot(x_fit, _skewnorm_fit(x_fit), 'r-', label='Skewed Gaussian Fit')
+    y_fit = skewnorm.pdf(x_fit, *params)
+    ax.plot(x_fit, y_fit, 'r-', label='Skewed Gaussian Fit')
 
     ax.set_xlabel('Bond length (Å)')
     ax.set_ylabel(r'Probability density (Å$^{-1}$)')
