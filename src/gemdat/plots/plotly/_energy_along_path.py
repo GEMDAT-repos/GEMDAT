@@ -5,6 +5,8 @@ from pymatgen.core import Structure
 import numpy as np
 from gemdat.path import Pathway
 
+from itertools import pairwise
+
 
 def energy_along_path(
     path: Pathway,
@@ -40,31 +42,39 @@ def energy_along_path(
     if structure:
         nearest_sites = path.path_over_structure(structure)
 
-        site_xlabel = []
-        sitecoord_xlabel = []
+        prev_site = nearest_sites[0]
+        sections = [(0, prev_site)]
 
-        prev = nearest_sites[0]
         for i, site in enumerate(nearest_sites):
-            if (site.coords != prev.coords).any() or i == 0:
-                sitecoord_xlabel.append(', '.join(f'{val:.1f}'
-                                                  for val in site.coords))
-                site_xlabel.append(site.label)
-            else:
-                sitecoord_xlabel.append('')
-                site_xlabel.append('')
+            if site != prev_site:
+                sections.append((i, site))
 
-            prev = site
+            prev_site = site
 
-        non_empty_ticks = [
-            i for i, label in enumerate(sitecoord_xlabel) if label != ''
-        ]
+        highlight = True
 
-        for start, stop in zip(non_empty_ticks[::2], non_empty_ticks[1::2]):
-            fig.add_vrect(x0=start,
-                          x1=stop,
-                          line_width=0,
-                          fillcolor='red',
-                          opacity=0.1)
+        for (start, site), (stop, _) in pairwise(sections):
+            if highlight:
+                fig.add_vrect(
+                    x0=start,
+                    x1=stop,
+                    line_width=0,
+                    fillcolor='red',
+                    opacity=0.1,
+                )
+
+            fig.add_annotation(
+                x=(start + stop) / 2,
+                y=0.1,
+                yref='y domain',
+                text=site.label,
+                xanchor='center',
+                yanchor='middle',
+                showarrow=False,
+                hovertext=str(site),
+            )
+
+            highlight = not highlight
 
     if other_paths:
         for idx, path in enumerate(other_paths):
