@@ -37,13 +37,11 @@ def energy_along_path(
     if structure:
         nearest_sites = path.path_over_structure(structure)
 
-        # Create costum labels for the x axis to avoid consecutive repetitions
         site_xlabel = []
         sitecoord_xlabel = []
 
         prev = nearest_sites[0]
         for i, site in enumerate(nearest_sites):
-            # only non repeated labels will get an entry
             if (site.coords != prev.coords).any() or i == 0:
                 sitecoord_xlabel.append(', '.join(f'{val:.1f}'
                                                   for val in site.coords))
@@ -67,20 +65,9 @@ def energy_along_path(
         ax.set_xticklabels([sitecoord_xlabel[i] for i in non_empty_ticks],
                            rotation=45)
 
-        # Change background color alternatively for different sites
-        for i in range(0, len(non_empty_ticks), 2):
-            if i + 1 < len(non_empty_ticks):
-                ax.axvspan(non_empty_ticks[i],
-                           non_empty_ticks[i + 1],
-                           facecolor='lightgray',
-                           edgecolor='none')
-            else:
-                ax.axvspan(non_empty_ticks[i],
-                           max(non_empty_ticks),
-                           facecolor='lightgray',
-                           edgecolor='none')
+        for start, stop in zip(non_empty_ticks[::2], non_empty_ticks[1::2]):
+            ax.axvspan(start, stop, facecolor='lightgray', edgecolor='none')
 
-        # and add on top the site labels
         ax_up = ax.twiny()
         ax_up.set_xlim(ax.get_xlim())
         ax_up.set_xticks(centered_ticks)
