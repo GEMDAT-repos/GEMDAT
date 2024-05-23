@@ -65,7 +65,6 @@ def test_msd_per_element(vasp_traj):
     plots.msd_per_element(trajectory=vasp_traj[-500:])
 
 
-@pytest.mark.xfail(reason='not implemented yet')
 def test_energy_along_path(vasp_path):
     structure = load_known_material('argyrodite')
     plots.energy_along_path(path=vasp_path, structure=structure)
