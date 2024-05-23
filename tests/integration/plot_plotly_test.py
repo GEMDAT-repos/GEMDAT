@@ -48,7 +48,6 @@ def test_jumps_3d(vasp_jumps):
     plots.jumps_3d(jumps=vasp_jumps)
 
 
-@pytest.mark.xfail(reason='not implemented yet')
 def test_radial_distribution(vasp_rdf_data):
     assert len(vasp_rdf_data) == 3
     for rdfs in vasp_rdf_data.values():

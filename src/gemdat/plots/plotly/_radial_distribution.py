@@ -21,4 +21,21 @@ def radial_distribution(rdfs: Iterable[RDFData]) -> go.Figure:
     fig : plotly.graph_objects.Figure
         Output figure
     """
-    raise NotImplementedError
+    fig = go.Figure()
+
+    for rdf in rdfs:
+        fig.add_trace(
+            go.Scatter(
+                x=rdf.x,
+                y=rdf.y,
+                name=rdf.symbol,
+                mode='lines',
+                # line={'width': 0.25}
+            ))
+
+    states = ', '.join({rdf.state for rdf in rdfs})
+    fig.update_layout(title=f'Radial distribution function ({states})',
+                      xaxis_title='Distance (Å)',
+                      yaxis_title='Counts')
+
+    return fig

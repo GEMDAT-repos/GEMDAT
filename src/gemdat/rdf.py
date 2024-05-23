@@ -91,6 +91,11 @@ class RDFData:
     symbol: str
     state: str
 
+    def plot(self, **kwargs):
+        """See [gemdat.plots.radial_distribution][] for more info."""
+        from gemdat import plots
+        return plots.radial_distribution(rdfs=self, **kwargs)
+
 
 def radial_distribution(
     *,
