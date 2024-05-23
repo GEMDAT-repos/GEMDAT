@@ -50,6 +50,7 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 
 [project.optional-dependencies]
 develop = [
+    "kaleido",
     "bump-my-version",
     "coverage[toml]",
     "mypy",
