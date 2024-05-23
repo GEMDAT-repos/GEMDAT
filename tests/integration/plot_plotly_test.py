@@ -7,6 +7,8 @@ from gemdat.plots import plotly as plots
 from pathlib import Path
 import pytest
 
+from typing import Any
+
 from matplotlib.testing.compare import compare_images
 
 
@@ -14,7 +16,7 @@ def assert_image_similar(fig,
                          *,
                          name: str,
                          ext: str = 'png',
-                         rms: float = 0.001):
+                         rms: float = 0.0):
     RESULTS_DIR = Path() / 'result_images' / Path(__file__).stem
     RESULTS_DIR.mkdir(exist_ok=True, parents=True)
 
@@ -23,20 +25,28 @@ def assert_image_similar(fig,
 
     filename = f'{name}.{ext}'
 
-    img1 = RESULTS_DIR / filename
-    fig.write_image(img1)
+    actual = RESULTS_DIR / filename
+    fig.write_image(actual)
 
-    img2 = EXPECTED_DIR / filename
-    img2_link = RESULTS_DIR / f'{name}-expected.{ext}'
+    expected = EXPECTED_DIR / filename
+    expected_link = RESULTS_DIR / f'{name}-expected.{ext}'
 
-    if img2_link.exists():
-        img2_link.unlink()
+    if expected_link.exists():
+        expected_link.unlink()
 
-    img2_link.symlink_to(img2)
+    expected_link.symlink_to(expected)
 
-    ret = compare_images(str(img1), str(img2_link), 0.001)
+    err: dict[str, Any] = compare_images(str(expected_link),
+                                         str(actual),
+                                         0.0,
+                                         in_decorator=True)  # type: ignore
 
-    assert not ret, ret
+    if err:
+        for key in ('actual', 'expected', 'diff'):
+            err[key] = Path(err[key]).relative_to('.')
+        raise AssertionError(
+            ('images not close (RMS {rms:.3f}):'
+             '\n\t{actual}\n\t{expected}\n\t{diff}'.format(**err)))
 
 
 def test_displacement_per_element(vasp_traj):
