@@ -71,7 +71,6 @@ def test_energy_along_path(vasp_path):
     plots.energy_along_path(path=vasp_path, structure=structure)
 
 
-@pytest.mark.xfail(reason='not implemented yet')
 def test_rectilinear(vasp_orientations):
     matrix = np.array(
         [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],

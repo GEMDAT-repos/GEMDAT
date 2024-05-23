@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import plotly.graph_objects as go
 
-from gemdat.orientations import Orientations
+import numpy as np
+
+from gemdat.orientations import (
+    Orientations,
+    calculate_spherical_areas,
+)
 
 
 def rectilinear(*,
@@ -26,4 +31,35 @@ def rectilinear(*,
     fig : plotly.graph_objects.Figure
         Output figure
     """
-    raise NotImplementedError
+    az, el, _ = orientations.vectors_spherical.T
+    az = az.flatten()
+    el = el.flatten()
+
+    hist, *_ = np.histogram2d(el, az, shape)
+
+    if normalize_histo:
+        areas = calculate_spherical_areas(shape)
+        hist = hist / areas
+        # Drop the bins at the poles where normalization is not possible
+        hist = hist[1:-1, :]
+
+    axis_theta, axis_phi = hist.shape
+
+    phi = np.linspace(0, 360, axis_phi)
+    theta = np.linspace(0, 180, axis_theta)
+
+    fig = go.Figure(data=go.Contour(x=phi,
+                                    y=theta,
+                                    z=hist,
+                                    colorbar={
+                                        'title': 'Areal probability',
+                                        'titleside': 'right',
+                                    }))
+
+    fig.update_layout(
+        title='Rectilinear plot',
+        xaxis_title='Azimuthal angle φ (°)',
+        yaxis_title='Elevation θ (°)',
+    )
+
+    return fig

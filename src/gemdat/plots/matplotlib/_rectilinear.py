@@ -30,41 +30,35 @@ def rectilinear(*,
     fig : matplotlib.figure.Figure
         Output figure
     """
-    # Convert the vectors to spherical coordinates
     az, el, _ = orientations.vectors_spherical.T
     az = az.flatten()
     el = el.flatten()
 
-    hist, xedges, yedges = np.histogram2d(el, az, shape)
+    hist, *_ = np.histogram2d(el, az, shape)
 
     if normalize_histo:
-        # Normalize by the area of the bins
         areas = calculate_spherical_areas(shape)
-        hist = np.divide(hist, areas)
+        hist = hist / areas
         # Drop the bins at the poles where normalization is not possible
         hist = hist[1:-1, :]
 
-    values = hist.T
-    axis_phi, axis_theta = values.shape
+    axis_theta, axis_phi = hist.shape
 
     phi = np.linspace(0, 360, axis_phi)
     theta = np.linspace(0, 180, axis_theta)
 
-    theta, phi = np.meshgrid(theta, phi)
+    x, y = np.meshgrid(phi, theta)
 
-    fig, ax = plt.subplots(subplot_kw=dict(projection='rectilinear'))
-    cs = ax.contourf(phi, theta, values, cmap='viridis')
-    ax.set_yticks(np.arange(0, 190, 45))
-    ax.set_xticks(np.arange(0, 370, 45))
+    fig, ax = plt.subplots()
+
+    cs = ax.contourf(x, y, hist)
+
+    ax.set_xticks(np.linspace(0, 360, 9))
+    ax.set_yticks(np.linspace(0, 180, 5))
 
     ax.set_xlabel('Azimuthal angle φ (°)')
     ax.set_ylabel('Elevation θ (°)')
 
-    ax.grid(visible=True)
-    cbar = fig.colorbar(cs, label='Areal probability', format='')
+    fig.colorbar(cs, label='Areal probability', format='')
 
-    # Rotate the colorbar label by 180 degrees
-    cbar.ax.yaxis.set_label_coords(2.5,
-                                   0.5)  # Adjust the position of the label
-    cbar.set_label('Areal probability', rotation=270, labelpad=15)
     return fig
