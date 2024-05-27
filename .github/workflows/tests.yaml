@@ -52,6 +52,17 @@ jobs:
         run: |
           coverage run -m pytest
 
+      - name: Zip artifact for deployment
+        if: failure()
+        run: zip result_images.zip ./result_images -r
+
+      - name: Upload artifact for failed images
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: result_images
+          path: result_images.zip
+
       - name: Report coverage
         run: |
           coverage json
