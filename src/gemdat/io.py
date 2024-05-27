@@ -1,4 +1,5 @@
 """This module contains functions to read and write data."""
+
 from __future__ import annotations
 
 import warnings

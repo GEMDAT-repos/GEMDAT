@@ -61,9 +61,13 @@ def test_jumps_3d_animation(vasp_jumps):
     plots.jumps_3d_animation(jumps=vasp_jumps, t_start=1000, t_stop=1001)
 
 
-@image_comparison2(baseline_images=[
-    'radial_distribution_1', 'radial_distribution_2', 'radial_distribution_3'
-])
+@image_comparison2(
+    baseline_images=[
+        'radial_distribution_1',
+        'radial_distribution_2',
+        'radial_distribution_3',
+    ]
+)
 def test_radial_distribution(vasp_rdf_data):
     assert len(vasp_rdf_data) == 3
     for rdfs in vasp_rdf_data.values():
@@ -91,8 +95,12 @@ def test_energy_along_path(vasp_path):
 @image_comparison2(baseline_images=['rectilinear'])
 def test_rectilinear(vasp_orientations):
     matrix = np.array(
-        [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
-         [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5], [0, 2 / 6**0.5, 1 / 3**0.5]], )
+        [
+            [1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
+            [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5],
+            [0, 2 / 6**0.5, 1 / 3**0.5],
+        ],
+    )
 
     orientations = vasp_orientations.normalize().transform(matrix=matrix)
     plots.rectilinear(orientations=orientations, normalize_histo=False)

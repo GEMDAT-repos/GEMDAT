@@ -30,8 +30,10 @@ def vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
     y_gauss = stats.norm.pdf(x, 0, metrics.vibration_amplitude())
     ax.plot(x, y_gauss, 'r')
 
-    ax.set(title='Histogram of vibrational amplitudes with fitted Gaussian',
-           xlabel='Amplitude (Å)',
-           ylabel='Occurrence (a.u.)')
+    ax.set(
+        title='Histogram of vibrational amplitudes with fitted Gaussian',
+        xlabel='Amplitude (Å)',
+        ylabel='Occurrence (a.u.)',
+    )
 
     return fig

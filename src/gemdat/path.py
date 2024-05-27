@@ -83,8 +83,7 @@ class Pathway:
             Voxel coordinates wrapped to bounding box.
         """
         if not self.dims:
-            raise AttributeError(
-                f'Dimensions are needed for this method {self.dims=}')
+            raise AttributeError(f'Dimensions are needed for this method {self.dims=}')
         xdim, ydim, zdim = self.dims
         return [(x % xdim, y % xdim, z % xdim) for x, y, z in self.sites]
 
@@ -99,8 +98,7 @@ class Pathway:
             Fractional coordinates for sites
         """
         if not self.dims:
-            raise AttributeError(
-                f'Dimensions are needed for this method {self.dims=}')
+            raise AttributeError(f'Dimensions are needed for this method {self.dims=}')
         sites = self.wrapped_sites()
         return (np.array(sites) + 0.5) / np.array(self.dims)
 
@@ -123,7 +121,8 @@ class Pathway:
         frac_sites = np.array(self.frac_sites())
 
         nearest_structure_tree, nearest_structure_map = nearest_structure_reference(
-            structure)
+            structure
+        )
 
         # Get the indices of the nearest structure sites to the path sites
         nearest_structure_indices = [
@@ -149,17 +148,21 @@ class Pathway:
     def plot_energy_along_path(self, **kwargs):
         """See [gemdat.plots.energy_along_path][] for more info."""
         from gemdat import plots
+
         return plots.energy_along_path(path=self, **kwargs)
 
     def plot_path_on_grid(self, **kwargs):
         """See [gemdat.plots.path_on_grid][] for more info."""
         from gemdat import plots
+
         return plots.path_on_grid(path=self, **kwargs)
 
 
-def free_energy_graph(F: np.ndarray | FreeEnergyVolume,
-                      max_energy_threshold: float = 1e20,
-                      diagonal: bool = True) -> nx.Graph:
+def free_energy_graph(
+    F: np.ndarray | FreeEnergyVolume,
+    max_energy_threshold: float = 1e20,
+    diagonal: bool = True,
+) -> nx.Graph:
     """Compute the graph of the free energy for networkx functions.
 
     Parameters
@@ -178,15 +181,30 @@ def free_energy_graph(F: np.ndarray | FreeEnergyVolume,
     """
 
     # Define possible movements in 3D space
-    movements = np.array([(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0),
-                          (0, 0, 1), (0, 0, -1)])
+    movements = np.array(
+        [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+    )
     if diagonal:
-        diagonal_movements = np.array([(1, 1, 0), (-1, -1, 0), (1, -1, 0),
-                                       (-1, 1, 0), (1, 0, 1), (-1, 0, -1),
-                                       (1, 0, -1), (-1, 0, 1), (0, 1, 1),
-                                       (0, -1, -1), (0, 1, -1), (0, -1, 1),
-                                       (1, 1, 1), (-1, -1, -1), (1, -1, -1),
-                                       (-1, 1, 1)])
+        diagonal_movements = np.array(
+            [
+                (1, 1, 0),
+                (-1, -1, 0),
+                (1, -1, 0),
+                (-1, 1, 0),
+                (1, 0, 1),
+                (-1, 0, -1),
+                (1, 0, -1),
+                (-1, 0, 1),
+                (0, 1, 1),
+                (0, -1, -1),
+                (0, 1, -1),
+                (0, -1, 1),
+                (1, 1, 1),
+                (-1, -1, -1),
+                (1, -1, -1),
+                (-1, 1, 1),
+            ]
+        )
         movements = np.vstack((movements, diagonal_movements))
 
     G = nx.Graph()
@@ -208,16 +226,14 @@ def free_energy_graph(F: np.ndarray | FreeEnergyVolume,
                 else:
                     weight_exp = max_energy_threshold
 
-                G.add_edge(node,
-                           neighbor,
-                           weight=weight,
-                           weight_exp=weight_exp)
+                G.add_edge(node, neighbor, weight=weight, weight_exp=weight_exp)
 
     return G
 
 
-_PATHFINDING_METHODS = Literal['dijkstra', 'bellman-ford', 'minmax-energy',
-                               'dijkstra-exp', 'simple']
+_PATHFINDING_METHODS = Literal[
+    'dijkstra', 'bellman-ford', 'minmax-energy', 'dijkstra-exp', 'simple'
+]
 
 
 def calculate_path_difference(path1: list, path2: list) -> float:
@@ -249,8 +265,7 @@ def calculate_path_difference(path1: list, path2: list) -> float:
     return 1 - (shared_nodes / len(shortest))
 
 
-def _paths_too_similar(path: list, list_of_paths: list,
-                       min_diff: float) -> bool:
+def _paths_too_similar(path: list, list_of_paths: list, min_diff: float) -> bool:
     """Check if the path is too similar to the other paths.
 
     Parameters
@@ -321,10 +336,9 @@ def optimal_n_paths(
     list_of_paths = [best_path]
 
     # Compute the iterator over all the short paths
-    all_paths = nx.shortest_simple_paths(F_graph,
-                                         source=start,
-                                         target=stop,
-                                         weight='weight')
+    all_paths = nx.shortest_simple_paths(
+        F_graph, source=start, target=stop, weight='weight'
+    )
 
     # Attempt to find the Np shortest paths
     for idx, path in enumerate(all_paths):
@@ -383,17 +397,14 @@ def optimal_path(
     start = tuple(start)
     stop = tuple(stop)
 
-    optimal_path = nx.shortest_path(F_graph,
-                                    source=start,
-                                    target=stop,
-                                    weight=weight,
-                                    method=method)
+    optimal_path = nx.shortest_path(
+        F_graph, source=start, target=stop, weight=weight, method=method
+    )
 
     if method == 'minmax-energy':
-        optimal_path = _optimal_path_minmax_energy(F_graph,
-                                                   start=start,
-                                                   stop=stop,
-                                                   optimal_path=optimal_path)
+        optimal_path = _optimal_path_minmax_energy(
+            F_graph, start=start, stop=stop, optimal_path=optimal_path
+        )
     elif method not in ('dijkstra', 'bellman-ford', 'dijkstra-exp'):
         raise ValueError(f'Unknown method {method}')
 
@@ -444,8 +455,7 @@ def _optimal_path_minmax_energy(
             target=stop,
             weight='weight',
         )
-        minmax_energy = max(
-            [F_graph.nodes[node]['energy'] for node in pruned_path])
+        minmax_energy = max([F_graph.nodes[node]['energy'] for node in pruned_path])
 
         if minmax_energy < max_energy:
             optimal_path = pruned_path

@@ -3,8 +3,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gemdat.orientations import (
-    Orientations, )
+from gemdat.orientations import Orientations
 
 
 def autocorrelation(
@@ -49,11 +48,13 @@ def autocorrelation(
             ax.plot(tgrid, ac_i, lw=0.1, c=last_color, label=label)
 
     if show_shaded:
-        ax.fill_between(tgrid,
-                        ac_mean - ac_std,
-                        ac_mean + ac_std,
-                        alpha=0.2,
-                        label='Standard deviation')
+        ax.fill_between(
+            tgrid,
+            ac_mean - ac_std,
+            ac_mean + ac_std,
+            alpha=0.2,
+            label='Standard deviation',
+        )
 
     ax.set_xlabel('Time lag (ps)')
     ax.set_ylabel('Autocorrelation')

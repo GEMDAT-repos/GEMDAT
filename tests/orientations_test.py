@@ -14,9 +14,9 @@ from gemdat.utils import fft_autocorrelation
 
 
 def test_orientations_init(trajectory):
-    orientations = Orientations(trajectory=trajectory,
-                                center_type='B',
-                                satellite_type='Si')
+    orientations = Orientations(
+        trajectory=trajectory, center_type='B', satellite_type='Si'
+    )
 
     assert isinstance(orientations, Orientations)
     assert orientations.center_type == 'B'
@@ -25,40 +25,48 @@ def test_orientations_init(trajectory):
 
 
 def test_normalize(trajectory):
-    orientations = Orientations(trajectory=trajectory,
-                                center_type='B',
-                                satellite_type='Si',
-                                in_vectors=np.array([[1, 2, 2], [2, 2, 1]],
-                                                    dtype=float))
+    orientations = Orientations(
+        trajectory=trajectory,
+        center_type='B',
+        satellite_type='Si',
+        in_vectors=np.array([[1, 2, 2], [2, 2, 1]], dtype=float),
+    )
     ret = orientations.normalize()
-    assert_allclose(ret.vectors,
-                    np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]]))
+    assert_allclose(
+        ret.vectors, np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]])
+    )
 
 
 def test_conventional(trajectory):
-    orientations = Orientations(trajectory=trajectory,
-                                center_type='B',
-                                satellite_type='Si',
-                                in_vectors=np.array(
-                                    [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-                                    dtype=float))
+    orientations = Orientations(
+        trajectory=trajectory,
+        center_type='B',
+        satellite_type='Si',
+        in_vectors=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=float),
+    )
     matrix = np.eye(3) * [1, 2, 3]
     ret = orientations.transform(matrix=matrix)
     assert_allclose(ret.vectors, np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]]))
 
 
 def test_symmetrize(trajectory):
-    orientations = Orientations(trajectory=trajectory,
-                                center_type='B',
-                                satellite_type='Si',
-                                in_vectors=np.array([[[1, 0, 0]], [[0, 1, 0]]],
-                                                    dtype=float))
+    orientations = Orientations(
+        trajectory=trajectory,
+        center_type='B',
+        satellite_type='Si',
+        in_vectors=np.array([[[1, 0, 0]], [[0, 1, 0]]], dtype=float),
+    )
     sym_ops = np.array([[0, -1, 0], [1, 0, 0], [0, 0, -1]])
     ret = orientations.symmetrize(sym_ops=sym_ops)
     assert_allclose(
         ret.vectors,
-        np.array([[[0., 1., 0.], [-1., 0., 0.], [0., 0., -1.]],
-                  [[0., 1., 0.], [-1., 0., 0.], [0., 0., -1.]]]))
+        np.array(
+            [
+                [[0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0]],
+                [[0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0]],
+            ]
+        ),
+    )
 
 
 def test_orientations(orientations):
@@ -84,5 +92,7 @@ def test_fft_autocorrelation(trajectory):
     autocorr = fft_autocorrelation(trajectory.positions)
     assert isinstance(autocorr, np.ndarray)
     assert isclose(autocorr.mean(), 0.8142314269325723)
-    assert autocorr.shape == (trajectory.positions.shape[1],
-                              trajectory.positions.shape[0])
+    assert autocorr.shape == (
+        trajectory.positions.shape[1],
+        trajectory.positions.shape[0],
+    )

@@ -36,36 +36,39 @@ def autocorrelation(
     fig = go.Figure()
 
     if show_shaded:
-        error_y = {
-            'type': 'data',
-            'array': ac_std,
-            'width': 0.1,
-            'thickness': 0.1
-        }
+        error_y = {'type': 'data', 'array': ac_std, 'width': 0.1, 'thickness': 0.1}
     else:
         error_y = None
 
     fig.add_trace(
-        go.Scatter(x=t_values,
-                   y=ac_mean,
-                   error_y=error_y,
-                   name='FFT Autocorrelation',
-                   mode='lines',
-                   line={'width': 3},
-                   legendgroup='autocorr'))
+        go.Scatter(
+            x=t_values,
+            y=ac_mean,
+            error_y=error_y,
+            name='FFT Autocorrelation',
+            mode='lines',
+            line={'width': 3},
+            legendgroup='autocorr',
+        )
+    )
 
     if show_traces:
         for i, trace in enumerate(ac):
             fig.add_trace(
-                go.Scatter(x=t_values,
-                           y=trace,
-                           name=i,
-                           mode='lines',
-                           line={'width': 0.25},
-                           showlegend=False))
+                go.Scatter(
+                    x=t_values,
+                    y=trace,
+                    name=i,
+                    mode='lines',
+                    line={'width': 0.25},
+                    showlegend=False,
+                )
+            )
 
-    fig.update_layout(title='FFT Autocorrelation',
-                      xaxis_title='Time lag (ps)',
-                      yaxis_title='mean + std')
+    fig.update_layout(
+        title='FFT Autocorrelation',
+        xaxis_title='Time lag (ps)',
+        yaxis_title='mean + std',
+    )
 
     return fig

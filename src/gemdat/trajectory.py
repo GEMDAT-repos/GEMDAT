@@ -81,10 +81,8 @@ class Trajectory(PymatgenTrajectory):
             return f'{x:>10.6f}'
 
         outs.append('abc   : ' + ' '.join(to_str(i) for i in base.lattice.abc))
-        outs.append('angles: ' +
-                    ' '.join(to_str(i) for i in base.lattice.angles))
-        outs.append('pbc   : ' +
-                    ' '.join(str(p).rjust(10) for p in base.lattice.pbc))
+        outs.append('angles: ' + ' '.join(to_str(i) for i in base.lattice.angles))
+        outs.append('pbc   : ' + ' '.join(str(p).rjust(10) for p in base.lattice.pbc))
         if base._charge:
             outs.append(f'Overall Charge: {base._charge:+}')
         outs.append(f'Constant lattice ({self.constant_lattice})')
@@ -121,6 +119,7 @@ class Trajectory(PymatgenTrajectory):
             Output volume
         """
         from gemdat.volume import trajectory_to_volume
+
         return trajectory_to_volume(self, resolution=resolution)
 
     @property
@@ -230,7 +229,8 @@ class Trajectory(PymatgenTrajectory):
         except ET.ParseError as e:
             raise Exception(
                 f'Error parsing {xml_file!r}, to parse incomplete data '
-                'adding `exception_on_bad_xml=False` might help') from e
+                'adding `exception_on_bad_xml=False` might help'
+            ) from e
 
         metadata = {'temperature': run.parameters['TEBEG']}
 
@@ -297,17 +297,19 @@ class Trajectory(PymatgenTrajectory):
         """Return trajectory with center of mass for positions."""
         weights = [s.atomic_mass for s in self.species]
 
-        positions_no_pbc = (self.base_positions +
-                            self.cumulative_displacements)
+        positions_no_pbc = self.base_positions + self.cumulative_displacements
 
-        center_of_mass = np.average(positions_no_pbc, axis=1,
-                                    weights=weights).reshape(-1, 1, 3)
+        center_of_mass = np.average(positions_no_pbc, axis=1, weights=weights).reshape(
+            -1, 1, 3
+        )
 
-        return self.__class__(species=['X'],
-                              coords=center_of_mass,
-                              lattice=self.get_lattice(),
-                              metadata=self.metadata,
-                              time_step=self.time_step)
+        return self.__class__(
+            species=['X'],
+            coords=center_of_mass,
+            lattice=self.get_lattice(),
+            metadata=self.metadata,
+            time_step=self.time_step,
+        )
 
     def drift(
         self,
@@ -338,8 +340,7 @@ class Trajectory(PymatgenTrajectory):
             displacements = self.filter(species=fixed_species).displacements
         elif floating_species:
             species = {
-                sp.symbol
-                for sp in self.species if sp.symbol not in floating_species
+                sp.symbol for sp in self.species if sp.symbol not in floating_species
             }
             displacements = self.filter(species=species).displacements
         else:
@@ -372,16 +373,19 @@ class Trajectory(PymatgenTrajectory):
         trajectory : Trajectory
             Ouput trajectory with positions corrected for drift
         """
-        drift = self.drift(fixed_species=fixed_species,
-                           floating_species=floating_species)
+        drift = self.drift(
+            fixed_species=fixed_species, floating_species=floating_species
+        )
 
-        return self.__class__(species=self.species,
-                              coords=self.displacements - drift,
-                              lattice=self.get_lattice(),
-                              metadata=self.metadata,
-                              coords_are_displacement=True,
-                              base_positions=self.base_positions,
-                              time_step=self.time_step)
+        return self.__class__(
+            species=self.species,
+            coords=self.displacements - drift,
+            lattice=self.get_lattice(),
+            metadata=self.metadata,
+            coords_are_displacement=True,
+            base_positions=self.base_positions,
+            time_step=self.time_step,
+        )
 
     def filter(self, species: str | Collection[str]) -> Trajectory:
         """Return trajectory with coordinates for given species only.
@@ -403,15 +407,15 @@ class Trajectory(PymatgenTrajectory):
         new_coords = self.positions[:, idx]
         new_species = list(compress(self.species, idx))
 
-        return self.__class__(species=new_species,
-                              coords=new_coords,
-                              lattice=self.get_lattice(),
-                              metadata=self.metadata,
-                              time_step=self.time_step)
+        return self.__class__(
+            species=new_species,
+            coords=new_coords,
+            lattice=self.get_lattice(),
+            metadata=self.metadata,
+            time_step=self.time_step,
+        )
 
-    def split(self,
-              n_parts: int = 10,
-              equal_parts: bool = False) -> list[Trajectory]:
+    def split(self, n_parts: int = 10, equal_parts: bool = False) -> list[Trajectory]:
         """Split the trajectory in n similar parts.
 
         Parameters
@@ -426,9 +430,7 @@ class Trajectory(PymatgenTrajectory):
         List[Trajectory]
         """
         interval = np.linspace(0, len(self) - 1, n_parts + 1, dtype=int)
-        subtrajectories = [
-            self[start:stop] for start, stop in pairwise(interval)
-        ]
+        subtrajectories = [self[start:stop] for start, stop in pairwise(interval)]
 
         if equal_parts:
             minsize = len(self)
@@ -439,9 +441,7 @@ class Trajectory(PymatgenTrajectory):
                 minsize = min(minsize, size)
 
             # Trim all subtrajectories
-            subtrajectories = [
-                trajectory[0:minsize] for trajectory in subtrajectories
-            ]
+            subtrajectories = [trajectory[0:minsize] for trajectory in subtrajectories]
 
         return subtrajectories
 
@@ -460,14 +460,13 @@ class Trajectory(PymatgenTrajectory):
 
         # Autocorrelation term using FFT [https://doi.org/10.1051/sfn/201112010]:
         # - perform FFT, square it, and then perform inverse FFT
-        fft_result = np.fft.ifft(np.abs(np.fft.fft(pos, n=2 * n_times,
-                                                   axis=-2))**2,
-                                 axis=-2)
+        fft_result = np.fft.ifft(
+            np.abs(np.fft.fft(pos, n=2 * n_times, axis=-2)) ** 2, axis=-2
+        )
         # - keep only the first n_times elements
         fft_result = fft_result[:, :n_times, :].real
         # - sum over the coordinates and divide by the corresponding time window
-        S2 = np.sum(fft_result,
-                    axis=-1) / (n_times - np.arange(n_times)[None, :])
+        S2 = np.sum(fft_result, axis=-1) / (n_times - np.arange(n_times)[None, :])
 
         # Compute the sum of squared displacements
         D = np.square(pos).sum(axis=-1)
@@ -477,12 +476,11 @@ class Trajectory(PymatgenTrajectory):
         # - compute 2* the sum of squared positions
         double_sum_D = 2 * np.sum(D, axis=-1)[:, None]
         # - compute the cumulative sum of the sum of squares of the positions
-        cumsum_D = np.cumsum(np.insert(D[:, 0:-1], 0, 0, axis=-1) +
-                             np.flip(D, axis=-1),
-                             axis=-1)
+        cumsum_D = np.cumsum(
+            np.insert(D[:, 0:-1], 0, 0, axis=-1) + np.flip(D, axis=-1), axis=-1
+        )
         # - compute the first term in the MSD calculation
-        S1 = (double_sum_D - cumsum_D)[:, :-1] / (n_times -
-                                                  np.arange(n_times)[None, :])
+        S1 = (double_sum_D - cumsum_D)[:, :-1] / (n_times - np.arange(n_times)[None, :])
 
         msd = S1 - 2 * S2
         return msd
@@ -516,6 +514,7 @@ class Trajectory(PymatgenTrajectory):
         transitions: Transitions
         """
         from gemdat.transitions import Transitions
+
         return Transitions.from_trajectory(
             trajectory=self,
             sites=sites,
@@ -527,29 +526,35 @@ class Trajectory(PymatgenTrajectory):
     def plot_displacement_per_atom(self, **kwargs):
         """See [gemdat.plots.displacement_per_atom][] for more info."""
         from gemdat import plots
+
         return plots.displacement_per_atom(trajectory=self, **kwargs)
 
     def plot_displacement_per_element(self, **kwargs):
         """See [gemdat.plots.displacement_per_element][] for more info."""
         from gemdat import plots
+
         return plots.displacement_per_element(trajectory=self, **kwargs)
 
     def plot_msd_per_element(self, **kwargs):
         """See [gemdat.plots.msd_per_element][] for more info."""
         from gemdat import plots
+
         return plots.msd_per_element(trajectory=self, **kwargs)
 
     def plot_displacement_histogram(self, **kwargs):
         """See [gemdat.plots.displacement_histogram][] for more info."""
         from gemdat import plots
+
         return plots.displacement_histogram(trajectory=self, **kwargs)
 
     def plot_frequency_vs_occurence(self, **kwargs):
         """See [gemdat.plots.frequency_vs_occurence][] for more info."""
         from gemdat import plots
+
         return plots.frequency_vs_occurence(trajectory=self, **kwargs)
 
     def plot_vibrational_amplitudes(self, **kwargs):
         """See [gemdat.plots.vibrational_amplitudes][] for more info."""
         from gemdat import plots
+
         return plots.vibrational_amplitudes(trajectory=self, **kwargs)

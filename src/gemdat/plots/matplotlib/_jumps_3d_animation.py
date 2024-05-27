@@ -48,7 +48,6 @@ def jumps_3d_animation(
     trajectory = jumps.trajectory
 
     class LabelItems:
-
         def __init__(self, labels, coords):
             self.labels = labels
             self.coords = coords
@@ -65,24 +64,24 @@ def jumps_3d_animation(
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    xyz_labels = LabelItems('OABC', [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1],
-                                     [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]])
+    xyz_labels = LabelItems(
+        'OABC',
+        [
+            [-0.1, -0.1, -0.1],
+            [1.1, -0.1, -0.1],
+            [-0.1, 1.1, -0.1],
+            [-0.1, -0.1, 1.1],
+        ],
+    )
 
     plotter.plot_lattice_vectors(lattice, ax=ax, linewidth=1)
 
-    plotter.plot_labels(xyz_labels,
-                        lattice=lattice,
-                        ax=ax,
-                        color='green',
-                        size=12)
+    plotter.plot_labels(xyz_labels, lattice=lattice, ax=ax, color='green', size=12)
 
     assert len(ax.collections) == 0
-    plotter.plot_points(coords,
-                        lattice=lattice,
-                        ax=ax,
-                        s=50,
-                        color='white',
-                        edgecolor='black')
+    plotter.plot_points(
+        coords, lattice=lattice, ax=ax, s=50, color='white', edgecolor='black'
+    )
     points = ax.collections
 
     events = jumps.data.sort_values('start time', ignore_index=True)
@@ -100,11 +99,7 @@ def jumps_3d_animation(
 
         line = [coord_i, coord_j + image]
 
-        plotter.plot_path(line,
-                          lattice=lattice,
-                          ax=ax,
-                          color='red',
-                          linewidth=lw)
+        plotter.plot_path(line, lattice=lattice, ax=ax, color='red', linewidth=lw)
 
     lines = ax.lines[3:]
 
@@ -121,29 +116,27 @@ def jumps_3d_animation(
         t_frame = t_start + (frame_no * skip)
 
         for i, event in events.iterrows():
-
             if event['start time'] > t_frame:
                 break
 
-            lw = max(maxwidth - decay * (t_frame - event['start time']),
-                     minwidth)
+            lw = max(maxwidth - decay * (t_frame - event['start time']), minwidth)
 
             line = lines[i]
             line.set_color('red')
             line.set_linewidth(lw)
 
             points[event['start site']].set_facecolor(
-                color_from[event['atom index'] % len(color_from)])
+                color_from[event['atom index'] % len(color_from)]
+            )
             points[event['destination site']].set_facecolor(
-                color_to[event['atom index'] % len(color_to)])
+                color_to[event['atom index'] % len(color_to)]
+            )
 
         start_time = event['start time']
         ax.set_title(f'T: {t_frame} | Next jump: {start_time}')
 
     n_frames = int((t_stop - t_start) / skip)
 
-    return animation.FuncAnimation(fig=fig,
-                                   func=update,
-                                   frames=n_frames,
-                                   interval=interval,
-                                   repeat=False)
+    return animation.FuncAnimation(
+        fig=fig, func=update, frames=n_frames, interval=interval, repeat=False
+    )

@@ -1,5 +1,6 @@
 """This module provides a code to deal with the original matlab code that
 Gemdat is based on."""
+
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
@@ -16,7 +17,7 @@ def analyse_md(
     diff_elem: str,
     material: str,
     supercell: tuple[int, int, int] | None = None,
-    equil_time: float = 2.5E-12,
+    equil_time: float = 2.5e-12,
     diffusion_dimensions: int = 3,
     z_ion: int = 1,
     nr_parts: int = 10,

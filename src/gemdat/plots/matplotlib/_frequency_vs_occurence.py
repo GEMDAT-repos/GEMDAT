@@ -51,11 +51,14 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
             0,
             y_max,
             colors='red',
-            linestyles='dashed')
+            linestyles='dashed',
+        )
 
-    ax.set(title='Frequency vs Occurence',
-           xlabel='Frequency (Hz)',
-           ylabel='Occurrence (a.u.)')
+    ax.set(
+        title='Frequency vs Occurence',
+        xlabel='Frequency (Hz)',
+        ylabel='Occurrence (a.u.)',
+    )
 
     ax.set_ylim([0, y_max])
     ax.set_xlim([-0.1e13, 2.5e13])

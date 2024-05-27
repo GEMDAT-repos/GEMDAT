@@ -16,23 +16,35 @@ class TestJumps:  # type: ignore
 
     def test_site_inner_fraction(self, vasp_traj, structure):
         transitions = vasp_traj.transitions_between_sites(
-            sites=structure, floating_specie='Li', site_inner_fraction=0.5)
+            sites=structure, floating_specie='Li', site_inner_fraction=0.5
+        )
         jumps = Jumps(transitions=transitions, minimal_residence=100)
 
         assert len(jumps.data) == 267
-        assert np.all(jumps.data[::100].to_numpy() == np.array([[
-            0, 94, 0, 282, 303
-        ], [15, 74, 8, 1271, 1286], [34, 49, 33, 3141, 3296]]))
+        assert np.all(
+            jumps.data[::100].to_numpy()
+            == np.array(
+                [
+                    [0, 94, 0, 282, 303],
+                    [15, 74, 8, 1271, 1286],
+                    [34, 49, 33, 3141, 3296],
+                ]
+            )
+        )
 
     def test_minimal_residency(self, vasp_traj, structure):
-        transitions = vasp_traj.transitions_between_sites(sites=structure,
-                                                          floating_specie='Li')
+        transitions = vasp_traj.transitions_between_sites(
+            sites=structure, floating_specie='Li'
+        )
         jumps = Jumps(transitions=transitions, minimal_residence=3)
 
         assert len(jumps.data) == 462
-        assert np.all(jumps.data[::200].to_numpy() == np.array([[
-            0, 94, 0, 282, 284
-        ], [18, 54, 24, 2937, 3015], [41, 41, 67, 849, 851]]))
+        assert np.all(
+            jumps.data[::200].to_numpy()
+            == np.array(
+                [[0, 94, 0, 282, 284], [18, 54, 24, 2937, 3015], [41, 41, 67, 849, 851]]
+            )
+        )
 
     def test_n_jumps(self, vasp_jumps):
         assert vasp_jumps.n_solo_jumps == 450
@@ -61,16 +73,13 @@ class TestJumps:  # type: ignore
         assert isclose(row['std'], 0.00405952, abs_tol=1e-6)
 
     def test_jump_diffusivity(self, vasp_jumps):
-        assert isclose(vasp_jumps.jump_diffusivity(3),
-                       9.484382e-09,
-                       rel_tol=1e-6)
+        assert isclose(vasp_jumps.jump_diffusivity(3), 9.484382e-09, rel_tol=1e-6)
 
     def test_correlation_factor(self, vasp_traj, vasp_jumps):
         vasp_diff_traj = vasp_traj.filter('Li')
         metrics = SimulationMetrics(vasp_diff_traj)
         tracer_diff = metrics.tracer_diffusivity(dimensions=3)
-        correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(
-            dimensions=3)
+        correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(dimensions=3)
         assert isclose(correlation_factor, 0.165600, rel_tol=1e-6)
 
     def test_collective(self, vasp_jumps):
@@ -86,9 +95,14 @@ class TestJumps:  # type: ignore
         coll_jumps = collective.coll_jumps
         assert len(coll_jumps) == 6
         assert vasp_jumps.n_jumps == collective.n_solo_jumps + collective.n_coll_jumps
-        assert coll_jumps == [((49, 31), (33, 49)), ((54, 38), (24, 54)),
-                              ((42, 75), (64, 42)), ((60, 36), (68, 60)),
-                              ((36, 52), (80, 36)), ((2, 58), (92, 2))]
+        assert coll_jumps == [
+            ((49, 31), (33, 49)),
+            ((54, 38), (24, 54)),
+            ((42, 75), (64, 42)),
+            ((60, 36), (68, 60)),
+            ((36, 52), (80, 36)),
+            ((2, 58), (92, 2)),
+        ]
 
     def test_collective_matrix(self, vasp_jumps):
         collective = vasp_jumps.collective()
@@ -102,7 +116,16 @@ class TestJumps:  # type: ignore
         assert jumps.shape == (6, 2)
         assert counts.sum() == 6
         assert np.all(
-            jumps == np.array([[(2, 58), (92, 2)], [(24, 54), (
-                54, 38)], [(33, 49), (49, 31)], [(36, 52), (
-                    80, 36)], [(42, 75), (64, 42)], [(60, 36), (68, 60)]],
-                              dtype=[('start', '<i8'), ('stop', '<i8')]))
+            jumps
+            == np.array(
+                [
+                    [(2, 58), (92, 2)],
+                    [(24, 54), (54, 38)],
+                    [(33, 49), (49, 31)],
+                    [(36, 52), (80, 36)],
+                    [(42, 75), (64, 42)],
+                    [(60, 36), (68, 60)],
+                ],
+                dtype=[('start', '<i8'), ('stop', '<i8')],
+            )
+        )

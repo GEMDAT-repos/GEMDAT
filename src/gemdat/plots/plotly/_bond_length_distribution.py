@@ -8,9 +8,9 @@ from gemdat.orientations import Orientations
 from .._shared import _orientations_to_histogram, _fit_skewnorm_to_hist
 
 
-def bond_length_distribution(*,
-                             orientations: Orientations,
-                             bins: int = 50) -> go.Figure:
+def bond_length_distribution(
+    *, orientations: Orientations, bins: int = 50
+) -> go.Figure:
     """Plot the bond length probability distribution.
 
     Parameters
@@ -35,14 +35,15 @@ def bond_length_distribution(*,
     )
 
     fig.add_trace(
-        go.Scatter(x=x,
-                   y=y,
-                   name='Skewed Gaussian Fit',
-                   mode='lines',
-                   line={'width': 3}))
+        go.Scatter(
+            x=x, y=y, name='Skewed Gaussian Fit', mode='lines', line={'width': 3}
+        )
+    )
 
-    fig.update_layout(title='Bond length probability distribution',
-                      xaxis_title='Bond length (Å)',
-                      yaxis_title='Probability density (Å<sup>-1</sup>)')
+    fig.update_layout(
+        title='Bond length probability distribution',
+        xaxis_title='Bond length (Å)',
+        yaxis_title='Probability density (Å<sup>-1</sup>)',
+    )
 
     return fig

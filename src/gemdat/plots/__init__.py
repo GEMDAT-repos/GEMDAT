@@ -1,4 +1,5 @@
 """This module contains all the plots that Gemdat can generate."""
+
 from __future__ import annotations
 
 from .matplotlib import (

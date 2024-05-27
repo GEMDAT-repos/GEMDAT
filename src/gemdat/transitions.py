@@ -80,7 +80,7 @@ class Transitions:
         sites: Structure,
         floating_specie: str,
         site_radius: float | dict[str, float] | None = None,
-        site_inner_fraction: float = 1.,
+        site_inner_fraction: float = 1.0,
     ) -> Transitions:
         """Compute transitions between given sites for floating specie.
 
@@ -107,12 +107,14 @@ class Transitions:
 
         if site_radius is None:
             vibration_amplitude = SimulationMetrics(
-                diff_trajectory).vibration_amplitude()
+                diff_trajectory
+            ).vibration_amplitude()
 
             site_radius = _compute_site_radius(
                 trajectory=trajectory,
                 sites=sites,
-                vibration_amplitude=vibration_amplitude)
+                vibration_amplitude=vibration_amplitude,
+            )
 
         if isinstance(site_radius, float):
             site_radius = {'': site_radius}
@@ -130,8 +132,9 @@ class Transitions:
             site_inner_fraction=site_inner_fraction,
         )
 
-        events = _calculate_transition_events(atom_sites=states,
-                                              atom_inner_sites=inner_states)
+        events = _calculate_transition_events(
+            atom_sites=states, atom_inner_sites=inner_states
+        )
 
         obj = cls(
             sites=sites,
@@ -162,6 +165,7 @@ class Transitions:
         """
 
         from gemdat.jumps import Jumps
+
         return Jumps(self, **kwargs)
 
     @property
@@ -236,9 +240,9 @@ class Transitions:
         counts = counts / len(states)
         occupancies = dict(zip(unq, counts))
 
-        species = [{
-            site.specie.name: occupancies.get(i, 0)
-        } for i, site in enumerate(sites)]
+        species = [
+            {site.specie.name: occupancies.get(i, 0)} for i, site in enumerate(sites)
+        ]
 
         return Structure(
             lattice=sites.lattice,
@@ -285,8 +289,7 @@ class Transitions:
         """
         split_states = np.array_split(self.states, n_parts)
         split_inner_states = np.array_split(self.inner_states, n_parts)
-        split_events = _split_transitions_events(self.events, self.n_states,
-                                                 n_parts)
+        split_events = _split_transitions_events(self.events, self.n_states, n_parts)
 
         split_trajectory = self.trajectory.split(n_parts)
         split_diff_trajectory = self.diff_trajectory.split(n_parts)
@@ -302,7 +305,8 @@ class Transitions:
                     states=split_states[i],
                     inner_states=split_inner_states[i],
                     events=split_events[i],
-                ))
+                )
+            )
 
         return parts
 
@@ -333,15 +337,14 @@ def _calculate_transition_events(
         atom_site, atom_inner_site = site
 
         # Indices when atom jumps in or out of site
-        i, = np.nonzero((atom_site != np.roll(atom_site, shift=-1)))
+        (i,) = np.nonzero((atom_site != np.roll(atom_site, shift=-1)))
 
         # continue if atom does not jump
         if len(i) < 1:
             continue
 
         # Indices when atom jumps in or out of inner site
-        i2, = np.nonzero((atom_inner_site != np.roll(atom_inner_site,
-                                                     shift=-1)))
+        (i2,) = np.nonzero((atom_inner_site != np.roll(atom_inner_site, shift=-1)))
 
         # Drop last event if it is on the last timestep (side effect of np.roll)
         if i[-1] == len(atom_site) - 1:
@@ -352,29 +355,37 @@ def _calculate_transition_events(
         time = np.unique(np.concatenate((i, i2)))
 
         # Select the timestep just before the transition out of the site
-        transitions = np.vstack([
-            np.ones_like(time) * atom_index,
-            atom_site[time],
-            atom_site[time + 1],
-            atom_inner_site[time],
-            atom_inner_site[time + 1],
-            time,
-        ]).T
+        transitions = np.vstack(
+            [
+                np.ones_like(time) * atom_index,
+                atom_site[time],
+                atom_site[time + 1],
+                atom_inner_site[time],
+                atom_inner_site[time + 1],
+                time,
+            ]
+        ).T
 
         events.append(transitions)
 
     events = np.vstack(events)
-    events = pd.DataFrame(data=events,
-                          columns=[
-                              'atom index', 'start site', 'destination site',
-                              'start inner site', 'destination inner site',
-                              'time'
-                          ])
+    events = pd.DataFrame(
+        data=events,
+        columns=[
+            'atom index',
+            'start site',
+            'destination site',
+            'start inner site',
+            'destination inner site',
+            'time',
+        ],
+    )
     return events
 
 
-def _compute_site_radius(trajectory: Trajectory, sites: Structure,
-                         vibration_amplitude: float) -> float:
+def _compute_site_radius(
+    trajectory: Trajectory, sites: Structure, vibration_amplitude: float
+) -> float:
     """Calculate tolerance wihin which atoms are considered to be close to a
     site.
 
@@ -421,7 +432,8 @@ def _compute_site_radius(trajectory: Trajectory, sites: Structure,
 
             raise ValueError(
                 f'Crystallographic sites are too close together (expected: >{site_radius*2:.4f}, '
-                f'got: {min_dist:.4f} for {msg}')
+                f'got: {min_dist:.4f} for {msg}'
+            )
 
     return site_radius
 
@@ -430,7 +442,7 @@ def _calculate_atom_states(
     sites: Structure,
     trajectory: Trajectory,
     site_radius: dict[str, float],
-    site_inner_fraction: float = 1.,
+    site_inner_fraction: float = 1.0,
 ) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
 
@@ -462,11 +474,11 @@ def _calculate_atom_states(
     def _site_radius_iterator():
         for label, radius in site_radius.items():
             if label:
-                grouped = ((k, site) for k, site in enumerate(sites)
-                           if site.label == label)
+                grouped = (
+                    (k, site) for k, site in enumerate(sites) if site.label == label
+                )
                 key, site_group = zip(*grouped)
-                frac_coords = np.array(
-                    [site.frac_coords for site in site_group])
+                frac_coords = np.array([site.frac_coords for site in site_group])
                 yield frac_coords, np.array(key), radius
             else:
                 yield sites.frac_coords, None, radius
@@ -479,7 +491,8 @@ def _calculate_atom_states(
     traj_cart_coords = lattice.get_cartesian_coords(traj_frac_coords)
 
     periodic_tree: PeriodicKDTree = PeriodicKDTree(
-        box=np.array(lattice.parameters, dtype=np.float32))
+        box=np.array(lattice.parameters, dtype=np.float32)
+    )
     periodic_tree.set_coords(traj_cart_coords, cutoff=cutoff)
 
     shape = trajectory.positions.shape[0:2]
@@ -488,23 +501,21 @@ def _calculate_atom_states(
 
     for coords, key, radius in _site_radius_iterator():
         cart_coords = lattice.get_cartesian_coords(coords)
-        site_index = periodic_tree.search_tree(cart_coords,
-                                               radius * site_inner_fraction)
+        site_index = periodic_tree.search_tree(
+            cart_coords, radius * site_inner_fraction
+        )
 
         siteno, index = site_index.T
 
         if key is not None:
-            siteno = integer_remap(a=siteno,
-                                   key=key,
-                                   palette=np.unique(siteno))
+            siteno = integer_remap(a=siteno, key=key, palette=np.unique(siteno))
 
         atom_sites[index] = siteno
 
     return atom_sites.reshape(shape)
 
 
-def _calculate_transitions_matrix(events: pd.DataFrame,
-                                  n_sites: int) -> np.ndarray:
+def _calculate_transitions_matrix(events: pd.DataFrame, n_sites: int) -> np.ndarray:
     """Convert list of transition events to dense transitions matrix.
 
     Parameters
@@ -520,19 +531,21 @@ def _calculate_transitions_matrix(events: pd.DataFrame,
         Square matrix with number of each transitions
     """
     transitions = np.zeros((n_sites, n_sites), dtype=int)
-    idx, counts = np.unique(events[['start site', 'destination site']],
-                            return_counts=True,
-                            axis=0)
+    idx, counts = np.unique(
+        events[['start site', 'destination site']], return_counts=True, axis=0
+    )
     start_idx, stop_idx = idx.T
     transitions[start_idx, stop_idx] = counts
     return transitions
 
 
-def _split_transitions_events(events: pd.DataFrame,
-                              n_states: int,
-                              n_parts=10,
-                              split_key='time',
-                              dependent_keys='time') -> list[np.ndarray]:
+def _split_transitions_events(
+    events: pd.DataFrame,
+    n_states: int,
+    n_parts=10,
+    split_key='time',
+    dependent_keys='time',
+) -> list[np.ndarray]:
     """Split list of transition events into equal parts in time.
 
     Parameters
@@ -555,14 +568,12 @@ def _split_transitions_events(events: pd.DataFrame,
         The first dimension corresponds to `n_parts`.
     """
     if len(events) < n_parts:
-        raise ValueError(
-            f'Not enough transitions per part to split into {n_parts}')
+        raise ValueError(f'Not enough transitions per part to split into {n_parts}')
 
     bins = np.linspace(0, n_states + 1, n_parts + 1, dtype=int)
 
     parts = [
-        events[(events[split_key] >= start)
-               & (events[split_key] < stop)].copy()
+        events[(events[split_key] >= start) & (events[split_key] < stop)].copy()
         for start, stop in pairwise(bins)
     ]
 

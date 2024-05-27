@@ -53,16 +53,20 @@ def msd_per_element(
                 ax.plot(t_values, traj, lw=0.1, c=last_color, label=label)
 
         if show_shaded:
-            ax.fill_between(t_values,
-                            msd_mean - msd_std,
-                            msd_mean + msd_std,
-                            color=last_color,
-                            alpha=0.2,
-                            label=f'{sp.symbol} std')
+            ax.fill_between(
+                t_values,
+                msd_mean - msd_std,
+                msd_mean + msd_std,
+                color=last_color,
+                alpha=0.2,
+                label=f'{sp.symbol} std',
+            )
 
     ax.legend()
-    ax.set(title='Mean squared displacement per element',
-           xlabel='Time lag (ps)',
-           ylabel='MSD (Å$^2$)')
+    ax.set(
+        title='Mean squared displacement per element',
+        xlabel='Time lag (ps)',
+        ylabel='MSD (Å$^2$)',
+    )
 
     return fig

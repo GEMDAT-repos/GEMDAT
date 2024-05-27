@@ -10,10 +10,12 @@ from gemdat.orientations import (
 )
 
 
-def rectilinear(*,
-                orientations: Orientations,
-                shape: tuple[int, int] = (90, 360),
-                normalize_histo: bool = True) -> go.Figure:
+def rectilinear(
+    *,
+    orientations: Orientations,
+    shape: tuple[int, int] = (90, 360),
+    normalize_histo: bool = True,
+) -> go.Figure:
     """Plot a rectilinear projection of a spherical function. This function
     uses the transformed trajectory.
 
@@ -48,13 +50,17 @@ def rectilinear(*,
     phi = np.linspace(0, 360, axis_phi)
     theta = np.linspace(0, 180, axis_theta)
 
-    fig = go.Figure(data=go.Contour(x=phi,
-                                    y=theta,
-                                    z=hist,
-                                    colorbar={
-                                        'title': 'Areal probability',
-                                        'titleside': 'right',
-                                    }))
+    fig = go.Figure(
+        data=go.Contour(
+            x=phi,
+            y=theta,
+            z=hist,
+            colorbar={
+                'title': 'Areal probability',
+                'titleside': 'right',
+            },
+        )
+    )
 
     fig.update_layout(
         title='Rectilinear plot',

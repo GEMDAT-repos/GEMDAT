@@ -43,8 +43,7 @@ def energy_along_path(
         prev = nearest_sites[0]
         for i, site in enumerate(nearest_sites):
             if (site.coords != prev.coords).any() or i == 0:
-                sitecoord_xlabel.append(', '.join(f'{val:.1f}'
-                                                  for val in site.coords))
+                sitecoord_xlabel.append(', '.join(f'{val:.1f}' for val in site.coords))
                 site_xlabel.append(site.label)
             else:
                 sitecoord_xlabel.append('')
@@ -52,18 +51,17 @@ def energy_along_path(
 
             prev = site
 
-        non_empty_ticks = [
-            i for i, label in enumerate(sitecoord_xlabel) if label != ''
-        ]
+        non_empty_ticks = [i for i, label in enumerate(sitecoord_xlabel) if label != '']
 
         extra_ticks = non_empty_ticks.copy()
         extra_ticks.append(ax.get_xlim()[1])
-        centered_ticks = [(extra_ticks[i] + extra_ticks[i + 1]) / 2
-                          for i in range(len(extra_ticks) - 1)]
+        centered_ticks = [
+            (extra_ticks[i] + extra_ticks[i + 1]) / 2
+            for i in range(len(extra_ticks) - 1)
+        ]
 
         ax.set_xticks(centered_ticks)
-        ax.set_xticklabels([sitecoord_xlabel[i] for i in non_empty_ticks],
-                           rotation=45)
+        ax.set_xticklabels([sitecoord_xlabel[i] for i in non_empty_ticks], rotation=45)
 
         for start, stop in zip(non_empty_ticks[::2], non_empty_ticks[1::2]):
             ax.axvspan(start, stop, facecolor='lightgray', edgecolor='none')
@@ -71,17 +69,14 @@ def energy_along_path(
         ax_up = ax.twiny()
         ax_up.set_xlim(ax.get_xlim())
         ax_up.set_xticks(centered_ticks)
-        ax_up.set_xticklabels([site_xlabel[i] for i in non_empty_ticks],
-                              rotation=45)
+        ax_up.set_xticklabels([site_xlabel[i] for i in non_empty_ticks], rotation=45)
         ax_up.get_yaxis().set_visible(False)
 
     if other_paths:
         for idx, path in enumerate(other_paths):
             if path.energy is None:
                 raise ValueError('Pathway does not contain energy data')
-            ax.plot(range(len(path.energy)),
-                    path.energy,
-                    label=f'Alternative {idx+1}')
+            ax.plot(range(len(path.energy)), path.energy, label=f'Alternative {idx+1}')
 
         ax.legend(fontsize=8)
 

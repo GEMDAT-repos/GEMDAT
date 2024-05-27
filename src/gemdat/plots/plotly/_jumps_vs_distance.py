@@ -11,10 +11,9 @@ if TYPE_CHECKING:
     from gemdat import Jumps
 
 
-def jumps_vs_distance(*,
-                      jumps: Jumps,
-                      jump_res: float = 0.1,
-                      n_parts: int = 1) -> go.Figure:
+def jumps_vs_distance(
+    *, jumps: Jumps, jump_res: float = 0.1, n_parts: int = 1
+) -> go.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -45,8 +44,7 @@ def jumps_vs_distance(*,
     data = []
     for transitions_part in jumps.split(n_parts=n_parts):
         counts = np.zeros_like(x)
-        for idx, n in zip(bin_idx.flatten(),
-                          transitions_part.matrix().flatten()):
+        for idx, n in zip(bin_idx.flatten(), transitions_part.matrix().flatten()):
             counts[idx] += n
         for idx in range(n_bins):
             if counts[idx] > 0:
@@ -62,14 +60,12 @@ def jumps_vs_distance(*,
     if n_parts == 1:
         fig = px.bar(df, x='Displacement', y='mean', barmode='stack')
     else:
-        fig = px.bar(df,
-                     x='Displacement',
-                     y='mean',
-                     error_y='std',
-                     barmode='stack')
+        fig = px.bar(df, x='Displacement', y='mean', error_y='std', barmode='stack')
 
-    fig.update_layout(title='Jumps vs. Distance',
-                      xaxis_title='Distance (Å)',
-                      yaxis_title='Number of jumps')
+    fig.update_layout(
+        title='Jumps vs. Distance',
+        xaxis_title='Distance (Å)',
+        yaxis_title='Number of jumps',
+    )
 
     return fig

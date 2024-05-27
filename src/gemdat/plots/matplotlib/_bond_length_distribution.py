@@ -6,9 +6,9 @@ from gemdat.orientations import Orientations
 from .._shared import _orientations_to_histogram, _fit_skewnorm_to_hist
 
 
-def bond_length_distribution(*,
-                             orientations: Orientations,
-                             bins: int = 50) -> plt.Figure:
+def bond_length_distribution(
+    *, orientations: Orientations, bins: int = 50
+) -> plt.Figure:
     """Plot the bond length probability distribution.
 
     Parameters
@@ -35,12 +35,14 @@ def bond_length_distribution(*,
 
     ax.plot(x, y, 'r-', lw=2, label='Skewed Gaussian Fit')
 
-    ax.bar(x=centers,
-           height=prob,
-           width=bin_width * 0.8,
-           edgecolor='none',
-           alpha=0.7,
-           label='Probability')
+    ax.bar(
+        x=centers,
+        height=prob,
+        width=bin_width * 0.8,
+        edgecolor='none',
+        alpha=0.7,
+        label='Probability',
+    )
 
     ax.set_xlabel('Bond length (Å)')
     ax.set_ylabel(r'Probability density (Å$^{-1}$)')

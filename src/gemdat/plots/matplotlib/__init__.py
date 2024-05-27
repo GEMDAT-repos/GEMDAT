@@ -1,5 +1,6 @@
 """This module contains all the plots that Gemdat can generate with
 matplotlib."""
+
 from __future__ import annotations
 
 from ._displacement_histogram import displacement_histogram
