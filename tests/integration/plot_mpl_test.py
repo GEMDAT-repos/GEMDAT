@@ -64,7 +64,7 @@ def test_jumps_3d_animation(vasp_jumps):
 @image_comparison2(baseline_images=[
     'radial_distribution_1', 'radial_distribution_2', 'radial_distribution_3'
 ])
-def test_rdf(vasp_rdf_data):
+def test_radial_distribution(vasp_rdf_data):
     assert len(vasp_rdf_data) == 3
     for rdfs in vasp_rdf_data.values():
         plots.radial_distribution(rdfs)
@@ -83,7 +83,7 @@ def test_msd_per_element(vasp_traj):
 
 
 @image_comparison2(baseline_images=['energy_along_path'])
-def test_path_energy(vasp_path):
+def test_energy_along_path(vasp_path):
     structure = load_known_material('argyrodite')
     plots.energy_along_path(path=vasp_path, structure=structure)
 
@@ -95,14 +95,14 @@ def test_rectilinear(vasp_orientations):
          [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5], [0, 2 / 6**0.5, 1 / 3**0.5]], )
 
     orientations = vasp_orientations.normalize().transform(matrix=matrix)
-    orientations.plot_rectilinear(normalize_histo=False)
+    plots.rectilinear(orientations=orientations, normalize_histo=False)
 
 
 @image_comparison2(baseline_images=['bond_length_distribution'])
 def test_bond_length_distribution(vasp_orientations):
-    vasp_orientations.plot_bond_length_distribution(bins=1000)
+    plots.bond_length_distribution(orientations=vasp_orientations, bins=50)
 
 
 @image_comparison2(baseline_images=['autocorrelation'])
-def test_unit_vector_autocorrelation(vasp_orientations):
-    vasp_orientations.plot_autocorrelation()
+def test_autocorrelation(vasp_orientations):
+    plots.autocorrelation(orientations=vasp_orientations)

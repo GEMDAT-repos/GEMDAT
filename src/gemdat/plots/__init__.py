@@ -1,19 +1,16 @@
 """This module contains all the plots that Gemdat can generate."""
 from __future__ import annotations
 
-# Matplotlib plots
 from .matplotlib import (
     autocorrelation,
     bond_length_distribution,
     energy_along_path,
     jumps_3d_animation,
-    path_on_grid,
     radial_distribution,
     rectilinear,
     shape,
 )
 
-# Plotly plots (matplotlib version might be available)
 from .plotly import (
     collective_jumps,
     density,
@@ -30,25 +27,24 @@ from .plotly import (
 )
 
 __all__ = [
+    'autocorrelation',
     'bond_length_distribution',
     'collective_jumps',
     'density',
     'displacement_histogram',
     'displacement_per_atom',
     'displacement_per_element',
+    'energy_along_path',
     'frequency_vs_occurence',
-    'msd_per_element',
     'jumps_3d',
     'jumps_3d_animation',
     'jumps_vs_distance',
     'jumps_vs_time',
-    'plot_3d',
     'msd_per_element',
+    'msd_per_element',
+    'plot_3d',
     'radial_distribution',
     'rectilinear',
     'shape',
     'vibrational_amplitudes',
-    'energy_along_path',
-    'path_on_grid',
-    'autocorrelation',
 ]

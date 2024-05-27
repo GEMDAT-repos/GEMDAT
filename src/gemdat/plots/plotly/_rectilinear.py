@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+
 import numpy as np
 
 from gemdat.orientations import (
@@ -12,7 +13,7 @@ from gemdat.orientations import (
 def rectilinear(*,
                 orientations: Orientations,
                 shape: tuple[int, int] = (90, 360),
-                normalize_histo: bool = True) -> plt.Figure:
+                normalize_histo: bool = True) -> go.Figure:
     """Plot a rectilinear projection of a spherical function. This function
     uses the transformed trajectory.
 
@@ -27,7 +28,7 @@ def rectilinear(*,
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
+    fig : plotly.graph_objects.Figure
         Output figure
     """
     az, el, _ = orientations.vectors_spherical.T
@@ -47,18 +48,18 @@ def rectilinear(*,
     phi = np.linspace(0, 360, axis_phi)
     theta = np.linspace(0, 180, axis_theta)
 
-    x, y = np.meshgrid(phi, theta)
+    fig = go.Figure(data=go.Contour(x=phi,
+                                    y=theta,
+                                    z=hist,
+                                    colorbar={
+                                        'title': 'Areal probability',
+                                        'titleside': 'right',
+                                    }))
 
-    fig, ax = plt.subplots()
-
-    cs = ax.contourf(x, y, hist)
-
-    ax.set_xticks(np.linspace(0, 360, 9))
-    ax.set_yticks(np.linspace(0, 180, 5))
-
-    ax.set_xlabel('Azimuthal angle φ (°)')
-    ax.set_ylabel('Elevation θ (°)')
-
-    fig.colorbar(cs, label='Areal probability', format='')
+    fig.update_layout(
+        title='Rectilinear plot',
+        xaxis_title='Azimuthal angle φ (°)',
+        yaxis_title='Elevation θ (°)',
+    )
 
     return fig

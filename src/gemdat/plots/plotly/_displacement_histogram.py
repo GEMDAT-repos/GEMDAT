@@ -45,10 +45,9 @@ def displacement_histogram(trajectory: Trajectory,
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
+    fig : plotly.graph_objects.Figure
         Output figure
     """
-
     if n_parts == 1:
         df = _trajectory_to_dataframe(trajectory)
 
