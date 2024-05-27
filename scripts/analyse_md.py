@@ -93,17 +93,22 @@ def analyse_md(
 
     jumps = Jumps(transitions=transitions)
 
-    plots.displacement_per_element(trajectory=trajectory)
-    plots.displacement_per_atom(trajectory=diff_trajectory)
-    plots.displacement_histogram(trajectory=diff_trajectory)
-    plots.frequency_vs_occurence(trajectory=diff_trajectory)
-    plots.vibrational_amplitudes(trajectory=diff_trajectory)
-    plots.jumps_vs_distance(jumps=jumps, jump_res=jump_res)
-    plots.jumps_vs_time(jumps=jumps)
-    plots.collective_jumps(jumps=jumps)
-    plots.jumps_3d(jumps=jumps)
+    figs = [
+        plots.displacement_per_element(trajectory=trajectory),
+        plots.displacement_per_atom(trajectory=diff_trajectory),
+        plots.displacement_histogram(trajectory=diff_trajectory),
+        plots.frequency_vs_occurence(trajectory=diff_trajectory),
+        plots.vibrational_amplitudes(trajectory=diff_trajectory),
+        plots.jumps_vs_distance(jumps=jumps, jump_res=jump_res),
+        plots.jumps_vs_time(jumps=jumps),
+        plots.collective_jumps(jumps=jumps),
+        plots.jumps_3d(jumps=jumps),
+    ]
+    if show_plots:
+        for fig in figs:
+            fig.show()
 
-    _tmp = plots.jumps_3d_animation(  # Assignment needed to not desctruct animation before plt.show()
+    _tmp = plots.jumps_3d_animation(
         jumps=jumps,
         t_start=start_end[0],
         t_stop=start_end[1],
@@ -133,7 +138,18 @@ def analyse_md(
             max_dist=rdf_max_dist,
             resolution=rdf_res,
         )
-        for rdfs in rdf_data.values():
-            plots.radial_distribution(rdfs)
+
+        figs = [plots.radial_distribution(rdfs) for rdfs in rdf_data.values()]
+        if show_plots:
+            for fig in figs:
+                fig.show()
 
     return trajectory
+
+
+if __name__ == '__main__':
+    analyse_md(
+        vasp_xml='vasprun.xml',
+        diff_elem='Li',
+        material='argyrodite',
+    )
