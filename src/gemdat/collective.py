@@ -27,12 +27,14 @@ class Collective:
         List of indices to collective jump events
     """
 
-    def __init__(self,
-                 jumps: Jumps,
-                 sites: Structure,
-                 lattice: Lattice,
-                 max_steps: int,
-                 max_dist: float = 1):
+    def __init__(
+        self,
+        jumps: Jumps,
+        sites: Structure,
+        lattice: Lattice,
+        max_steps: int,
+        max_dist: float = 1,
+    ):
         """Determine number of jumps which could show collective behaviour.
 
         Parameters
@@ -64,8 +66,7 @@ class Collective:
         max_dist = self.max_dist
 
         events = self.jumps.data
-        events = events.sort_values(['stop time', 'start time'],
-                                    ignore_index=True)
+        events = events.sort_values(['stop time', 'start time'], ignore_index=True)
 
         coll_jumps = []
         collective = []
@@ -73,7 +74,7 @@ class Collective:
 
         # Compare all pairs
         for i, event_i in events[:-1].iterrows():
-            for j, event_j in events[i + 1:].iterrows():
+            for j, event_j in events[i + 1 :].iterrows():
                 if event_j['start time'] - event_i['stop time'] > max_steps:
                     break
                 if event_i['start time'] - event_j['stop time'] > max_steps:
@@ -81,26 +82,28 @@ class Collective:
                 if event_i['atom index'] == event_j['atom index']:
                     continue
 
-                a = sites.frac_coords[[
-                    event_i['start site'], event_i['destination site']
-                ]]
-                b = sites.frac_coords[[
-                    event_j['start site'], event_j['destination site']
-                ]]
+                a = sites.frac_coords[
+                    [event_i['start site'], event_i['destination site']]
+                ]
+                b = sites.frac_coords[
+                    [event_j['start site'], event_j['destination site']]
+                ]
 
                 dists = lattice.get_all_distances(a, b)
 
                 if np.any(dists < max_dist):
                     collective.append((event_i, event_j))
                     coll_jumps.append(
-                        ((event_i['start site'], event_i['destination site']),
-                         (event_j['start site'], event_j['destination site'])))
+                        (
+                            (event_i['start site'], event_i['destination site']),
+                            (event_j['start site'], event_j['destination site']),
+                        )
+                    )
                     collective_matrix[i, j] = True
                     collective_matrix[j, i] = True
 
         # Get solo jumps from the collective matrix
-        self.n_solo_jumps = len(events) - np.any(collective_matrix,
-                                                 axis=0).sum()
+        self.n_solo_jumps = len(events) - np.any(collective_matrix, axis=0).sum()
 
         self.collective = collective
         self.coll_jumps = coll_jumps
@@ -119,10 +122,9 @@ class Collective:
         coll_jumps = self.coll_jumps
         site_pairs = self.site_pair_count_matrix_labels()
 
-        site_pair_count_matrix = np.zeros((len(site_pairs), len(site_pairs)),
-                                          dtype=int)
+        site_pair_count_matrix = np.zeros((len(site_pairs), len(site_pairs)), dtype=int)
 
-        for ((start_i, stop_i), (start_j, stop_j)) in coll_jumps:
+        for (start_i, stop_i), (start_j, stop_j) in coll_jumps:
             name_start_i = labels[start_i]
             name_stop_i = labels[stop_i]
             name_start_j = labels[start_j]
@@ -138,9 +140,7 @@ class Collective:
     @weak_lru_cache()
     def site_pair_count_matrix_labels(self) -> list:
         labels = self.sites.labels
-        return list({(label1, label2)
-                     for label1 in labels
-                     for label2 in labels})
+        return list({(label1, label2) for label1 in labels for label2 in labels})
 
     @weak_lru_cache()
     def multiple_collective(self) -> tuple[np.ndarray, np.ndarray]:
@@ -153,12 +153,16 @@ class Collective:
         multiple_collective : np.ndarray, np.ndarray
             Result of a np.unique on the collective jump pairs
         """
-        collective = np.array(dtype=[('start', int), ('stop', int)],
-                              object=[[(event_i['start site'],
-                                        event_i['destination site']),
-                                       (event_j['start site'],
-                                        event_j['destination site'])]
-                                      for event_i, event_j in self.collective])
+        collective = np.array(
+            dtype=[('start', int), ('stop', int)],
+            object=[
+                [
+                    (event_i['start site'], event_i['destination site']),
+                    (event_j['start site'], event_j['destination site']),
+                ]
+                for event_i, event_j in self.collective
+            ],
+        )
         # Sort jumps so equal jumps are orderd similarily
         collective = np.sort(collective, axis=1)
 

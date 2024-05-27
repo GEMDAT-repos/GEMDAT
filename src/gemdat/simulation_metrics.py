@@ -89,10 +89,11 @@ class SimulationMetrics:
             Tracer diffusivity in $m^2/s$
         """
         distances = self.trajectory.distances_from_base_position()
-        msd = np.mean(distances[:, -1]**2)  # Angstrom^2
+        msd = np.mean(distances[:, -1] ** 2)  # Angstrom^2
 
-        tracer_diff = (msd * angstrom**2) / (2 * dimensions *
-                                             self.trajectory.total_time)
+        tracer_diff = (msd * angstrom**2) / (
+            2 * dimensions * self.trajectory.total_time
+        )
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 
@@ -134,14 +135,11 @@ class SimulationMetrics:
         haven_ratio : float
         """
         return self.tracer_diffusivity(
-            dimensions=dimensions) / self.tracer_diffusivity_center_of_mass(
-                dimensions=dimensions)
+            dimensions=dimensions
+        ) / self.tracer_diffusivity_center_of_mass(dimensions=dimensions)
 
     @weak_lru_cache()
-    def tracer_conductivity(self,
-                            *,
-                            z_ion: int,
-                            dimensions: int = 3) -> FloatWithUnit:
+    def tracer_conductivity(self, *, z_ion: int, dimensions: int = 3) -> FloatWithUnit:
         """Return tracer conductivity as S/m.
 
         Defined as: elementary_charge^2 * charge_ion^2 * diffusivity *
@@ -161,8 +159,9 @@ class SimulationMetrics:
         """
         temperature = self.trajectory.metadata['temperature']
         tracer_diff = self.tracer_diffusivity(dimensions=dimensions)
-        tracer_conduc = ((elementary_charge**2) * (z_ion**2) * tracer_diff *
-                         self.particle_density()) / (Boltzmann * temperature)
+        tracer_conduc = (
+            (elementary_charge**2) * (z_ion**2) * tracer_diff * self.particle_density()
+        ) / (Boltzmann * temperature)
 
         return FloatWithUnit(tracer_conduc, 'S m^-1')
 
@@ -249,9 +248,7 @@ class SimulationMetricsStd:
         trajectories: list[Trajectory]
             Input trajectories
         """
-        self.metrics = [
-            SimulationMetrics(trajectory) for trajectory in trajectories
-        ]
+        self.metrics = [SimulationMetrics(trajectory) for trajectory in trajectories]
 
     def speed(self) -> tuple[np.ndarray, np.ndarray]:
         """Calculate mean speed and standard deviations.
@@ -282,8 +279,7 @@ class SimulationMetricsStd:
             Tracer diffusivity in $m^2/s$, mean and standard deviation
         """
         diffusivities = [
-            metric.tracer_diffusivity(dimensions=dimensions)
-            for metric in self.metrics
+            metric.tracer_diffusivity(dimensions=dimensions) for metric in self.metrics
         ]
         mean_diffusivities = FloatWithUnit(np.mean(diffusivities), 'm^2 s^-1')
         std_diffusivities = FloatWithUnit(np.std(diffusivities), 'm^2 s^-1')
@@ -325,8 +321,7 @@ class SimulationMetricsStd:
         """
         vibes = [metric.vibration_amplitude() for metric in self.metrics]
         mean_vibes = FloatWithUnit(np.mean(vibes), 'ang')
-        standard_vibes = FloatWithUnit(np.std(vibes),
-                                       'ang')  # Standard deviation
+        standard_vibes = FloatWithUnit(np.std(vibes), 'ang')  # Standard deviation
         return u.ufloat(mean_vibes, standard_vibes)
 
     def amplitudes(self) -> tuple[np.ndarray, np.ndarray]:

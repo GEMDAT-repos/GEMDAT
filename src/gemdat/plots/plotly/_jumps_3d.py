@@ -22,4 +22,5 @@ def jumps_3d(*, jumps: Jumps) -> go.Figure:
         Output figure
     """
     from ._plot3d import plot_3d
+
     return plot_3d(jumps=jumps, structure=jumps.sites)

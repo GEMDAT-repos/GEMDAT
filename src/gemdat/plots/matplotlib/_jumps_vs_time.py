@@ -34,8 +34,6 @@ def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> plt.Figure:
 
     ax.hist(jumps.data['stop time'], bins=bins, width=0.8 * binsize)
 
-    ax.set(title='Jumps vs. time',
-           xlabel='Time (steps)',
-           ylabel='Number of jumps')
+    ax.set(title='Jumps vs. time', xlabel='Time (steps)', ylabel='Number of jumps')
 
     return fig

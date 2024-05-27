@@ -35,4 +35,5 @@ def density(
         Output as plotly figure
     """
     from ._plot3d import plot_3d
+
     return plot_3d(volume=volume, structure=structure, lattice=force_lattice)

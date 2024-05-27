@@ -34,10 +34,21 @@ def plot_lattice_vectors(lattice: Lattice, *, fig: go.Figure):
     abc = a + b + c
 
     for i, (start, stop) in enumerate(
-        ((org, a), (org, b), (org, c), (a, a + b), (a, a + c), (b, b + a),
-         (b, b + c), (c, c + a), (c, c + b), (abc, abc - a), (abc, abc - b),
-         (abc, abc - c))):
-
+        (
+            (org, a),
+            (org, b),
+            (org, c),
+            (a, a + b),
+            (a, a + c),
+            (b, b + a),
+            (b, b + c),
+            (c, c + a),
+            (c, c + b),
+            (abc, abc - a),
+            (abc, abc - b),
+            (abc, abc - c),
+        )
+    ):
         color = ('red', 'blue', 'green', 'black')[min(i, 3)]
         width = (5, 5, 5, 1)[min(i, 3)]
 
@@ -48,19 +59,15 @@ def plot_lattice_vectors(lattice: Lattice, *, fig: go.Figure):
                 z=(start[2], stop[2]),
                 mode='lines',
                 name=None,
-                line={
-                    'color': color,
-                    'width': width
-                },
+                line={'color': color, 'width': width},
                 showlegend=False,
-            ))
+            )
+        )
 
 
-def plot_points(points: np.ndarray,
-                labels: Sequence,
-                *,
-                fig: go.Figure,
-                point_size: int = 5):
+def plot_points(
+    points: np.ndarray, labels: Sequence, *, fig: go.Figure, point_size: int = 5
+):
     """Plot points using plotly.
 
     Parameters
@@ -86,25 +93,21 @@ def plot_points(points: np.ndarray,
         color = colors[label]
 
         fig.add_trace(
-            go.Scatter3d(x=[x],
-                         y=[y],
-                         z=[z],
-                         mode='markers',
-                         name=label,
-                         marker={
-                             'size': point_size,
-                             'color': color,
-                             'line': {
-                                 'width': 2.5
-                             }
-                         },
-                         showlegend=False))
+            go.Scatter3d(
+                x=[x],
+                y=[y],
+                z=[z],
+                mode='markers',
+                name=label,
+                marker={'size': point_size, 'color': color, 'line': {'width': 2.5}},
+                showlegend=False,
+            )
+        )
 
 
-def plot_structure(structure: Structure,
-                   *,
-                   lattice: Lattice | None = None,
-                   fig: go.Figure):
+def plot_structure(
+    structure: Structure, *, lattice: Lattice | None = None, fig: go.Figure
+):
     """Plot structure using plotly.
 
     Parameters
@@ -168,16 +171,19 @@ def plot_volume(
         cart_verts = lattice.get_cartesian_coords(verts)
 
         fig.add_trace(
-            go.Mesh3d(x=cart_verts[:, 0],
-                      y=cart_verts[:, 1],
-                      z=cart_verts[:, 2],
-                      i=faces[:, 0],
-                      j=faces[:, 1],
-                      k=faces[:, 2],
-                      name=f'{isoval=}',
-                      opacity=alphavals[i],
-                      color=colors[i],
-                      showlegend=False))
+            go.Mesh3d(
+                x=cart_verts[:, 0],
+                y=cart_verts[:, 1],
+                z=cart_verts[:, 2],
+                i=faces[:, 0],
+                j=faces[:, 1],
+                k=faces[:, 2],
+                name=f'{isoval=}',
+                opacity=alphavals[i],
+                color=colors[i],
+                showlegend=False,
+            )
+        )
 
 
 def plot_paths(
@@ -198,7 +204,7 @@ def plot_paths(
         Plotly figure to add paths too
     """
     if not isinstance(paths, Collection):
-        paths = (paths, )
+        paths = (paths,)
 
     path, *other_paths = paths
 
@@ -214,8 +220,7 @@ def plot_paths(
             size = 5
             color = None
 
-        x_path, y_path, z_path = lattice.get_cartesian_coords(
-            path.frac_sites()).T
+        x_path, y_path, z_path = lattice.get_cartesian_coords(path.frac_sites()).T
 
         fig.add_trace(
             go.Scatter3d(
@@ -228,10 +233,11 @@ def plot_paths(
                     'size': size,
                     'color': color,
                     'symbol': 'circle',
-                    'opacity': 0.9
+                    'opacity': 0.9,
                 },
                 name=name,
-            ))
+            )
+        )
 
 
 def plot_jumps(jumps: Jumps, *, fig: go.Figure):
@@ -278,14 +284,17 @@ def plot_jumps(jumps: Jumps, *, fig: go.Figure):
                     line_dash='dashdot' if any(image) != 0 else 'solid',
                     line_width=lw * 3,
                     line_color='black',
-                ))
+                )
+            )
 
 
-def update_layout(*,
-                  lattice: Lattice,
-                  fig: go.Figure,
-                  title: str = 'Gemdat 3D plot',
-                  zoom: float = 0.1):
+def update_layout(
+    *,
+    lattice: Lattice,
+    fig: go.Figure,
+    title: str = 'Gemdat 3D plot',
+    zoom: float = 0.1,
+):
     """Update layout, title, scene, etc for figure.
 
     Arguments
@@ -299,51 +308,48 @@ def update_layout(*,
     title : str
         Title of the plot
     """
-    fig.update_layout(title=title,
-                      scene={
-                          'aspectmode': 'manual',
-                          'aspectratio': {
-                              'x': lattice.a * zoom,
-                              'y': lattice.b * zoom,
-                              'z': lattice.c * zoom,
-                          },
-                          'xaxis_title': 'X (Å)',
-                          'yaxis_title': 'Y (Å)',
-                          'zaxis_title': 'Z (Å)'
-                      },
-                      legend={
-                          'orientation': 'h',
-                          'yanchor': 'bottom',
-                          'xanchor': 'left',
-                          'x': 0,
-                          'y': -0.1
-                      },
-                      showlegend=True,
-                      margin={
-                          'l': 0,
-                          'r': 0,
-                          'b': 0,
-                          't': 0
-                      },
-                      scene_camera={
-                          'projection': {
-                              'type': 'orthographic'
-                          },
-                          'eye': {
-                              'x': -lattice.a * 0.05,
-                              'y': -lattice.b * 0.2,
-                              'z': lattice.c * 0.15,
-                          }
-                      })
+    fig.update_layout(
+        title=title,
+        scene={
+            'aspectmode': 'manual',
+            'aspectratio': {
+                'x': lattice.a * zoom,
+                'y': lattice.b * zoom,
+                'z': lattice.c * zoom,
+            },
+            'xaxis_title': 'X (Å)',
+            'yaxis_title': 'Y (Å)',
+            'zaxis_title': 'Z (Å)',
+        },
+        legend={
+            'orientation': 'h',
+            'yanchor': 'bottom',
+            'xanchor': 'left',
+            'x': 0,
+            'y': -0.1,
+        },
+        showlegend=True,
+        margin={'l': 0, 'r': 0, 'b': 0, 't': 0},
+        scene_camera={
+            'projection': {'type': 'orthographic'},
+            'eye': {
+                'x': -lattice.a * 0.05,
+                'y': -lattice.b * 0.2,
+                'z': lattice.c * 0.15,
+            },
+        },
+    )
 
 
-def plot_3d(*,
-            volume: Volume | None = None,
-            structure: Structure | None = None,
-            paths: Pathway | list[Pathway] | None = None,
-            jumps: Jumps | None = None,
-            lattice: Lattice | None = None,
-            title: str = '3D plot') -> go.Figure:
+def plot_3d(
+    *,
+    volume: Volume | None = None,
+    structure: Structure | None = None,
+    paths: Pathway | list[Pathway] | None = None,
+    jumps: Jumps | None = None,
+    lattice: Lattice | None = None,
+    title: str = '3D plot',
+) -> go.Figure:
     """Plot 3d."""
     fig = go.Figure()
 

@@ -33,11 +33,14 @@ def energy_along_path(
     fig = go.Figure()
 
     fig.add_trace(
-        go.Scatter(x=np.arange(len(path.energy)),
-                   y=path.energy,
-                   name='Optimal path',
-                   mode='lines',
-                   line={'width': 3}))
+        go.Scatter(
+            x=np.arange(len(path.energy)),
+            y=path.energy,
+            name='Optimal path',
+            mode='lines',
+            line={'width': 3},
+        )
+    )
 
     if structure:
         nearest_sites = path.path_over_structure(structure)
@@ -79,14 +82,17 @@ def energy_along_path(
     if other_paths:
         for idx, path in enumerate(other_paths):
             fig.add_trace(
-                go.Scatter(x=np.arange(len(path.energy)),
-                           y=path.energy,
-                           name=f'Alternative {idx+1}',
-                           mode='lines',
-                           line={'width': 1}))
+                go.Scatter(
+                    x=np.arange(len(path.energy)),
+                    y=path.energy,
+                    name=f'Alternative {idx+1}',
+                    mode='lines',
+                    line={'width': 1},
+                )
+            )
 
-    fig.update_layout(title='Pathway',
-                      xaxis_title='Steps',
-                      yaxis_title='Free energy (eV)')
+    fig.update_layout(
+        title='Pathway', xaxis_title='Steps', yaxis_title='Free energy (eV)'
+    )
 
     return fig

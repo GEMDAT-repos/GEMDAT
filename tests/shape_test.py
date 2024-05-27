@@ -18,11 +18,13 @@ def site():
 
 @pytest.fixture
 def shape(site):
-    coords = np.array([
-        [0, 3, 4],
-        [5, 0, 12],
-        [8, 15, 0],
-    ])
+    coords = np.array(
+        [
+            [0, 3, 4],
+            [5, 0, 12],
+            [8, 15, 0],
+        ]
+    )
     return ShapeData(site=site, coords=coords, radius=20)
 
 
@@ -55,10 +57,12 @@ def test_shape_analyzer(shape_analyzer):
 
 def test_shape_analyzer_analyze_positions(shape_analyzer):
     shapes = shape_analyzer.analyze_positions(
-        np.array([
-            (0.2, 0.2, 0.2),
-            (0.8, 0.8, 0.8),
-        ]),
+        np.array(
+            [
+                (0.2, 0.2, 0.2),
+                (0.8, 0.8, 0.8),
+            ]
+        ),
         radius=2,
     )
 
@@ -110,7 +114,7 @@ def test_shape_analyzer_optimize_sites(shape_analyzer):
     assert_allclose(site.frac_coords, (0.1, 0.2, 0.3))
 
     shape = ShapeData(site=site, coords=np.array([[2, 2, 2]]), radius=1)
-    shifted = shape_analyzer.optimize_sites((shape, ))
+    shifted = shape_analyzer.optimize_sites((shape,))
 
     site = shifted.sites[0]
     assert_allclose(site.frac_coords, (0.3, 0.4, 0.5))

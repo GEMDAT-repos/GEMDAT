@@ -31,11 +31,14 @@ def radial_distribution(rdfs: Iterable[RDFData]) -> go.Figure:
                 name=rdf.symbol,
                 mode='lines',
                 # line={'width': 0.25}
-            ))
+            )
+        )
 
     states = ', '.join({rdf.state for rdf in rdfs})
-    fig.update_layout(title=f'Radial distribution function ({states})',
-                      xaxis_title='Distance (Å)',
-                      yaxis_title='Counts')
+    fig.update_layout(
+        title=f'Radial distribution function ({states})',
+        xaxis_title='Distance (Å)',
+        yaxis_title='Counts',
+    )
 
     return fig

@@ -47,8 +47,7 @@ def _get_states(labels: list[str]) -> dict[int, str]:
     return states
 
 
-def _get_states_array(transitions: Transitions,
-                      labels: list[str]) -> np.ndarray:
+def _get_states_array(transitions: Transitions, labels: list[str]) -> np.ndarray:
     """Helper function to generate integer array of transition states."""
     states = _uniqify_labels(transitions.states, labels)
     states_prev = _uniqify_labels(transitions.states_prev(), labels)
@@ -63,9 +62,7 @@ def _get_symbol_indices(structure: Structure) -> dict[str, np.ndarray]:
     """Helper function to generate symbol indices."""
     symbols = structure.symbol_set
     return {
-        symbol:
-        np.argwhere([sp.symbol == symbol
-                     for sp in structure.species]).flatten()
+        symbol: np.argwhere([sp.symbol == symbol for sp in structure.species]).flatten()
         for symbol in symbols
     }
 
@@ -86,6 +83,7 @@ class RDFData:
         State that the floating species is in, e.g.
         the jump that it is making.
     """
+
     x: np.ndarray
     y: np.ndarray
     symbol: str
@@ -94,6 +92,7 @@ class RDFData:
     def plot(self, **kwargs):
         """See [gemdat.plots.radial_distribution][] for more info."""
         from gemdat import plots
+
         return plots.radial_distribution(rdfs=self, **kwargs)
 
 
@@ -138,13 +137,13 @@ def radial_distribution(
     bins = np.arange(0, max_dist + resolution, resolution)
     length = len(bins) + 1
 
-    rdfs: dict[tuple[str, str],
-               np.ndarray] = defaultdict(lambda: np.zeros(length, dtype=int))
+    rdfs: dict[tuple[str, str], np.ndarray] = defaultdict(
+        lambda: np.zeros(length, dtype=int)
+    )
 
     n_steps = len(trajectory)
 
     for i in track(range(n_steps), transient=True):
-
         t_coords = coords[i]
         t_sp_coords = sp_coords[i]
 
@@ -162,8 +161,7 @@ def radial_distribution(
 
             for symbol, symbol_idx in symbol_indices.items():
                 rdf_state = rdf[k_idx, symbol_idx].flatten()
-                rdfs[state_str, symbol] += np.bincount(rdf_state,
-                                                       minlength=length)
+                rdfs[state_str, symbol] += np.bincount(rdf_state, minlength=length)
 
     ret: dict[str, list[RDFData]] = {}
 

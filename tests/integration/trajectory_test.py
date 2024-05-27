@@ -93,8 +93,10 @@ def test_vibration_metrics(vasp_traj):
     assert speed.shape == (48, 3750)
     assert np.allclose(
         speed[::24, ::1000],
-        [[0., 0.01348809, -0.02682779, 0.00293911],
-         [0., -0.0059066, 0.01617687, 0.01080066]],
+        [
+            [0.0, 0.01348809, -0.02682779, 0.00293911],
+            [0.0, -0.0059066, 0.01617687, 0.01080066],
+        ],
     )
 
     attempt_freq, attempt_freq_std = metrics.attempt_frequency()
@@ -103,12 +105,17 @@ def test_vibration_metrics(vasp_traj):
     assert np.isclose(attempt_freq_std, 857338723421.6494)
 
     amplitudes = metrics.amplitudes()
-    assert amplitudes.shape == (6644, )
+    assert amplitudes.shape == (6644,)
     assert np.allclose(
         amplitudes[::1000],
         [
-            0.29206348, -0.11529727, 0.33333244, -1.05528599, 0.53086991,
-            -0.48080325, 0.61573288
+            0.29206348,
+            -0.11529727,
+            0.33333244,
+            -1.05528599,
+            0.53086991,
+            -0.48080325,
+            0.61573288,
         ],
     )
 

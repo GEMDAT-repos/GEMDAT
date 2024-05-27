@@ -22,18 +22,21 @@ def _trajectory_to_dataframe(trajectory: Trajectory) -> pd.DataFrame:
     """
     data = []
     for specie, distance in zip(
-            trajectory.species,
-            trajectory.distances_from_base_position()[:, -1]):
+        trajectory.species, trajectory.distances_from_base_position()[:, -1]
+    ):
         data.append((specie, round(distance)))
 
     df = pd.DataFrame(columns=['Element', 'Displacement'], data=data)
-    df = df.groupby(['Displacement', 'Element'
-                     ]).size().reset_index().rename(columns={0: 'count'})
+    df = (
+        df.groupby(['Displacement', 'Element'])
+        .size()
+        .reset_index()
+        .rename(columns={0: 'count'})
+    )
     return df
 
 
-def displacement_histogram(trajectory: Trajectory,
-                           n_parts: int = 1) -> go.Figure:
+def displacement_histogram(trajectory: Trajectory, n_parts: int = 1) -> go.Figure:
     """Plot histogram of total displacement at final timestep.
 
     Parameters
@@ -51,21 +54,16 @@ def displacement_histogram(trajectory: Trajectory,
     if n_parts == 1:
         df = _trajectory_to_dataframe(trajectory)
 
-        fig = px.bar(df,
-                     x='Displacement',
-                     y='count',
-                     color='Element',
-                     barmode='stack')
+        fig = px.bar(df, x='Displacement', y='count', color='Element', barmode='stack')
 
-        fig.update_layout(title='Displacement per element',
-                          xaxis_title='Displacement (Å)',
-                          yaxis_title='Nr. of atoms')
+        fig.update_layout(
+            title='Displacement per element',
+            xaxis_title='Displacement (Å)',
+            yaxis_title='Nr. of atoms',
+        )
     else:
         interval = np.linspace(0, len(trajectory) - 1, n_parts + 1)
-        dfs = [
-            _trajectory_to_dataframe(part)
-            for part in trajectory.split(n_parts)
-        ]
+        dfs = [_trajectory_to_dataframe(part) for part in trajectory.split(n_parts)]
 
         all_df = pd.concat(dfs)
 
@@ -75,17 +73,19 @@ def displacement_histogram(trajectory: Trajectory,
         std = grouped.std().reset_index().rename(columns={'count': 'std'})
         df = mean.merge(std, how='inner')
 
-        fig = px.bar(df,
-                     x='Displacement',
-                     y='mean',
-                     color='Element',
-                     error_y='std',
-                     barmode='group')
+        fig = px.bar(
+            df,
+            x='Displacement',
+            y='mean',
+            color='Element',
+            error_y='std',
+            barmode='group',
+        )
 
         fig.update_layout(
-            title=
-            f'Displacement per element after {int(interval[1]-interval[0])} timesteps',
+            title=f'Displacement per element after {int(interval[1]-interval[0])} timesteps',
             xaxis_title='Displacement (Å)',
-            yaxis_title='Nr. of atoms')
+            yaxis_title='Nr. of atoms',
+        )
 
     return fig

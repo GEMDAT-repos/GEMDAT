@@ -20,8 +20,10 @@ def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
     """
     fig, ax = plt.subplots()
     ax.hist(trajectory.distances_from_base_position()[:, -1])
-    ax.set(title='Displacement per element',
-           xlabel='Displacement (Å)',
-           ylabel='Nr. of atoms')
+    ax.set(
+        title='Displacement per element',
+        xlabel='Displacement (Å)',
+        ylabel='Nr. of atoms',
+    )
 
     return fig

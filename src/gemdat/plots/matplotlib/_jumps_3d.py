@@ -27,7 +27,6 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
     sites = jumps.sites
 
     class LabelItems:
-
         def __init__(self, labels, coords):
             self.labels = labels
             self.coords = coords
@@ -43,15 +42,13 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
 
     site_labels = LabelItems(jumps.sites.labels, coords)
 
-    xyz_labels = LabelItems('OABC', [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1],
-                                     [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]])
+    xyz_labels = LabelItems(
+        'OABC',
+        [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1], [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]],
+    )
 
     plotter.plot_lattice_vectors(lattice, ax=ax, linewidth=1)
-    plotter.plot_labels(xyz_labels,
-                        lattice=lattice,
-                        ax=ax,
-                        color='green',
-                        size=12)
+    plotter.plot_labels(xyz_labels, lattice=lattice, ax=ax, color='green', size=12)
     plotter.plot_points(coords, lattice=lattice, ax=ax)
 
     for i, j in zip(*np.triu_indices(len(coords), k=1)):
@@ -73,17 +70,9 @@ def jumps_3d(*, jumps: Jumps) -> plt.Figure:
             lines = [(coord_i, coord_j)]
 
         for line in lines:
-            plotter.plot_path(line,
-                              lattice=lattice,
-                              ax=ax,
-                              color='red',
-                              linewidth=lw)
+            plotter.plot_path(line, lattice=lattice, ax=ax, color='red', linewidth=lw)
 
-    plotter.plot_labels(site_labels,
-                        lattice=lattice,
-                        ax=ax,
-                        color='black',
-                        size=8)
+    plotter.plot_labels(site_labels, lattice=lattice, ax=ax, color='black', size=8)
 
     ax.set(
         title='Jumps between sites',

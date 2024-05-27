@@ -37,11 +37,13 @@ def shape(
     x_labels = ('X / Å', 'Y / Å', 'Z / Å')
     y_labels = ('Y / Å', 'Z / Å', 'X / Å')
 
-    fig, axes = plt.subplots(nrows=2,
-                             ncols=3,
-                             sharex=True,
-                             figsize=(12, 5),
-                             gridspec_kw={'height_ratios': (4, 1)})
+    fig, axes = plt.subplots(
+        nrows=2,
+        ncols=3,
+        sharex=True,
+        figsize=(12, 5),
+        gridspec_kw={'height_ratios': (4, 1)},
+    )
 
     distances = shape.distances()
     distances_sq = distances**2

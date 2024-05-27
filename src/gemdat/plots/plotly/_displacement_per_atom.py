@@ -25,14 +25,15 @@ def displacement_per_atom(*, trajectory: Trajectory) -> go.Figure:
 
     for i, distance in enumerate(distances):
         fig.add_trace(
-            go.Scatter(y=distance,
-                       name=i,
-                       mode='lines',
-                       line={'width': 1},
-                       showlegend=False))
+            go.Scatter(
+                y=distance, name=i, mode='lines', line={'width': 1}, showlegend=False
+            )
+        )
 
-    fig.update_layout(title='Displacement per atom',
-                      xaxis_title='Time step',
-                      yaxis_title='Displacement (Å)')
+    fig.update_layout(
+        title='Displacement per atom',
+        xaxis_title='Time step',
+        yaxis_title='Displacement (Å)',
+    )
 
     return fig

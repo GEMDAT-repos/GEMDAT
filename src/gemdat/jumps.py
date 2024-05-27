@@ -19,9 +19,9 @@ if TYPE_CHECKING:
     from mypy_extensions import DefaultNamedArg
 
 
-def _generic_transitions_to_jumps(transitions: Transitions,
-                                  *,
-                                  minimal_residence: int = 0) -> pd.DataFrame:
+def _generic_transitions_to_jumps(
+    transitions: Transitions, *, minimal_residence: int = 0
+) -> pd.DataFrame:
     """Generic function to convert transition events to jumps.
 
     Parameters
@@ -52,13 +52,11 @@ def _generic_transitions_to_jumps(transitions: Transitions,
             if candidate_jump['atom index'] != event['atom index']:
                 jumps.append(candidate_jump)
                 candidate_jump = None
-            elif event['start time'] - candidate_jump[
-                    'stop time'] >= minimal_residence:
+            elif event['start time'] - candidate_jump['stop time'] >= minimal_residence:
                 jumps.append(candidate_jump)
                 candidate_jump = None
                 fromevent = None
-            elif candidate_jump['destination site'] != event[
-                    'destination site']:
+            elif candidate_jump['destination site'] != event['destination site']:
                 candidate_jump = None
 
         # Specify the start of a jump if we encounter one
@@ -96,8 +94,7 @@ def _generic_transitions_to_jumps(transitions: Transitions,
     jumps = pd.DataFrame(data=jumps)
 
     # remove jumps where start == destination
-    jumps = jumps[jumps['start site'] !=
-                  jumps['destination site']].reset_index()
+    jumps = jumps[jumps['start site'] != jumps['destination site']].reset_index()
 
     # remove old index
     del jumps['index']
@@ -107,15 +104,15 @@ def _generic_transitions_to_jumps(transitions: Transitions,
 
 
 class Jumps:
-
-    def __init__(self,
-                 transitions: Transitions,
-                 *,
-                 conversion_method: Callable[
-                     [Transitions,
-                      DefaultNamedArg(int, 'minimal_residence')],
-                     pd.DataFrame] = _generic_transitions_to_jumps,
-                 minimal_residence: int = 0):
+    def __init__(
+        self,
+        transitions: Transitions,
+        *,
+        conversion_method: Callable[
+            [Transitions, DefaultNamedArg(int, 'minimal_residence')], pd.DataFrame
+        ] = _generic_transitions_to_jumps,
+        minimal_residence: int = 0,
+    ):
         """Analyze transitions and classify them as jumps.
 
         Parameters
@@ -134,8 +131,7 @@ class Jumps:
         self.trajectory = transitions.diff_trajectory
         self.sites = transitions.sites
         self.conversion_method = conversion_method
-        self.data = conversion_method(transitions,
-                                      minimal_residence=minimal_residence)
+        self.data = conversion_method(transitions, minimal_residence=minimal_residence)
 
     @property
     def n_jumps(self) -> int:
@@ -190,8 +186,7 @@ class Jumps:
         pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
 
         jump_diff = np.sum(pdist**2 * self.matrix())
-        jump_diff *= angstrom**2 / (2 * dimensions * self.n_floating *
-                                    total_time)
+        jump_diff *= angstrom**2 / (2 * dimensions * self.n_floating * total_time)
 
         jump_diff = FloatWithUnit(jump_diff, 'm^2 s^-1')
 
@@ -206,8 +201,9 @@ class Jumps:
         transitions_matrix : np.ndarray
             Square matrix with number of each transitions
         """
-        return _calculate_transitions_matrix(self.data,
-                                             n_sites=self.transitions.n_sites)
+        return _calculate_transitions_matrix(
+            self.data, n_sites=self.transitions.n_sites
+        )
 
     @weak_lru_cache()
     def collective(self, max_dist: float = 1) -> Collective:
@@ -264,21 +260,19 @@ class Jumps:
         atom_locations_parts = [
             part.atom_locations() for part in self.transitions.split(n_parts)
         ]
-        jumps_counter_parts = [
-            part.jumps_counter() for part in self.split(n_parts)
-        ]
+        jumps_counter_parts = [part.jumps_counter() for part in self.split(n_parts)]
         n_floating = self.n_floating
 
         for site_pair in self.site_pairs:
             site_start, site_stop = site_pair
 
-            n_jumps = np.array(
-                [part[site_pair] for part in jumps_counter_parts])
+            n_jumps = np.array([part[site_pair] for part in jumps_counter_parts])
 
             part_time = trajectory.total_time / n_parts
 
             atom_percentage = np.array(
-                [part[site_start] for part in atom_locations_parts])
+                [part[site_start] for part in atom_locations_parts]
+            )
 
             denom = atom_percentage * n_floating * part_time
 
@@ -288,11 +282,13 @@ class Jumps:
             if site_start == site_stop:
                 eff_rate /= 2
 
-            e_act_arr = -np.log(eff_rate / attempt_freq) * (
-                Boltzmann * temperature) / elementary_charge
+            e_act_arr = (
+                -np.log(eff_rate / attempt_freq)
+                * (Boltzmann * temperature)
+                / elementary_charge
+            )
 
-            dct[site_start, site_stop] = np.mean(e_act_arr), np.std(e_act_arr,
-                                                                    ddof=1)
+            dct[site_start, site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
 
         df = pd.DataFrame(dct).T
         df.columns = ('energy', 'std')
@@ -308,8 +304,14 @@ class Jumps:
             Dictionary with number of jumps per sites combination
         """
         labels = self.sites.labels
-        jumps = Counter([(labels[i], labels[j]) for _, (
-            i, j) in self.data[['start site', 'destination site']].iterrows()])
+        jumps = Counter(
+            [
+                (labels[i], labels[j])
+                for _, (i, j) in self.data[
+                    ['start site', 'destination site']
+                ].iterrows()
+            ]
+        )
         return jumps
 
     def split(self, n_parts: int) -> list[Jumps]:
@@ -326,10 +328,7 @@ class Jumps:
         """
         parts = self.transitions.split(n_parts)
 
-        return [
-            Jumps(part, conversion_method=self.conversion_method)
-            for part in parts
-        ]
+        return [Jumps(part, conversion_method=self.conversion_method) for part in parts]
 
     @weak_lru_cache()
     def rates(self, n_parts: int = 10) -> pd.DataFrame:
@@ -363,24 +362,29 @@ class Jumps:
     def plot_jumps_vs_distance(self, **kwargs):
         """See [gemdat.plots.jumps_vs_distance][] for more information."""
         from gemdat import plots
+
         return plots.jumps_vs_distance(jumps=self, **kwargs)
 
     def plot_jumps_vs_time(self, **kwargs):
         """See [gemdat.plots.jumps_vs_time][] for more information."""
         from gemdat import plots
+
         return plots.jumps_vs_time(jumps=self, **kwargs)
 
     def plot_collective_jumps(self, **kwargs):
         """See [gemdat.plots.collective_jumps][] for more information."""
         from gemdat import plots
+
         return plots.collective_jumps(jumps=self, **kwargs)
 
     def plot_jumps_3d(self, **kwargs):
         """See [gemdat.plots.jumps_3d][] for more information."""
         from gemdat import plots
+
         return plots.jumps_3d(jumps=self, **kwargs)
 
     def plot_jumps_3d_animation(self, **kwargs):
         """See [gemdat.plots.jumps_3d_animation][] for more information."""
         from gemdat import plots
+
         return plots.jumps_3d_animation(jumps=self, **kwargs)

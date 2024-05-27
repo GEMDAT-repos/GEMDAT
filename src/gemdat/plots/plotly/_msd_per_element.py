@@ -35,19 +35,21 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
         t_values = np.arange(len(msd_mean)) * time_ps
 
         fig.add_trace(
-            go.Scatter(x=t_values,
-                       y=msd_mean,
-                       error_y=dict(type='data',
-                                    array=msd_std,
-                                    width=0.1,
-                                    thickness=0.1),
-                       name=f'{sp.symbol} mean+std',
-                       mode='lines',
-                       line={'width': 3},
-                       legendgroup=sp.symbol))
+            go.Scatter(
+                x=t_values,
+                y=msd_mean,
+                error_y=dict(type='data', array=msd_std, width=0.1, thickness=0.1),
+                name=f'{sp.symbol} mean+std',
+                mode='lines',
+                line={'width': 3},
+                legendgroup=sp.symbol,
+            )
+        )
 
-    fig.update_layout(title='Mean squared displacement per element',
-                      xaxis_title='Time lag (ps)',
-                      yaxis_title=r'MSD (Å<sup>2</sup>)')
+    fig.update_layout(
+        title='Mean squared displacement per element',
+        xaxis_title='Time lag (ps)',
+        yaxis_title=r'MSD (Å<sup>2</sup>)',
+    )
 
     return fig

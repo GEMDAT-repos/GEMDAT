@@ -11,10 +11,7 @@ if TYPE_CHECKING:
     from gemdat import Jumps
 
 
-def jumps_vs_time(*,
-                  jumps: Jumps,
-                  bins: int = 8,
-                  n_parts: int = 1) -> go.Figure:
+def jumps_vs_time(*, jumps: Jumps, bins: int = 8, n_parts: int = 1) -> go.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -37,9 +34,10 @@ def jumps_vs_time(*,
 
     for jumps_part in jumps.split(n_parts=n_parts):
         data.append(
-            np.histogram(jumps_part.data['start time'],
-                         bins=bins,
-                         range=(0., maxlen))[0])
+            np.histogram(jumps_part.data['start time'], bins=bins, range=(0.0, maxlen))[
+                0
+            ]
+        )
 
     df = pd.DataFrame(data=data)
     columns = [binsize / 2 + binsize * col for col in range(bins)]
@@ -47,17 +45,18 @@ def jumps_vs_time(*,
     mean = [df[col].mean() for col in df.columns]
     std = [df[col].std() for col in df.columns]
 
-    df = pd.DataFrame(data=zip(columns, mean, std),
-                      columns=['time', 'count', 'std'])
+    df = pd.DataFrame(data=zip(columns, mean, std), columns=['time', 'count', 'std'])
 
     if n_parts > 1:
         fig = px.bar(df, x='time', y='count', error_y='std')
     else:
         fig = px.bar(df, x='time', y='count')
 
-    fig.update_layout(bargap=0.2,
-                      title='Jumps vs. time',
-                      xaxis_title='Time (steps)',
-                      yaxis_title='Number of jumps')
+    fig.update_layout(
+        bargap=0.2,
+        title='Jumps vs. time',
+        xaxis_title='Time (steps)',
+        yaxis_title='Number of jumps',
+    )
 
     return fig

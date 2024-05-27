@@ -23,8 +23,6 @@ def displacement_per_atom(*, trajectory: Trajectory) -> plt.Figure:
     for distances in trajectory.distances_from_base_position():
         ax.plot(distances, lw=0.3)
 
-    ax.set(title='Displacement per site',
-           xlabel='Time step',
-           ylabel='Displacement (Å)')
+    ax.set(title='Displacement per site', xlabel='Time step', ylabel='Displacement (Å)')
 
     return fig

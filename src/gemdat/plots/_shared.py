@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 
 
 def _mean_displacements_per_element(
-        trajectory: Trajectory) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    trajectory: Trajectory,
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
     """Calculate mean displacements per element type.
 
     Helper for `displacement_per_atom`.
@@ -21,8 +22,7 @@ def _mean_displacements_per_element(
     species = trajectory.species
 
     grouped = defaultdict(list)
-    for sp, distances in zip(species,
-                             trajectory.distances_from_base_position()):
+    for sp, distances in zip(species, trajectory.distances_from_base_position()):
         grouped[sp.symbol].append(distances)
 
     means = {}
@@ -35,10 +35,9 @@ def _mean_displacements_per_element(
     return means
 
 
-def _orientations_to_histogram(orientations: Orientations,
-                               /,
-                               *,
-                               bins: int = 50) -> pd.DataFrame:
+def _orientations_to_histogram(
+    orientations: Orientations, /, *, bins: int = 50
+) -> pd.DataFrame:
     """Calculate bond lenth histogram from `Orientations`
 
     Helper for `bond_length_distribution`.
@@ -49,17 +48,19 @@ def _orientations_to_histogram(orientations: Orientations,
     hist, edges = np.histogram(bond_lengths, bins=bins, density=True)
     bin_centers = bin_centers = (edges[:-1] + edges[1:]) / 2
 
-    return pd.DataFrame({
-        'prob': hist,
-        'center': bin_centers,
-        'left_edge': edges[:-1],
-        'right_edge': edges[1:]
-    })
+    return pd.DataFrame(
+        {
+            'prob': hist,
+            'center': bin_centers,
+            'left_edge': edges[:-1],
+            'right_edge': edges[1:],
+        }
+    )
 
 
-def _fit_skewnorm_to_hist(df: pd.DataFrame,
-                          /,
-                          steps: int = 100) -> tuple[np.ndarray, np.ndarray]:
+def _fit_skewnorm_to_hist(
+    df: pd.DataFrame, /, steps: int = 100
+) -> tuple[np.ndarray, np.ndarray]:
     """Fit skewnorm to bond lenth histogram from `Orientations`
 
     Helper for `bond_length_distribution`.
@@ -67,10 +68,7 @@ def _fit_skewnorm_to_hist(df: pd.DataFrame,
     bin_centers = df['center']
     hist = df['prob']
 
-    params, covariance = curve_fit(skewnorm.pdf,
-                                   bin_centers,
-                                   hist,
-                                   p0=[1.5, 1, 1.5])
+    params, covariance = curve_fit(skewnorm.pdf, bin_centers, hist, p0=[1.5, 1, 1.5])
 
     x = np.linspace(min(bin_centers), max(bin_centers), steps)
     y = skewnorm.pdf(x, *params)

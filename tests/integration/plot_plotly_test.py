@@ -12,11 +12,7 @@ from typing import Any
 from matplotlib.testing.compare import compare_images
 
 
-def assert_image_similar(fig,
-                         *,
-                         name: str,
-                         ext: str = 'png',
-                         rms: float = 0.0):
+def assert_image_similar(fig, *, name: str, ext: str = 'png', rms: float = 0.0):
     # Ensure same font is used on different machines (local/CI)
     fig.update_layout(
         font_family='Arial',
@@ -26,8 +22,7 @@ def assert_image_similar(fig,
     RESULTS_DIR = Path() / 'result_images' / Path(__file__).stem
     RESULTS_DIR.mkdir(exist_ok=True, parents=True)
 
-    EXPECTED_DIR = Path(__file__).parent / 'baseline_images' / Path(
-        __file__).stem
+    EXPECTED_DIR = Path(__file__).parent / 'baseline_images' / Path(__file__).stem
 
     filename = f'{name}.{ext}'
 
@@ -42,17 +37,19 @@ def assert_image_similar(fig,
 
     expected_link.symlink_to(expected)
 
-    err: dict[str, Any] = compare_images(expected=str(expected_link),
-                                         actual=str(actual),
-                                         tol=rms,
-                                         in_decorator=True)  # type: ignore
+    err: dict[str, Any] = compare_images(
+        expected=str(expected_link), actual=str(actual), tol=rms, in_decorator=True
+    )  # type: ignore
 
     if err:
         for key in ('actual', 'expected', 'diff'):
             err[key] = Path(err[key]).relative_to('.')
         raise AssertionError(
-            ('images not close (RMS {rms:.3f}):'
-             '\n\t{actual}\n\t{expected}\n\t{diff}'.format(**err)))
+            (
+                'images not close (RMS {rms:.3f}):'
+                '\n\t{actual}\n\t{expected}\n\t{diff}'.format(**err)
+            )
+        )
 
 
 def test_displacement_per_element(vasp_traj):
@@ -145,8 +142,12 @@ def test_energy_along_path(vasp_path):
 
 def test_rectilinear(vasp_orientations):
     matrix = np.array(
-        [[1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
-         [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5], [0, 2 / 6**0.5, 1 / 3**0.5]], )
+        [
+            [1 / 2**0.5, -1 / 6**0.5, 1 / 3**0.5],
+            [1 / 2**0.5, 1 / 6**0.5, -1 / 3**0.5],
+            [0, 2 / 6**0.5, 1 / 3**0.5],
+        ],
+    )
 
     orientations = vasp_orientations.normalize().transform(matrix=matrix)
     fig = plots.rectilinear(orientations=orientations, normalize_histo=False)
@@ -155,8 +156,7 @@ def test_rectilinear(vasp_orientations):
 
 
 def test_bond_length_distribution(vasp_orientations):
-    fig = plots.bond_length_distribution(orientations=vasp_orientations,
-                                         bins=50)
+    fig = plots.bond_length_distribution(orientations=vasp_orientations, bins=50)
 
     assert_image_similar(fig, name='bond_length_distribution', rms=0.5)
 

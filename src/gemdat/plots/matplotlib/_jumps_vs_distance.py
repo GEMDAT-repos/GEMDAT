@@ -48,8 +48,6 @@ def jumps_vs_distance(
 
     ax.bar(x, counts, width=(jump_res * 0.8))
 
-    ax.set(title='Jumps vs. Distance',
-           xlabel='Distance (Å)',
-           ylabel='Number of jumps')
+    ax.set(title='Jumps vs. Distance', xlabel='Distance (Å)', ylabel='Number of jumps')
 
     return fig

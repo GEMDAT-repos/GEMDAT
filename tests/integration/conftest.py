@@ -20,16 +20,20 @@ VASP_ORI_CACHE = DATA_DIR / 'short_simulation' / 'vasprun_rotations.cache'
 def pytest_configure():
     pytest.vaspxml_available = pytest.mark.skipif(
         not VASP_XML.exists(),
-        reason=
-        ('Simulation data from vasprun.xml example is required for this test. '
-         'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
-         '-xjf tests/data/short_simulation/vasprun.xml.bz2`'))
+        reason=(
+            'Simulation data from vasprun.xml example is required for this test. '
+            'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
+            '-xjf tests/data/short_simulation/vasprun.xml.bz2`'
+        ),
+    )
     pytest.vasporicache_available = pytest.mark.skipif(
         not VASP_ORI_CACHE.exists(),
-        reason=
-        ('Simulation data from vasprun_rotations.cache example is required for this test. '
-         'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
-         '-xjf tests/data/short_simulation/vasprun.xml.bz2`'))
+        reason=(
+            'Simulation data from vasprun_rotations.cache example is required for this test. '
+            'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
+            '-xjf tests/data/short_simulation/vasprun.xml.bz2`'
+        ),
+    )
 
 
 @pytest.fixture(scope='module')
@@ -58,8 +62,9 @@ def structure():
 
 @pytest.fixture(scope='module')
 def vasp_transitions(vasp_traj, structure):
-    transitions = vasp_traj.transitions_between_sites(sites=structure,
-                                                      floating_specie='Li')
+    transitions = vasp_traj.transitions_between_sites(
+        sites=structure, floating_specie='Li'
+    )
     return transitions
 
 
@@ -72,8 +77,7 @@ def vasp_jumps(vasp_transitions):
 def vasp_rdf_data(vasp_traj, structure):
     # Shorten trajectory for faster test
     trajectory = vasp_traj[-1000:]
-    transitions = trajectory.transitions_between_sites(structure,
-                                                       floating_specie='Li')
+    transitions = trajectory.transitions_between_sites(structure, floating_specie='Li')
 
     rdfs = radial_distribution(
         transitions=transitions,
@@ -124,8 +128,7 @@ def vasp_F_graph(vasp_path_vol):
 def vasp_orientations(vasp_traj_orientations):
     central_atoms = 'S'
     satellite_atoms = 'O'
-    orientations = Orientations(vasp_traj_orientations, central_atoms,
-                                satellite_atoms)
+    orientations = Orientations(vasp_traj_orientations, central_atoms, satellite_atoms)
 
     return orientations
 
