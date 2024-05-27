@@ -3,9 +3,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gemdat.orientations import (
-    Orientations,
-)
+from gemdat.orientations import Orientations
 
 
 def autocorrelation(

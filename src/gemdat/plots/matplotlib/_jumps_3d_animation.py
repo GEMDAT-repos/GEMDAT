@@ -66,7 +66,12 @@ def jumps_3d_animation(
 
     xyz_labels = LabelItems(
         'OABC',
-        [[-0.1, -0.1, -0.1], [1.1, -0.1, -0.1], [-0.1, 1.1, -0.1], [-0.1, -0.1, 1.1]],
+        [
+            [-0.1, -0.1, -0.1],
+            [1.1, -0.1, -0.1],
+            [-0.1, 1.1, -0.1],
+            [-0.1, -0.1, 1.1],
+        ],
     )
 
     plotter.plot_lattice_vectors(lattice, ax=ax, linewidth=1)
