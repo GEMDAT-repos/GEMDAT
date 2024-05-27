@@ -43,6 +43,7 @@ class Volume:
     units : Unit | None
         Optional unit for the data
     """
+
     data: np.ndarray
     lattice: Lattice
     label: str = 'volume'
@@ -97,8 +98,7 @@ class Volume:
             lattice=volume.structure.lattice,
         )
 
-    def voxel_to_cart_coords(self,
-                             voxel: np.ndarray | list[Any]) -> np.ndarray:
+    def voxel_to_cart_coords(self, voxel: np.ndarray | list[Any]) -> np.ndarray:
         """Convert voxel coordinates to cartesian coordinates.
 
         Parameters
@@ -114,8 +114,7 @@ class Volume:
         frac_coords = self.voxel_to_frac_coords(voxel)
         return self.lattice.get_cartesian_coords(frac_coords)
 
-    def voxel_to_frac_coords(self,
-                             voxel: np.ndarray | list[Any]) -> np.ndarray:
+    def voxel_to_frac_coords(self, voxel: np.ndarray | list[Any]) -> np.ndarray:
         """Convert voxel coordinates to fractional coordinates.
 
         Parameters
@@ -209,11 +208,13 @@ class Volume:
 
         return coords[:, 0:3].astype(int)
 
-    def to_vasp_volume(self,
-                       structure: Structure,
-                       *,
-                       filename: str | None = None,
-                       other: list[Volume] | None = None) -> VolumetricData:
+    def to_vasp_volume(
+        self,
+        structure: Structure,
+        *,
+        filename: str | None = None,
+        other: list[Volume] | None = None,
+    ) -> VolumetricData:
         """Convert to vasp volume.
 
         Parameters
@@ -252,8 +253,9 @@ class Volume:
 
         return vol_vasp
 
-    def _peaks_to_props(self, peaks: np.ndarray,
-                        background_level: float) -> list[RegionProperties]:
+    def _peaks_to_props(
+        self, peaks: np.ndarray, background_level: float
+    ) -> list[RegionProperties]:
         """Segment volume using watershed algorithm.
 
         Return regionprops.
@@ -284,7 +286,7 @@ class Volume:
             for axis in (0, 1, 2):
                 dim = self.dims[axis]
                 if prop.image.shape[axis] == dim:
-                    sel = (coords[:, axis] < dim / 2)
+                    sel = coords[:, axis] < dim / 2
                     coords[sel, axis] += dim
 
             centroids.append(coords.mean(axis=0))
@@ -331,8 +333,7 @@ class Volume:
         if peaks is None:
             peaks = self.find_peaks(**kwargs)
 
-        props = self._peaks_to_props(peaks=peaks,
-                                     background_level=background_level)
+        props = self._peaks_to_props(peaks=peaks, background_level=background_level)
 
         props_to_frac_coords = self._props_to_frac_coords_centroid
 
@@ -340,9 +341,11 @@ class Volume:
 
         frac_coords = np.mod(frac_coords, 1)
 
-        structure = Structure(lattice=self.lattice,
-                              coords=frac_coords,
-                              species=[specie for _ in frac_coords])
+        structure = Structure(
+            lattice=self.lattice,
+            coords=frac_coords,
+            species=[specie for _ in frac_coords],
+        )
 
         structure.merge_sites(tol=0.1, mode='average')
 
@@ -365,8 +368,11 @@ class Volume:
             Free energy in eV on the voxel grid
         """
         prob = self.probability()
-        free_energy = -temperature * physical_constants[
-            'Boltzmann constant in eV/K'][0] * np.log(prob)
+        free_energy = (
+            -temperature
+            * physical_constants['Boltzmann constant in eV/K'][0]
+            * np.log(prob)
+        )
 
         return FreeEnergyVolume(
             data=np.nan_to_num(free_energy),
@@ -376,22 +382,21 @@ class Volume:
     def plot_3d(self, **kwargs):
         """See [gemdat.plots.plot_3d][] for more info."""
         from gemdat import plots
+
         return plots.plot_3d(volume=self, **kwargs)
 
 
 class FreeEnergyVolume(Volume):
-
     def free_energy_graph(self, **kwargs) -> nx.Graph:
         """Compute the graph of the free energy for networkx functions.
 
         See [gemdat.path.free_energy_graph][] for more info.
         """
         from .path import free_energy_graph
+
         return free_energy_graph(self.data, **kwargs)
 
-    def optimal_path(self,
-                     F_graph: nx.Graph | None = None,
-                     **kwargs) -> Pathway:
+    def optimal_path(self, F_graph: nx.Graph | None = None, **kwargs) -> Pathway:
         """Calculate the shortest cost-effective path using the desired method.
 
         Parameters
@@ -417,9 +422,9 @@ class FreeEnergyVolume(Volume):
         path.dims = self.dims
         return path
 
-    def optimal_n_paths(self,
-                        F_graph: nx.Graph | None = None,
-                        **kwargs) -> list[Pathway]:
+    def optimal_n_paths(
+        self, F_graph: nx.Graph | None = None, **kwargs
+    ) -> list[Pathway]:
         """Calculate the n_paths shortest paths between two sites on the graph.
 
         See [gemdat.path.optimal_n_paths][] for more info.
@@ -441,12 +446,14 @@ class FreeEnergyVolume(Volume):
         See [gemdat.path.optimal_percolating_path][] for more info.
         """
         from .path import optimal_percolating_path
+
         return optimal_percolating_path(self, **kwargs)
 
 
 class OrientationalVolume(Volume):
     """Container for orientational volume data, that are in spherical
     coordinates."""
+
     shape: tuple[int, int]
     radii: np.ndarray
 
@@ -483,8 +490,7 @@ class OrientationalVolume(Volume):
 
         blobs = blob_dog(z, **kwargs)
 
-        peaks = [(y[int(i), int(j)], x[int(i), int(j)])
-                 for i, j, sigma in blobs]
+        peaks = [(y[int(i), int(j)], x[int(i), int(j)]) for i, j, sigma in blobs]
 
         return peaks
 
@@ -531,11 +537,13 @@ def trajectory_to_volume(
     ybins = np.linspace(y0, y1, ny)[1:]
     zbins = np.linspace(z0, z1, nz)[1:]
 
-    digitized_coords = np.vstack([
-        np.digitize(coords[:, 0], bins=xbins),
-        np.digitize(coords[:, 1], bins=ybins),
-        np.digitize(coords[:, 2], bins=zbins),
-    ]).T
+    digitized_coords = np.vstack(
+        [
+            np.digitize(coords[:, 0], bins=xbins),
+            np.digitize(coords[:, 1], bins=ybins),
+            np.digitize(coords[:, 2], bins=zbins),
+        ]
+    ).T
 
     indices, counts = np.unique(digitized_coords, return_counts=True, axis=0)
     i, j, k = indices.T

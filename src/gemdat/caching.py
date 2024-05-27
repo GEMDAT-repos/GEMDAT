@@ -13,7 +13,6 @@ def weak_lru_cache(maxsize=128, typed=False):
     """
 
     def wrapper(func):
-
         @functools.lru_cache(maxsize, typed)
         def _func(_self, *args, **kwargs):
             return func(_self(), *args, **kwargs)

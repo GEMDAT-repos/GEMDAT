@@ -27,6 +27,7 @@ class Orientations:
     vectors: np.ndarray
         Vectors representing orientation direction
     """
+
     trajectory: Trajectory
     center_type: str
     satellite_type: str
@@ -72,14 +73,20 @@ class Orientations:
         central_start_coord = self._trajectory_cent.base_positions
         satellite_start_coord = self._trajectory_sat.base_positions
         lattice = self.trajectory.get_lattice()
-        distance = np.array([[
-            lattice.get_all_distances(central, satellite)
-            for satellite in satellite_start_coord
-        ] for central in central_start_coord])
+        distance = np.array(
+            [
+                [
+                    lattice.get_all_distances(central, satellite)
+                    for satellite in satellite_start_coord
+                ]
+                for central in central_start_coord
+            ]
+        )
         return distance
 
-    def _matching_matrix(self, distance: np.ndarray,
-                         frac_coord_cent: np.ndarray) -> np.ndarray:
+    def _matching_matrix(
+        self, distance: np.ndarray, frac_coord_cent: np.ndarray
+    ) -> np.ndarray:
         """Determine which satellite atoms are close enough to central atom to
         be connected.
 
@@ -98,14 +105,14 @@ class Orientations:
         match_criteria = 1.5 * np.min(distance)
 
         distance_match = np.where(distance < match_criteria, distance, 0)
-        matching_matrix = np.zeros((len(frac_coord_cent[0, :, 0]), 4),
-                                   dtype=int)
+        matching_matrix = np.zeros((len(frac_coord_cent[0, :, 0]), 4), dtype=int)
         for k in range(len(frac_coord_cent[0, :, 0])):
             matching_matrix[k, :] = np.where(distance_match[k, :] != 0)[0][:4]
         return matching_matrix
 
-    def _central_satellite_matrix(self, distance: np.ndarray,
-                                  frac_coord_cent: np.ndarray) -> np.ndarray:
+    def _central_satellite_matrix(
+        self, distance: np.ndarray, frac_coord_cent: np.ndarray
+    ) -> np.ndarray:
         """Get the combinations of central atoms and satellite atoms in a
         matrix.
 
@@ -127,8 +134,9 @@ class Orientations:
 
         # index_central_atoms = np.arange(self.nr_central_atoms)
         matching_matrix = self._matching_matrix(distance, frac_coord_cent)
-        combinations = np.array([(i, j) for i in index_central_atoms
-                                 for j in matching_matrix[i, :]])
+        combinations = np.array(
+            [(i, j) for i in index_central_atoms for j in matching_matrix[i, :]]
+        )
         return combinations
 
     def _fractional_directions(self, distance: np.ndarray) -> np.ndarray:
@@ -148,8 +156,7 @@ class Orientations:
         frac_coord_cent = self._trajectory_cent.positions
         frac_coord_sat = self._trajectory_sat.positions
 
-        combinations = self._central_satellite_matrix(distance,
-                                                      frac_coord_cent)
+        combinations = self._central_satellite_matrix(distance, frac_coord_cent)
 
         sat = frac_coord_sat[:, combinations[:, 1], :]
         cent = frac_coord_cent[:, combinations[:, 0], :]
@@ -169,14 +176,13 @@ class Orientations:
         -------
         Orientations
         """
-        vectors = self.vectors / np.linalg.norm(
-            self.vectors, axis=-1, keepdims=True)
+        vectors = self.vectors / np.linalg.norm(self.vectors, axis=-1, keepdims=True)
 
         return replace(self, in_vectors=vectors)
 
-    def symmetrize(self,
-                   sym_group: str | None = None,
-                   sym_ops: np.ndarray | None = None) -> Orientations:
+    def symmetrize(
+        self, sym_group: str | None = None, sym_ops: np.ndarray | None = None
+    ) -> Orientations:
         """Apply symmetry elements to the trajectory to improve statistics.
 
         One of `sym_group` and `sym_ops` must be supplied.
@@ -199,12 +205,13 @@ class Orientations:
             sym_ops = sym_ops
         elif sym_group:
             g = PointGroup(sym_group)
-            sym_ops = np.array([
-                element.rotation_matrix for element in g.symmetry_ops
-            ]).transpose(1, 2, 0)
+            sym_ops = np.array(
+                [element.rotation_matrix for element in g.symmetry_ops]
+            ).transpose(1, 2, 0)
         else:
             raise ValueError(
-                'At least one of `sym_group` or `sym_ops` must be provided')
+                'At least one of `sym_group` or `sym_ops` must be provided'
+            )
 
         n_ts = self.vectors.shape[0]
         n_bonds = self.vectors.shape[1]
@@ -259,16 +266,19 @@ class Orientations:
     def plot_rectilinear(self, **kwargs):
         """See [gemdat.plots.rectilinear][] for more info."""
         from gemdat import plots
+
         return plots.rectilinear(orientations=self, **kwargs)
 
     def plot_bond_length_distribution(self, **kwargs):
         """See [gemdat.plots.bond_length_distribution][] for more info."""
         from gemdat import plots
+
         return plots.bond_length_distribution(orientations=self, **kwargs)
 
     def plot_autocorrelation(self, **kwargs):
         """See [gemdat.plots.unit_vector_autocorrelation][] for more info."""
         from gemdat import plots
+
         return plots.autocorrelation(orientations=self, **kwargs)
 
     def to_volume(
@@ -283,8 +293,6 @@ class Orientations:
 
         Parameters
         ----------
-        orientations : Orientations
-            Input orientations
         shape : tuple
             The shape of the spherical sector in which the trajectory is
         normalize_area : bool
@@ -296,6 +304,5 @@ class Orientations:
             Output volume
         """
         from gemdat.volume import orientations_to_volume
-        return orientations_to_volume(self,
-                                      shape=shape,
-                                      normalize_area=normalize_area)
+
+        return orientations_to_volume(self, shape=shape, normalize_area=normalize_area)

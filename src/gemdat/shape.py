@@ -28,6 +28,7 @@ class ShapeData:
     radius : float
         Maximum distance from center (Å)
     """
+
     site: PeriodicSite
     coords: np.ndarray
     radius: float
@@ -75,6 +76,7 @@ class ShapeData:
     def plot(self, **kwargs):
         """See [gemdat.plots.shape][] for more info."""
         from gemdat import plots
+
         return plots.shape(shape=self, **kwargs)
 
 
@@ -88,8 +90,13 @@ class ShapeAnalyzer:
     for performing shape analysis.
     """
 
-    def __init__(self, *, sites: Collection[PeriodicSite], lattice: Lattice,
-                 spacegroup: SpaceGroup):
+    def __init__(
+        self,
+        *,
+        sites: Collection[PeriodicSite],
+        lattice: Lattice,
+        spacegroup: SpaceGroup,
+    ):
         """Set up shape analyzer from a collection of unique periodic sites,
         the lattice, and spacegroup.
 
@@ -107,7 +114,6 @@ class ShapeAnalyzer:
         self.spacegroup = spacegroup
 
     def __repr__(self):
-
         def to_str(x):
             return f'{x:>10.6f}'
 
@@ -118,11 +124,13 @@ class ShapeAnalyzer:
             symbol = self.spacegroup.symbol
 
         out = [
-            self.__class__.__name__, 'Spacegroup',
-            f'    {symbol} ({self.spacegroup.int_number})', 'Lattice',
+            self.__class__.__name__,
+            'Spacegroup',
+            f'    {symbol} ({self.spacegroup.int_number})',
+            'Lattice',
             f"    abc   : {' '.join(to_str(val) for val in self.lattice.abc)}",
             f"    angles: {' '.join(to_str(val) for val in self.lattice.angles)}",
-            f'Unique sites ({len(self.sites)})'
+            f'Unique sites ({len(self.sites)})',
         ]
         for site in self.sites:
             out.append(f'    {site!r}')
@@ -163,11 +171,9 @@ class ShapeAnalyzer:
         symmetrized_structure = sga.get_symmetrized_structure()
         return cls.from_symmetrized_structure(structure=symmetrized_structure)
 
-    def find_equivalent_positions(self,
-                                  *,
-                                  site: PeriodicSite,
-                                  positions: np.ndarray,
-                                  radius: float = 1.0) -> np.ndarray:
+    def find_equivalent_positions(
+        self, *, site: PeriodicSite, positions: np.ndarray, radius: float = 1.0
+    ) -> np.ndarray:
         """Cluster all symmetrically equivalent positions within sphere around
         `site`.
 
@@ -210,8 +216,7 @@ class ShapeAnalyzer:
 
             # digitize differences to move all close positions to
             # same sphere around coordr
-            offsets = np.digitize(close - sym_coords, bins=[0.5, -0.4999999
-                                                            ]) - 1
+            offsets = np.digitize(close - sym_coords, bins=[0.5, -0.4999999]) - 1
             close += offsets
 
             inversed = op.inverse.operate_multi(close)
@@ -224,12 +229,13 @@ class ShapeAnalyzer:
         cart_coords = self.lattice.get_cartesian_coords(centered)
         return cart_coords
 
-    def analyze_trajectory(self,
-                           trajectory: Trajectory,
-                           *,
-                           supercell: None
-                           | tuple[float, float, float] = None,
-                           radius: float = 1.0) -> list[ShapeData]:
+    def analyze_trajectory(
+        self,
+        trajectory: Trajectory,
+        *,
+        supercell: None | tuple[float, float, float] = None,
+        radius: float = 1.0,
+    ) -> list[ShapeData]:
         """Perform shape analysis on trajectory.
 
         Similar to [analyze_positions()][ShapeAnalyzer.analyze_positions]. Handles
@@ -269,10 +275,9 @@ class ShapeAnalyzer:
 
         return self.analyze_positions(positions=positions, radius=radius)
 
-    def analyze_positions(self,
-                          positions: np.ndarray,
-                          *,
-                          radius: float = 1.0) -> list[ShapeData]:
+    def analyze_positions(
+        self, positions: np.ndarray, *, radius: float = 1.0
+    ) -> list[ShapeData]:
         """Perform shape analysis on array of fractional coordinates.
 
         Parameters
@@ -296,9 +301,9 @@ class ShapeAnalyzer:
         shapes = []
 
         for site in self.sites:
-            eqv_coords = self.find_equivalent_positions(site=site,
-                                                        positions=positions,
-                                                        radius=radius)
+            eqv_coords = self.find_equivalent_positions(
+                site=site, positions=positions, radius=radius
+            )
 
             shape = ShapeData(
                 site=site,
@@ -310,9 +315,11 @@ class ShapeAnalyzer:
 
         return shapes
 
-    def shift_sites(self,
-                    vectors: Sequence[None | Sequence[float]],
-                    coords_are_cartesian: bool = True) -> ShapeAnalyzer:
+    def shift_sites(
+        self,
+        vectors: Sequence[None | Sequence[float]],
+        coords_are_cartesian: bool = True,
+    ) -> ShapeAnalyzer:
         """Shift `.unique_sites` by given vectors.
 
         Parameters
@@ -337,20 +344,22 @@ class ShapeAnalyzer:
 
             coords = site.coords if coords_are_cartesian else site.frac_coords
 
-            new_site = PeriodicSite(site.species,
-                                    coords + offset,
-                                    self.lattice,
-                                    coords_are_cartesian=coords_are_cartesian,
-                                    label=site.label)
+            new_site = PeriodicSite(
+                site.species,
+                coords + offset,
+                self.lattice,
+                coords_are_cartesian=coords_are_cartesian,
+                label=site.label,
+            )
             new_sites.append(new_site)
 
-        return ShapeAnalyzer(sites=new_sites,
-                             spacegroup=self.spacegroup,
-                             lattice=self.lattice)
+        return ShapeAnalyzer(
+            sites=new_sites, spacegroup=self.spacegroup, lattice=self.lattice
+        )
 
-    def optimize_sites(self,
-                       shapes: Sequence[ShapeData],
-                       func: None | Callable = None) -> ShapeAnalyzer:
+    def optimize_sites(
+        self, shapes: Sequence[ShapeData], func: None | Callable = None
+    ) -> ShapeAnalyzer:
         """Optimize unique sites from shape objects.
 
         Note: This function does not take into account special positions.

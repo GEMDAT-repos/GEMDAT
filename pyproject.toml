@@ -16,12 +16,12 @@ authors = [
 keywords = [
     "analysis",
     "molecular dynamics",
-    "plastic crystals",
+    "diffusion",
     "batteries",
 ]
 license = {text = "Apache 2.0 License"}
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
     "Natural Language :: English",
@@ -29,6 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
@@ -49,6 +50,7 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 
 [project.optional-dependencies]
 develop = [
+    "kaleido",
     "bump-my-version",
     "coverage[toml]",
     "mypy",
@@ -78,7 +80,6 @@ include-package-data = true
 branch = true
 source = ["gemdat"]
 
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
@@ -97,6 +98,10 @@ line-length = 110
 known-first-party=["gemdat"]
 known-third-party = ["pymatgen"]
 required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
 
 [tool.mypy]
 files = ["src", "tests"]

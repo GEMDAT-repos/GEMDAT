@@ -1,4 +1,5 @@
 """This module connects generally useful utilties."""
+
 from __future__ import annotations
 
 import warnings
@@ -11,16 +12,21 @@ from scipy import signal
 from scipy.spatial import cKDTree
 
 # shortcut to test data
-VASPRUN = Path(__file__).parents[
-    2] / 'tests' / 'data' / 'short_simulation' / 'vasprun.xml'
-VASPCACHE_ORIENTATIONS = Path(__file__).parents[
-    2] / 'tests' / 'data' / 'short_simulation' / 'vasprun_rotations.cache'
+VASPRUN = (
+    Path(__file__).parents[2] / 'tests' / 'data' / 'short_simulation' / 'vasprun.xml'
+)
+VASPCACHE_ORIENTATIONS = (
+    Path(__file__).parents[2]
+    / 'tests'
+    / 'data'
+    / 'short_simulation'
+    / 'vasprun_rotations.cache'
+)
 
 DATA = files('gemdat') / 'data'
 
 
-def nearest_structure_reference(
-        structure: Structure) -> tuple[cKDTree, list[int]]:
+def nearest_structure_reference(structure: Structure) -> tuple[cKDTree, list[int]]:
     """Find distance and index of the nearest site of the structure for each
     voxel using a KD-tree.
 
@@ -41,8 +47,7 @@ def nearest_structure_reference(
     periodic_ids: list[int] = []
     images = np.mgrid[-1:2, -1:2, -1:2].reshape(3, -1).T
     for dx, dy, dz in images:
-        periodic_structure.extend(structure.frac_coords +
-                                  np.array([dx, dy, dz]))
+        periodic_structure.extend(structure.frac_coords + np.array([dx, dy, dz]))
 
         # store the id of the site in the original structure
         periodic_ids.extend(range(len(structure.cart_coords)))
@@ -95,9 +100,9 @@ def bfill(arr: np.ndarray, fill_val: int = -1, axis=-1) -> np.ndarray:
     return np.fliplr(ffill(np.fliplr(arr), fill_val=fill_val))
 
 
-def integer_remap(a: np.ndarray,
-                  key: np.ndarray,
-                  palette: np.ndarray | None = None) -> np.ndarray:
+def integer_remap(
+    a: np.ndarray, key: np.ndarray, palette: np.ndarray | None = None
+) -> np.ndarray:
     """Map integers in array `a` from `palette` -> `key`
 
     Parameters
@@ -157,10 +162,12 @@ def meanfreq(x: np.ndarray, fs: float = 1.0) -> np.ndarray:
     return mnfreq
 
 
-def is_lattice_similar(a: Lattice | Structure,
-                       b: Lattice | Structure,
-                       length_tol: float = 0.5,
-                       angle_tol: float = 1.0) -> bool:
+def is_lattice_similar(
+    a: Lattice | Structure,
+    b: Lattice | Structure,
+    length_tol: float = 0.5,
+    angle_tol: float = 1.0,
+) -> bool:
     """Return True if lattices are similar within given tolerance.
 
     Parameters
@@ -197,12 +204,14 @@ def warn_lattice_not_close(a: Lattice, b: Lattice):
     """Raises a userwarning if lattices are not close."""
     if not is_lattice_similar(a, b):
         warnings.warn(
-            'Lattices are not similar.'
-            f'a: {a.parameters}, b: {b.parameters}', UserWarning)
+            'Lattices are not similar.' f'a: {a.parameters}, b: {b.parameters}',
+            UserWarning,
+        )
 
 
-def _cart2sph(x: np.ndarray, y: np.ndarray,
-              z: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _cart2sph(
+    x: np.ndarray, y: np.ndarray, z: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Transform cartesian coordinates to spherical coordinates.
 
     Parameters
@@ -229,9 +238,9 @@ def _cart2sph(x: np.ndarray, y: np.ndarray,
     return az, el, r
 
 
-def cartesian_to_spherical(cart_coords: np.ndarray,
-                           *,
-                           degrees: bool = True) -> np.ndarray:
+def cartesian_to_spherical(
+    cart_coords: np.ndarray, *, degrees: bool = True
+) -> np.ndarray:
     """Trajectory from cartesian coordinates to spherical coordinates.
 
     Parameters
@@ -302,8 +311,7 @@ def fft_autocorrelation(coords: np.ndarray) -> np.ndarray:
     return autocorrelation
 
 
-def calculate_spherical_areas(shape: tuple[int, int],
-                              radius: float = 1) -> np.ndarray:
+def calculate_spherical_areas(shape: tuple[int, int], radius: float = 1) -> np.ndarray:
     """Calculate the areas of a section of a sphere, defined in spherical
     coordinates. Useful for normalization purposes.
 
@@ -327,9 +335,12 @@ def calculate_spherical_areas(shape: tuple[int, int],
 
     for i in range(shape[1]):
         for j in range(shape[0]):
-
-            areas[j, i] = (radius**2) * azimuthal_increment * np.sin(
-                np.deg2rad(elevation_angles[j])) * elevation_increment
-            #hacky way to get rid of singularity on poles
+            areas[j, i] = (
+                (radius**2)
+                * azimuthal_increment
+                * np.sin(np.deg2rad(elevation_angles[j]))
+                * elevation_increment
+            )
+            # hacky way to get rid of singularity on poles
             areas[0, :] = areas[-1, 0]
     return areas

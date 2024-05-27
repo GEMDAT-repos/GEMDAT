@@ -23,7 +23,6 @@ nav:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md
     - gemdat.io: api/gemdat_io.md
-    - gemdat.legacy: api/gemdat_legacy.md
     - gemdat.plots: api/gemdat_plots.md
     - gemdat.rdf: api/gemdat_rdf.md
     - gemdat.simulation_metrics: api/gemdat_simulation_metrics.md

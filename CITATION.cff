@@ -24,14 +24,17 @@ authors:
     family-names: Ciarella
     affiliation: Netherlands eScience Center
     orcid: 'https://orcid.org/0000-0002-9247-139X'
+  - given-names: Theodosios
+    family-names: Famprikis
+    affiliation: Delft University of Technology
+    orcid: 'https://orcid.org/0000-0002-7946-1445'
 repository-code: 'https://github.com/GEMDAT-repos/GEMDAT'
 url: 'https://gemdat.readthedocs.io'
 abstract: >-
-  Python toolkit for molecular dynamics analysis  of plastic
-  crystals
+  Python toolkit for molecular dynamics analysis diffusion in crystals
 keywords:
   - analysis
-  - plastic crystals
+  - diffusion
   - molecular dynamics
   - batteries
 identifiers:
