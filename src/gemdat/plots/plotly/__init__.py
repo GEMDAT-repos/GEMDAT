@@ -14,7 +14,6 @@ from ._jumps_3d import jumps_3d
 from ._jumps_vs_distance import jumps_vs_distance
 from ._jumps_vs_time import jumps_vs_time
 from ._msd_per_element import msd_per_element
-from ._path_on_grid import path_on_grid
 from ._plot3d import plot_3d
 from ._radial_distribution import radial_distribution
 from ._rectilinear import rectilinear
@@ -36,7 +35,6 @@ __all__ = [
     'jumps_vs_distance',
     'jumps_vs_time',
     'msd_per_element',
-    'path_on_grid',
     'plot_3d',
     'radial_distribution',
     'rectilinear',

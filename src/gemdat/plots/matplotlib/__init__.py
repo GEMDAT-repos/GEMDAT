@@ -14,7 +14,6 @@ from ._jumps_vs_distance import jumps_vs_distance
 from ._jumps_vs_time import jumps_vs_time
 
 from ._energy_along_path import energy_along_path
-from ._path_on_grid import path_on_grid
 from ._radial_distribution import radial_distribution
 
 from ._autocorrelation import autocorrelation
@@ -40,7 +39,6 @@ __all__ = [
     'jumps_vs_distance',
     'jumps_vs_time',
     'msd_per_element',
-    'path_on_grid',
     'radial_distribution',
     'rectilinear',
     'shape',
