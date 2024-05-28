@@ -147,15 +147,11 @@ class Transitions:
 
         return obj
 
-    def jumps(self, minimal_residence: int = 0, **kwargs) -> Jumps:
+    def jumps(self, **kwargs) -> Jumps:
         """Analyze transitions and classify them as jumps.
 
         Parameters
         ----------
-        minimal_residence : int
-            minimal residence, number of timesteps that an atom needs to reside
-            on a destination site to count as a jump, passed through to conversion
-            method
         **kwargs : dict
             These parameters are passed to the [gemdat.Jumps][] initializer.
 
@@ -163,7 +159,6 @@ class Transitions:
         -------
         jumps : Jumps
         """
-
         from gemdat.jumps import Jumps
 
         return Jumps(self, **kwargs)
