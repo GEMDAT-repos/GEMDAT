@@ -93,6 +93,16 @@ class RDFData:
         """See [gemdat.plots.radial_distribution][] for more info."""
         from gemdat import plots
 
+        return plots.radial_distribution(rdfs=[self], **kwargs)
+
+
+class RDFCollection(list[RDFData]):
+    """Collection to store group of radial distribution data."""
+
+    def plot(self, **kwargs):
+        """See [gemdat.plots.radial_distribution][] for more info."""
+        from gemdat import plots
+
         return plots.radial_distribution(rdfs=self, **kwargs)
 
 
@@ -102,7 +112,7 @@ def radial_distribution(
     floating_specie: str,
     max_dist: float = 5.0,
     resolution: float = 0.1,
-) -> dict[str, list[RDFData]]:
+) -> dict[str, RDFCollection]:
     """Calculate and sum RDFs for the floating species in the given sites data.
 
     Parameters
@@ -118,7 +128,7 @@ def radial_distribution(
 
     Returns
     -------
-    rdfs : dict[str, np.ndarray]
+    rdfs : dict[str, RDFCollection]
         Dictionary with rdf arrays per symbol
     """
     # note: needs trajectory with ALL species
@@ -163,7 +173,7 @@ def radial_distribution(
                 rdf_state = rdf[k_idx, symbol_idx].flatten()
                 rdfs[state_str, symbol] += np.bincount(rdf_state, minlength=length)
 
-    ret: dict[str, list[RDFData]] = {}
+    ret: dict[str, RDFCollection] = {}
 
     for (state, symbol), values in rdfs.items():
         rdf_data = RDFData(
@@ -173,7 +183,7 @@ def radial_distribution(
             symbol=symbol,
             state=state,
         )
-        ret.setdefault(state, [])
+        ret.setdefault(state, RDFCollection())
         ret[state].append(rdf_data)
 
     return ret

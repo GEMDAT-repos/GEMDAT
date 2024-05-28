@@ -19,6 +19,7 @@ from .utils import bfill, ffill, integer_remap
 if typing.TYPE_CHECKING:
     from gemdat.jumps import Jumps
     from gemdat.trajectory import Trajectory
+    from gemdat.rdf import RDFCollection
 
 NOSITE = -1
 
@@ -147,15 +148,11 @@ class Transitions:
 
         return obj
 
-    def jumps(self, minimal_residence: int = 0, **kwargs) -> Jumps:
+    def jumps(self, **kwargs) -> Jumps:
         """Analyze transitions and classify them as jumps.
 
         Parameters
         ----------
-        minimal_residence : int
-            minimal residence, number of timesteps that an atom needs to reside
-            on a destination site to count as a jump, passed through to conversion
-            method
         **kwargs : dict
             These parameters are passed to the [gemdat.Jumps][] initializer.
 
@@ -163,10 +160,28 @@ class Transitions:
         -------
         jumps : Jumps
         """
-
         from gemdat.jumps import Jumps
 
         return Jumps(self, **kwargs)
+
+    def radial_distribution(self, **kwargs) -> dict[str, RDFCollection]:
+        """Calculate and sum RDFs for the floating species in the given sites
+        data.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            These parameters are passed to the [gemdat.radial_distribution][] function.
+
+
+        Returns
+        -------
+        rdfs : dict[str, RDFCollection]
+            Dictionary with rdf arrays per symbol
+        """
+        from gemdat.rdf import radial_distribution
+
+        return radial_distribution(transitions=self, **kwargs)
 
     @property
     def n_floating(self) -> int:

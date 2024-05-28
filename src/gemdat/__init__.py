@@ -3,6 +3,7 @@ from __future__ import annotations
 from .io import load_known_material, read_cif
 from .jumps import Jumps
 from .orientations import Orientations
+from .rdf import radial_distribution
 from .shape import ShapeAnalyzer
 from .simulation_metrics import SimulationMetrics
 from .trajectory import Trajectory
@@ -14,6 +15,7 @@ __all__ = [
     'Jumps',
     'load_known_material',
     'Orientations',
+    'radial_distribution',
     'read_cif',
     'ShapeAnalyzer',
     'SimulationMetrics',
