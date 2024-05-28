@@ -19,6 +19,7 @@ from .utils import bfill, ffill, integer_remap
 if typing.TYPE_CHECKING:
     from gemdat.jumps import Jumps
     from gemdat.trajectory import Trajectory
+    from gemdat.rdf import RDFCollection
 
 NOSITE = -1
 
@@ -162,6 +163,25 @@ class Transitions:
         from gemdat.jumps import Jumps
 
         return Jumps(self, **kwargs)
+
+    def radial_distribution(self, **kwargs) -> dict[str, RDFCollection]:
+        """Calculate and sum RDFs for the floating species in the given sites
+        data.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            These parameters are passed to the [gemdat.radial_distribution][] function.
+
+
+        Returns
+        -------
+        rdfs : dict[str, RDFCollection]
+            Dictionary with rdf arrays per symbol
+        """
+        from gemdat.rdf import radial_distribution
+
+        return radial_distribution(transitions=self, **kwargs)
 
     @property
     def n_floating(self) -> int:
