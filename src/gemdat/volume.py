@@ -14,6 +14,7 @@ from pymatgen.io.vasp import VolumetricData
 from scipy.constants import physical_constants
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
+from gemdat.utils import calculate_spherical_areas
 
 from .segmentation import watershed_pbc
 
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
 
     from gemdat.path import Pathway
     from gemdat.trajectory import Trajectory
+    from gemdat.orientations import Orientations
 
 
 @dataclass
@@ -448,6 +450,51 @@ class FreeEnergyVolume(Volume):
         return optimal_percolating_path(self, **kwargs)
 
 
+class OrientationalVolume(Volume):
+    """Container for orientational volume data, that are in spherical
+    coordinates."""
+
+    shape: tuple[int, int]
+    radii: np.ndarray
+
+    def __init__(self, shape, radii, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape = shape
+        self.radii = radii
+
+    def orientational_peaks(
+        self,
+        **kwargs,
+    ) -> list:
+        """Find peaks using the [Difference of
+        Gaussian][skimage.feature.blob_dog] function in [scikit-
+        image][skimage].
+
+        Parameters
+        ----------
+        **kwargs
+            Additional keyword arguments are passed to [skimage.feature.blob_dog][]
+
+        Returns
+        -------
+        peaks : list
+            List of coordinates of the peaks
+        """
+        kwargs.setdefault('threshold', 0.1)
+
+        theta, phi, values = self.data.T
+
+        x = theta
+        y = phi
+        z = values / values.max()
+
+        blobs = blob_dog(z, **kwargs)
+
+        peaks = [(y[int(i), int(j)], x[int(i), int(j)]) for i, j, sigma in blobs]
+
+        return peaks
+
+
 def trajectory_to_volume(
     trajectory: Trajectory,
     resolution: float = 0.2,
@@ -508,5 +555,62 @@ def trajectory_to_volume(
         data=data,
         lattice=lattice,
         label='trajectory',
+        units=None,
+    )
+
+
+def orientations_to_volume(
+    orientations: Orientations,
+    shape: tuple[int, int],
+    normalize_area: bool,
+) -> OrientationalVolume:
+    """Calculate density volume from orientation.
+
+    The orientations are converted in spherical coordinates,
+    and the azimutal and elevation angles are binned into a 2d histogram.
+
+    Parameters
+    ----------
+    orientations : Orientations
+        Input orientations
+    shape : tuple
+        The shape of the spherical sector in which the trajectory is
+    normalize_area : bool
+        If True, normalize the histogram by the area of the bins
+
+    Returns
+    -------
+    vol : OrientationalVolume
+        Output volume
+    """
+    az, el, r = orientations.vectors_spherical.T
+    az = az.flatten()
+    el = el.flatten()
+
+    hist, _, _ = np.histogram2d(el, az, shape)
+
+    if normalize_area:
+        # Normalize by the area of the bins
+        areas = calculate_spherical_areas(shape)
+        hist = np.divide(hist, areas)
+        # Drop the bins at the poles where normalization is not possible
+        hist = hist[1:-1, :]
+
+    values = hist.T
+    axis_phi, axis_theta = values.shape
+
+    phi = np.linspace(0, 360, axis_phi)
+    theta = np.linspace(0, 180, axis_theta)
+
+    theta, phi = np.meshgrid(theta, phi)
+
+    data = np.stack([theta, phi, values], axis=-1)
+
+    return OrientationalVolume(
+        data=data,
+        shape=shape,
+        radii=r,
+        lattice=orientations.trajectory.get_lattice(),
+        label='orientations',
         units=None,
     )

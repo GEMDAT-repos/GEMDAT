@@ -6,6 +6,7 @@ import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
+from gemdat.volume import OrientationalVolume
 from gemdat.utils import fft_autocorrelation, cartesian_to_spherical
 
 
@@ -280,37 +281,28 @@ class Orientations:
 
         return plots.autocorrelation(orientations=self, **kwargs)
 
+    def to_volume(
+        self,
+        shape: tuple[int, int] = (90, 360),
+        normalize_area: bool = False,
+    ) -> OrientationalVolume:
+        """Calculate density volume from orientation.
 
-def calculate_spherical_areas(shape: tuple[int, int], radius: float = 1) -> np.ndarray:
-    """Calculate the areas of a section of a sphere, defined in spherical
-    coordinates. Useful for normalization purposes.
+        The orientations are converted in spherical coordinates,
+        and the azimutal and elevation angles are binned into a 2d histogram.
 
-    Parameters
-    ----------
-    shape : tuple
-        Shape of the grid in integer degrees
-    radius : float
-        Radius of the sphere
+        Parameters
+        ----------
+        shape : tuple
+            The shape of the spherical sector in which the trajectory is
+        normalize_area : bool
+            If True, normalize the histogram by the area of the bins
 
-    Returns
-    -------
-    areas : np.ndarray
-        Areas of the section
-    """
-    elevation_angles = np.linspace(0, 180, shape[0])
+        Returns
+        -------
+        vol : OrientationalVolume
+            Output volume
+        """
+        from gemdat.volume import orientations_to_volume
 
-    areas = np.zeros(shape, dtype=float)
-    azimuthal_increment = np.deg2rad(1)
-    elevation_increment = np.deg2rad(1)
-
-    for i in range(shape[1]):
-        for j in range(shape[0]):
-            areas[j, i] = (
-                (radius**2)
-                * azimuthal_increment
-                * np.sin(np.deg2rad(elevation_angles[j]))
-                * elevation_increment
-            )
-            # hacky way to get rid of singularity on poles
-            areas[0, :] = areas[-1, 0]
-    return areas
+        return orientations_to_volume(self, shape=shape, normalize_area=normalize_area)

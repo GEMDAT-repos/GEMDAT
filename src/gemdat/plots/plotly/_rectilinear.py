@@ -4,10 +4,8 @@ import plotly.graph_objects as go
 
 import numpy as np
 
-from gemdat.orientations import (
-    Orientations,
-    calculate_spherical_areas,
-)
+from gemdat.orientations import Orientations
+from gemdat.utils import calculate_spherical_areas
 
 
 def rectilinear(

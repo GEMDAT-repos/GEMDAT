@@ -92,7 +92,7 @@ def test_energy_along_path(vasp_path):
     plots.energy_along_path(path=vasp_path, structure=structure)
 
 
-@image_comparison2(baseline_images=['rectilinear'])
+@image_comparison2(baseline_images=['rectilinear', 'rectilinear_wpeaks'])
 def test_rectilinear(vasp_orientations):
     matrix = np.array(
         [
@@ -104,6 +104,7 @@ def test_rectilinear(vasp_orientations):
 
     orientations = vasp_orientations.normalize().transform(matrix=matrix)
     plots.rectilinear(orientations=orientations, normalize_histo=False)
+    plots.rectilinear(orientations=orientations, normalize_histo=False, add_peaks=True)
 
 
 @image_comparison2(baseline_images=['bond_length_distribution'])

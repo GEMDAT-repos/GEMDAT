@@ -6,11 +6,8 @@ import numpy as np
 from numpy.testing import assert_allclose
 from pymatgen.core import Species
 
-from gemdat.orientations import (
-    Orientations,
-    calculate_spherical_areas,
-)
-from gemdat.utils import fft_autocorrelation
+from gemdat.orientations import Orientations
+from gemdat.utils import fft_autocorrelation, calculate_spherical_areas
 
 
 def test_orientations_init(trajectory):

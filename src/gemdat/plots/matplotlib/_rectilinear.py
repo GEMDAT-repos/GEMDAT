@@ -3,10 +3,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gemdat.orientations import (
-    Orientations,
-    calculate_spherical_areas,
-)
+from gemdat.orientations import Orientations
 
 
 def rectilinear(
@@ -14,6 +11,8 @@ def rectilinear(
     orientations: Orientations,
     shape: tuple[int, int] = (90, 360),
     normalize_histo: bool = True,
+    add_peaks: bool = False,
+    **kwargs,
 ) -> plt.Figure:
     """Plot a rectilinear projection of a spherical function. This function
     uses the transformed trajectory.
@@ -26,34 +25,21 @@ def rectilinear(
         The shape of the spherical sector in which the trajectory is plotted
     normalize_histo : bool, optional
         If True, normalize the histogram by the area of the bins, by default True
+    add_peaks : bool, optional
+        If True, plot the peaks of the histogram
+    **kwargs : dict
+        Additional keyword arguments for the `orientational_peaks` method
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         Output figure
     """
-    az, el, _ = orientations.vectors_spherical.T
-    az = az.flatten()
-    el = el.flatten()
-
-    hist, *_ = np.histogram2d(el, az, shape)
-
-    if normalize_histo:
-        areas = calculate_spherical_areas(shape)
-        hist = hist / areas
-        # Drop the bins at the poles where normalization is not possible
-        hist = hist[1:-1, :]
-
-    axis_theta, axis_phi = hist.shape
-
-    phi = np.linspace(0, 360, axis_phi)
-    theta = np.linspace(0, 180, axis_theta)
-
-    x, y = np.meshgrid(phi, theta)
+    ov = orientations.to_volume(shape=shape, normalize_area=normalize_histo)
+    theta, phi, values = ov.data.T
 
     fig, ax = plt.subplots()
-
-    cs = ax.contourf(x, y, hist)
+    cs = ax.contourf(phi, theta, values)
 
     ax.set_xticks(np.linspace(0, 360, 9))
     ax.set_yticks(np.linspace(0, 180, 5))
@@ -62,5 +48,10 @@ def rectilinear(
     ax.set_ylabel('Elevation θ (°)')
 
     fig.colorbar(cs, label='Areal probability', format='')
+
+    if add_peaks:
+        peaks = ov.orientational_peaks(**kwargs)
+        xp, yp = zip(*peaks)
+        ax.plot(xp, yp, 'ro', markersize=5)
 
     return fig
