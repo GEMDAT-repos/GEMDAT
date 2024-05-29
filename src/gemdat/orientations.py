@@ -6,7 +6,7 @@ import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
 from gemdat.trajectory import Trajectory
-from gemdat.utils import fft_autocorrelation, cartesian_to_spherical
+from gemdat.utils import cartesian_to_spherical, fft_autocorrelation
 
 
 @dataclass

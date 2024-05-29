@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from helpers import assert_figures_similar
 import numpy as np
+import pytest
+from helpers import assert_figures_similar
 
 from gemdat.io import load_known_material
 from gemdat.plots import plotly as plots
-import pytest
 
 
 def test_displacement_per_element(vasp_traj):

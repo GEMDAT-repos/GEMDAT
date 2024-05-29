@@ -6,8 +6,8 @@ import pytest
 
 from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
-from gemdat.rdf import radial_distribution
 from gemdat.orientations import Orientations
+from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
 from gemdat.trajectory import Trajectory
 from gemdat.volume import trajectory_to_volume

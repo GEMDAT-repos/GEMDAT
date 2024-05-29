@@ -84,7 +84,7 @@ source = ["gemdat"]
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 110
+line-length = 88
 
 [tool.ruff.lint]
 # Enable Pyflakes `E` and `F` codes by default.

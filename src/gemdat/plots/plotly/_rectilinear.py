@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import plotly.graph_objects as go
-
 import numpy as np
+import plotly.graph_objects as go
 
 from gemdat.orientations import (
     Orientations,

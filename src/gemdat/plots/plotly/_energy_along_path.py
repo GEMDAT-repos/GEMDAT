@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from itertools import pairwise
+
+import numpy as np
 import plotly.graph_objects as go
 from pymatgen.core import Structure
-import numpy as np
-from gemdat.path import Pathway
 
-from itertools import pairwise
+from gemdat.path import Pathway
 
 
 def energy_along_path(

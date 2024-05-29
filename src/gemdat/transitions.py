@@ -18,8 +18,8 @@ from .utils import bfill, ffill, integer_remap
 
 if typing.TYPE_CHECKING:
     from gemdat.jumps import Jumps
-    from gemdat.trajectory import Trajectory
     from gemdat.rdf import RDFCollection
+    from gemdat.trajectory import Trajectory
 
 NOSITE = -1
 

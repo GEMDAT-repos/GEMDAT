@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 
 from gemdat.orientations import Orientations
 
-from .._shared import _orientations_to_histogram, _fit_skewnorm_to_hist
+from .._shared import _fit_skewnorm_to_hist, _orientations_to_histogram
 
 
 def bond_length_distribution(
