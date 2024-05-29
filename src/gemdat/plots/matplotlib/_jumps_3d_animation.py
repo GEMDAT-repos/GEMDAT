@@ -79,9 +79,7 @@ def jumps_3d_animation(
     plotter.plot_labels(xyz_labels, lattice=lattice, ax=ax, color='green', size=12)
 
     assert len(ax.collections) == 0
-    plotter.plot_points(
-        coords, lattice=lattice, ax=ax, s=50, color='white', edgecolor='black'
-    )
+    plotter.plot_points(coords, lattice=lattice, ax=ax, s=50, color='white', edgecolor='black')
     points = ax.collections
 
     events = jumps.data.sort_values('start time', ignore_index=True)

@@ -369,9 +369,7 @@ class Volume:
         """
         prob = self.probability()
         free_energy = (
-            -temperature
-            * physical_constants['Boltzmann constant in eV/K'][0]
-            * np.log(prob)
+            -temperature * physical_constants['Boltzmann constant in eV/K'][0] * np.log(prob)
         )
 
         return FreeEnergyVolume(
@@ -422,9 +420,7 @@ class FreeEnergyVolume(Volume):
         path.dims = self.dims
         return path
 
-    def optimal_n_paths(
-        self, F_graph: nx.Graph | None = None, **kwargs
-    ) -> list[Pathway]:
+    def optimal_n_paths(self, F_graph: nx.Graph | None = None, **kwargs) -> list[Pathway]:
         """Calculate the n_paths shortest paths between two sites on the graph.
 
         See [gemdat.path.optimal_n_paths][] for more info.

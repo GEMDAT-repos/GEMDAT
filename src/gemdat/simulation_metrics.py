@@ -91,9 +91,7 @@ class SimulationMetrics:
         distances = self.trajectory.distances_from_base_position()
         msd = np.mean(distances[:, -1] ** 2)  # Angstrom^2
 
-        tracer_diff = (msd * angstrom**2) / (
-            2 * dimensions * self.trajectory.total_time
-        )
+        tracer_diff = (msd * angstrom**2) / (2 * dimensions * self.trajectory.total_time)
 
         return FloatWithUnit(tracer_diff, 'm^2 s^-1')
 

@@ -55,23 +55,17 @@ class TestTransitions:  # type: ignore
         states = vasp_transitions.states
         assert states.shape == (n_steps, n_diffusing)
         assert states.sum() == 6154859
-        assert_allclose(
-            states[slice_], np.array([[94, -1], [94, -1], [0, 65], [0, 65]])
-        )
+        assert_allclose(states[slice_], np.array([[94, -1], [94, -1], [0, 65], [0, 65]]))
 
         states_next = vasp_transitions.states_next()
         assert states_next.shape == (n_steps, n_diffusing)
         assert states_next.sum() == 8172006
-        assert_allclose(
-            states_next[slice_], np.array([[94, 1], [94, 65], [0, 65], [0, 65]])
-        )
+        assert_allclose(states_next[slice_], np.array([[94, 1], [94, 65], [0, 65], [0, 65]]))
 
         states_prev = vasp_transitions.states_prev()
         assert states_prev.shape == (n_steps, n_diffusing)
         assert states_prev.sum() == 8148552
-        assert_allclose(
-            states_prev[slice_], np.array([[94, -1], [94, 65], [0, 65], [0, 65]])
-        )
+        assert_allclose(states_prev[slice_], np.array([[94, -1], [94, 65], [0, 65], [0, 65]]))
 
     def test_n_floating(self, vasp_transitions):
         # https://github.com/GEMDAT-repos/GEMDAT/issues/252

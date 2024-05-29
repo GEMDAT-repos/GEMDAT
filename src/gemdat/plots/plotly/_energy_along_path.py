@@ -92,8 +92,6 @@ def energy_along_path(
                 )
             )
 
-    fig.update_layout(
-        title='Pathway', xaxis_title='Steps', yaxis_title='Free energy (eV)'
-    )
+    fig.update_layout(title='Pathway', xaxis_title='Steps', yaxis_title='Free energy (eV)')
 
     return fig

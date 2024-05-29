@@ -201,9 +201,7 @@ class Jumps:
         transitions_matrix : np.ndarray
             Square matrix with number of each transitions
         """
-        return _calculate_transitions_matrix(
-            self.data, n_sites=self.transitions.n_sites
-        )
+        return _calculate_transitions_matrix(self.data, n_sites=self.transitions.n_sites)
 
     @weak_lru_cache()
     def collective(self, max_dist: float = 1) -> Collective:
@@ -271,9 +269,7 @@ class Jumps:
 
             part_time = trajectory.total_time / n_parts
 
-            atom_percentage = np.array(
-                [part[site_start] for part in atom_locations_parts]
-            )
+            atom_percentage = np.array([part[site_start] for part in atom_locations_parts])
 
             denom = atom_percentage * n_floating * part_time
 
@@ -285,9 +281,7 @@ class Jumps:
                 eff_rate /= 2
 
             e_act_arr = (
-                -np.log(eff_rate / attempt_freq)
-                * (Boltzmann * temperature)
-                / elementary_charge
+                -np.log(eff_rate / attempt_freq) * (Boltzmann * temperature) / elementary_charge
             )
 
             dct[site_start, site_stop] = np.mean(e_act_arr), np.std(e_act_arr, ddof=1)
@@ -309,9 +303,7 @@ class Jumps:
         jumps = Counter(
             [
                 (labels[i], labels[j])
-                for _, (i, j) in self.data[
-                    ['start site', 'destination site']
-                ].iterrows()
+                for _, (i, j) in self.data[['start site', 'destination site']].iterrows()
             ]
         )
         return jumps

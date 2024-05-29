@@ -299,9 +299,7 @@ class Trajectory(PymatgenTrajectory):
 
         positions_no_pbc = self.base_positions + self.cumulative_displacements
 
-        center_of_mass = np.average(positions_no_pbc, axis=1, weights=weights).reshape(
-            -1, 1, 3
-        )
+        center_of_mass = np.average(positions_no_pbc, axis=1, weights=weights).reshape(-1, 1, 3)
 
         return self.__class__(
             species=['X'],
@@ -341,9 +339,7 @@ class Trajectory(PymatgenTrajectory):
         if fixed_species:
             displacements = self.filter(species=fixed_species).displacements
         elif floating_species:
-            species = {
-                sp.symbol for sp in self.species if sp.symbol not in floating_species
-            }
+            species = {sp.symbol for sp in self.species if sp.symbol not in floating_species}
             displacements = self.filter(species=species).displacements
         else:
             displacements = self.displacements
@@ -377,9 +373,7 @@ class Trajectory(PymatgenTrajectory):
         trajectory : Trajectory
             Ouput trajectory with positions corrected for drift
         """
-        drift = self.drift(
-            fixed_species=fixed_species, floating_species=floating_species
-        )
+        drift = self.drift(fixed_species=fixed_species, floating_species=floating_species)
 
         return self.__class__(
             species=self.species,
@@ -465,9 +459,7 @@ class Trajectory(PymatgenTrajectory):
 
         # Autocorrelation term using FFT [https://doi.org/10.1051/sfn/201112010]:
         # - perform FFT, square it, and then perform inverse FFT
-        fft_result = np.fft.ifft(
-            np.abs(np.fft.fft(pos, n=2 * n_times, axis=-2)) ** 2, axis=-2
-        )
+        fft_result = np.fft.ifft(np.abs(np.fft.fft(pos, n=2 * n_times, axis=-2)) ** 2, axis=-2)
         # - keep only the first n_times elements
         fft_result = fft_result[:, :n_times, :].real
         # - sum over the coordinates and divide by the corresponding time window

@@ -107,9 +107,7 @@ class Transitions:
         diff_trajectory = trajectory.filter(floating_specie)
 
         if site_radius is None:
-            vibration_amplitude = SimulationMetrics(
-                diff_trajectory
-            ).vibration_amplitude()
+            vibration_amplitude = SimulationMetrics(diff_trajectory).vibration_amplitude()
 
             site_radius = _compute_site_radius(
                 trajectory=trajectory,
@@ -133,9 +131,7 @@ class Transitions:
             site_inner_fraction=site_inner_fraction,
         )
 
-        events = _calculate_transition_events(
-            atom_sites=states, atom_inner_sites=inner_states
-        )
+        events = _calculate_transition_events(atom_sites=states, atom_inner_sites=inner_states)
 
         obj = cls(
             sites=sites,
@@ -255,9 +251,7 @@ class Transitions:
         counts = counts / len(states)
         occupancies = dict(zip(unq, counts))
 
-        species = [
-            {site.specie.name: occupancies.get(i, 0)} for i, site in enumerate(sites)
-        ]
+        species = [{site.specie.name: occupancies.get(i, 0)} for i, site in enumerate(sites)]
 
         return Structure(
             lattice=sites.lattice,
@@ -491,9 +485,7 @@ def _calculate_atom_states(
     def _site_radius_iterator():
         for label, radius in site_radius.items():
             if label:
-                grouped = (
-                    (k, site) for k, site in enumerate(sites) if site.label == label
-                )
+                grouped = ((k, site) for k, site in enumerate(sites) if site.label == label)
                 key, site_group = zip(*grouped)
                 frac_coords = np.array([site.frac_coords for site in site_group])
                 yield frac_coords, np.array(key), radius
@@ -518,9 +510,7 @@ def _calculate_atom_states(
 
     for coords, key, radius in _site_radius_iterator():
         cart_coords = lattice.get_cartesian_coords(coords)
-        site_index = periodic_tree.search_tree(
-            cart_coords, radius * site_inner_fraction
-        )
+        site_index = periodic_tree.search_tree(cart_coords, radius * site_inner_fraction)
 
         siteno, index = site_index.T
 

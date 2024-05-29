@@ -64,9 +64,7 @@ def structure():
 
 @pytest.fixture(scope='module')
 def vasp_transitions(vasp_traj, structure):
-    transitions = vasp_traj.transitions_between_sites(
-        sites=structure, floating_specie='Li'
-    )
+    transitions = vasp_traj.transitions_between_sites(sites=structure, floating_specie='Li')
     return transitions
 
 

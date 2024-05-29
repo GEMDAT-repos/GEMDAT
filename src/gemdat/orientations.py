@@ -83,9 +83,7 @@ class Orientations:
         )
         return distance
 
-    def _matching_matrix(
-        self, distance: np.ndarray, frac_coord_cent: np.ndarray
-    ) -> np.ndarray:
+    def _matching_matrix(self, distance: np.ndarray, frac_coord_cent: np.ndarray) -> np.ndarray:
         """Determine which satellite atoms are close enough to central atom to
         be connected.
 
@@ -209,9 +207,7 @@ class Orientations:
                 [element.rotation_matrix for element in g.symmetry_ops]
             ).transpose(1, 2, 0)
         else:
-            raise ValueError(
-                'At least one of `sym_group` or `sym_ops` must be provided'
-            )
+            raise ValueError('At least one of `sym_group` or `sym_ops` must be provided')
 
         n_ts = self.vectors.shape[0]
         n_bonds = self.vectors.shape[1]

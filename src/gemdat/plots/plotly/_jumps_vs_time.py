@@ -34,9 +34,7 @@ def jumps_vs_time(*, jumps: Jumps, bins: int = 8, n_parts: int = 1) -> go.Figure
 
     for jumps_part in jumps.split(n_parts=n_parts):
         data.append(
-            np.histogram(jumps_part.data['start time'], bins=bins, range=(0.0, maxlen))[
-                0
-            ]
+            np.histogram(jumps_part.data['start time'], bins=bins, range=(0.0, maxlen))[0]
         )
 
     df = pd.DataFrame(data=data)
