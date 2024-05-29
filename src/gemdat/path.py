@@ -120,9 +120,7 @@ class Pathway:
         """
         frac_sites = np.array(self.frac_sites())
 
-        nearest_structure_tree, nearest_structure_map = nearest_structure_reference(
-            structure
-        )
+        nearest_structure_tree, nearest_structure_map = nearest_structure_reference(structure)
 
         # Get the indices of the nearest structure sites to the path sites
         nearest_structure_indices = [
@@ -130,8 +128,7 @@ class Pathway:
         ]
         # and use it to get its label and coordinates
         nearest_sites = [
-            structure[nearest_structure_map[index]]
-            for index in nearest_structure_indices
+            structure[nearest_structure_map[index]] for index in nearest_structure_indices
         ]
         return nearest_sites
 
@@ -181,9 +178,7 @@ def free_energy_graph(
     """
 
     # Define possible movements in 3D space
-    movements = np.array(
-        [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
-    )
+    movements = np.array([(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)])
     if diagonal:
         diagonal_movements = np.array(
             [
@@ -299,8 +294,9 @@ def optimal_n_paths(
     min_diff: float = 0.15,
 ) -> list[Pathway]:
     """Calculate the n_paths shortest paths between two sites on the graph.
-    This procedure is based the algorithm by Jin Y. Yen (https://doi.org/10.1287/mnsc.17.11.712)
-    and its implementation in NetworkX. Only paths that are different by at least min_diff are considered.
+    This procedure is based the algorithm by Jin Y. Yen
+    (https://doi.org/10.1287/mnsc.17.11.712) and its implementation in NetworkX.
+    Only paths that are different by at least min_diff are considered.
 
     Parameters
     ----------
@@ -336,9 +332,7 @@ def optimal_n_paths(
     list_of_paths = [best_path]
 
     # Compute the iterator over all the short paths
-    all_paths = nx.shortest_simple_paths(
-        F_graph, source=start, target=stop, weight='weight'
-    )
+    all_paths = nx.shortest_simple_paths(F_graph, source=start, target=stop, weight='weight')
 
     # Attempt to find the Np shortest paths
     for idx, path in enumerate(all_paths):

@@ -1,7 +1,9 @@
 from __future__ import annotations
-import plotly.graph_objects as go
-from gemdat.orientations import Orientations
+
 import numpy as np
+import plotly.graph_objects as go
+
+from gemdat.orientations import Orientations
 
 
 def autocorrelation(

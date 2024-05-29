@@ -16,9 +16,7 @@ def test_transitions_matrix():
             [2, 2, 0, 30],
         ]
     )
-    a = pd.DataFrame(
-        data=a, columns=['atom index', 'start site', 'destination site', 'time']
-    )
+    a = pd.DataFrame(data=a, columns=['atom index', 'start site', 'destination site', 'time'])
 
     n = 3
     transitions = _calculate_transitions_matrix(a, n_sites=n)

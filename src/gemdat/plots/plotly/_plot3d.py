@@ -65,9 +65,7 @@ def plot_lattice_vectors(lattice: Lattice, *, fig: go.Figure):
         )
 
 
-def plot_points(
-    points: np.ndarray, labels: Sequence, *, fig: go.Figure, point_size: int = 5
-):
+def plot_points(points: np.ndarray, labels: Sequence, *, fig: go.Figure, point_size: int = 5):
     """Plot points using plotly.
 
     Parameters
@@ -105,9 +103,7 @@ def plot_points(
         )
 
 
-def plot_structure(
-    structure: Structure, *, lattice: Lattice | None = None, fig: go.Figure
-):
+def plot_structure(structure: Structure, *, lattice: Lattice | None = None, fig: go.Figure):
     """Plot structure using plotly.
 
     Parameters

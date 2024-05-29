@@ -33,9 +33,7 @@ class TestJumps:  # type: ignore
         )
 
     def test_minimal_residency(self, vasp_traj, structure):
-        transitions = vasp_traj.transitions_between_sites(
-            sites=structure, floating_specie='Li'
-        )
+        transitions = vasp_traj.transitions_between_sites(sites=structure, floating_specie='Li')
         jumps = Jumps(transitions=transitions, minimal_residence=3)
 
         assert len(jumps.data) == 462

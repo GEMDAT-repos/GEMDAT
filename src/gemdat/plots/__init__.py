@@ -6,7 +6,6 @@ from .matplotlib import (
     jumps_3d_animation,
     shape,
 )
-
 from .plotly import (
     autocorrelation,
     bond_length_distribution,

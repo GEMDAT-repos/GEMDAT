@@ -30,9 +30,7 @@ def vibrational_amplitudes(
 
     trajectories = trajectory.split(n_parts)
     single_metrics = SimulationMetrics(trajectory)
-    metrics = [
-        SimulationMetrics(trajectory).amplitudes() for trajectory in trajectories
-    ]
+    metrics = [SimulationMetrics(trajectory).amplitudes() for trajectory in trajectories]
 
     max_amp = max(max(metric) for metric in metrics)
     min_amp = min(min(metric) for metric in metrics)
@@ -43,9 +41,7 @@ def vibrational_amplitudes(
     data = []
 
     for metric in metrics:
-        data.append(
-            np.histogram(metric, bins=bins, range=(min_amp, max_amp), density=True)[0]
-        )
+        data.append(np.histogram(metric, bins=bins, range=(min_amp, max_amp), density=True)[0])
 
     df = pd.DataFrame(data=data)
 
@@ -57,9 +53,7 @@ def vibrational_amplitudes(
     mean = [df[col].mean() for col in df.columns]
     std = [df[col].std() for col in df.columns]
 
-    df = pd.DataFrame(
-        data=zip(columns, mean, std), columns=['amplitude', 'count', 'std']
-    )
+    df = pd.DataFrame(data=zip(columns, mean, std), columns=['amplitude', 'count', 'std'])
 
     if n_parts == 1:
         fig = px.bar(df, x='amplitude', y='count')

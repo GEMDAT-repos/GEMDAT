@@ -147,9 +147,7 @@ def radial_distribution(
     bins = np.arange(0, max_dist + resolution, resolution)
     length = len(bins) + 1
 
-    rdfs: dict[tuple[str, str], np.ndarray] = defaultdict(
-        lambda: np.zeros(length, dtype=int)
-    )
+    rdfs: dict[tuple[str, str], np.ndarray] = defaultdict(lambda: np.zeros(length, dtype=int))
 
     n_steps = len(trajectory)
 

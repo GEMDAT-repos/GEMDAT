@@ -12,9 +12,7 @@ from scipy import signal
 from scipy.spatial import cKDTree
 
 # shortcut to test data
-VASPRUN = (
-    Path(__file__).parents[2] / 'tests' / 'data' / 'short_simulation' / 'vasprun.xml'
-)
+VASPRUN = Path(__file__).parents[2] / 'tests' / 'data' / 'short_simulation' / 'vasprun.xml'
 VASPCACHE_ORIENTATIONS = (
     Path(__file__).parents[2]
     / 'tests'
@@ -238,9 +236,7 @@ def _cart2sph(
     return az, el, r
 
 
-def cartesian_to_spherical(
-    cart_coords: np.ndarray, *, degrees: bool = True
-) -> np.ndarray:
+def cartesian_to_spherical(cart_coords: np.ndarray, *, degrees: bool = True) -> np.ndarray:
     """Trajectory from cartesian coordinates to spherical coordinates.
 
     Parameters

@@ -18,8 +18,8 @@ from .utils import bfill, ffill, integer_remap
 
 if typing.TYPE_CHECKING:
     from gemdat.jumps import Jumps
-    from gemdat.trajectory import Trajectory
     from gemdat.rdf import RDFCollection
+    from gemdat.trajectory import Trajectory
 
 NOSITE = -1
 
@@ -107,9 +107,7 @@ class Transitions:
         diff_trajectory = trajectory.filter(floating_specie)
 
         if site_radius is None:
-            vibration_amplitude = SimulationMetrics(
-                diff_trajectory
-            ).vibration_amplitude()
+            vibration_amplitude = SimulationMetrics(diff_trajectory).vibration_amplitude()
 
             site_radius = _compute_site_radius(
                 trajectory=trajectory,
@@ -133,9 +131,7 @@ class Transitions:
             site_inner_fraction=site_inner_fraction,
         )
 
-        events = _calculate_transition_events(
-            atom_sites=states, atom_inner_sites=inner_states
-        )
+        events = _calculate_transition_events(atom_sites=states, atom_inner_sites=inner_states)
 
         obj = cls(
             sites=sites,
@@ -255,9 +251,7 @@ class Transitions:
         counts = counts / len(states)
         occupancies = dict(zip(unq, counts))
 
-        species = [
-            {site.specie.name: occupancies.get(i, 0)} for i, site in enumerate(sites)
-        ]
+        species = [{site.specie.name: occupancies.get(i, 0)} for i, site in enumerate(sites)]
 
         return Structure(
             lattice=sites.lattice,
@@ -425,7 +419,8 @@ def _compute_site_radius(
     min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
 
     if min_dist < 2 * site_radius:
-        # Crystallographic sites are overlapping with the chosen site_radius, making it smaller
+        # Crystallographic sites are overlapping with the chosen site_radius,
+        # making it smaller
         site_radius = (0.5 * min_dist) - 0.005
 
         # Two crystallographic sites are within half an Angstrom of each other
@@ -446,7 +441,8 @@ def _compute_site_radius(
             msg = ''.join(lines)
 
             raise ValueError(
-                f'Crystallographic sites are too close together (expected: >{site_radius*2:.4f}, '
+                'Crystallographic sites are too close together '
+                f'(expected: >{site_radius*2:.4f}, '
                 f'got: {min_dist:.4f} for {msg}'
             )
 
@@ -461,9 +457,9 @@ def _calculate_atom_states(
 ) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
 
-    Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
-    all `site_coords` has to be generated. This includes lattice translations. The nearest site
-    may be in the neighbouring unit cell.
+    Note: This is a slow operation, because a pairwise distance matrix between
+    all `coords` and all `site_coords` has to be generated. This includes
+    lattice translations. The nearest site may be in the neighbouring unit cell.
 
     Parameters
     ----------
@@ -475,8 +471,8 @@ def _calculate_atom_states(
         Atoms within this distance (in Angstrom) are considered to be close to a site.
         Can also be a dict keyed by the site label to specify the radius by atom type.
     site_inner_fraction: float
-        Atoms that are closer than (site_radius*site_inner_fraction) to a site, are considered
-        to be in the inner site
+        Atoms that are closer than (site_radius*site_inner_fraction) to a site,
+        are considered to be in the inner site
 
     Returns
     -------
@@ -489,9 +485,7 @@ def _calculate_atom_states(
     def _site_radius_iterator():
         for label, radius in site_radius.items():
             if label:
-                grouped = (
-                    (k, site) for k, site in enumerate(sites) if site.label == label
-                )
+                grouped = ((k, site) for k, site in enumerate(sites) if site.label == label)
                 key, site_group = zip(*grouped)
                 frac_coords = np.array([site.frac_coords for site in site_group])
                 yield frac_coords, np.array(key), radius
@@ -516,9 +510,7 @@ def _calculate_atom_states(
 
     for coords, key, radius in _site_radius_iterator():
         cart_coords = lattice.get_cartesian_coords(coords)
-        site_index = periodic_tree.search_tree(
-            cart_coords, radius * site_inner_fraction
-        )
+        site_index = periodic_tree.search_tree(cart_coords, radius * site_inner_fraction)
 
         siteno, index = site_index.T
 
@@ -538,7 +530,8 @@ def _calculate_transitions_matrix(events: pd.DataFrame, n_sites: int) -> np.ndar
     events : pd.DataFrame
         Input array with transition events
     n_sites : int
-        Number of jump sites for diffusing element. This defines the shape of the output matrix.
+        Number of jump sites for diffusing element.
+        This defines the shape of the output matrix.
 
     Returns
     -------

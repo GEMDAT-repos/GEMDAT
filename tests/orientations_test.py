@@ -14,9 +14,7 @@ from gemdat.utils import fft_autocorrelation
 
 
 def test_orientations_init(trajectory):
-    orientations = Orientations(
-        trajectory=trajectory, center_type='B', satellite_type='Si'
-    )
+    orientations = Orientations(trajectory=trajectory, center_type='B', satellite_type='Si')
 
     assert isinstance(orientations, Orientations)
     assert orientations.center_type == 'B'
@@ -32,9 +30,7 @@ def test_normalize(trajectory):
         in_vectors=np.array([[1, 2, 2], [2, 2, 1]], dtype=float),
     )
     ret = orientations.normalize()
-    assert_allclose(
-        ret.vectors, np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]])
-    )
+    assert_allclose(ret.vectors, np.array([[1 / 3, 2 / 3, 2 / 3], [2 / 3, 2 / 3, 1 / 3]]))
 
 
 def test_conventional(trajectory):

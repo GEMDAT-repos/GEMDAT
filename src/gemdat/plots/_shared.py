@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import numpy as np
-from typing import TYPE_CHECKING
 from collections import defaultdict
+from typing import TYPE_CHECKING
+
+import numpy as np
+import pandas as pd
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
-import pandas as pd
 
 if TYPE_CHECKING:
     from gemdat.orientations import Orientations

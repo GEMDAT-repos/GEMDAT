@@ -34,7 +34,8 @@ def analyse_md(
     """Analyse md data.
 
     This function mimicks the the API of the `analyse_md` function in the
-    [Matlab code to analyse Molecular Dynamics simulations](https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/)
+    [Matlab code to analyse Molecular Dynamics simulations]
+    (https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/)
     that Gemdat is based on.
 
     Parameters
@@ -70,7 +71,8 @@ def analyse_md(
     start_end : tuple[int, int], optional
         The time steps for which to start and end the movie
     nr_steps_frame : int, optional
-        How many time steps per frame in the movie, increase to get shorter and faster movies
+        How many time steps per frame in the movie,
+        increase to get shorter and faster movies
 
     Returns
     -------

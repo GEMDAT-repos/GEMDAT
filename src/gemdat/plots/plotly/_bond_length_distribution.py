@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 
 from gemdat.orientations import Orientations
 
-from .._shared import _orientations_to_histogram, _fit_skewnorm_to_hist
+from .._shared import _fit_skewnorm_to_hist, _orientations_to_histogram
 
 
-def bond_length_distribution(
-    *, orientations: Orientations, bins: int = 50
-) -> go.Figure:
+def bond_length_distribution(*, orientations: Orientations, bins: int = 50) -> go.Figure:
     """Plot the bond length probability distribution.
 
     Parameters
@@ -35,9 +33,7 @@ def bond_length_distribution(
     )
 
     fig.add_trace(
-        go.Scatter(
-            x=x, y=y, name='Skewed Gaussian Fit', mode='lines', line={'width': 3}
-        )
+        go.Scatter(x=x, y=y, name='Skewed Gaussian Fit', mode='lines', line={'width': 3})
     )
 
     fig.update_layout(

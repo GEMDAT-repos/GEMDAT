@@ -3,12 +3,11 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 
 from gemdat.orientations import Orientations
-from .._shared import _orientations_to_histogram, _fit_skewnorm_to_hist
+
+from .._shared import _fit_skewnorm_to_hist, _orientations_to_histogram
 
 
-def bond_length_distribution(
-    *, orientations: Orientations, bins: int = 50
-) -> plt.Figure:
+def bond_length_distribution(*, orientations: Orientations, bins: int = 50) -> plt.Figure:
     """Plot the bond length probability distribution.
 
     Parameters

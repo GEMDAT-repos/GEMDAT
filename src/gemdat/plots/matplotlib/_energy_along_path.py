@@ -56,8 +56,7 @@ def energy_along_path(
         extra_ticks = non_empty_ticks.copy()
         extra_ticks.append(ax.get_xlim()[1])
         centered_ticks = [
-            (extra_ticks[i] + extra_ticks[i + 1]) / 2
-            for i in range(len(extra_ticks) - 1)
+            (extra_ticks[i] + extra_ticks[i + 1]) / 2 for i in range(len(extra_ticks) - 1)
         ]
 
         ax.set_xticks(centered_ticks)

@@ -82,12 +82,8 @@ class Collective:
                 if event_i['atom index'] == event_j['atom index']:
                     continue
 
-                a = sites.frac_coords[
-                    [event_i['start site'], event_i['destination site']]
-                ]
-                b = sites.frac_coords[
-                    [event_j['start site'], event_j['destination site']]
-                ]
+                a = sites.frac_coords[[event_i['start site'], event_i['destination site']]]
+                b = sites.frac_coords[[event_j['start site'], event_j['destination site']]]
 
                 dists = lattice.get_all_distances(a, b)
 

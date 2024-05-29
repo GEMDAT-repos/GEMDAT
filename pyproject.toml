@@ -83,7 +83,11 @@ source = ["gemdat"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
-[tool.lint]
+[tool.ruff]
+line-length = 96
+target-version = "py310"
+
+[tool.ruff.lint]
 # Enable Pyflakes `E` and `F` codes by default.
 select = [
 	"F",  # Pyflakes
@@ -92,9 +96,7 @@ select = [
     "I",  # isort
 ]
 
-line-length = 110
-
-[tool.lint.isort]
+[tool.ruff.lint.isort]
 known-first-party=["gemdat"]
 known-third-party = ["pymatgen"]
 required-imports = ["from __future__ import annotations"]

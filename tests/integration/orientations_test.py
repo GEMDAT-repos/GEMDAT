@@ -50,11 +50,7 @@ def test_normalize_symmetrize(vasp_orientations):
 
 @pytest.vasporicache_available  # type: ignore
 def test_normalize_conventional_symmetrize(vasp_orientations):
-    ret = (
-        vasp_orientations.normalize()
-        .transform(matrix=matrix)
-        .symmetrize(sym_group='m-3m')
-    )
+    ret = vasp_orientations.normalize().transform(matrix=matrix).symmetrize(sym_group='m-3m')
     assert isclose(ret.vectors.std(), 0.577350269189626)
     first = ret.vectors[0, 0]
     np.testing.assert_allclose(first, [0.136119, -0.880154, 0.454753], atol=1e-06)
@@ -62,11 +58,7 @@ def test_normalize_conventional_symmetrize(vasp_orientations):
 
 @pytest.vasporicache_available  # type: ignore
 def test_conventional_normalize_symmetrize(vasp_orientations):
-    ret = (
-        vasp_orientations.transform(matrix=matrix)
-        .normalize()
-        .symmetrize(sym_group='m-3m')
-    )
+    ret = vasp_orientations.transform(matrix=matrix).normalize().symmetrize(sym_group='m-3m')
     assert isclose(ret.vectors.std(), 0.577350269189626)
     first = ret.vectors[0, 0]
     np.testing.assert_allclose(first, [0.136119, -0.880154, 0.454753], atol=1e-06)

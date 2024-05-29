@@ -353,9 +353,7 @@ class ShapeAnalyzer:
             )
             new_sites.append(new_site)
 
-        return ShapeAnalyzer(
-            sites=new_sites, spacegroup=self.spacegroup, lattice=self.lattice
-        )
+        return ShapeAnalyzer(sites=new_sites, spacegroup=self.spacegroup, lattice=self.lattice)
 
     def optimize_sites(
         self, shapes: Sequence[ShapeData], func: None | Callable = None

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import plotly.graph_objects as go
 
-from gemdat.trajectory import Trajectory
 from gemdat.plots._shared import _mean_displacements_per_element
+from gemdat.trajectory import Trajectory
 
 
 def displacement_per_element(*, trajectory: Trajectory) -> go.Figure:
