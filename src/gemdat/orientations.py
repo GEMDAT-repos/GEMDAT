@@ -99,7 +99,8 @@ class Orientations:
         Returns
         -------
         matching_matrix: np.ndarray
-            Matrix that shows which center-satellite pair is closer than the matching criteria
+            Matrix that shows which center-satellite pair is closer than
+            the matching criteria
         """
         match_criteria = 1.5 * np.min(distance)
 

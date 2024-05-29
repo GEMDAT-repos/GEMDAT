@@ -248,7 +248,8 @@ class Jumps:
         Returns
         -------
         df : pd.DataFrame
-            Dataframe with jump activation energies and standard deviations between site pairs.
+            Dataframe with jump activation energies and standard deviations
+            between site pairs.
         """
         trajectory = self.trajectory
         attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
@@ -278,7 +279,8 @@ class Jumps:
 
             eff_rate = n_jumps / denom
 
-            # For A-A jumps divide by two for a fair comparison of A-A jumps vs. A-B and B-A
+            # For A-A jumps divide by two for a fair comparison
+            # of A-A jumps vs A-B and B-A
             if site_start == site_stop:
                 eff_rate /= 2
 

@@ -299,8 +299,9 @@ def optimal_n_paths(
     min_diff: float = 0.15,
 ) -> list[Pathway]:
     """Calculate the n_paths shortest paths between two sites on the graph.
-    This procedure is based the algorithm by Jin Y. Yen (https://doi.org/10.1287/mnsc.17.11.712)
-    and its implementation in NetworkX. Only paths that are different by at least min_diff are considered.
+    This procedure is based the algorithm by Jin Y. Yen
+    (https://doi.org/10.1287/mnsc.17.11.712) and its implementation in NetworkX.
+    Only paths that are different by at least min_diff are considered.
 
     Parameters
     ----------

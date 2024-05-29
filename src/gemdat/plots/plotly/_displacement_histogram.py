@@ -83,7 +83,10 @@ def displacement_histogram(trajectory: Trajectory, n_parts: int = 1) -> go.Figur
         )
 
         fig.update_layout(
-            title=f'Displacement per element after {int(interval[1]-interval[0])} timesteps',
+            title=(
+                'Displacement per element after '
+                f'{int(interval[1]-interval[0])} timesteps'
+            ),
             xaxis_title='Displacement (Å)',
             yaxis_title='Nr. of atoms',
         )

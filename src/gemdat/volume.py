@@ -172,8 +172,9 @@ class Volume:
         Parameters
         ----------
         pad : int
-            Extend the volume by this number of voxels by wrapping around. This helps finding
-            maxima for blobs sitting at the edge of the unit cell.
+            Extend the volume by this number of voxels by wrapping around.
+            This helps finding maxima for blobs sitting at the edge of the
+            unit cell.
         remove_outside : bool
             If True, remove peaks outside the lattice. Only applicable
             if pad > 0.
@@ -219,8 +220,8 @@ class Volume:
         ----------
         structure : pymatgen.core.structure.Structure
             structure to include in the vasp file (e.g. trajectory structure)
-            Also useful if you want to output the density for a select number of species,
-            and show the host structure.
+            Also useful if you want to output the density for a select number of
+            species, and show the host structure.
         filename : Optional[str]
             If specified, save volume to this filename.
         other : list[Volume]
@@ -313,7 +314,8 @@ class Volume:
         specie : str
             Specie to assign to the found sites, defaults to 'X'
         background_level : float
-            Fraction of the maximum volume value to set as the minimum value for peak segmentation.
+            Fraction of the maximum volume value to set as the minimum value
+            for peak segmentation.
             Essentially sets `vol_min = background_level * max(vol)`.
             All values below `vol_min` are masked in the peak search.
             Must be between 0 and 1

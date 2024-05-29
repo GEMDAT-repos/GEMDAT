@@ -425,7 +425,8 @@ def _compute_site_radius(
     min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
 
     if min_dist < 2 * site_radius:
-        # Crystallographic sites are overlapping with the chosen site_radius, making it smaller
+        # Crystallographic sites are overlapping with the chosen site_radius,
+        # making it smaller
         site_radius = (0.5 * min_dist) - 0.005
 
         # Two crystallographic sites are within half an Angstrom of each other
@@ -446,7 +447,8 @@ def _compute_site_radius(
             msg = ''.join(lines)
 
             raise ValueError(
-                f'Crystallographic sites are too close together (expected: >{site_radius*2:.4f}, '
+                'Crystallographic sites are too close together '
+                f'(expected: >{site_radius*2:.4f}, '
                 f'got: {min_dist:.4f} for {msg}'
             )
 
@@ -461,9 +463,9 @@ def _calculate_atom_states(
 ) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
 
-    Note: This is a slow operation, because a pairwise distance matrix between all `coords` and
-    all `site_coords` has to be generated. This includes lattice translations. The nearest site
-    may be in the neighbouring unit cell.
+    Note: This is a slow operation, because a pairwise distance matrix between
+    all `coords` and all `site_coords` has to be generated. This includes
+    lattice translations. The nearest site may be in the neighbouring unit cell.
 
     Parameters
     ----------
@@ -475,8 +477,8 @@ def _calculate_atom_states(
         Atoms within this distance (in Angstrom) are considered to be close to a site.
         Can also be a dict keyed by the site label to specify the radius by atom type.
     site_inner_fraction: float
-        Atoms that are closer than (site_radius*site_inner_fraction) to a site, are considered
-        to be in the inner site
+        Atoms that are closer than (site_radius*site_inner_fraction) to a site,
+        are considered to be in the inner site
 
     Returns
     -------
@@ -538,7 +540,8 @@ def _calculate_transitions_matrix(events: pd.DataFrame, n_sites: int) -> np.ndar
     events : pd.DataFrame
         Input array with transition events
     n_sites : int
-        Number of jump sites for diffusing element. This defines the shape of the output matrix.
+        Number of jump sites for diffusing element.
+        This defines the shape of the output matrix.
 
     Returns
     -------

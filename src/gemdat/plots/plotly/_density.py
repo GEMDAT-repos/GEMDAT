@@ -26,8 +26,9 @@ def density(
     structure : Structure, optional
         Input structure
     force_lattice : Lattice | None
-        Plot volume and structure using this lattice as a basis. Overrides the default, which is to
-        use `volume.lattice` and `structure.lattice` where applicable.
+        Plot volume and structure using this lattice as a basis.
+        Overrides the default, which is to use `volume.lattice`
+        and `structure.lattice` where applicable.
 
     Returns
     -------

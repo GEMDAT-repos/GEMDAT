@@ -22,15 +22,17 @@ def pytest_configure():
         not VASP_XML.exists(),
         reason=(
             'Simulation data from vasprun.xml example is required for this test. '
-            'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
+            'Run `git submodule init`/`update`, and extract using '
+            '`tar -C tests/data/short_simulation '
             '-xjf tests/data/short_simulation/vasprun.xml.bz2`'
         ),
     )
     pytest.vasporicache_available = pytest.mark.skipif(
         not VASP_ORI_CACHE.exists(),
         reason=(
-            'Simulation data from vasprun_rotations.cache example is required for this test. '
-            'Run `git submodule init`/`update`, and extract using `tar -C tests/data/short_simulation '
+            'Data from vasprun_rotations.cache example is needed for this test. '
+            'Run `git submodule init`/`update`, and extract using '
+            '`tar -C tests/data/short_simulation '
             '-xjf tests/data/short_simulation/vasprun.xml.bz2`'
         ),
     )

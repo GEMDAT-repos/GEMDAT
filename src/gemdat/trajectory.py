@@ -271,8 +271,8 @@ class Trajectory(PymatgenTrajectory):
         """Return cumulative displacement vectors from base positions.
 
         This differs from [displacements()][gemdat.trajectory.Trajectory.displacements]
-        in that it ignores the periodic boundary
-        conditions. Instead, it cumulatively tracks the lattice translation vector (jimage).
+        in that it ignores the periodic boundary conditions. Instead, it cumulatively
+        tracks the lattice translation vector (jimage).
         """
         return np.cumsum(self.displacements, axis=0)
 
@@ -327,9 +327,11 @@ class Trajectory(PymatgenTrajectory):
         Parameters
         ----------
         fixed_species : None | str | Collection[str]
-            These species are assumed fixed, and are used to calculate drift (e.g. framework species).
+            These species are assumed fixed, and are used to calculate drift
+            (e.g. framework species).
         floating_species : None | str | Collection[str]
-            These species are assumed floating, and is used to determine the fixed species.
+            These species are assumed floating, and is used to determine the
+            fixed species.
 
         Returns
         -------
@@ -364,9 +366,11 @@ class Trajectory(PymatgenTrajectory):
         Parameters
         ----------
         fixed_species : None | str | Collection[str]
-            These species are assumed fixed, and are used to calculate drift (e.g. framework species).
+            These species are assumed fixed, and are used to calculate
+            drift (e.g. framework species).
         floating_species : None | str | Collection[str]
-            These species are assumed floating, and is used to determine the fixed species.
+            These species are assumed floating, and is used to determine
+            the fixed species.
 
         Returns
         -------
@@ -449,7 +453,8 @@ class Trajectory(PymatgenTrajectory):
         """Computes the mean squared displacement using fast Fourier transform.
 
         The algorithm is described in [https://doi.org/10.1051/sfn/201112010].
-        See also [https://stackoverflow.com/questions/34222272/computing-mean-square-displacement-using-python-and-fft].
+        See also [https://stackoverflow.com/questions/34222272/
+        computing-mean-square-displacement-using-python-and-fft].
         """
         r = self.cumulative_displacements
         lattice = self.get_lattice()
