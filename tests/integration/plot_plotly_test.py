@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 from helpers import assert_figures_similar
 
 from gemdat.io import load_known_material
@@ -74,13 +73,12 @@ def test_radial_distribution(vasp_rdf_data):
         assert_figures_similar(fig, name=f'radial_distribution_{i}', rms=0.5)
 
 
-@pytest.mark.xfail(reason='not implemented yet')
 def test_shape(vasp_shape_data):
     assert len(vasp_shape_data) == 1
-    for i, shape in vasp_shape_data:
+    for shape in vasp_shape_data:
         fig = plots.shape(shape)
 
-        assert_figures_similar(fig, name='shape_{i}', rms=0.5)
+        assert_figures_similar(fig, name='shape', rms=0.5)
 
 
 def test_msd_per_element(vasp_traj):
