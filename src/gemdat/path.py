@@ -298,6 +298,11 @@ def optimal_n_paths(
     (https://doi.org/10.1287/mnsc.17.11.712) and its implementation in NetworkX.
     Only paths that are different by at least min_diff are considered.
 
+    .. warning::
+        Notice that this function in based on networkx.all_shortest_paths, which tends
+        to identify first small variations of the optimal path. A custom graph pruning
+        approach is suggested to accommodate different needs.
+
     Parameters
     ----------
     F_graph : nx.Graph
