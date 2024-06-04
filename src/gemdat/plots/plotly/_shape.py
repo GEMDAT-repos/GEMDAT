@@ -68,6 +68,8 @@ def shape(
     for col, (i, j) in enumerate(((0, 1), (1, 2), (2, 0))):
         x_coords = coords[:, i]
         y_coords = coords[:, j]
+        top_row = {'row': 1, 'col': col + 1}
+        bot_row = {'row': 2, 'col': col + 1}
 
         # Map of the coordinates
         fig.add_trace(
@@ -78,8 +80,7 @@ def shape(
                 showscale=False,
                 colorscale='Viridis',
             ),
-            row=1,
-            col=col + 1,
+            **top_row
         )
 
         # Highlight the (0,0,0) point
