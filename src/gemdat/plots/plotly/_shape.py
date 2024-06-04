@@ -137,7 +137,7 @@ def shape(
                 y0=y_vs - mean_dist,
                 x1=x_vs + mean_dist,
                 y1=x_vs + mean_dist,
-                line=dict(color='red', dash='dash'),
+                line={'color':'red', 'dash':'dash'),
                 showlegend=False,
                 **top_row,
             )
