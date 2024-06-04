@@ -237,7 +237,7 @@ class Jumps:
 
     @weak_lru_cache()
     def activation_energies(self, n_parts: int = 10) -> pd.DataFrame:
-        """Calculate activation energies for jumps (UNITS?).
+        """Calculate activation energies for jumps in eV.
 
         Parameters
         ----------
@@ -260,13 +260,13 @@ class Jumps:
         atom_locations_parts = [
             part.atom_locations() for part in self.transitions.split(n_parts)
         ]
-        jumps_counter_parts = [part.jumps_counter() for part in self.split(n_parts)]
+        counter_parts = [part.counter() for part in self.split(n_parts)]
         n_floating = self.n_floating
 
         for site_pair in self.site_pairs:
             site_start, site_stop = site_pair
 
-            n_jumps = np.array([part[site_pair] for part in jumps_counter_parts])
+            n_jumps = np.array([part[site_pair] for part in counter_parts])
 
             part_time = trajectory.total_time / n_parts
 
@@ -292,8 +292,9 @@ class Jumps:
 
         return df
 
-    def jumps_counter(self) -> Counter:
-        """Calculate number of jumps between sites.
+    @weak_lru_cache()
+    def counter(self) -> Counter:
+        """Count number of jumps between sites.
 
         Returns
         -------
@@ -310,8 +311,26 @@ class Jumps:
         return jumps
 
     def activation_energy_between_sites(self, start: str, stop: str) -> float:
-        raise NotImplementedError
+        """Returns activation energy between two sites.
 
+        Uses `Jumps.to_graph()` in the background.
+
+        Parameters
+        ----------
+        start : str
+            Label of the start site
+        stop : str
+            Label of the stop site
+
+        Returns
+        -------
+        e_act : float
+            Activation energy in eV
+        """
+        G = self.to_graph()
+        return G.get_edge_data(start, stop)['e_act']
+
+    @weak_lru_cache()
     def to_graph(self) -> nx.DiGraph:
         """Create a graph from jumps data.
 
@@ -326,13 +345,16 @@ class Jumps:
             site.label: site.species.num_atoms for site in self.transitions.occupancy()
         }
 
+        if len(atom_percentage) != len(self.sites):
+            raise ValueError('Site labels are not unique (`Jumps.sites`).')
+
         attempt_freq, _ = self.trajectory.metrics().attempt_frequency()
         temperature = self.trajectory.metadata['temperature']
         kBT = Boltzmann * temperature
 
         G = nx.DiGraph()
 
-        for (start, stop), n_jumps in self.jumps_counter().items():
+        for (start, stop), n_jumps in self.counter().items():
             time_perc = atom_percentage[start] * self.trajectory.total_time
 
             eff_rate = n_jumps / time_perc
@@ -371,12 +393,12 @@ class Jumps:
         """
         dct = {}
 
-        parts = [part.jumps_counter() for part in self.split(n_parts)]
+        parts = [part.counter() for part in self.split(n_parts)]
+        part_time = self.trajectory.total_time / n_parts
 
         for site_pair in self.site_pairs:
             n_jumps = [part[site_pair] for part in parts]
 
-            part_time = self.trajectory.total_time / n_parts
             denom = self.n_floating * part_time
 
             jump_freq_mean = np.mean(n_jumps) / denom
