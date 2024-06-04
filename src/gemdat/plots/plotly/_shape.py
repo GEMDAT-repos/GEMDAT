@@ -70,6 +70,8 @@ def shape(
         y_coords = coords[:, j]
         top_row = {'row': 1, 'col': col + 1}
         bot_row = {'row': 2, 'col': col + 1}
+        dot_marker = {'color': 'red', 'line': {'width': 0.5, 'color': 'White'}}
+        dashed_line = {'color': 'red', 'dash': 'dash'}
 
         # Map of the coordinates
         fig.add_trace(
@@ -78,7 +80,6 @@ def shape(
                 y=y_coords,
                 name=y_labels[col],
                 showscale=False,
-                colorscale='Viridis',
             ),
             **top_row,
         )
@@ -89,7 +90,7 @@ def shape(
                 x=[0],
                 y=[0],
                 mode='markers',
-                marker=dict(color='red'),
+                marker=dot_marker,
                 name='Sites ' + y_labels[col],
                 showlegend=False,
             ),
@@ -104,7 +105,7 @@ def shape(
             y0=-mean_dist,
             x1=mean_dist,
             y1=mean_dist,
-            line=dict(color='red', dash='dash'),
+            line=dashed_line,
             showlegend=False,
             **top_row,
         )
@@ -121,8 +122,8 @@ def shape(
                     mode='markers+text',
                     text=[label] * len(x_vs),
                     textposition='top center',
-                    textfont={'color':'red'},
-                    marker={'color':'red'},
+                    textfont={'color': 'red'},
+                    marker={'color': 'red'},
                     name=label,
                     showlegend=False,
                 ),
@@ -137,7 +138,7 @@ def shape(
                 y0=y_vs - mean_dist,
                 x1=x_vs + mean_dist,
                 y1=x_vs + mean_dist,
-                line={'color':'red', 'dash':'dash'),
+                line=dashed_line,
                 showlegend=False,
                 **top_row,
             )
