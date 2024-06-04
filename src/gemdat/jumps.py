@@ -293,7 +293,7 @@ class Jumps:
         return df
 
     @weak_lru_cache()
-    def counter(self) -> Counter:
+    def counter(self) -> Counter[tuple[str, str]]:
         """Count number of jumps between sites.
 
         Returns
@@ -302,18 +302,28 @@ class Jumps:
             Dictionary with number of jumps per sites combination
         """
         labels = self.sites.labels
-        jumps = Counter(
-            [
-                (labels[i], labels[j])
-                for _, (i, j) in self.data[['start site', 'destination site']].iterrows()
-            ]
-        )
-        return jumps
+        counter: Counter[tuple[str, str]] = Counter()
+        for (i, j), val in self._counter().items():
+            counter[labels[i], labels[j]] += val
+        return counter
+
+    @weak_lru_cache()
+    def _counter(self) -> Counter[tuple[int, int]]:
+        """Count number of jumps between sites. Keys are site indices.
+
+        Returns
+        -------
+        counter : dict[tuple[i, i], int]
+            Dictionary with number of jumps per sites combination
+        """
+        counter = Counter(zip(self.data['start site'], self.data['destination site']))
+        return counter
 
     def activation_energy_between_sites(self, start: str, stop: str) -> float:
         """Returns activation energy between two sites.
 
-        Uses `Jumps.to_graph()` in the background.
+        Uses `Jumps.to_graph()` in the background. For a large number of operations,
+        it is more efficient to querie the graph directly.
 
         Parameters
         ----------
@@ -328,7 +338,10 @@ class Jumps:
             Activation energy in eV
         """
         G = self.to_graph()
-        return G.get_edge_data(start, stop)['e_act']
+        edge_data = G.get_edge_data(start, stop)
+        if not edge_data:
+            raise IndexError(f'No jumps between ({start}) and ({stop})')
+        return edge_data['e_act']
 
     @weak_lru_cache()
     def to_graph(
@@ -336,7 +349,8 @@ class Jumps:
     ) -> nx.DiGraph:
         """Create a graph from jumps data.
 
-        The edges are weighted by the activation energy.
+        The edges are weighted by the activation energy. The nodes are indices that
+        correspond to `Jumps.sites`.
 
         Parameters
         ----------
@@ -353,12 +367,7 @@ class Jumps:
         min_e_act = min_e_act if min_e_act else float('-inf')
         max_e_act = max_e_act if max_e_act else float('inf')
 
-        atom_percentage = {
-            site.label: site.species.num_atoms for site in self.transitions.occupancy()
-        }
-
-        if len(atom_percentage) != len(self.sites):
-            raise ValueError('Site labels are not unique (`Jumps.sites`).')
+        atom_percentage = [site.species.num_atoms for site in self.transitions.occupancy()]
 
         attempt_freq, _ = self.trajectory.metrics().attempt_frequency()
         temperature = self.trajectory.metadata['temperature']
@@ -366,7 +375,7 @@ class Jumps:
 
         G = nx.DiGraph()
 
-        for (start, stop), n_jumps in self.counter().items():
+        for (start, stop), n_jumps in self._counter().items():
             time_perc = atom_percentage[start] * self.trajectory.total_time
 
             eff_rate = n_jumps / time_perc
