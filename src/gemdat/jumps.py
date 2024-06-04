@@ -5,6 +5,7 @@ from itertools import product
 from math import ceil
 from typing import TYPE_CHECKING, Callable
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 from pymatgen.core.units import FloatWithUnit
@@ -307,6 +308,41 @@ class Jumps:
             ]
         )
         return jumps
+
+    def activation_energy_between_sites(self, start: str, stop: str) -> float:
+        raise NotImplementedError
+
+    def to_graph(self) -> nx.DiGraph:
+        """Create a graph from jumps data.
+
+        The edges are weighted by the activation energy.
+
+        Returns
+        -------
+        G : nx.DiGraph
+            A networkx DiGraph object.
+        """
+        atom_percentage = {
+            site.label: site.species.num_atoms for site in self.transitions.occupancy()
+        }
+
+        attempt_freq, _ = self.trajectory.metrics().attempt_frequency()
+        temperature = self.trajectory.metadata['temperature']
+        kBT = Boltzmann * temperature
+
+        G = nx.DiGraph()
+
+        for (start, stop), n_jumps in self.jumps_counter().items():
+            time_perc = atom_percentage[start] * self.trajectory.total_time
+
+            eff_rate = n_jumps / time_perc
+
+            e_act = -np.log(eff_rate / attempt_freq) * kBT
+            e_act /= elementary_charge
+
+            G.add_edge(start, stop, e_act=e_act)
+
+        return G
 
     def split(self, n_parts: int) -> list[Jumps]:
         """Split the jumps into parts.
