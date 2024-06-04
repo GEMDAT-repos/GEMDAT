@@ -80,7 +80,7 @@ def shape(
                 showscale=False,
                 colorscale='Viridis',
             ),
-            **top_row
+            **top_row,
         )
 
         # Highlight the (0,0,0) point
@@ -93,8 +93,7 @@ def shape(
                 name='Sites ' + y_labels[col],
                 showlegend=False,
             ),
-            row=1,
-            col=col + 1,
+            **top_row,
         )
         # Area around the zero
         fig.add_shape(
@@ -107,8 +106,7 @@ def shape(
             y1=mean_dist,
             line=dict(color='red', dash='dash'),
             showlegend=False,
-            row=1,
-            col=col + 1,
+            **top_row,
         )
 
         for label, vects in vector_dict.items():
@@ -128,8 +126,7 @@ def shape(
                     name=label,
                     showlegend=False,
                 ),
-                row=1,
-                col=col + 1,
+                **top_row,
             )
             # Area around the shape points
             fig.add_shape(
@@ -141,9 +138,8 @@ def shape(
                 x1=x_vs + mean_dist,
                 y1=x_vs + mean_dist,
                 line=dict(color='red', dash='dash'),
-                row=1,
-                col=col + 1,
                 showlegend=False,
+                **top_row,
             )
 
         # Density plot along the coordinate
@@ -154,8 +150,7 @@ def shape(
                 nbinsx=nbins,
                 histnorm='probability density',
             ),
-            row=2,
-            col=col + 1,
+            **bot_row,
         )
 
     fig.update_layout(height=600, width=900, title_text=title, title_x=0.5)
