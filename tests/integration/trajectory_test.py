@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pymatgen.core import Structure
 
-from gemdat.simulation_metrics import SimulationMetrics
+from gemdat.metrics import TrajectoryMetrics
 from gemdat.volume import trajectory_to_volume
 
 
@@ -55,7 +55,7 @@ def test_volume_get_free_energy(vasp_vol):
 @pytest.vaspxml_available  # type: ignore
 def test_metrics_other(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
-    metrics = SimulationMetrics(diff_trajectory)
+    metrics = TrajectoryMetrics(diff_trajectory)
 
     assert isclose(metrics.particle_density(), 2.4557e28, rel_tol=1e-4)
     assert isclose(metrics.mol_per_liter(), 40.777, rel_tol=1e-4)
@@ -69,7 +69,7 @@ def test_metrics_other(vasp_traj):
 @pytest.vaspxml_available  # type: ignore
 def test_metrics_haven(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
-    metrics = SimulationMetrics(diff_trajectory)
+    metrics = TrajectoryMetrics(diff_trajectory)
 
     assert isclose(
         metrics.tracer_diffusivity(),
@@ -87,7 +87,7 @@ def test_metrics_haven(vasp_traj):
 @pytest.vaspxml_available  # type: ignore
 def test_vibration_metrics(vasp_traj):
     diff_trajectory = vasp_traj.filter('Li')
-    metrics = SimulationMetrics(diff_trajectory)
+    metrics = TrajectoryMetrics(diff_trajectory)
 
     speed = metrics.speed()
     assert speed.shape == (48, 3750)

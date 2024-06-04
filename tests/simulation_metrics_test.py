@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from gemdat.simulation_metrics import SimulationMetrics, SimulationMetricsStd
+from gemdat.metrics import TrajectoryMetrics, TrajectoryMetricsStd
 
 
 def test_tracer_metrics(trajectory):
     diff_trajectory = trajectory.filter('B')
-    metrics = SimulationMetrics(diff_trajectory)
+    metrics = TrajectoryMetrics(diff_trajectory)
 
     assert np.isclose(metrics.particle_density(), 1e30)
     assert np.isclose(metrics.mol_per_liter(), 1660.53906)
@@ -17,7 +17,7 @@ def test_tracer_metrics(trajectory):
 
 def test_tracer_metrics_std(trajectory):
     diff_trajectory = trajectory.filter('B')
-    metrics = SimulationMetricsStd(diff_trajectory.split(2, equal_parts=True))
+    metrics = TrajectoryMetricsStd(diff_trajectory.split(2, equal_parts=True))
 
     td = metrics.tracer_diffusivity(dimensions=3)
     assert np.isclose(td.n, np.array([3.334e-23]))
@@ -30,7 +30,7 @@ def test_tracer_metrics_std(trajectory):
 
 def test_vibration_metrics(trajectory):
     diff_trajectory = trajectory.filter('B')
-    metrics = SimulationMetrics(diff_trajectory)
+    metrics = TrajectoryMetrics(diff_trajectory)
 
     assert np.allclose(metrics.speed(), [[0.0, 0.2, 0.2, 0.2, 0.3]])
 
@@ -44,7 +44,7 @@ def test_vibration_metrics(trajectory):
 
 def test_vibration_metrics_std(trajectory):
     diff_trajectory = trajectory.filter('B')
-    metrics = SimulationMetricsStd(diff_trajectory.split(2, equal_parts=True))
+    metrics = TrajectoryMetricsStd(diff_trajectory.split(2, equal_parts=True))
 
     speed = metrics.speed()
     assert np.allclose(speed[0], [0.0, 0.2])

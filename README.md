@@ -75,9 +75,9 @@ jumps.jump_diffusivity(dimensions=3)
 To calculate different metrics, such as tracer diffusivity:
 
 ```python
-from gemdat import SimulationMetrics
+from gemdat import TrajectoryMetrics
 
-metrics = SimulationMetrics(diff_trajectory)
+metrics = TrajectoryMetrics(diff_trajectory)
 
 metrics.tracer_diffusivity(dimensions=3)
 metrics.haven_ratio(dimensions=3)

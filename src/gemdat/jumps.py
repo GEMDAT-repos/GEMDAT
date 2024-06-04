@@ -13,7 +13,7 @@ from scipy.constants import Boltzmann, angstrom, elementary_charge
 
 from .caching import weak_lru_cache
 from .collective import Collective
-from .simulation_metrics import SimulationMetrics
+from .metrics import TrajectoryMetrics
 from .transitions import Transitions, _calculate_transitions_matrix
 
 if TYPE_CHECKING:
@@ -223,7 +223,7 @@ class Jumps:
         sites = self.transitions.sites
 
         time_step = trajectory.time_step
-        attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
+        attempt_freq, _ = TrajectoryMetrics(trajectory).attempt_frequency()
 
         max_steps = ceil(1.0 / (attempt_freq * time_step))
 
@@ -251,7 +251,7 @@ class Jumps:
             between site pairs.
         """
         trajectory = self.trajectory
-        attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
+        attempt_freq, _ = TrajectoryMetrics(trajectory).attempt_frequency()
 
         dct = {}
 

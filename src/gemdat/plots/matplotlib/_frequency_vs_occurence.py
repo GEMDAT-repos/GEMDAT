@@ -3,7 +3,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gemdat.simulation_metrics import SimulationMetrics
+from gemdat.metrics import TrajectoryMetrics
 from gemdat.trajectory import Trajectory
 
 
@@ -20,7 +20,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    metrics = SimulationMetrics(trajectory)
+    metrics = TrajectoryMetrics(trajectory)
     speed = metrics.speed()
 
     length = speed.shape[1]

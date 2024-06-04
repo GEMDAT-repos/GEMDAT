@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from scipy import stats
 
-from gemdat.simulation_metrics import SimulationMetrics
+from gemdat.metrics import TrajectoryMetrics
 from gemdat.trajectory import Trajectory
 
 
@@ -29,8 +29,8 @@ def vibrational_amplitudes(
     """
 
     trajectories = trajectory.split(n_parts)
-    single_metrics = SimulationMetrics(trajectory)
-    metrics = [SimulationMetrics(trajectory).amplitudes() for trajectory in trajectories]
+    single_metrics = TrajectoryMetrics(trajectory)
+    metrics = [TrajectoryMetrics(trajectory).amplitudes() for trajectory in trajectories]
 
     max_amp = max(max(metric) for metric in metrics)
     min_amp = min(min(metric) for metric in metrics)

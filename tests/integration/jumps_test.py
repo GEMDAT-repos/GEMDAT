@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gemdat import Jumps, SimulationMetrics
+from gemdat import Jumps, TrajectoryMetrics
 
 
 @pytest.vaspxml_available
@@ -75,7 +75,7 @@ class TestJumps:  # type: ignore
 
     def test_correlation_factor(self, vasp_traj, vasp_jumps):
         vasp_diff_traj = vasp_traj.filter('Li')
-        metrics = SimulationMetrics(vasp_diff_traj)
+        metrics = TrajectoryMetrics(vasp_diff_traj)
         tracer_diff = metrics.tracer_diffusivity(dimensions=3)
         correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(dimensions=3)
         assert isclose(correlation_factor, 0.165600, rel_tol=1e-6)

@@ -17,7 +17,7 @@ if typing.TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
 
-class SimulationMetrics:
+class TrajectoryMetrics:
     """Class for calculating different metrics and properties from a molecular
     dynamics simulation."""
 
@@ -115,7 +115,7 @@ class SimulationMetrics:
         """
         center_of_mass = self.trajectory.center_of_mass()
 
-        metrics = SimulationMetrics(center_of_mass)
+        metrics = TrajectoryMetrics(center_of_mass)
 
         return metrics.tracer_diffusivity(dimensions=dimensions)
 
@@ -230,7 +230,7 @@ class SimulationMetrics:
         return np.asarray(amplitudes)
 
 
-class SimulationMetricsStd:
+class TrajectoryMetricsStd:
     """Class for calculating different metrics and properties from a molecular
     dynamics simulation.
 
@@ -246,7 +246,7 @@ class SimulationMetricsStd:
         trajectories: list[Trajectory]
             Input trajectories
         """
-        self.metrics = [SimulationMetrics(trajectory) for trajectory in trajectories]
+        self.metrics = [TrajectoryMetrics(trajectory) for trajectory in trajectories]
 
     def speed(self) -> tuple[np.ndarray, np.ndarray]:
         """Calculate mean speed and standard deviations.

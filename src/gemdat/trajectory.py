@@ -19,7 +19,7 @@ from pymatgen.io import vasp
 if TYPE_CHECKING:
     from pymatgen.core import Structure
 
-    from .metrics import SimulationMetrics
+    from .metrics import TrajectoryMetrics
     from .transitions import Transitions
     from .volume import Volume
 
@@ -521,11 +521,11 @@ class Trajectory(PymatgenTrajectory):
             site_inner_fraction=site_inner_fraction,
         )
 
-    def metrics(self) -> SimulationMetrics:
-        """See [gemdat.SimulationMetrics][] for more info."""
-        from .metrics import SimulationMetrics
+    def metrics(self) -> TrajectoryMetrics:
+        """See [gemdat.TrajectoryMetrics][] for more info."""
+        from .metrics import TrajectoryMetrics
 
-        return SimulationMetrics(trajectory=self)
+        return TrajectoryMetrics(trajectory=self)
 
     def plot_displacement_per_atom(self, **kwargs):
         """See [gemdat.plots.displacement_per_atom][] for more info."""
