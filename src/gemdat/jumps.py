@@ -331,16 +331,28 @@ class Jumps:
         return G.get_edge_data(start, stop)['e_act']
 
     @weak_lru_cache()
-    def to_graph(self) -> nx.DiGraph:
+    def to_graph(
+        self, min_e_act: float | None = None, max_e_act: float | None = None
+    ) -> nx.DiGraph:
         """Create a graph from jumps data.
 
         The edges are weighted by the activation energy.
+
+        Parameters
+        ----------
+        min_e_act : float
+            Reject edges with activation energy below this threshold
+        max_e_act : float
+            Reject edges with activation energy above this threshold
 
         Returns
         -------
         G : nx.DiGraph
             A networkx DiGraph object.
         """
+        min_e_act = min_e_act if min_e_act else float('-inf')
+        max_e_act = max_e_act if max_e_act else float('inf')
+
         atom_percentage = {
             site.label: site.species.num_atoms for site in self.transitions.occupancy()
         }
@@ -362,7 +374,8 @@ class Jumps:
             e_act = -np.log(eff_rate / attempt_freq) * kBT
             e_act /= elementary_charge
 
-            G.add_edge(start, stop, e_act=e_act)
+            if min_e_act <= e_act <= max_e_act:
+                G.add_edge(start, stop, e_act=e_act)
 
         return G
 
