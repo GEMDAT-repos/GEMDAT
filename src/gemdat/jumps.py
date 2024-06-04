@@ -375,6 +375,9 @@ class Jumps:
 
         G = nx.DiGraph()
 
+        for i, site in enumerate(self.sites):
+            G.add_node(i, label=site.label)
+
         for (start, stop), n_jumps in self._counter().items():
             time_perc = atom_percentage[start] * self.trajectory.total_time
 
