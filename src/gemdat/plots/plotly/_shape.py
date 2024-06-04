@@ -83,12 +83,10 @@ def shape(
         )
 
         # Highlight the (0,0,0) point
-        x0 = [0]
-        y0 = [0]
         fig.add_trace(
             go.Scatter(
-                x=x0,
-                y=y0,
+                x=[0],
+                y=[0],
                 mode='markers',
                 marker=dict(color='red'),
                 name='Sites ' + y_labels[col],
