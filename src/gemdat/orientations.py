@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import InitVar, dataclass, field, replace
+from typing import TYPE_CHECKING
 
 import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
-from gemdat.trajectory import Trajectory
 from gemdat.utils import cartesian_to_spherical, fft_autocorrelation
+
+from ._plot_backend import plot_backend
+
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 @dataclass
@@ -259,23 +264,20 @@ class Orientations:
         """Compute the autocorrelation of the orientation vectors using FFT."""
         return fft_autocorrelation(self.vectors)
 
-    def plot_rectilinear(self, **kwargs):
+    @plot_backend
+    def plot_rectilinear(self, *, module, **kwargs):
         """See [gemdat.plots.rectilinear][] for more info."""
-        from gemdat import plots
+        return module.rectilinear(orientations=self, **kwargs)
 
-        return plots.rectilinear(orientations=self, **kwargs)
-
-    def plot_bond_length_distribution(self, **kwargs):
+    @plot_backend
+    def plot_bond_length_distribution(self, *, module, **kwargs):
         """See [gemdat.plots.bond_length_distribution][] for more info."""
-        from gemdat import plots
+        return module.bond_length_distribution(orientations=self, **kwargs)
 
-        return plots.bond_length_distribution(orientations=self, **kwargs)
-
-    def plot_autocorrelation(self, **kwargs):
+    @plot_backend
+    def plot_autocorrelation(self, *, module, **kwargs):
         """See [gemdat.plots.unit_vector_autocorrelation][] for more info."""
-        from gemdat import plots
-
-        return plots.autocorrelation(orientations=self, **kwargs)
+        return module.autocorrelation(orientations=self, **kwargs)
 
 
 def calculate_spherical_areas(shape: tuple[int, int], radius: float = 1) -> np.ndarray:

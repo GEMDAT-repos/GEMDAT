@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import plotly.graph_objects as go
 
-from gemdat.metrics import TrajectoryMetrics
-from gemdat.trajectory import Trajectory
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def frequency_vs_occurence(*, trajectory: Trajectory) -> go.Figure:
@@ -20,7 +22,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> go.Figure:
     fig : plotly.graph_objects.Figure.Figure
         Output figure
     """
-    metrics = TrajectoryMetrics(trajectory)
+    metrics = trajectory.metrics()
     speed = metrics.speed()
 
     length = speed.shape[1]

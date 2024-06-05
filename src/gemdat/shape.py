@@ -7,6 +7,7 @@ import numpy as np
 from pymatgen.core import Lattice, PeriodicSite, Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
+from ._plot_backend import plot_backend
 from .trajectory import Trajectory
 from .utils import warn_lattice_not_close
 
@@ -73,11 +74,10 @@ class ShapeData:
         centroid = np.mean(self.coords, axis=0)
         return centroid
 
-    def plot(self, **kwargs):
+    @plot_backend
+    def plot(self, *, module, **kwargs):
         """See [gemdat.plots.shape][] for more info."""
-        from gemdat import plots
-
-        return plots.shape(shape=self, **kwargs)
+        return module.shape(shape=self, **kwargs)
 
 
 class ShapeAnalyzer:

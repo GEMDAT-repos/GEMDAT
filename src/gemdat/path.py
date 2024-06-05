@@ -15,6 +15,7 @@ from pymatgen.core.units import FloatWithUnit
 
 from gemdat.volume import FreeEnergyVolume
 
+from ._plot_backend import plot_backend
 from .utils import nearest_structure_reference
 
 if TYPE_CHECKING:
@@ -142,17 +143,15 @@ class Pathway:
         """Return stop site."""
         return self.sites[-1]
 
-    def plot_energy_along_path(self, **kwargs):
+    @plot_backend
+    def plot_energy_along_path(self, module, **kwargs):
         """See [gemdat.plots.energy_along_path][] for more info."""
-        from gemdat import plots
+        return module.energy_along_path(path=self, **kwargs)
 
-        return plots.energy_along_path(path=self, **kwargs)
-
-    def plot_path_on_grid(self, **kwargs):
+    @plot_backend
+    def plot_path_on_grid(self, module, **kwargs):
         """See [gemdat.plots.path_on_grid][] for more info."""
-        from gemdat import plots
-
-        return plots.path_on_grid(path=self, **kwargs)
+        return module.path_on_grid(path=self, **kwargs)
 
 
 def free_energy_graph(

@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from rich.progress import track
 
+from ._plot_backend import plot_backend
+
 if TYPE_CHECKING:
     from pymatgen.core import Structure
 
@@ -89,21 +91,19 @@ class RDFData:
     symbol: str
     state: str
 
-    def plot(self, **kwargs):
+    @plot_backend
+    def plot(self, *, module, **kwargs):
         """See [gemdat.plots.radial_distribution][] for more info."""
-        from gemdat import plots
-
-        return plots.radial_distribution(rdfs=[self], **kwargs)
+        return module.radial_distribution(rdfs=[self], **kwargs)
 
 
 class RDFCollection(list[RDFData]):
     """Collection to store group of radial distribution data."""
 
-    def plot(self, **kwargs):
+    @plot_backend
+    def plot(self, *, module, **kwargs):
         """See [gemdat.plots.radial_distribution][] for more info."""
-        from gemdat import plots
-
-        return plots.radial_distribution(rdfs=self, **kwargs)
+        return module.radial_distribution(rdfs=self, **kwargs)
 
 
 def radial_distribution(

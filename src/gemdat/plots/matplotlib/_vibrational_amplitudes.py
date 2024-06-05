@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
-from gemdat.metrics import TrajectoryMetrics
-from gemdat.trajectory import Trajectory
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
@@ -21,7 +23,7 @@ def vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    metrics = TrajectoryMetrics(trajectory)
+    metrics = trajectory.metrics()
 
     fig, ax = plt.subplots()
     ax.hist(metrics.amplitudes(), bins=100, density=True)

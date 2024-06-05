@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import matplotlib.pyplot as plt
 from pymatgen.core import Structure
 
-from gemdat.path import Pathway
+if TYPE_CHECKING:
+    from gemdat.path import Pathway
 
 
 def energy_along_path(

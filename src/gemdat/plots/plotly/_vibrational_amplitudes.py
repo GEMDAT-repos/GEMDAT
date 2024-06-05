@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from scipy import stats
 
-from gemdat.metrics import TrajectoryMetrics
-from gemdat.trajectory import Trajectory
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def vibrational_amplitudes(
@@ -29,8 +31,8 @@ def vibrational_amplitudes(
     """
 
     trajectories = trajectory.split(n_parts)
-    single_metrics = TrajectoryMetrics(trajectory)
-    metrics = [TrajectoryMetrics(trajectory).amplitudes() for trajectory in trajectories]
+    single_metrics = trajectory.metrics()
+    metrics = [trajectory.metrics().amplitudes() for trajectory in trajectories]
 
     max_amp = max(max(metric) for metric in metrics)
     min_amp = min(min(metric) for metric in metrics)

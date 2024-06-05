@@ -16,6 +16,8 @@ from pymatgen.core import Lattice
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
+from ._plot_backend import plot_backend
+
 if TYPE_CHECKING:
     from pymatgen.core import Structure
 
@@ -527,38 +529,32 @@ class Trajectory(PymatgenTrajectory):
 
         return TrajectoryMetrics(trajectory=self)
 
-    def plot_displacement_per_atom(self, **kwargs):
+    @plot_backend
+    def plot_displacement_per_atom(self, *, module, **kwargs):
         """See [gemdat.plots.displacement_per_atom][] for more info."""
-        from gemdat import plots
+        return module.displacement_per_atom(trajectory=self, **kwargs)
 
-        return plots.displacement_per_atom(trajectory=self, **kwargs)
-
-    def plot_displacement_per_element(self, **kwargs):
+    @plot_backend
+    def plot_displacement_per_element(self, *, module, **kwargs):
         """See [gemdat.plots.displacement_per_element][] for more info."""
-        from gemdat import plots
+        return module.displacement_per_element(trajectory=self, **kwargs)
 
-        return plots.displacement_per_element(trajectory=self, **kwargs)
-
-    def plot_msd_per_element(self, **kwargs):
+    @plot_backend
+    def plot_msd_per_element(self, *, module, **kwargs):
         """See [gemdat.plots.msd_per_element][] for more info."""
-        from gemdat import plots
+        return module.msd_per_element(trajectory=self, **kwargs)
 
-        return plots.msd_per_element(trajectory=self, **kwargs)
-
-    def plot_displacement_histogram(self, **kwargs):
+    @plot_backend
+    def plot_displacement_histogram(self, *, module, **kwargs):
         """See [gemdat.plots.displacement_histogram][] for more info."""
-        from gemdat import plots
+        return module.displacement_histogram(trajectory=self, **kwargs)
 
-        return plots.displacement_histogram(trajectory=self, **kwargs)
-
-    def plot_frequency_vs_occurence(self, **kwargs):
+    @plot_backend
+    def plot_frequency_vs_occurence(self, *, module, **kwargs):
         """See [gemdat.plots.frequency_vs_occurence][] for more info."""
-        from gemdat import plots
+        return module.frequency_vs_occurence(trajectory=self, **kwargs)
 
-        return plots.frequency_vs_occurence(trajectory=self, **kwargs)
-
-    def plot_vibrational_amplitudes(self, **kwargs):
+    @plot_backend
+    def plot_vibrational_amplitudes(self, *, module, **kwargs):
         """See [gemdat.plots.vibrational_amplitudes][] for more info."""
-        from gemdat import plots
-
-        return plots.vibrational_amplitudes(trajectory=self, **kwargs)
+        return module.vibrational_amplitudes(trajectory=self, **kwargs)
