@@ -254,7 +254,7 @@ class Trajectory(PymatgenTrajectory):
         cls,
         *,
         coords_file: Path | str,
-        box_file: Path | str,
+        data_file: Path | str,
         temperature: float,
         time_step: float,
         coords_format: str = 'xyz',
@@ -268,8 +268,8 @@ class Trajectory(PymatgenTrajectory):
         ----------
         coords_file : ...
             LAMMPS coords file with trajectory data
-        box_file : ...
-            LAMMPS data format, contains the lattice
+        data_file : ...
+            LAMMPS data file with the lattice
         temperature : float
             Temperature of simulation in K
         time_step : float
@@ -293,12 +293,12 @@ class Trajectory(PymatgenTrajectory):
         from pymatgen.io.lammps.data import LammpsData
 
         coords_file = str(coords_file)
-        box_file = str(box_file)
+        data_file = str(data_file)
 
         if not cache:
             kwargs = {
                 'coords_file': coords_file,
-                'box_file': box_file,
+                'data_file': data_file,
                 'temperature': temperature,
                 'time_step': time_step,
             }
@@ -316,7 +316,7 @@ class Trajectory(PymatgenTrajectory):
         if not constant_lattice:
             raise NotImplementedError('Lammps reader does not support NPT simulations')
 
-        lammps_data = LammpsData.from_file(filename=box_file, atom_style=atom_style)
+        lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)
         lattice = lammps_data.structure.lattice
 
         utraj = Universe(coords_file, format=coords_format)

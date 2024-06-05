@@ -167,7 +167,7 @@ def test_from_lammps():
 
     traj = Trajectory.from_lammps(
         coords_file=data_dir / 'lammps_coords.xyz',
-        box_file=data_dir / 'lammps_data.txt',
+        data_file=data_dir / 'lammps_data.txt',
         temperature=700,
         time_step=2,
     )
