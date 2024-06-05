@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Collection, Optional
 
 import numpy as np
-from pymatgen.core import Lattice
+from pymatgen.core import Element, Lattice
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
@@ -241,6 +241,94 @@ class Trajectory(PymatgenTrajectory):
             constant_lattice=constant_lattice,
             time_step=run.parameters['POTIM'] * 1e-15,
             metadata=metadata,
+        )
+        obj.to_positions()
+
+        if cache:
+            obj.to_cache(cache)
+
+        return obj
+
+    @classmethod
+    def from_lammps(
+        cls,
+        *,
+        coords_file: Path | str,
+        box_file: Path | str,
+        temperature: float,
+        time_step: float,
+        coords_format: str = 'xyz',
+        atom_style: str = 'atomic',
+        cache: Optional[str | Path] = None,
+        constant_lattice: bool = True,
+    ) -> Trajectory:
+        """Load data from LAMMPS.
+
+        Parameters
+        ----------
+        coords_file : ...
+            LAMMPS coords file with trajectory data
+        box_file : ...
+            LAMMPS data format, contains the lattice
+        temperature : float
+            Temperature of simulation in K
+        time_step : float
+            Time step of the simulation in fs
+        coords_format: str
+            Format of the coords file
+        atom_style : str
+            Atom style for box file
+        cache : Optional[Path], optional
+            Path to cache data for vasprun.xml
+        constant_lattice : bool
+            Whether the lattice changes during the simulation,
+            such as in an NPT MD simulation.
+
+        Returns
+        -------
+        trajectory : Trajectory
+            Output trajectory
+        """
+        from MDAnalysis import Universe
+        from pymatgen.io.lammps.data import LammpsData
+
+        if not cache:
+            kwargs = {
+                'coords_file': coords_file,
+                'box_file': box_file,
+                'temperature': temperature,
+                'time_step': time_step,
+            }
+            serialized = json.dumps(kwargs, sort_keys=True).encode()
+            hashid = hashlib.sha1(serialized).hexdigest()[:8]
+            cache = Path(coords_file).with_suffix(f'.{coords_format}.{hashid}.cache')
+
+        if Path(cache).exists():
+            try:
+                return cls.from_cache(cache)
+            except Exception as e:
+                print(e)
+                print(f'Error reading from cache, reading {coords_file!r}')
+
+        if not constant_lattice:
+            raise NotImplementedError('Lammps reader does not support NPT simulations')
+
+        lammps_data = LammpsData.from_file(filename=box_file, atom_style=atom_style)
+        lattice = lammps_data.structure.lattice
+
+        utraj = Universe(coords_file, format=coords_format)
+        coords = utraj.trajectory.timeseries()
+        coords = lattice.get_fractional_coords(coords)
+
+        species = [Element(sp) for sp in utraj.atoms.elements]
+
+        obj = cls(
+            species=species,
+            coords=coords,
+            lattice=lattice,
+            time_step=time_step,
+            constant_lattice=constant_lattice,
+            metadata={'temperature': temperature},
         )
         obj.to_positions()
 
