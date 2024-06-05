@@ -158,3 +158,19 @@ def test_mean_squared_displacement(trajectory):
     assert_allclose(msd[0], [0.0, 0.0525, 0.19, 0.425, 0.81])
     assert isinstance(msd, np.ndarray)
     assert_allclose(msd.mean(), 0.073875)
+
+
+def test_from_lammps():
+    from pathlib import Path
+
+    data_dir = Path(__file__).parent / 'data' / 'lammps'
+
+    traj = Trajectory.from_lammps(
+        coords_file=data_dir / 'lammps_coords.xyz',
+        box_file=data_dir / 'lammps_data.txt',
+        temperature=700,
+        time_step=2,
+    )
+
+    assert traj.positions.shape == (4, 80, 3)
+    assert len(traj.species) == 80

@@ -292,6 +292,9 @@ class Trajectory(PymatgenTrajectory):
         from MDAnalysis import Universe
         from pymatgen.io.lammps.data import LammpsData
 
+        coords_file = str(coords_file)
+        box_file = str(box_file)
+
         if not cache:
             kwargs = {
                 'coords_file': coords_file,
