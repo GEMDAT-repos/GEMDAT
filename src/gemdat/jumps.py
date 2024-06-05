@@ -10,6 +10,7 @@ import pandas as pd
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Boltzmann, angstrom, elementary_charge
 
+from ._plot_backend import plot_backend
 from .caching import weak_lru_cache
 from .collective import Collective
 from .simulation_metrics import SimulationMetrics
@@ -353,32 +354,27 @@ class Jumps:
 
         return df
 
-    def plot_jumps_vs_distance(self, **kwargs):
+    @plot_backend
+    def plot_jumps_vs_distance(self, *, module, **kwargs):
         """See [gemdat.plots.jumps_vs_distance][] for more information."""
-        from gemdat import plots
+        return module.jumps_vs_distance(jumps=self, **kwargs)
 
-        return plots.jumps_vs_distance(jumps=self, **kwargs)
-
-    def plot_jumps_vs_time(self, **kwargs):
+    @plot_backend
+    def plot_jumps_vs_time(self, *, module, **kwargs):
         """See [gemdat.plots.jumps_vs_time][] for more information."""
-        from gemdat import plots
+        return module.jumps_vs_time(jumps=self, **kwargs)
 
-        return plots.jumps_vs_time(jumps=self, **kwargs)
-
-    def plot_collective_jumps(self, **kwargs):
+    @plot_backend
+    def plot_collective_jumps(self, *, module, **kwargs):
         """See [gemdat.plots.collective_jumps][] for more information."""
-        from gemdat import plots
+        return module.collective_jumps(jumps=self, **kwargs)
 
-        return plots.collective_jumps(jumps=self, **kwargs)
-
-    def plot_jumps_3d(self, **kwargs):
+    @plot_backend
+    def plot_jumps_3d(self, *, module, **kwargs):
         """See [gemdat.plots.jumps_3d][] for more information."""
-        from gemdat import plots
+        return module.jumps_3d(jumps=self, **kwargs)
 
-        return plots.jumps_3d(jumps=self, **kwargs)
-
-    def plot_jumps_3d_animation(self, **kwargs):
+    @plot_backend
+    def plot_jumps_3d_animation(self, *, module, **kwargs):
         """See [gemdat.plots.jumps_3d_animation][] for more information."""
-        from gemdat import plots
-
-        return plots.jumps_3d_animation(jumps=self, **kwargs)
+        return module.jumps_3d_animation(jumps=self, **kwargs)

@@ -21,6 +21,7 @@ if typing.TYPE_CHECKING:
     from gemdat.rdf import RDFCollection
     from gemdat.trajectory import Trajectory
 
+
 NOSITE = -1
 
 

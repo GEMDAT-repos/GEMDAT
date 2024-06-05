@@ -14,7 +14,7 @@ from .caching import weak_lru_cache
 from .utils import meanfreq
 
 if typing.TYPE_CHECKING:
-    from gemdat.trajectory import Trajectory
+    from trajectory import Trajectory
 
 
 class SimulationMetrics:

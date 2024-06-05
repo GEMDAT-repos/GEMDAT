@@ -15,6 +15,7 @@ from scipy.constants import physical_constants
 from skimage.feature import blob_dog
 from skimage.measure import regionprops
 
+from ._plot_backend import plot_backend
 from .segmentation import watershed_pbc
 
 if TYPE_CHECKING:
@@ -377,11 +378,10 @@ class Volume:
             lattice=self.lattice,
         )
 
-    def plot_3d(self, **kwargs):
+    @plot_backend
+    def plot_3d(self, *, module, **kwargs):
         """See [gemdat.plots.plot_3d][] for more info."""
-        from gemdat import plots
-
-        return plots.plot_3d(volume=self, **kwargs)
+        return module.plot_3d(volume=self, **kwargs)
 
 
 class FreeEnergyVolume(Volume):

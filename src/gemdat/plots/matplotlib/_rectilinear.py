@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gemdat.orientations import (
-    Orientations,
-    calculate_spherical_areas,
-)
+if TYPE_CHECKING:
+    from gemdat.orientations import Orientations
 
 
 def rectilinear(
@@ -32,6 +32,8 @@ def rectilinear(
     fig : matplotlib.figure.Figure
         Output figure
     """
+    from gemdat.orientations import calculate_spherical_areas
+
     az, el, _ = orientations.vectors_spherical.T
     az = az.flatten()
     el = el.flatten()

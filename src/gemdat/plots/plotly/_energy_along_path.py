@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from itertools import pairwise
+from typing import TYPE_CHECKING
 
 import numpy as np
 import plotly.graph_objects as go
 from pymatgen.core import Structure
 
-from gemdat.path import Pathway
+if TYPE_CHECKING:
+    from gemdat.path import Pathway
 
 
 def energy_along_path(

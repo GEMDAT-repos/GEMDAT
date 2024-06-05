@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import matplotlib.pyplot as plt
 
-from gemdat.trajectory import Trajectory
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
