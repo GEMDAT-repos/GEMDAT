@@ -1,20 +1,28 @@
 from __future__ import annotations
 
+from types import ModuleType
+
+from gemdat import plots as plots_default
+from gemdat.plots import matplotlib as plots_matplotlib
+from gemdat.plots import plotly as plots_plotly
+
 
 def plot_backend(func):
     """Decorator to switch plotting backend."""
 
     def wrap(*args, backend: str | None = None, **kwargs):
+        module: ModuleType
+
         if backend is None:
-            from gemdat import plots as _backend
+            module = plots_default
         elif backend in ('mpl', 'matplotlib'):
-            from gemdat.plots import matplotlib as _backend
+            module = plots_matplotlib
         elif backend == 'plotly':
-            from gemdat.plots import plotly as _backend
+            module = plots_plotly
         else:
             raise ValueError(f'No such backend: {backend}')
 
-        result = func(*args, _backend=_backend, **kwargs)
+        result = func(*args, module=module, **kwargs)
 
         return result
 
