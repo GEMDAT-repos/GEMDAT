@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import plotly.graph_objects as go
 
-from gemdat.trajectory import Trajectory
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def msd_per_element(*, trajectory: Trajectory) -> go.Figure:

@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import InitVar, dataclass, field, replace
+from typing import TYPE_CHECKING
 
 import numpy as np
 from pymatgen.symmetry.groups import PointGroup
 
-from gemdat.trajectory import Trajectory
 from gemdat.utils import cartesian_to_spherical, fft_autocorrelation
 
 from ._plot_backend import plot_backend
+
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 @dataclass
