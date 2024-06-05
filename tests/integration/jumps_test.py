@@ -131,7 +131,7 @@ class TestJumps:  # type: ignore
     def test_to_graph(self, vasp_jumps):
         G = vasp_jumps.to_graph()
 
-        assert G.order() == 95
+        assert G.order() == 96
         assert G.size() == 187
 
         for u, v, expected in (
