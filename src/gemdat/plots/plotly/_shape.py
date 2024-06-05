@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Collection
+from typing import TYPE_CHECKING, Collection, Sequence
 
 import numpy as np
 import plotly.graph_objects as go
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 def shape(
     shape: ShapeData,
-    nbins: int = 50,
+    bins: int | Sequence[float] = 50,
     sites: Collection[PeriodicSite] | None = None,
 ) -> go.Figure:
     """Plot site cluster shapes.
@@ -24,8 +24,8 @@ def shape(
     ----------
     shape : ShapeData
         Shape data to plot
-    nbins : int
-        Number of bins
+    bins : int | Sequence[float]
+        Number of bins or sequence of bin edges.
     sites : Collection[PeriodicSite] | None
         Plot these sites on the shape density
 
@@ -43,6 +43,7 @@ def shape(
         subplot_titles=x_labels,
         shared_xaxes=True,
         vertical_spacing=0.1,
+        horizontal_spacing=0.1,
     )
 
     distances = shape.distances()
@@ -80,6 +81,7 @@ def shape(
                 y=y_coords,
                 name=y_labels[col],
                 showscale=False,
+                showlegend=False,
             ),
             **top_row,
         )
@@ -148,11 +150,21 @@ def shape(
             go.Histogram(
                 x=x_coords,
                 name=x_labels[col],
-                nbinsx=nbins,
+                nbinsx=bins if isinstance(bins, int) else len(bins),
                 histnorm='probability density',
             ),
             **bot_row,
         )
+
+    fig.update_yaxes(title_text='Y/Å', row=1, col=1)
+    fig.update_yaxes(title_text='Z/Å', row=1, col=2)
+    fig.update_yaxes(title_text='X/Å', row=1, col=3)
+    fig.update_yaxes(title_text='density', row=2, col=1)
+    fig.update_yaxes(title_text='density', row=2, col=2)
+    fig.update_yaxes(title_text='density', row=2, col=3)
+    fig.update_xaxes(title_text='X/Å', row=2, col=1)
+    fig.update_xaxes(title_text='Y/Å', row=2, col=2)
+    fig.update_xaxes(title_text='Z/Å', row=2, col=3)
 
     fig.update_layout(height=600, width=900, title_text=title, title_x=0.5)
 
