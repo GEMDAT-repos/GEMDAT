@@ -44,7 +44,7 @@ def shape(
     else:
         min_coords = bins[0]
         max_coords = bins[-1]
-        nbins = np.diff(bins).mean()
+        nbins = len(bins)
     xbins = {'start': min_coords, 'end': max_coords, 'size': (max_coords - min_coords) / nbins}
     dot_marker = {'color': 'red', 'line': {'width': 0.5, 'color': 'White'}}
     dashed_line = {'color': 'red', 'dash': 'dash'}
