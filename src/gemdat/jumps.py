@@ -299,8 +299,9 @@ class Jumps:
 
         Returns
         -------
-        counter : Counter[tuple[str, str], int]
-            Dictionary with site pairs as keys and corresponding number of jumps as dictionary values
+        counter : Counter[tuple[str, str]]
+            Dictionary with site pairs as keys and corresponding
+            number of jumps as dictionary values
         """
         labels = self.sites.labels
         counter: Counter[tuple[str, str]] = Counter()
@@ -314,8 +315,9 @@ class Jumps:
 
         Returns
         -------
-        counter : Counter[tuple[int, int], int]
-            Dictionary with site pairs as keys and corresponding number of jumps as dictionary values
+        counter : Counter[tuple[int, int]]
+            Dictionary with site pairs as keys and corresponding
+            number of jumps as dictionary values
         """
         counter = Counter(zip(self.data['start site'], self.data['destination site']))
         return counter
