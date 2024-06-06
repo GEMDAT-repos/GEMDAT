@@ -55,7 +55,7 @@ develop = [
     "coverage[toml]",
     "mypy",
     "pre-commit",
-    "pytest",
+    "pytest >= 8.1",
 ]
 
 docs = [
