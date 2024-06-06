@@ -25,7 +25,7 @@ nav:
     - gemdat.io: api/gemdat_io.md
     - gemdat.plots: api/gemdat_plots.md
     - gemdat.rdf: api/gemdat_rdf.md
-    - gemdat.simulation_metrics: api/gemdat_simulation_metrics.md
+    - gemdat.metrics: api/gemdat_metrics.md
     - gemdat.trajectory: api/gemdat_trajectory.md
     - gemdat.transitions: api/gemdat_transitions.md
     - gemdat.jumps: api/gemdat_jumps.md

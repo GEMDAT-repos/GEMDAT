@@ -8,8 +8,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from scipy import stats
 
-from gemdat.simulation_metrics import SimulationMetrics
-
 if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
@@ -33,8 +31,8 @@ def vibrational_amplitudes(
     """
 
     trajectories = trajectory.split(n_parts)
-    single_metrics = SimulationMetrics(trajectory)
-    metrics = [SimulationMetrics(trajectory).amplitudes() for trajectory in trajectories]
+    single_metrics = trajectory.metrics()
+    metrics = [trajectory.metrics().amplitudes() for trajectory in trajectories]
 
     max_amp = max(max(metric) for metric in metrics)
     min_amp = min(min(metric) for metric in metrics)

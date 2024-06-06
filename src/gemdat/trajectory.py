@@ -21,6 +21,7 @@ from ._plot_backend import plot_backend
 if TYPE_CHECKING:
     from pymatgen.core import Structure
 
+    from .metrics import TrajectoryMetrics
     from .transitions import Transitions
     from .volume import Volume
 
@@ -612,6 +613,12 @@ class Trajectory(PymatgenTrajectory):
             site_radius=site_radius,
             site_inner_fraction=site_inner_fraction,
         )
+
+    def metrics(self) -> TrajectoryMetrics:
+        """See [gemdat.TrajectoryMetrics][] for more info."""
+        from .metrics import TrajectoryMetrics
+
+        return TrajectoryMetrics(trajectory=self)
 
     @plot_backend
     def plot_displacement_per_atom(self, *, module, **kwargs):

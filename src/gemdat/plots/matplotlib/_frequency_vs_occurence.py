@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gemdat.simulation_metrics import SimulationMetrics
-
 if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
@@ -24,7 +22,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    metrics = SimulationMetrics(trajectory)
+    metrics = trajectory.metrics()
     speed = metrics.speed()
 
     length = speed.shape[1]

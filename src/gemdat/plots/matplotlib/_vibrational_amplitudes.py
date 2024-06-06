@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
-from gemdat.simulation_metrics import SimulationMetrics
-
 if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
@@ -25,7 +23,7 @@ def vibrational_amplitudes(*, trajectory: Trajectory) -> plt.Figure:
     fig : matplotlib.figure.Figure
         Output figure
     """
-    metrics = SimulationMetrics(trajectory)
+    metrics = trajectory.metrics()
 
     fig, ax = plt.subplots()
     ax.hist(metrics.amplitudes(), bins=100, density=True)

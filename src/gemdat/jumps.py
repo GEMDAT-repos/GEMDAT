@@ -5,6 +5,7 @@ from itertools import product
 from math import ceil
 from typing import TYPE_CHECKING, Callable
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 from pymatgen.core.units import FloatWithUnit
@@ -13,7 +14,7 @@ from scipy.constants import Boltzmann, angstrom, elementary_charge
 from ._plot_backend import plot_backend
 from .caching import weak_lru_cache
 from .collective import Collective
-from .simulation_metrics import SimulationMetrics
+from .metrics import TrajectoryMetrics
 from .transitions import Transitions, _calculate_transitions_matrix
 
 if TYPE_CHECKING:
@@ -223,7 +224,7 @@ class Jumps:
         sites = self.transitions.sites
 
         time_step = trajectory.time_step
-        attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
+        attempt_freq, _ = TrajectoryMetrics(trajectory).attempt_frequency()
 
         max_steps = ceil(1.0 / (attempt_freq * time_step))
 
@@ -237,7 +238,7 @@ class Jumps:
 
     @weak_lru_cache()
     def activation_energies(self, n_parts: int = 10) -> pd.DataFrame:
-        """Calculate activation energies for jumps (UNITS?).
+        """Calculate activation energies for jumps in eV.
 
         Parameters
         ----------
@@ -251,7 +252,7 @@ class Jumps:
             between site pairs.
         """
         trajectory = self.trajectory
-        attempt_freq, _ = SimulationMetrics(trajectory).attempt_frequency()
+        attempt_freq, _ = TrajectoryMetrics(trajectory).attempt_frequency()
 
         dct = {}
 
@@ -260,13 +261,13 @@ class Jumps:
         atom_locations_parts = [
             part.atom_locations() for part in self.transitions.split(n_parts)
         ]
-        jumps_counter_parts = [part.jumps_counter() for part in self.split(n_parts)]
+        counter_parts = [part.counter() for part in self.split(n_parts)]
         n_floating = self.n_floating
 
         for site_pair in self.site_pairs:
             site_start, site_stop = site_pair
 
-            n_jumps = np.array([part[site_pair] for part in jumps_counter_parts])
+            n_jumps = np.array([part[site_pair] for part in counter_parts])
 
             part_time = trajectory.total_time / n_parts
 
@@ -292,22 +293,106 @@ class Jumps:
 
         return df
 
-    def jumps_counter(self) -> Counter:
-        """Calculate number of jumps between sites.
+    @weak_lru_cache()
+    def counter(self) -> Counter[tuple[str, str]]:
+        """Count number of jumps between sites.
 
         Returns
         -------
-        jumps : dict[tuple[str, str], int]
-            Dictionary with number of jumps per sites combination
+        counter : Counter[tuple[str, str]]
+            Dictionary with site pairs as keys and corresponding
+            number of jumps as dictionary values
         """
         labels = self.sites.labels
-        jumps = Counter(
-            [
-                (labels[i], labels[j])
-                for _, (i, j) in self.data[['start site', 'destination site']].iterrows()
-            ]
-        )
-        return jumps
+        counter: Counter[tuple[str, str]] = Counter()
+        for (i, j), val in self._counter().items():
+            counter[labels[i], labels[j]] += val
+        return counter
+
+    @weak_lru_cache()
+    def _counter(self) -> Counter[tuple[int, int]]:
+        """Count number of jumps between sites. Keys are site indices.
+
+        Returns
+        -------
+        counter : Counter[tuple[int, int]]
+            Dictionary with site pairs as keys and corresponding
+            number of jumps as dictionary values
+        """
+        counter = Counter(zip(self.data['start site'], self.data['destination site']))
+        return counter
+
+    def activation_energy_between_sites(self, start: str, stop: str) -> float:
+        """Returns activation energy between two sites.
+
+        Uses `Jumps.to_graph()` in the background. For a large number of operations,
+        it is more efficient to query the graph directly.
+
+        Parameters
+        ----------
+        start : str
+            Label of the start site
+        stop : str
+            Label of the stop site
+
+        Returns
+        -------
+        e_act : float
+            Activation energy in eV
+        """
+        G = self.to_graph()
+        edge_data = G.get_edge_data(start, stop)
+        if not edge_data:
+            raise IndexError(f'No jumps between ({start}) and ({stop})')
+        return edge_data['e_act']
+
+    @weak_lru_cache()
+    def to_graph(
+        self, min_e_act: float | None = None, max_e_act: float | None = None
+    ) -> nx.DiGraph:
+        """Create a graph from jumps data.
+
+        The edges are weighted by the activation energy. The nodes are indices that
+        correspond to `Jumps.sites`.
+
+        Parameters
+        ----------
+        min_e_act : float
+            Reject edges with activation energy below this threshold
+        max_e_act : float
+            Reject edges with activation energy above this threshold
+
+        Returns
+        -------
+        G : nx.DiGraph
+            A networkx DiGraph object.
+        """
+        min_e_act = min_e_act if min_e_act else float('-inf')
+        max_e_act = max_e_act if max_e_act else float('inf')
+
+        atom_percentage = [site.species.num_atoms for site in self.transitions.occupancy()]
+
+        attempt_freq, _ = self.trajectory.metrics().attempt_frequency()
+        temperature = self.trajectory.metadata['temperature']
+        kBT = Boltzmann * temperature
+
+        G = nx.DiGraph()
+
+        for i, site in enumerate(self.sites):
+            G.add_node(i, label=site.label)
+
+        for (start, stop), n_jumps in self._counter().items():
+            time_perc = atom_percentage[start] * self.trajectory.total_time
+
+            eff_rate = n_jumps / time_perc
+
+            e_act = -np.log(eff_rate / attempt_freq) * kBT
+            e_act /= elementary_charge
+
+            if min_e_act <= e_act <= max_e_act:
+                G.add_edge(start, stop, e_act=e_act)
+
+        return G
 
     def split(self, n_parts: int) -> list[Jumps]:
         """Split the jumps into parts.
@@ -336,12 +421,12 @@ class Jumps:
         """
         dct = {}
 
-        parts = [part.jumps_counter() for part in self.split(n_parts)]
+        parts = [part.counter() for part in self.split(n_parts)]
+        part_time = self.trajectory.total_time / n_parts
 
         for site_pair in self.site_pairs:
             n_jumps = [part[site_pair] for part in parts]
 
-            part_time = self.trajectory.total_time / n_parts
             denom = self.n_floating * part_time
 
             jump_freq_mean = np.mean(n_jumps) / denom

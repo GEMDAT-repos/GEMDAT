@@ -13,7 +13,7 @@ from MDAnalysis.lib.pkdtree import PeriodicKDTree
 from pymatgen.core import Structure
 
 from .caching import weak_lru_cache
-from .simulation_metrics import SimulationMetrics
+from .metrics import TrajectoryMetrics
 from .utils import bfill, ffill, integer_remap
 
 if typing.TYPE_CHECKING:
@@ -108,7 +108,7 @@ class Transitions:
         diff_trajectory = trajectory.filter(floating_specie)
 
         if site_radius is None:
-            vibration_amplitude = SimulationMetrics(diff_trajectory).vibration_amplitude()
+            vibration_amplitude = TrajectoryMetrics(diff_trajectory).vibration_amplitude()
 
             site_radius = _compute_site_radius(
                 trajectory=trajectory,

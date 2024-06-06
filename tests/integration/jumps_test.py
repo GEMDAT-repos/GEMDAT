@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gemdat import Jumps, SimulationMetrics
+from gemdat import Jumps, TrajectoryMetrics
 
 
 @pytest.vaspxml_available
@@ -75,7 +75,7 @@ class TestJumps:  # type: ignore
 
     def test_correlation_factor(self, vasp_traj, vasp_jumps):
         vasp_diff_traj = vasp_traj.filter('Li')
-        metrics = SimulationMetrics(vasp_diff_traj)
+        metrics = TrajectoryMetrics(vasp_diff_traj)
         tracer_diff = metrics.tracer_diffusivity(dimensions=3)
         correlation_factor = tracer_diff / vasp_jumps.jump_diffusivity(dimensions=3)
         assert isclose(correlation_factor, 0.165600, rel_tol=1e-6)
@@ -127,3 +127,27 @@ class TestJumps:  # type: ignore
                 dtype=[('start', '<i8'), ('stop', '<i8')],
             )
         )
+
+    def test_to_graph(self, vasp_jumps):
+        G = vasp_jumps.to_graph()
+
+        assert G.order() == 96
+        assert G.size() == 187
+
+        for u, v, expected in (
+            (94, 0, 0.05923585746822445),
+            (20, 28, 0.1570228461130699),
+            (17, 40, 0.18182873244769768),
+            (69, 29, 0.13543952217058822),
+        ):
+            assert G.get_edge_data(u, v)['e_act'] == expected
+
+    def test_activation_energy_between_sites(self, vasp_jumps):
+        for u, v, expected in (
+            (94, 0, 0.05923585746822445),
+            (20, 28, 0.1570228461130699),
+            (17, 40, 0.18182873244769768),
+            (69, 29, 0.13543952217058822),
+        ):
+            e_act = vasp_jumps.activation_energy_between_sites(u, v)
+            assert e_act == expected

@@ -1,6 +1,6 @@
 - [gemdat.read_cif][gemdat.io.read_cif]
 - [gemdat.load_known_material][gemdat.io.load_known_material]
-- [gemdat.SimulationMetrics][gemdat.simulation_metrics.SimulationMetrics]
+- [gemdat.TrajectoryMetrics][gemdat.metrics.TrajectoryMetrics]
 - [gemdat.Transitions][gemdat.transitions.Transitions]
 - [gemdat.Jumps][gemdat.jumps.Jumps]
 - [gemdat.Trajectory][gemdat.trajectory.Trajectory]
