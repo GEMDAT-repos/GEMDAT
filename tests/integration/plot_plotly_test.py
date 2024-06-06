@@ -76,7 +76,7 @@ def test_radial_distribution(vasp_rdf_data):
 
 def test_shape(vasp_shape_data):
     assert len(vasp_shape_data) == 1
-    for i, shape in vasp_shape_data:
+    for shape in vasp_shape_data:
         fig = shape.plot(backend=BACKEND)
 
         assert_figures_similar(fig, name='shape', rms=0.5)
