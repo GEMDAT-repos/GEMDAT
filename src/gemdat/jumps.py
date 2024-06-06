@@ -324,7 +324,7 @@ class Jumps:
         """Returns activation energy between two sites.
 
         Uses `Jumps.to_graph()` in the background. For a large number of operations,
-        it is more efficient to querie the graph directly.
+        it is more efficient to query the graph directly.
 
         Parameters
         ----------
