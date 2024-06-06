@@ -12,9 +12,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Collection, Optional
 
 import numpy as np
-from pymatgen.core import Lattice
+from pymatgen.core import Element, Lattice
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
+
+from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
     from pymatgen.core import Structure
@@ -239,6 +241,97 @@ class Trajectory(PymatgenTrajectory):
             constant_lattice=constant_lattice,
             time_step=run.parameters['POTIM'] * 1e-15,
             metadata=metadata,
+        )
+        obj.to_positions()
+
+        if cache:
+            obj.to_cache(cache)
+
+        return obj
+
+    @classmethod
+    def from_lammps(
+        cls,
+        *,
+        coords_file: Path | str,
+        data_file: Path | str,
+        temperature: float,
+        time_step: float,
+        coords_format: str = 'xyz',
+        atom_style: str = 'atomic',
+        cache: Optional[str | Path] = None,
+        constant_lattice: bool = True,
+    ) -> Trajectory:
+        """Load data from LAMMPS.
+
+        Parameters
+        ----------
+        coords_file : ...
+            LAMMPS coords file with trajectory data
+        data_file : ...
+            LAMMPS data file with the lattice
+        temperature : float
+            Temperature of simulation in K
+        time_step : float
+            Time step of the simulation in fs
+        coords_format: str
+            Format of the coords file
+        atom_style : str
+            Atom style for box file
+        cache : Optional[Path], optional
+            Path to cache data for vasprun.xml
+        constant_lattice : bool
+            Whether the lattice changes during the simulation,
+            such as in an NPT MD simulation.
+
+        Returns
+        -------
+        trajectory : Trajectory
+            Output trajectory
+        """
+        from MDAnalysis import Universe
+        from pymatgen.io.lammps.data import LammpsData
+
+        coords_file = str(coords_file)
+        data_file = str(data_file)
+
+        if not cache:
+            kwargs = {
+                'coords_file': coords_file,
+                'data_file': data_file,
+                'temperature': temperature,
+                'time_step': time_step,
+            }
+            serialized = json.dumps(kwargs, sort_keys=True).encode()
+            hashid = hashlib.sha1(serialized).hexdigest()[:8]
+            cache = Path(coords_file).with_suffix(f'.{coords_format}.{hashid}.cache')
+
+        if Path(cache).exists():
+            try:
+                return cls.from_cache(cache)
+            except Exception as e:
+                print(e)
+                print(f'Error reading from cache, reading {coords_file!r}')
+
+        if not constant_lattice:
+            raise NotImplementedError('Lammps reader does not support NPT simulations')
+
+        lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)
+        lattice = lammps_data.structure.lattice
+
+        utraj = Universe(coords_file, format=coords_format)
+        coords = utraj.trajectory.timeseries()
+        coords = lattice.get_fractional_coords(coords)
+
+        species = [Element(sp) for sp in utraj.atoms.elements]
+
+        obj = cls(
+            species=species,
+            coords=coords,
+            lattice=lattice,
+            time_step=time_step,
+            constant_lattice=constant_lattice,
+            metadata={'temperature': temperature},
         )
         obj.to_positions()
 
@@ -520,38 +613,32 @@ class Trajectory(PymatgenTrajectory):
             site_inner_fraction=site_inner_fraction,
         )
 
-    def plot_displacement_per_atom(self, **kwargs):
+    @plot_backend
+    def plot_displacement_per_atom(self, *, module, **kwargs):
         """See [gemdat.plots.displacement_per_atom][] for more info."""
-        from gemdat import plots
+        return module.displacement_per_atom(trajectory=self, **kwargs)
 
-        return plots.displacement_per_atom(trajectory=self, **kwargs)
-
-    def plot_displacement_per_element(self, **kwargs):
+    @plot_backend
+    def plot_displacement_per_element(self, *, module, **kwargs):
         """See [gemdat.plots.displacement_per_element][] for more info."""
-        from gemdat import plots
+        return module.displacement_per_element(trajectory=self, **kwargs)
 
-        return plots.displacement_per_element(trajectory=self, **kwargs)
-
-    def plot_msd_per_element(self, **kwargs):
+    @plot_backend
+    def plot_msd_per_element(self, *, module, **kwargs):
         """See [gemdat.plots.msd_per_element][] for more info."""
-        from gemdat import plots
+        return module.msd_per_element(trajectory=self, **kwargs)
 
-        return plots.msd_per_element(trajectory=self, **kwargs)
-
-    def plot_displacement_histogram(self, **kwargs):
+    @plot_backend
+    def plot_displacement_histogram(self, *, module, **kwargs):
         """See [gemdat.plots.displacement_histogram][] for more info."""
-        from gemdat import plots
+        return module.displacement_histogram(trajectory=self, **kwargs)
 
-        return plots.displacement_histogram(trajectory=self, **kwargs)
-
-    def plot_frequency_vs_occurence(self, **kwargs):
+    @plot_backend
+    def plot_frequency_vs_occurence(self, *, module, **kwargs):
         """See [gemdat.plots.frequency_vs_occurence][] for more info."""
-        from gemdat import plots
+        return module.frequency_vs_occurence(trajectory=self, **kwargs)
 
-        return plots.frequency_vs_occurence(trajectory=self, **kwargs)
-
-    def plot_vibrational_amplitudes(self, **kwargs):
+    @plot_backend
+    def plot_vibrational_amplitudes(self, *, module, **kwargs):
         """See [gemdat.plots.vibrational_amplitudes][] for more info."""
-        from gemdat import plots
-
-        return plots.vibrational_amplitudes(trajectory=self, **kwargs)
+        return module.vibrational_amplitudes(trajectory=self, **kwargs)

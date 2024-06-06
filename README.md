@@ -15,7 +15,7 @@ Gemdat is a Python library for the analysis of diffusion in solid-state electrol
 With Gemdat, you can:
 
 - Explore your MD simulation via an easy-to-use Python API
-- Load and analyze trajectories from VASP simulation data
+- Load and analyze trajectories from VASP and LAMMPS simulation data
 - Find jumps and transitions between sites
 - Effortlessly calculate tracer and jump diffusivity
 - Characterize and visualize diffusion pathways

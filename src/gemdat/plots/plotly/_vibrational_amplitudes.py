@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -7,7 +9,9 @@ import plotly.graph_objects as go
 from scipy import stats
 
 from gemdat.simulation_metrics import SimulationMetrics
-from gemdat.trajectory import Trajectory
+
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def vibrational_amplitudes(

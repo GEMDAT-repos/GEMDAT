@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import matplotlib.pyplot as plt
 
 from gemdat.plots._shared import _mean_displacements_per_element
-from gemdat.trajectory import Trajectory
+
+if TYPE_CHECKING:
+    from gemdat.trajectory import Trajectory
 
 
 def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
