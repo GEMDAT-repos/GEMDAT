@@ -36,6 +36,19 @@ def shape(
     """
     x_labels = ('X / Å', 'Y / Å', 'Z / Å')
     y_labels = ('Y / Å', 'Z / Å', 'X / Å')
+    # If bins is an int, create a sequence of bins
+    if isinstance(bins, int):
+        min_coords = shape.coords.min()
+        max_coords = shape.coords.max()
+        nbins = bins
+    else:
+        min_coords = bins[0]
+        max_coords = bins[-1]
+        nbins = np.diff(bins).mean()
+    xbins = {'start': min_coords, 'end': max_coords, 'size': (max_coords - min_coords) / nbins}
+    dot_marker = {'color': 'red', 'line': {'width': 0.5, 'color': 'White'}}
+    dashed_line = {'color': 'red', 'dash': 'dash'}
+    h_colors = ['red', 'green', 'blue']
 
     fig = make_subplots(
         rows=2,
@@ -71,8 +84,6 @@ def shape(
         y_coords = coords[:, j]
         top_row = {'row': 1, 'col': col + 1}
         bot_row = {'row': 2, 'col': col + 1}
-        dot_marker = {'color': 'red', 'line': {'width': 0.5, 'color': 'White'}}
-        dashed_line = {'color': 'red', 'dash': 'dash'}
 
         # Map of the coordinates
         fig.add_trace(
@@ -150,22 +161,22 @@ def shape(
             go.Histogram(
                 x=x_coords,
                 name=x_labels[col],
-                nbinsx=bins if isinstance(bins, int) else len(bins),
+                xbins=xbins,
                 histnorm='probability density',
+                marker_color=h_colors[col],
             ),
             **bot_row,
         )
 
-    fig.update_yaxes(title_text='Y/Å', row=1, col=1)
-    fig.update_yaxes(title_text='Z/Å', row=1, col=2)
-    fig.update_yaxes(title_text='X/Å', row=1, col=3)
-    fig.update_yaxes(title_text='density', row=2, col=1)
-    fig.update_yaxes(title_text='density', row=2, col=2)
-    fig.update_yaxes(title_text='density', row=2, col=3)
-    fig.update_xaxes(title_text='X/Å', row=2, col=1)
-    fig.update_xaxes(title_text='Y/Å', row=2, col=2)
-    fig.update_xaxes(title_text='Z/Å', row=2, col=3)
+    for i in range(3):
+        fig.update_xaxes(
+            title_text=x_labels[i], row=2, col=i + 1, range=[min_coords, max_coords]
+        )
+        fig.update_yaxes(
+            title_text=y_labels[i], row=1, col=i + 1, range=[min_coords, max_coords]
+        )
+        fig.update_yaxes(title_text='density', row=2, col=i + 1)
 
-    fig.update_layout(height=600, width=900, title_text=title, title_x=0.5)
+    fig.update_layout(height=500, width=750, title_text=title, title_x=0.5)
 
     return fig
