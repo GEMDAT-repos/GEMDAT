@@ -299,8 +299,8 @@ class Jumps:
 
         Returns
         -------
-        jumps : dict[tuple[str, str], int]
-            Dictionary with number of jumps per sites combination
+        counter : Counter[tuple[str, str], int]
+            Dictionary with site pairs as keys and corresponding number of jumps as dictionary values
         """
         labels = self.sites.labels
         counter: Counter[tuple[str, str]] = Counter()
