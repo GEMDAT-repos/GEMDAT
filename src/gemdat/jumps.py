@@ -314,8 +314,8 @@ class Jumps:
 
         Returns
         -------
-        counter : dict[tuple[i, i], int]
-            Dictionary with number of jumps per sites combination
+        counter : Counter[tuple[int, int], int]
+            Dictionary with site pairs as keys and corresponding number of jumps as dictionary values
         """
         counter = Counter(zip(self.data['start site'], self.data['destination site']))
         return counter
