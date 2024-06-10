@@ -101,6 +101,6 @@ If you are adding new pages, make sure to update the listing in the [`mkdocs.yml
 
 2. Under 'Choose a tag', set the tag to the new version. The versioning scheme we use is [SemVer](http://semver.org/), so bump the version (*major*/*minor*/*patch*) as needed. Bumping the version is handled transparently by `bumpversion` in [this workflow](https://github.com/GEMDAT-repos/GEMDAT/blob/main/.github/workflows/publish.yaml).
 
-3. The [upload to pypi](https://pypi.org/project/XXX) is triggered when a release is published and handled by [this workflow](https://github.com/GEMDAT-repos/GEMDAT/actions/workflows/publish.yaml).
+3. The [upload to pypi](https://pypi.org/project/gemdat) is triggered when a release is published and handled by [this workflow](https://github.com/GEMDAT-repos/GEMDAT/actions/workflows/publish.yaml).
 
-4. The [upload to zenodo](https://zenodo.org/record/XXX) is triggered when a release is published.
+4. The [upload to zenodo](https://zenodo.org/record/10.5281/zenodo.8401669) is triggered when a release is published.
