@@ -342,7 +342,7 @@ class Trajectory(PymatgenTrajectory):
         return obj
 
     @classmethod
-    def from_grommacs(
+    def from_gromacs(
         cls,
         *,
         topology_file: Path | str,
@@ -379,9 +379,10 @@ class Trajectory(PymatgenTrajectory):
         trajectory : Trajectory
             Output trajectory
         """
+        import re
+        
         import MDAnalysis as mda
         from pymatgen.core import Lattice
-        import re
 
         topology_file = str(topology_file)
         trajectory_file = str(trajectory_file)
@@ -392,30 +393,39 @@ class Trajectory(PymatgenTrajectory):
 
         if not constant_lattice:
             lattice = [Lattice.from_parameters(*ts.dimensions) for ts in utraj.trajectory]
-            for ts,lat in enumerate(lattice):
-                coords[ts,:,:] = lat.get_fractional_coords(coords[ts,:,:])
+            for ts, lat in enumerate(lattice):
+                coords[ts, :, :] = lat.get_fractional_coords(coords[ts, :, :])
         else:
             lattice = Lattice.from_parameters(*utraj.trajectory[0].dimensions)
             coords = lattice.get_fractional_coords(coords)
 
-        species = [Element(re.search('\D+',sp).group().replace('LI','Li')) for sp in utraj.atoms.names]
+        species = [
+            Element(re.search('\D+',sp).group().replace('LI','Li'))
+            for sp in utraj.atoms.names
+        ]
 
-        site_properties = {'residue':[sp.residue for sp in utraj.atoms],
-                            'residue_name':[sp.resname for sp in utraj.atoms],
-                            'residue_id':[sp.resid for sp in utraj.atoms],}
+        site_properties = {
+            'residue':[sp.residue for sp in utraj.atoms],         
+            'residue_name':[sp.resname for sp in utraj.atoms],
+            'residue_id':[sp.resid for sp in utraj.atoms],
+        }
 
         if extract_edr:
             aux = mda.auxiliary.EDR.EDRReader(edr_file)
-            metadata = {'temperature': temperature,
-                      'aux': aux.get_data(aux.terms),}
+            metadata = {
+                'temperature': temperature,
+                'aux': aux.get_data(aux.terms),
+            }
         else:
-            metadata = {'temperature': temperature,}
+            metadata = {
+                'temperature': temperature,
+            }
 
         obj = cls(
             species=species,
             coords=coords,
             lattice=lattice,
-            time_step=utraj.trajectory.dt*1000,
+            time_step=utraj.trajectory.dt * 1000,
             constant_lattice=constant_lattice,
             metadata=metadata,
             site_properties=site_properties,
