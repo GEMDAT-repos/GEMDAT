@@ -27,7 +27,7 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
     species = list(set(trajectory.species))
 
     # Since we want to plot in picosecond, we convert the time units
-    time_ps = trajectory.time_step * 1e12
+    time_ps = trajectory.time_step / 1000
 
     for sp in species:
         traj = trajectory.filter(sp.symbol)

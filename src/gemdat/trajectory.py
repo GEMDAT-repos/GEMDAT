@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import pickle
+import re
 import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
@@ -24,6 +25,9 @@ if TYPE_CHECKING:
     from .metrics import TrajectoryMetrics
     from .transitions import Transitions
     from .volume import Volume
+
+
+SP_NAME = re.compile(r'([a-zA-Z]+)')
 
 
 def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
@@ -371,7 +375,6 @@ class Trajectory(PymatgenTrajectory):
         cache : Optional[Path], optional
             Path to cache data for vasprun.xml
 
-
         Returns
         -------
         trajectory : Trajectory
@@ -383,7 +386,6 @@ class Trajectory(PymatgenTrajectory):
 
         topology_file = str(topology_file)
         coords_file = str(coords_file)
-        edr_file = str(edr_file)
 
         if not cache:
             kwargs = {
@@ -414,7 +416,7 @@ class Trajectory(PymatgenTrajectory):
             lattice = Lattice.from_parameters(*utraj.trajectory[0].dimensions)
             coords = lattice.get_fractional_coords(coords)
 
-        species = [Element(sp.capitalize()) for sp in utraj.atoms.names]
+        species = [Element(SP_NAME.match(sp).group().capitalize()) for sp in utraj.atoms.names]  # type: ignore
 
         site_properties = {
             'residue': [sp.residue for sp in utraj.atoms],
@@ -427,6 +429,7 @@ class Trajectory(PymatgenTrajectory):
         }
 
         if edr_file:
+            edr_file = str(edr_file)
             aux = mda.auxiliary.EDR.EDRReader(edr_file)
             metadata['aux'] = aux.get_data(aux.terms)
 
@@ -434,7 +437,7 @@ class Trajectory(PymatgenTrajectory):
             species=species,
             coords=coords,
             lattice=lattice,
-            time_step=utraj.trajectory.dt * 1000,
+            time_step=utraj.trajectory.dt * 1000,  # ps -> fs
             constant_lattice=constant_lattice,
             metadata=metadata,
             site_properties=site_properties,
