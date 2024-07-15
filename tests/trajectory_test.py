@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 from numpy.testing import assert_allclose
 from pymatgen.core import Lattice, Species
@@ -161,8 +163,6 @@ def test_mean_squared_displacement(trajectory):
 
 
 def test_from_lammps():
-    from pathlib import Path
-
     data_dir = Path(__file__).parent / 'data' / 'lammps'
 
     traj = Trajectory.from_lammps(
@@ -174,3 +174,17 @@ def test_from_lammps():
 
     assert traj.positions.shape == (4, 80, 3)
     assert len(traj.species) == 80
+
+
+def test_from_gromacs():
+    data_dir = Path(__file__).parent / 'data' / 'gromacs'
+
+    traj = Trajectory.from_gromacs(
+        topology_file=data_dir / 'gromacs_topology.tpr',
+        coords_file=data_dir / 'gromacs_short_trajectory.xtc',
+        temperature=300,
+    )
+
+    assert traj.positions.shape == (251, 18943, 3)
+    assert len(traj.species) == 18943
+    assert traj.time_step == 2000
