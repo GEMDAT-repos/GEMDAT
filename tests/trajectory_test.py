@@ -174,6 +174,7 @@ def test_from_lammps():
 
     assert traj.positions.shape == (4, 80, 3)
     assert len(traj.species) == 80
+    assert traj.time_step_ps == 2
 
 
 def test_from_gromacs():
@@ -187,4 +188,4 @@ def test_from_gromacs():
 
     assert traj.positions.shape == (251, 18943, 3)
     assert len(traj.species) == 18943
-    assert traj.time_step == 2000
+    assert traj.time_step_ps == 2

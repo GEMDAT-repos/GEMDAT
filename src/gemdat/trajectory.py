@@ -130,6 +130,11 @@ class Trajectory(PymatgenTrajectory):
         return trajectory_to_volume(self, resolution=resolution)
 
     @property
+    def time_step_ps(self) -> float:
+        """Return time step in picoseconds."""
+        return self.time_step * 1e12
+
+    @property
     def total_time(self) -> float:
         """Return total time for trajectory."""
         return len(self) * self.time_step
@@ -278,7 +283,7 @@ class Trajectory(PymatgenTrajectory):
         temperature : float
             Temperature of simulation in K
         time_step : float
-            Time step of the simulation in fs
+            Time step of the simulation in ps
         coords_format: str
             Format of the coords file
         atom_style : str
@@ -334,7 +339,7 @@ class Trajectory(PymatgenTrajectory):
             species=species,
             coords=coords,
             lattice=lattice,
-            time_step=time_step,
+            time_step=time_step * 1e-12,  # ps -> s
             constant_lattice=constant_lattice,
             metadata={'temperature': temperature},
         )
@@ -437,7 +442,7 @@ class Trajectory(PymatgenTrajectory):
             species=species,
             coords=coords,
             lattice=lattice,
-            time_step=utraj.trajectory.dt * 1000,  # ps -> fs
+            time_step=utraj.trajectory.dt * 1e-12,  # ps -> s
             constant_lattice=constant_lattice,
             metadata=metadata,
             site_properties=site_properties,
