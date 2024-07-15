@@ -64,11 +64,11 @@ def shape(
 
     coords = shape.coords
 
-    axes[0, 1].set_title(title)
+    axes[0, 1].set_title(title)  # type: ignore
 
     for col, (i, j) in enumerate(((0, 1), (1, 2), (2, 0))):
-        ax0 = axes[0, col]
-        ax1 = axes[1, col]
+        ax0 = axes[0, col]  # type: ignore
+        ax1 = axes[1, col]  # type: ignore
 
         x_coords = coords[:, i]
         y_coords = coords[:, j]

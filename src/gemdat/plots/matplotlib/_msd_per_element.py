@@ -35,8 +35,7 @@ def msd_per_element(
 
     fig, ax = plt.subplots()
 
-    # Since we want to plot in picosecond, we convert the time units
-    time_ps = trajectory.time_step * 1e12
+    time_ps = trajectory.time_step_ps
     t_values = np.arange(len(trajectory)) * time_ps
 
     for sp in species:

@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import pickle
+import re
 import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
@@ -24,6 +25,9 @@ if TYPE_CHECKING:
     from .metrics import TrajectoryMetrics
     from .transitions import Transitions
     from .volume import Volume
+
+
+SP_NAME = re.compile(r'([a-zA-Z]+)')
 
 
 def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
@@ -124,6 +128,11 @@ class Trajectory(PymatgenTrajectory):
         from gemdat.volume import trajectory_to_volume
 
         return trajectory_to_volume(self, resolution=resolution)
+
+    @property
+    def time_step_ps(self) -> float:
+        """Return time step in picoseconds."""
+        return self.time_step * 1e12
 
     @property
     def total_time(self) -> float:
@@ -267,14 +276,14 @@ class Trajectory(PymatgenTrajectory):
 
         Parameters
         ----------
-        coords_file : ...
+        coords_file : Path | str
             LAMMPS coords file with trajectory data
-        data_file : ...
+        data_file : Path | str
             LAMMPS data file with the lattice
         temperature : float
             Temperature of simulation in K
         time_step : float
-            Time step of the simulation in fs
+            Time step of the simulation in ps
         coords_format: str
             Format of the coords file
         atom_style : str
@@ -330,9 +339,113 @@ class Trajectory(PymatgenTrajectory):
             species=species,
             coords=coords,
             lattice=lattice,
-            time_step=time_step,
+            time_step=time_step * 1e-12,  # ps -> s
             constant_lattice=constant_lattice,
             metadata={'temperature': temperature},
+        )
+        obj.to_positions()
+
+        if cache:
+            obj.to_cache(cache)
+
+        return obj
+
+    @classmethod
+    def from_gromacs(
+        cls,
+        *,
+        topology_file: Path | str,
+        coords_file: Path | str,
+        constant_lattice: bool = True,
+        temperature: float,
+        extract_edr: bool = False,
+        edr_file: Optional[str | Path] = None,
+        cache: Optional[str | Path] = None,
+    ) -> Trajectory:
+        """Load data from GROMACS.
+
+        Parameters
+        ----------
+        topology_file : Path | str
+            GROMACS topology data file
+        coords_file : Path | str
+            GROMACS trajectory data file
+        constant_lattice : bool
+            Whether the lattice changes during the simulation,
+            such as in an NPT MD simulation.
+        temperature : float
+            Temperature of simulation in K
+        edr_file: Optional[Path], optional
+            If specified, extract time-series energy data from GROMACS EDR file
+        cache : Optional[Path], optional
+            Path to cache data for vasprun.xml
+
+        Returns
+        -------
+        trajectory : Trajectory
+            Output trajectory
+        """
+
+        import MDAnalysis as mda
+        from pymatgen.core import Lattice
+
+        topology_file = str(topology_file)
+        coords_file = str(coords_file)
+
+        if not cache:
+            kwargs = {
+                'topology_file': topology_file,
+                'coords_file': coords_file,
+                'edr_file': edr_file,
+                'temperature': temperature,
+            }
+            serialized = json.dumps(kwargs, sort_keys=True).encode()
+            hashid = hashlib.sha1(serialized).hexdigest()[:8]
+            cache = Path(coords_file).with_suffix(f'.{hashid}.cache')
+
+        if Path(cache).exists():
+            try:
+                return cls.from_cache(cache)
+            except Exception as e:
+                print(e)
+                print(f'Error reading from cache, reading {coords_file!r}')
+
+        utraj = mda.Universe(topology_file, coords_file)
+        coords = utraj.trajectory.timeseries()
+
+        if not constant_lattice:
+            lattices = [Lattice.from_parameters(*ts.dimensions) for ts in utraj.trajectory]
+            for ts, lat in enumerate(lattices):
+                coords[ts, :, :] = lat.get_fractional_coords(coords[ts, :, :])
+        else:
+            lattice = Lattice.from_parameters(*utraj.trajectory[0].dimensions)
+            coords = lattice.get_fractional_coords(coords)
+
+        species = [Element(SP_NAME.match(sp).group().capitalize()) for sp in utraj.atoms.names]  # type: ignore
+
+        site_properties = {
+            'residue': [sp.residue for sp in utraj.atoms],
+            'residue_name': [sp.resname for sp in utraj.atoms],
+            'residue_id': [sp.resid for sp in utraj.atoms],
+        }
+
+        metadata = {
+            'temperature': temperature,
+        }
+
+        if edr_file:
+            edr_file = str(edr_file)
+            aux = mda.auxiliary.EDR.EDRReader(edr_file)
+            metadata['aux'] = aux.get_data(aux.terms)
+
+        obj = cls(
+            species=species,
+            coords=coords,
+            lattice=lattice,
+            time_step=utraj.trajectory.dt * 1e-12,  # ps -> s
+            constant_lattice=constant_lattice,
+            metadata=metadata,
+            site_properties=site_properties,
         )
         obj.to_positions()
 

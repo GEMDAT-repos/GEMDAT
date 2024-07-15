@@ -62,7 +62,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
         ylabel='Occurrence (a.u.)',
     )
 
-    ax.set_ylim([0, y_max])
-    ax.set_xlim([-0.1e13, 2.5e13])
+    ax.set_ylim((0, y_max))
+    ax.set_xlim((-0.1e13, 2.5e13))
 
     return fig

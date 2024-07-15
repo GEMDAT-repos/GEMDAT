@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 if TYPE_CHECKING:
     from gemdat import Jumps
@@ -28,7 +27,7 @@ def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> plt.Figure:
     trajectory = jumps.trajectory
 
     n_steps = len(trajectory)
-    bins = np.arange(0, n_steps + binsize, binsize)
+    bins = range(0, n_steps + binsize, binsize)
 
     fig, ax = plt.subplots()
 
