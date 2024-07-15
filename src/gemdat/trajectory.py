@@ -267,9 +267,9 @@ class Trajectory(PymatgenTrajectory):
 
         Parameters
         ----------
-        coords_file : ...
+        coords_file : Path | str
             LAMMPS coords file with trajectory data
-        data_file : ...
+        data_file : Path | str
             LAMMPS data file with the lattice
         temperature : float
             Temperature of simulation in K
@@ -346,7 +346,7 @@ class Trajectory(PymatgenTrajectory):
         cls,
         *,
         topology_file: Path | str,
-        trajectory_file: Path | str,
+        coords_file: Path | str,
         constant_lattice: bool = True,
         temperature: float,
         extract_edr: bool = False,
@@ -357,19 +357,17 @@ class Trajectory(PymatgenTrajectory):
 
         Parameters
         ----------
-        topology_file : ...
-            GROMACS topology data
-        trajectory_file : ...
-            GROMACS trajectory data
+        topology_file : Path | str
+            GROMACS topology data file
+        coords_file : Path | str
+            GROMACS trajectory data file
         constant_lattice : bool
             Whether the lattice changes during the simulation,
             such as in an NPT MD simulation.
         temperature : float
             Temperature of simulation in K
-        extract_edr : bool
-            Whether to extract time-series energy data
         edr_file: Optional[Path], optional
-            GROMACS EDR file
+            If specified, extract time-series energy data from GROMACS EDR file
         cache : Optional[Path], optional
             Path to cache data for vasprun.xml
 
@@ -379,47 +377,58 @@ class Trajectory(PymatgenTrajectory):
         trajectory : Trajectory
             Output trajectory
         """
-        import re
-        
+
         import MDAnalysis as mda
         from pymatgen.core import Lattice
 
         topology_file = str(topology_file)
-        trajectory_file = str(trajectory_file)
+        coords_file = str(coords_file)
         edr_file = str(edr_file)
 
-        utraj = mda.Universe(topology_file, trajectory_file)
+        if not cache:
+            kwargs = {
+                'topology_file': topology_file,
+                'coords_file': coords_file,
+                'edr_file': edr_file,
+                'temperature': temperature,
+            }
+            serialized = json.dumps(kwargs, sort_keys=True).encode()
+            hashid = hashlib.sha1(serialized).hexdigest()[:8]
+            cache = Path(coords_file).with_suffix(f'.{hashid}.cache')
+
+        if Path(cache).exists():
+            try:
+                return cls.from_cache(cache)
+            except Exception as e:
+                print(e)
+                print(f'Error reading from cache, reading {coords_file!r}')
+
+        utraj = mda.Universe(topology_file, coords_file)
         coords = utraj.trajectory.timeseries()
 
         if not constant_lattice:
-            lattice = [Lattice.from_parameters(*ts.dimensions) for ts in utraj.trajectory]
-            for ts, lat in enumerate(lattice):
+            lattices = [Lattice.from_parameters(*ts.dimensions) for ts in utraj.trajectory]
+            for ts, lat in enumerate(lattices):
                 coords[ts, :, :] = lat.get_fractional_coords(coords[ts, :, :])
         else:
             lattice = Lattice.from_parameters(*utraj.trajectory[0].dimensions)
             coords = lattice.get_fractional_coords(coords)
 
-        species = [
-            Element(re.search('\D+',sp).group().replace('LI','Li'))
-            for sp in utraj.atoms.names
-        ]
+        species = [Element(sp.capitalize()) for sp in utraj.atoms.names]
 
         site_properties = {
-            'residue':[sp.residue for sp in utraj.atoms],         
-            'residue_name':[sp.resname for sp in utraj.atoms],
-            'residue_id':[sp.resid for sp in utraj.atoms],
+            'residue': [sp.residue for sp in utraj.atoms],
+            'residue_name': [sp.resname for sp in utraj.atoms],
+            'residue_id': [sp.resid for sp in utraj.atoms],
         }
 
-        if extract_edr:
+        metadata = {
+            'temperature': temperature,
+        }
+
+        if edr_file:
             aux = mda.auxiliary.EDR.EDRReader(edr_file)
-            metadata = {
-                'temperature': temperature,
-                'aux': aux.get_data(aux.terms),
-            }
-        else:
-            metadata = {
-                'temperature': temperature,
-            }
+            metadata['aux'] = aux.get_data(aux.terms)
 
         obj = cls(
             species=species,
