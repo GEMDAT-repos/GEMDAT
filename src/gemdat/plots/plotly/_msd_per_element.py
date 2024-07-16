@@ -9,6 +9,15 @@ if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
 
 
+def hex2rgba(hex_color: str, *, opacity: float = 1) -> str:
+    """Convert hex string to rgba."""
+    r = int(hex_color[1:3], 16)
+    g = int(hex_color[3:5], 16)
+    b = int(hex_color[5:7], 16)
+
+    return f'rgba({r},{g},{b},{opacity})'
+
+
 def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
     """Plot mean squared displacement per element.
 
@@ -24,11 +33,14 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
     """
     fig = go.Figure()
 
-    species = list(set(trajectory.species))
-
     time_ps = trajectory.time_step_ps
 
-    for sp in species:
+    species = list(set(trajectory.species))
+
+    for i, sp in enumerate(species):
+        color_hex = fig.layout['template']['layout']['colorway'][i]
+        color_rgba = hex2rgba(color_hex, opacity=0.3)
+
         traj = trajectory.filter(sp.symbol)
 
         msd = traj.mean_squared_displacement()
@@ -39,12 +51,38 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
         fig.add_trace(
             go.Scatter(
                 x=t_values,
+                y=msd_mean + msd_std,
+                fillcolor=color_rgba,
+                mode='lines',
+                line={'width': 0},
+                legendgroup=sp.symbol,
+                showlegend=False,
+                zorder=0,
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=t_values,
+                y=msd_mean - msd_std,
+                fillcolor=color_rgba,
+                mode='none',
+                legendgroup=sp.symbol,
+                showlegend=False,
+                fill='tonexty',
+                zorder=0,
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=t_values,
                 y=msd_mean,
-                error_y=dict(type='data', array=msd_std, width=0.1, thickness=0.1),
                 name=f'{sp.symbol} mean+std',
+                line_color=color_hex,
                 mode='lines',
                 line={'width': 3},
                 legendgroup=sp.symbol,
+                zorder=1,
             )
         )
 
