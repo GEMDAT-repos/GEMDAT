@@ -10,7 +10,7 @@ from .trajectory import Trajectory
 from .transitions import Transitions
 from .volume import Volume, trajectory_to_volume
 
-__version__ = '1.3.0'
+__version__ = '1.4.0'
 __all__ = [
     'Jumps',
     'load_known_material',
