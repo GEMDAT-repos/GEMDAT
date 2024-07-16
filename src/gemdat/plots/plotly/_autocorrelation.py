@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import plotly.graph_objects as go
 
+from gemdat.plots._shared import hex2rgba
+
 if TYPE_CHECKING:
     from gemdat.orientations import Orientations
 
@@ -40,22 +42,47 @@ def autocorrelation(
 
     fig = go.Figure()
 
-    if show_shaded:
-        error_y = {'type': 'data', 'array': ac_std, 'width': 0.1, 'thickness': 0.1}
-    else:
-        error_y = None
+    color_hex = fig.layout['template']['layout']['colorway'][0]
+    color_rgba = hex2rgba(color_hex, opacity=0.3)
 
     fig.add_trace(
         go.Scatter(
             x=t_values,
             y=ac_mean,
-            error_y=error_y,
+            line_color=color_hex,
             name='FFT Autocorrelation',
             mode='lines',
             line={'width': 3},
             legendgroup='autocorr',
+            zorder=10,
         )
     )
+
+    if show_shaded:
+        fig.add_trace(
+            go.Scatter(
+                x=t_values,
+                y=ac_mean + ac_std,
+                fillcolor=color_rgba,
+                mode='lines',
+                line={'width': 0},
+                legendgroup='autocorr',
+                showlegend=False,
+                zorder=0,
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=t_values,
+                y=ac_mean - ac_std,
+                fillcolor=color_rgba,
+                mode='none',
+                legendgroup='autocorr',
+                showlegend=False,
+                fill='tonexty',
+                zorder=0,
+            )
+        )
 
     if show_traces:
         for i, trace in enumerate(ac):
@@ -67,6 +94,7 @@ def autocorrelation(
                     mode='lines',
                     line={'width': 0.25},
                     showlegend=False,
+                    zorder=5,
                 )
             )
 

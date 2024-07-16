@@ -75,3 +75,12 @@ def _fit_skewnorm_to_hist(
     y = skewnorm.pdf(x, *params)
 
     return x, y
+
+
+def hex2rgba(hex_color: str, *, opacity: float = 1) -> str:
+    """Convert hex string to rgba."""
+    r = int(hex_color[1:3], 16)
+    g = int(hex_color[3:5], 16)
+    b = int(hex_color[5:7], 16)
+
+    return f'rgba({r},{g},{b},{opacity})'
