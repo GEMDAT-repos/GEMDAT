@@ -67,7 +67,7 @@ jobs:
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
-          gistID: 330d6e711de3420b7503d54756dc011c
+          gistID: b599ff4ccf4a6d201a984502f049da73
           filename: covbadge.svg
           label: Coverage
           message: ${{ env.total }}%
