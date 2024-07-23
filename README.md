@@ -1,6 +1,6 @@
 [![Documentation Status](https://readthedocs.org/projects/gemdat/badge/?version=latest)](https://gemdat.readthedocs.io/en/latest/?badge=latest)
 [![Tests for GEMDAT](https://github.com/GEMDAT-repos/GEMDAT/actions/workflows/tests.yaml/badge.svg)](https://github.com/GEMDAT-repos/GEMDAT/actions/workflows/tests.yaml)
-![Coverage](https://gist.githubusercontent.com/v1kko/330d6e711de3420b7503d54756dc011c/raw/covbadge.svg)
+![Coverage](https://gist.githubusercontent.com/stefsmeets/b599ff4ccf4a6d201a984502f049da73/raw/covbadge.svg)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/gemdat)](https://pypi.org/project/gemdat/)
 [![PyPI](https://img.shields.io/pypi/v/gemdat.svg?style=flat)](https://pypi.org/project/gemdat/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8401669.svg)](https://doi.org/10.5281/zenodo.8401669)
