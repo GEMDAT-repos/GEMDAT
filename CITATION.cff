@@ -16,7 +16,7 @@ authors:
     family-names: Smeets
     affiliation: Netherlands eScience Center
     orcid: 'https://orcid.org/0000-0001-5107-3531'
-  - given-names: Anastasiia K.
+  - given-names: Anastasia K.
     family-names: Lavrinenko
     affiliation: Delft University of Technology
     orcid: 'https://orcid.org/0000-0001-9863-8325'
@@ -28,6 +28,14 @@ authors:
     family-names: Famprikis
     affiliation: Delft University of Technology
     orcid: 'https://orcid.org/0000-0002-7946-1445'
+  - given-names: Victor
+    family-names: Landgraf
+    affiliation: Delft University of Technology
+    orcid: 'https://orcid.org/0000-0003-2169-6855'
+  - given-names: Alexandros
+    family-names: Vasileiadis
+    affiliation: Delft University of Technology
+    orcid: 'https://orcid.org/0000-0001-9761-7936'
 repository-code: 'https://github.com/GEMDAT-repos/GEMDAT'
 url: 'https://gemdat.readthedocs.io'
 abstract: >-
