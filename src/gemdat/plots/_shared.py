@@ -84,3 +84,25 @@ def hex2rgba(hex_color: str, *, opacity: float = 1) -> str:
     b = int(hex_color[5:7], 16)
 
     return f'rgba({r},{g},{b},{opacity})'
+
+
+def _get_vibrational_amplitudes_hist(*, trajectories: list[Trajectory], bins: int) -> tuple:
+    metrics = [trajectory.metrics().amplitudes() for trajectory in trajectories]
+
+    max_amp = max(max(metric) for metric in metrics)
+    min_amp = min(min(metric) for metric in metrics)
+
+    max_amp = max(abs(min_amp), max_amp)
+    min_amp = -max_amp
+
+    data = []
+
+    for metric in metrics:
+        data.append(np.histogram(metric, bins=bins, range=(min_amp, max_amp), density=True)[0])
+
+    columns = np.linspace(min_amp, max_amp, bins, endpoint=False)
+
+    mean = np.mean(data, axis=0)
+    std = np.std(data, axis=0)
+
+    return columns, mean, std

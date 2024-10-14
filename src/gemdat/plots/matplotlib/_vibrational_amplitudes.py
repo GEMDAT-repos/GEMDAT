@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
+from .._shared import _get_vibrational_amplitudes_hist
+
 if TYPE_CHECKING:
     import matplotlib.figure
 
@@ -31,32 +33,23 @@ def vibrational_amplitudes(
     fig : matplotlib.figure.Figure
         Output figure
     """
+    metrics = trajectory.metrics()
+
     trajectories = trajectory.split(n_parts)
-    single_metrics = trajectory.metrics()
-    metrics = [trajectory.metrics().amplitudes() for trajectory in trajectories]
 
-    max_amp = max(max(metric) for metric in metrics)
-    min_amp = min(min(metric) for metric in metrics)
-
-    max_amp = max(abs(min_amp), max_amp)
-    min_amp = -max_amp
-
-    data = []
-
-    for metric in metrics:
-        data.append(np.histogram(metric, bins=bins, range=(min_amp, max_amp), density=True)[0])
-
-    columns = np.linspace(min_amp, max_amp, bins, endpoint=False)
-
-    mean = np.mean(data, axis=0)
-    std = np.std(data, axis=0)
+    amplitudes, mean, std = _get_vibrational_amplitudes_hist(
+        trajectories=trajectories, bins=bins
+    )
 
     fig, ax = plt.subplots()
 
-    plt.hist(columns, columns, weights=mean)
+    plt.hist(amplitudes, amplitudes, weights=mean)
 
-    x = np.linspace(-2, 2, 100)
-    y_gauss = stats.norm.pdf(x, 0, single_metrics.vibration_amplitude())
+    min_amp = amplitudes.min()
+    max_amp = amplitudes.max()
+
+    x = np.linspace(min_amp, max_amp, 100)
+    y_gauss = stats.norm.pdf(x, 0, metrics.vibration_amplitude())
     ax.plot(x, y_gauss, 'r')
 
     ax.set(
