@@ -7,12 +7,14 @@ import numpy as np
 from scipy import stats
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.trajectory import Trajectory
 
 
 def vibrational_amplitudes(
     *, trajectory: Trajectory, bins: int = 50, n_parts: int = 1
-) -> plt.Figure:
+) -> matplotlib.figure.Figure:
     """Plot histogram of vibrational amplitudes with fitted Gaussian.
 
     Parameters
@@ -44,17 +46,12 @@ def vibrational_amplitudes(
     for metric in metrics:
         data.append(np.histogram(metric, bins=bins, range=(min_amp, max_amp), density=True)[0])
 
-    # offset to middle of bar
-    offset = (max_amp - min_amp) / (bins * 2)
+    columns = np.linspace(min_amp, max_amp, bins, endpoint=False)
 
-    columns = np.linspace(min_amp + offset, max_amp + offset, bins, endpoint=False)
-
-    mean = [col.mean() for col in columns]
-    std = [col.std() for col in columns]
+    mean = np.mean(data, axis=0)
+    std = np.std(data, axis=0)
 
     fig, ax = plt.subplots()
-    # hist goes here
-    # ax.hist(metrics.amplitudes(), bins=bins, density=True)
 
     plt.hist(columns, columns, weights=mean)
 
