@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -86,7 +87,43 @@ def hex2rgba(hex_color: str, *, opacity: float = 1) -> str:
     return f'rgba({r},{g},{b},{opacity})'
 
 
-def _get_vibrational_amplitudes_hist(*, trajectories: list[Trajectory], bins: int) -> tuple:
+@dataclass
+class VibrationalAmplitudeHist:
+    amplitudes: np.ndarray
+    counts: np.ndarray
+    std: np.ndarray
+
+    @property
+    def min_amp(self):
+        return self.amplitudes.min()
+
+    @property
+    def max_amp(self):
+        return self.amplitudes.max()
+
+    @property
+    def width(self):
+        bins = len(self.amplitudes)
+        return (self.max_amp - self.min_amp) / bins
+
+    @property
+    def offset(self):
+        return self.width / 2
+
+    @property
+    def centers(self):
+        return self.amplitudes + self.offset
+
+    @property
+    def dataframe(self):
+        return pd.DataFrame(
+            data=zip(self.centers, self.counts, self.std), columns=['center', 'count', 'std']
+        )
+
+
+def _get_vibrational_amplitudes_hist(
+    *, trajectories: list[Trajectory], bins: int
+) -> VibrationalAmplitudeHist:
     metrics = [trajectory.metrics().amplitudes() for trajectory in trajectories]
 
     max_amp = max(max(metric) for metric in metrics)
@@ -100,9 +137,9 @@ def _get_vibrational_amplitudes_hist(*, trajectories: list[Trajectory], bins: in
     for metric in metrics:
         data.append(np.histogram(metric, bins=bins, range=(min_amp, max_amp), density=True)[0])
 
-    columns = np.linspace(min_amp, max_amp, bins, endpoint=False)
+    amplitudes = np.linspace(min_amp, max_amp, bins, endpoint=False)
 
     mean = np.mean(data, axis=0)
     std = np.std(data, axis=0)
 
-    return columns, mean, std
+    return VibrationalAmplitudeHist(amplitudes=amplitudes, counts=mean, std=std)
