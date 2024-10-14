@@ -124,6 +124,10 @@ class VibrationalAmplitudeHist:
 def _get_vibrational_amplitudes_hist(
     *, trajectories: list[Trajectory], bins: int
 ) -> VibrationalAmplitudeHist:
+    """Calculate vabrational amplitudes histogram.
+
+    Helper for `vibrational_amplitudes`.
+    """
     metrics = [trajectory.metrics().amplitudes() for trajectory in trajectories]
 
     max_amp = max(max(metric) for metric in metrics)
