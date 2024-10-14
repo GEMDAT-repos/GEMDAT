@@ -6,10 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.trajectory import Trajectory
 
 
-def frequency_vs_occurence(*, trajectory: Trajectory) -> plt.Figure:
+def frequency_vs_occurence(*, trajectory: Trajectory) -> matplotlib.figure.Figure:
     """Plot attempt frequency vs occurence.
 
     Parameters

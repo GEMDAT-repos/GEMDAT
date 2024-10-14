@@ -7,10 +7,12 @@ import numpy as np
 from pymatgen.electronic_structure import plotter
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat import Jumps
 
 
-def jumps_3d(*, jumps: Jumps) -> plt.Figure:
+def jumps_3d(*, jumps: Jumps) -> matplotlib.figure.Figure:
     """Plot jumps in 3D.
 
     Parameters

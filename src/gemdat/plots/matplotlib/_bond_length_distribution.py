@@ -7,10 +7,14 @@ import matplotlib.pyplot as plt
 from .._shared import _fit_skewnorm_to_hist, _orientations_to_histogram
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.orientations import Orientations
 
 
-def bond_length_distribution(*, orientations: Orientations, bins: int = 50) -> plt.Figure:
+def bond_length_distribution(
+    *, orientations: Orientations, bins: int = 50
+) -> matplotlib.figure.Figure:
     """Plot the bond length probability distribution.
 
     Parameters

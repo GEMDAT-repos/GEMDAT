@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat import Jumps
 
 
-def collective_jumps(*, jumps: Jumps) -> plt.Figure:
+def collective_jumps(*, jumps: Jumps) -> matplotlib.figure.Figure:
     """Plot collective jumps per jump-type combination.
 
     Parameters

@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.trajectory import Trajectory
 
 
-def displacement_histogram(trajectory: Trajectory) -> plt.Figure:
+def displacement_histogram(trajectory: Trajectory) -> matplotlib.figure.Figure:
     """Plot histogram of total displacement at final timestep.
 
     Parameters

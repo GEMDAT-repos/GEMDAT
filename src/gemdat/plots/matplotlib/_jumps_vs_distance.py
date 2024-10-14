@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat import Jumps
 
 
@@ -13,7 +15,7 @@ def jumps_vs_distance(
     *,
     jumps: Jumps,
     jump_res: float = 0.1,
-) -> plt.Figure:
+) -> matplotlib.figure.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters

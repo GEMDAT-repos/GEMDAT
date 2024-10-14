@@ -7,10 +7,12 @@ import matplotlib.pyplot as plt
 from gemdat.plots._shared import _mean_displacements_per_element
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.trajectory import Trajectory
 
 
-def displacement_per_element(*, trajectory: Trajectory) -> plt.Figure:
+def displacement_per_element(*, trajectory: Trajectory) -> matplotlib.figure.Figure:
     """Plot displacement per element.
 
     Parameters

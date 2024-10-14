@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.orientations import Orientations
 
 
@@ -14,7 +16,7 @@ def autocorrelation(
     orientations: Orientations,
     show_traces: bool = True,
     show_shaded: bool = True,
-) -> plt.Figure:
+) -> matplotlib.figure.Figure:
     """Plot the autocorrelation function of the unit vectors series.
 
     Parameters
