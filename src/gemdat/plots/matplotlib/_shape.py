@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
+    import matplotlib.figure
     from pymatgem.core import PeriodicSite
 
     from gemdat.shape import ShapeData
@@ -16,7 +17,7 @@ def shape(
     shape: ShapeData,
     bins: int | Sequence[float] = 50,
     sites: Collection[PeriodicSite] | None = None,
-) -> plt.Figure:
+) -> matplotlib.figure.Figure:
     """Plot site cluster shapes.
 
     Parameters

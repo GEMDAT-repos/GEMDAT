@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING, Iterable
 import matplotlib.pyplot as plt
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.rdf import RDFData
 
 
-def radial_distribution(rdfs: Iterable[RDFData]) -> plt.Figure:
+def radial_distribution(rdfs: Iterable[RDFData]) -> matplotlib.figure.Figure:
     """Plot radial distribution function.
 
     Parameters

@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.orientations import Orientations
 
 
@@ -14,7 +16,7 @@ def rectilinear(
     orientations: Orientations,
     shape: tuple[int, int] = (90, 360),
     normalize_histo: bool = True,
-) -> plt.Figure:
+) -> matplotlib.figure.Figure:
     """Plot a rectilinear projection of a spherical function. This function
     uses the transformed trajectory.
 

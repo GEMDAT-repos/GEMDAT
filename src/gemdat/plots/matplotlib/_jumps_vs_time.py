@@ -5,10 +5,12 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat import Jumps
 
 
-def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> plt.Figure:
+def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> matplotlib.figure.Figure:
     """Plot jumps vs. time histogram.
 
     Parameters

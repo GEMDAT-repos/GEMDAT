@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from pymatgen.core import Structure
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.path import Pathway
 
 
@@ -14,7 +16,7 @@ def energy_along_path(
     *,
     structure: Structure | None = None,
     other_paths: list[Pathway] | None = None,
-) -> plt.Figure:
+) -> matplotlib.figure.Figure:
     """Plot energy along specified path.
 
     Parameters

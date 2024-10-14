@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from scipy import stats
+
+from .._shared import _get_vibrational_amplitudes_hist
 
 if TYPE_CHECKING:
     from gemdat.trajectory import Trajectory
@@ -29,41 +30,19 @@ def vibrational_amplitudes(
     fig : plotly.graph_objects.Figure
         Output figure
     """
+    metrics = trajectory.metrics()
 
     trajectories = trajectory.split(n_parts)
-    single_metrics = trajectory.metrics()
-    metrics = [trajectory.metrics().amplitudes() for trajectory in trajectories]
 
-    max_amp = max(max(metric) for metric in metrics)
-    min_amp = min(min(metric) for metric in metrics)
-
-    max_amp = max(abs(min_amp), max_amp)
-    min_amp = -max_amp
-
-    data = []
-
-    for metric in metrics:
-        data.append(np.histogram(metric, bins=bins, range=(min_amp, max_amp), density=True)[0])
-
-    df = pd.DataFrame(data=data)
-
-    # offset to middle of bar
-    offset = (max_amp - min_amp) / (bins * 2)
-
-    columns = np.linspace(min_amp + offset, max_amp + offset, bins, endpoint=False)
-
-    mean = [df[col].mean() for col in df.columns]
-    std = [df[col].std() for col in df.columns]
-
-    df = pd.DataFrame(data=zip(columns, mean, std), columns=['amplitude', 'count', 'std'])
+    hist = _get_vibrational_amplitudes_hist(trajectories=trajectories, bins=bins)
 
     if n_parts == 1:
-        fig = px.bar(df, x='amplitude', y='count')
+        fig = px.bar(hist.dataframe, x='center', y='count')
     else:
-        fig = px.bar(df, x='amplitude', y='count', error_y='std')
+        fig = px.bar(hist.dataframe, x='center', y='count', error_y='std')
 
-    x = np.linspace(min_amp, max_amp, 100)
-    y_gauss = stats.norm.pdf(x, 0, single_metrics.vibration_amplitude())
+    x = np.linspace(hist.min_amp, hist.max_amp, 100) + hist.offset
+    y_gauss = stats.norm.pdf(x, 0, metrics.vibration_amplitude())
     fig.add_trace(go.Scatter(x=x, y=y_gauss, name='Fitted Gaussian'))
 
     fig.update_layout(

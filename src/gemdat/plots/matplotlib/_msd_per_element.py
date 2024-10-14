@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if TYPE_CHECKING:
+    import matplotlib.figure
+
     from gemdat.trajectory import Trajectory
 
 
@@ -14,7 +16,7 @@ def msd_per_element(
     trajectory: Trajectory,
     show_traces: bool = True,
     show_shaded: bool = True,
-) -> plt.Figure:
+) -> matplotlib.figure.Figure:
     """Plot mean squared displacement per element.
 
     Parameters
