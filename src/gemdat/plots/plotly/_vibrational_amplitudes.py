@@ -35,7 +35,7 @@ def vibrational_amplitudes(
 
     trajectories = trajectory.split(n_parts)
 
-    amplitudes, mean, std = _get_vibrational_amplitudes_hist(
+    amplitudes, counts, std = _get_vibrational_amplitudes_hist(
         trajectories=trajectories, bins=bins
     )
 
@@ -46,7 +46,7 @@ def vibrational_amplitudes(
     offset = (max_amp - min_amp) / (bins * 2)
     amplitudes += offset
 
-    df = pd.DataFrame(data=zip(amplitudes, mean, std), columns=['amplitude', 'count', 'std'])
+    df = pd.DataFrame(data=zip(amplitudes, counts, std), columns=['amplitude', 'count', 'std'])
 
     if n_parts == 1:
         fig = px.bar(df, x='amplitude', y='count')

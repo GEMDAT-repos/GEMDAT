@@ -37,18 +37,23 @@ def vibrational_amplitudes(
 
     trajectories = trajectory.split(n_parts)
 
-    amplitudes, mean, std = _get_vibrational_amplitudes_hist(
+    amplitudes, counts, std = _get_vibrational_amplitudes_hist(
         trajectories=trajectories, bins=bins
     )
-
-    fig, ax = plt.subplots()
-
-    plt.hist(amplitudes, amplitudes, weights=mean)
-
     min_amp = amplitudes.min()
     max_amp = amplitudes.max()
 
-    x = np.linspace(min_amp, max_amp, 100)
+    fig, ax = plt.subplots()
+
+    # offset to middle of bar for plotly
+    offset = (max_amp - min_amp) / (bins * 2)
+    amplitudes += offset
+
+    width = offset * 2
+
+    plt.bar(amplitudes, counts, width=width, yerr=std)
+
+    x = np.linspace(min_amp, max_amp, 100) + offset
     y_gauss = stats.norm.pdf(x, 0, metrics.vibration_amplitude())
     ax.plot(x, y_gauss, 'r')
 
