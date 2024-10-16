@@ -204,7 +204,7 @@ def calculate_rdf_parallelized(trajectory, specie_1, specie_2, resolution=1, max
         num_time_steps = 1
         num_atoms, num_dimensions = coords_2.shape
 
-    particle_vol = num_atoms / ((4 / 3) * np.pi * max_distance ** 3)
+    particle_vol = num_atoms / lattice.volume
 
     def calculate_distances(t):
         return lattice.get_all_distances(coords_1[t, :, :], coords_2[t, :, :])
