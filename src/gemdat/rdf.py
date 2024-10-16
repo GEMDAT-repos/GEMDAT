@@ -185,3 +185,41 @@ def radial_distribution(
         ret[state].append(rdf_data)
 
     return ret
+
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+from joblib import Parallel, delayed
+
+def calculate_rdf_parallelized(trajectory, specie_1, specie_2, resolution=1, max_distance=10.0):
+    '''Calculate RDFs from specie_1 to specie_2'''
+    coords_1 = trajectory.filter(specie_1).coords
+    coords_2 = trajectory.filter(specie_2).coords
+    lattice = trajectory.get_lattice()
+
+    try:
+        num_time_steps, num_atoms, num_dimensions = coords_2.shape
+    except ValueError:
+        num_time_steps = 1
+        num_atoms, num_dimensions = coords_2.shape
+
+    particle_vol = num_atoms / ((4 / 3) * np.pi * max_distance ** 3)
+
+    def calculate_distances(t):
+        return lattice.get_all_distances(coords_1[t, :, :], coords_2[t, :, :])
+
+    all_dists = Parallel(n_jobs=-1)(delayed(calculate_distances)(t) for t in range(num_time_steps))
+    distances = np.concatenate([dists[dists != 0].flatten() for dists in all_dists])
+
+    bins = np.arange(0, max_distance + resolution, resolution)
+    rdf, _ = np.histogram(distances, bins=bins, density=False)
+
+    norm = np.array([(4 / 3) * np.pi * ((r + resolution) ** 3 - r ** 3) * particle_vol for r in bins[:-1]])
+    rdf = np.array([rdf[i] / norm[i] for i in range(len(rdf))])
+
+    return bins, rdf
+
+
+bins, rdf = calculate_rdf_parallelized(trajectory=trajectory, specie_1='Li', specie_2=['S','Cl'], resolution=0.1, max_distance=10)
+plt.plot(bins[:-1], rdf)
