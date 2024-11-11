@@ -762,7 +762,7 @@ class Trajectory(PymatgenTrajectory):
     def plot_radial_distribution_between_species(self, *, module, **kwargs):
         """See [gemdat.plots.radial_distribution_between_species][] for more
         info."""
-        return module.vibrational_amplitudes(trajectory=self, **kwargs)
+        return module.radial_distribution_between_species(trajectory=self, **kwargs)
 
     @plot_backend
     def plot_vibrational_amplitudes(self, *, module, **kwargs):
