@@ -759,6 +759,12 @@ class Trajectory(PymatgenTrajectory):
         return module.frequency_vs_occurence(trajectory=self, **kwargs)
 
     @plot_backend
+    def plot_radial_distribution_between_species(self, *, module, **kwargs):
+        """See [gemdat.plots.radial_distribution_between_species][] for more
+        info."""
+        return module.vibrational_amplitudes(trajectory=self, **kwargs)
+
+    @plot_backend
     def plot_vibrational_amplitudes(self, *, module, **kwargs):
         """See [gemdat.plots.vibrational_amplitudes][] for more info."""
         return module.vibrational_amplitudes(trajectory=self, **kwargs)
