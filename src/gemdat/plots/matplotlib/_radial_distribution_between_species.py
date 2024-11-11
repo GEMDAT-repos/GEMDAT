@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
-import numpy as np
+
+from .._shared import _get_radial_distribution_between_species
 
 if TYPE_CHECKING:
     from typing import Collection
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
 
 
 def radial_distribution_between_species(
+    *,
     trajectory: Trajectory,
     specie_1: str | Collection[str],
     specie_2: str | Collection[str],
@@ -40,42 +42,21 @@ def radial_distribution_between_species(
     fig : matplotlib.figure.Figure
         Output figure
     """
-    coords_1 = trajectory.filter(specie_1).coords
-    coords_2 = trajectory.filter(specie_2).coords
-    lattice = trajectory.get_lattice()
-
-    if coords_2.ndim == 2:
-        num_time_steps = 1
-        num_atoms, num_dimensions = coords_2.shape
-    else:
-        num_time_steps, num_atoms, num_dimensions = coords_2.shape
-
-    particle_vol = num_atoms / lattice.volume
-
-    all_dists = np.concatenate(
-        [
-            lattice.get_all_distances(coords_1[t, :, :], coords_2[t, :, :])
-            for t in range(num_time_steps)
-        ]
+    bins, rdf = _get_radial_distribution_between_species(
+        trajectory=trajectory,
+        specie_1=specie_1,
+        specie_2=specie_2,
+        max_dist=max_dist,
+        resolution=resolution,
     )
-    distances = all_dists.flatten()
-
-    bins = np.arange(0, max_dist + resolution, resolution)
-    rdf, _ = np.histogram(distances, bins=bins, density=False)
-
-    def normalize(radius: np.ndarray) -> np.ndarray:
-        """Normalize bin to volume."""
-        shell = (radius + resolution) ** 3 - radius**3
-        return particle_vol * (4 / 3) * np.pi * shell
-
-    norm = normalize(bins)[:-1]
-    rdf = rdf / norm
 
     fig, ax = plt.subplots()
     ax.plot(bins[:-1], rdf)
+    str1 = specie_1 if isinstance(specie_1, str) else ' / '.join(specie_1)
+    str2 = specie_1 if isinstance(specie_2, str) else ' / '.join(specie_2)
     ax.set(
-        title=f'RDF between {specie_1} and {specie_2} per element',
-        xlabel='Displacement (Å)',
+        title=f'RDF between {str1} and {str2}',
+        xlabel='Radius (Å)',
         ylabel='Nr. of atoms',
     )
     return fig

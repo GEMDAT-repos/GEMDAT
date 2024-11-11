@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 import plotly.graph_objects as go
 
+from .._shared import _get_radial_distribution_between_species
+
 if TYPE_CHECKING:
     from typing import Collection
 
@@ -37,5 +39,28 @@ def radial_distribution_between_species(
     fig : matplotlib.figure.Figure
         Output figure
     """
+    bins, rdf = _get_radial_distribution_between_species(
+        trajectory=trajectory,
+        specie_1=specie_1,
+        specie_2=specie_2,
+        max_dist=max_dist,
+        resolution=resolution,
+    )
+
     fig = go.Figure()
-    raise NotImplementedError
+    fig.add_trace(
+        go.Scatter(
+            x=bins,
+            y=rdf,
+            name='Radial distribution',
+            mode='lines',
+        )
+    )
+    str1 = specie_1 if isinstance(specie_1, str) else ' / '.join(specie_1)
+    str2 = specie_1 if isinstance(specie_2, str) else ' / '.join(specie_2)
+    fig.update_layout(
+        title=f'RDF between {str1} and {str2}',
+        xaxis_title='Radius (Å)',
+        yaxis_title='Nr. of atoms',
+    )
+    return fig
