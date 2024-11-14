@@ -74,6 +74,17 @@ def test_radial_distribution(vasp_rdf_data):
         assert_figures_similar(fig, name=f'radial_distribution_{i}', rms=0.5)
 
 
+def test_radial_distribution_between_species(vasp_traj):
+    traj = vasp_traj[-500:]
+    fig = traj.plot_radial_distribution_between_species(
+        backend=BACKEND,
+        specie_1='Li',
+        specie_2=('S', 'CL'),
+    )
+
+    assert_figures_similar(fig, name='radial_distribution_between_species', rms=0.5)
+
+
 def test_shape(vasp_shape_data):
     assert len(vasp_shape_data) == 1
     for shape in vasp_shape_data:

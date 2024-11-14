@@ -75,6 +75,14 @@ def test_radial_distribution(vasp_rdf_data):
         rdfs.plot(backend=BACKEND)
 
 
+@image_comparison2(baseline_images=['radial_distribution_between_species'])
+def test_radial_distribution_between_species(vasp_traj):
+    traj = vasp_traj[-500:]
+    traj.plot_radial_distribution_between_species(
+        backend=BACKEND, specie_1='Li', specie_2=('S', 'CL')
+    )
+
+
 @image_comparison2(baseline_images=['shape'])
 def test_shape(vasp_shape_data):
     assert len(vasp_shape_data) == 1

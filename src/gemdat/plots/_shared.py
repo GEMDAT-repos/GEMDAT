@@ -10,6 +10,8 @@ from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
 if TYPE_CHECKING:
+    from typing import Collection
+
     from gemdat.orientations import Orientations
     from gemdat.trajectory import Trajectory
 
@@ -147,3 +149,45 @@ def _get_vibrational_amplitudes_hist(
     std = np.std(data, axis=0)
 
     return VibrationalAmplitudeHist(amplitudes=amplitudes, counts=mean, std=std)
+
+
+def _get_radial_distribution_between_species(
+    *,
+    trajectory: Trajectory,
+    specie_1: str | Collection[str],
+    specie_2: str | Collection[str],
+    max_dist: float = 5.0,
+    resolution: float = 0.1,
+) -> tuple[np.ndarray, np.ndarray]:
+    coords_1 = trajectory.filter(specie_1).coords
+    coords_2 = trajectory.filter(specie_2).coords
+    lattice = trajectory.get_lattice()
+
+    if coords_2.ndim == 2:
+        num_time_steps = 1
+        num_atoms, num_dimensions = coords_2.shape
+    else:
+        num_time_steps, num_atoms, num_dimensions = coords_2.shape
+
+    particle_vol = num_atoms / lattice.volume
+
+    all_dists = np.concatenate(
+        [
+            lattice.get_all_distances(coords_1[t, :, :], coords_2[t, :, :])
+            for t in range(num_time_steps)
+        ]
+    )
+    distances = all_dists.flatten()
+
+    bins = np.arange(0, max_dist + resolution, resolution)
+    rdf, _ = np.histogram(distances, bins=bins, density=False)
+
+    def normalize(radius: np.ndarray) -> np.ndarray:
+        """Normalize bin to volume."""
+        shell = (radius + resolution) ** 3 - radius**3
+        return particle_vol * (4 / 3) * np.pi * shell
+
+    norm = normalize(bins)[:-1]
+    rdf = rdf / norm
+
+    return bins, rdf
