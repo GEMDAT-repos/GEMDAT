@@ -58,6 +58,7 @@ class Orientations:
     @property
     def _time_step(self) -> float:
         """Return the time step of the trajectory."""
+        assert self.trajectory.time_step
         return self.trajectory.time_step
 
     @property
@@ -75,7 +76,9 @@ class Orientations:
         """Calculate distances between every central atom and all satellite
         atoms."""
         central_start_coord = self._trajectory_cent.base_positions
+        assert central_start_coord is not None
         satellite_start_coord = self._trajectory_sat.base_positions
+        assert satellite_start_coord is not None
         lattice = self.trajectory.get_lattice()
         distance = np.array(
             [

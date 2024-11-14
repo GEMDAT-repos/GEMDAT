@@ -267,14 +267,14 @@ def plot_jumps(jumps: Jumps, *, fig: go.Figure):
             lines = [(coord_i, coord_j)]
 
         for line in lines:
-            line = lattice.get_cartesian_coords(line)
-            line_t = [_ for _ in zip(*line)]  # transpose, but pythonic
+            coords = lattice.get_cartesian_coords(line)
+            coords_t = list(zip(*coords))  # transpose, but pythonic
 
             fig.add_trace(
                 go.Scatter3d(
-                    x=line_t[0],
-                    y=line_t[1],
-                    z=line_t[2],
+                    x=coords_t[0],
+                    y=coords_t[1],
+                    z=coords_t[2],
                     mode='lines',
                     showlegend=False,
                     line_dash='dashdot' if any(image) != 0 else 'solid',
@@ -356,6 +356,10 @@ def plot_3d(
             lattice = structure.lattice
         elif jumps:
             lattice = jumps.trajectory.get_lattice()
+        else:
+            raise ValueError(
+                'Lattice cannot be determined form volume, structure, or jumps object.'
+            )
     else:
         raise ValueError('Cannot derive lattice from input.')
 

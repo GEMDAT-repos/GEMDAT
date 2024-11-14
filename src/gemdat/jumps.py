@@ -160,7 +160,7 @@ class Jumps:
         """Return list of all unique site pairs."""
         labels = self.sites.labels
         site_pairs = product(labels, repeat=2)
-        return [pair for pair in site_pairs]
+        return [pair for pair in site_pairs]  # type: ignore
 
     @property
     def jump_names(self) -> list[str]:

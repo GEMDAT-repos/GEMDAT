@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Collection, Optional
 
 import numpy as np
-from pymatgen.core import Element, Lattice
+from pymatgen.core import Element, Lattice, Species
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
@@ -133,16 +133,19 @@ class Trajectory(PymatgenTrajectory):
     @property
     def time_step_ps(self) -> float:
         """Return time step in picoseconds."""
+        assert self.time_step
         return self.time_step * 1e12
 
     @property
     def total_time(self) -> float:
         """Return total time for trajectory."""
+        assert self.time_step
         return len(self) * self.time_step
 
     @property
     def sampling_frequency(self) -> float:
         """Return number of time steps per second."""
+        assert self.time_step
         return 1 / self.time_step
 
     @property
@@ -469,9 +472,9 @@ class Trajectory(PymatgenTrajectory):
             Pymatgen Lattice object
         """
         if self.constant_lattice:
-            return Lattice(self.lattice)
+            return Lattice(self.lattice)  # type: ignore
 
-        latt = self.lattices[idx]
+        latt = self.lattices[idx]  # type: ignore
         return Lattice(latt)
 
     @property
@@ -503,7 +506,10 @@ class Trajectory(PymatgenTrajectory):
 
     def center_of_mass(self) -> Trajectory:
         """Return trajectory with center of mass for positions."""
-        weights = [s.atomic_mass for s in self.species]
+        weights = []
+        for s in self.species:
+            assert isinstance(s, Species)
+            weights.append(s.atomic_mass)
 
         positions_no_pbc = self.base_positions + self.cumulative_displacements
 
@@ -547,8 +553,13 @@ class Trajectory(PymatgenTrajectory):
         if fixed_species:
             displacements = self.filter(species=fixed_species).displacements
         elif floating_species:
-            species = {sp.symbol for sp in self.species if sp.symbol not in floating_species}
-            displacements = self.filter(species=species).displacements
+            species = set()
+            for sp in self.species:
+                assert isinstance(sp, Species)
+                if sp.symbol not in floating_species:
+                    species.add(sp)
+
+            displacements = self.filter(species=species).displacements  # type: ignore
         else:
             displacements = self.displacements
 
@@ -609,7 +620,11 @@ class Trajectory(PymatgenTrajectory):
         if isinstance(species, str):
             species = [species]
 
-        idx = [sp.symbol in species for sp in self.species]
+        idx = []
+        for sp in self.species:
+            assert isinstance(sp, (Species, Element))
+            idx.append(sp.symbol in species)
+
         new_coords = self.positions[:, idx]
         new_species = list(compress(self.species, idx))
 

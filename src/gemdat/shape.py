@@ -12,6 +12,7 @@ from .trajectory import Trajectory
 from .utils import warn_lattice_not_close
 
 if TYPE_CHECKING:
+    from pymatgen.symmetry.analyzer import SpacegroupOperations
     from pymatgen.symmetry.groups import SpaceGroup
     from pymatgen.symmetry.structure import SymmetrizedStructure
 
@@ -95,7 +96,7 @@ class ShapeAnalyzer:
         *,
         sites: Collection[PeriodicSite],
         lattice: Lattice,
-        spacegroup: SpaceGroup,
+        spacegroup: SpaceGroup | SpacegroupOperations,
     ):
         """Set up shape analyzer from a collection of unique periodic sites,
         the lattice, and spacegroup.
@@ -400,7 +401,7 @@ class ShapeAnalyzer:
             sg=self.spacegroup.int_number,
             lattice=self.lattice,
             species=[site.specie for site in self.sites],
-            coords=[site.frac_coords for site in self.sites],
+            coords=[site.frac_coords for site in self.sites],  # type: ignore
             labels=[site.label for site in self.sites],
         )
         return structure

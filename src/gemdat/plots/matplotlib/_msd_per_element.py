@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
+from pymatgen.core import Species
 
 if TYPE_CHECKING:
     import matplotlib.figure
@@ -41,6 +42,8 @@ def msd_per_element(
     t_values = np.arange(len(trajectory)) * time_ps
 
     for sp in species:
+        assert isinstance(sp, Species)
+
         traj = trajectory.filter(sp.symbol)
         msd = traj.mean_squared_displacement()
 
@@ -52,9 +55,9 @@ def msd_per_element(
         last_color = ax.lines[-1].get_color()
 
         if show_traces:
-            for i, traj in enumerate(msd):
+            for i, y_values in enumerate(msd):
                 label = f'{sp.symbol} trajectories' if (i == 0) else None
-                ax.plot(t_values, traj, lw=0.1, c=last_color, label=label)
+                ax.plot(t_values, y_values, lw=0.1, c=last_color, label=label)
 
         if show_shaded:
             ax.fill_between(

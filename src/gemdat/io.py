@@ -31,7 +31,7 @@ def write_cif(structure: Structure, filename: Path | str):
     filename : Path | str
         Filename to write to
     """
-    filename = Path(filename).with_suffix('.cif')
+    filename = str(Path(filename).with_suffix('.cif'))
     structure.to_file(filename)
 
 

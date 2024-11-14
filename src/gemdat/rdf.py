@@ -143,8 +143,8 @@ def radial_distribution(
     coords = trajectory.positions
     sp_coords = trajectory.filter(floating_specie).positions
 
-    states2str = _get_states(sites.labels)
-    states_array = _get_states_array(transitions, sites.labels)
+    states2str = _get_states(sites.labels)  # type: ignore
+    states_array = _get_states_array(transitions, sites.labels)  # type: ignore
     symbol_indices = _get_symbol_indices(base_structure)
 
     bins = np.arange(0, max_dist + resolution, resolution)

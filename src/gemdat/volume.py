@@ -93,7 +93,7 @@ class Volume:
             Input volumetric data
         """
         return cls(
-            data=volume.data,
+            data=volume.data['total'],
             lattice=volume.structure.lattice,
         )
 
@@ -506,5 +506,4 @@ def trajectory_to_volume(
         data=data,
         lattice=lattice,
         label='trajectory',
-        units=None,
     )
