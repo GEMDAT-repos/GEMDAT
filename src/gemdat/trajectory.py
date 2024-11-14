@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from pymatgen.core import Structure
 
     from .metrics import TrajectoryMetrics
+    from .rdf import RDFData
     from .transitions import Transitions
     from .volume import Volume
 
@@ -733,6 +734,13 @@ class Trajectory(PymatgenTrajectory):
 
         return TrajectoryMetrics(trajectory=self)
 
+    def radial_distribution_between_species(self, *, module, **kwargs) -> RDFData:
+        """See [gemdat.rdf.radial_distribution_between_species][] for more
+        info."""
+        from gemdat import rdf
+
+        return rdf.radial_distribution_between_species(trajectory=self, **kwargs)
+
     @plot_backend
     def plot_displacement_per_atom(self, *, module, **kwargs):
         """See [gemdat.plots.displacement_per_atom][] for more info."""
@@ -757,12 +765,6 @@ class Trajectory(PymatgenTrajectory):
     def plot_frequency_vs_occurence(self, *, module, **kwargs):
         """See [gemdat.plots.frequency_vs_occurence][] for more info."""
         return module.frequency_vs_occurence(trajectory=self, **kwargs)
-
-    @plot_backend
-    def plot_radial_distribution_between_species(self, *, module, **kwargs):
-        """See [gemdat.plots.radial_distribution_between_species][] for more
-        info."""
-        return module.radial_distribution_between_species(trajectory=self, **kwargs)
 
     @plot_backend
     def plot_vibrational_amplitudes(self, *, module, **kwargs):
