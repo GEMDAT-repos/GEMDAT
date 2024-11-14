@@ -49,4 +49,4 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.8401669
 license: Apache-2.0
-version: 1.4.0
+version: 1.5.0
