@@ -13,6 +13,6 @@ def test_rdf(vasp_rdf_data):
     for state, rdfs in vasp_rdf_data.items():
         assert state in expected_states
         for rdf in rdfs:
-            assert rdf.symbol in expected_symbols
+            assert rdf.label in expected_symbols
             assert len(rdf.x) == 51
             assert len(rdf.y) == 51

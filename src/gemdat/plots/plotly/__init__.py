@@ -17,7 +17,6 @@ from ._jumps_vs_time import jumps_vs_time
 from ._msd_per_element import msd_per_element
 from ._plot3d import plot_3d
 from ._radial_distribution import radial_distribution
-from ._radial_distribution_between_species import radial_distribution_between_species
 from ._rectilinear import rectilinear
 from ._shape import shape
 from ._vibrational_amplitudes import vibrational_amplitudes
@@ -38,7 +37,6 @@ __all__ = [
     'msd_per_element',
     'plot_3d',
     'radial_distribution',
-    'radial_distribution_between_species',
     'rectilinear',
     'shape',
     'vibrational_amplitudes',
