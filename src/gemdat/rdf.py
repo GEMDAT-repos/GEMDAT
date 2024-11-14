@@ -10,8 +10,11 @@ from rich.progress import track
 from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
+    from typing import Collection
+
     from pymatgen.core import Structure
 
+    from gemdat import Trajectory
     from gemdat.transitions import Transitions
 
 
@@ -79,8 +82,8 @@ class RDFData:
         1D array with x data (bins)
     y : np.ndarray
         1D array with y data (counts)
-    symbol : str
-        Distance to species with this symbol
+    label : str
+        Distance to species with this symbol label
     state : str
         State that the floating species is in, e.g.
         the jump that it is making.
@@ -88,7 +91,7 @@ class RDFData:
 
     x: np.ndarray
     y: np.ndarray
-    symbol: str
+    label: str
     state: str
 
     @plot_backend
@@ -178,10 +181,75 @@ def radial_distribution(
             x=bins,
             # Drop last element with distance > max_dist
             y=values[:-1],
-            symbol=symbol,
+            label=symbol,
             state=state,
         )
         ret.setdefault(state, RDFCollection())
         ret[state].append(rdf_data)
 
     return ret
+
+
+def radial_distribution_between_species(
+    *,
+    trajectory: Trajectory,
+    specie_1: str | Collection[str],
+    specie_2: str | Collection[str],
+    max_dist: float = 5.0,
+    resolution: float = 0.1,
+) -> RDFData:
+    """Calculate RDFs from specie_1 to specie_2.
+
+    Parameters
+    ----------
+    trajectory: Trajectory
+        Input trajectory.
+    specie_1: str | list[str]
+        Name of specie or list of species
+    specie_2: str | list[str]
+        Name of specie or list of species
+    max_dist: float, optional
+        Max distance for rdf calculation
+    resolution: float, optional
+        Width of the bins
+
+    Returns
+    -------
+    rdf : RDFData
+        RDF data for the given species.
+    """
+    coords_1 = trajectory.filter(specie_1).coords
+    coords_2 = trajectory.filter(specie_2).coords
+    lattice = trajectory.get_lattice()
+
+    if coords_2.ndim == 2:
+        num_time_steps = 1
+        num_atoms, num_dimensions = coords_2.shape
+    else:
+        num_time_steps, num_atoms, num_dimensions = coords_2.shape
+
+    particle_vol = num_atoms / lattice.volume
+
+    all_dists = np.concatenate(
+        [
+            lattice.get_all_distances(coords_1[t, :, :], coords_2[t, :, :])
+            for t in range(num_time_steps)
+        ]
+    )
+    distances = all_dists.flatten()
+
+    bins = np.arange(0, max_dist + resolution, resolution)
+    rdf, _ = np.histogram(distances, bins=bins, density=False)
+
+    def normalize(radius: np.ndarray) -> np.ndarray:
+        """Normalize bin to volume."""
+        shell = (radius + resolution) ** 3 - radius**3
+        return particle_vol * (4 / 3) * np.pi * shell
+
+    norm = normalize(bins)[:-1]
+    counts = rdf / norm
+
+    str1 = specie_1 if isinstance(specie_1, str) else '/'.join(specie_1)
+    str2 = specie_1 if isinstance(specie_2, str) else '/'.join(specie_2)
+
+    return RDFData(x=bins[:-1], y=counts, label=f'{str1}-{str2}', state='')

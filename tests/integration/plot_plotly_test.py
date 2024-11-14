@@ -75,12 +75,15 @@ def test_radial_distribution(vasp_rdf_data):
 
 
 def test_radial_distribution_between_species(vasp_traj):
+    from gemdat.rdf import radial_distribution_between_species
+
     traj = vasp_traj[-500:]
-    fig = traj.plot_radial_distribution_between_species(
-        backend=BACKEND,
+    rdf = radial_distribution_between_species(
+        trajectory=traj,
         specie_1='Li',
         specie_2=('S', 'CL'),
     )
+    fig = rdf.plot(backend=BACKEND)
 
     assert_figures_similar(fig, name='radial_distribution_between_species', rms=0.5)
 

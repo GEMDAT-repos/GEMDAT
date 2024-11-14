@@ -77,10 +77,15 @@ def test_radial_distribution(vasp_rdf_data):
 
 @image_comparison2(baseline_images=['radial_distribution_between_species'])
 def test_radial_distribution_between_species(vasp_traj):
+    from gemdat.rdf import radial_distribution_between_species
+
     traj = vasp_traj[-500:]
-    traj.plot_radial_distribution_between_species(
-        backend=BACKEND, specie_1='Li', specie_2=('S', 'CL')
+    rdf = radial_distribution_between_species(
+        trajectory=traj,
+        specie_1='Li',
+        specie_2=('S', 'CL'),
     )
+    rdf.plot(backend=BACKEND)
 
 
 @image_comparison2(baseline_images=['shape'])
