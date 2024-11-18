@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pymatgen.core import Species
+from pymatgen.core import Element, Species
 
 if TYPE_CHECKING:
     import matplotlib.figure
@@ -42,7 +42,7 @@ def msd_per_element(
     t_values = np.arange(len(trajectory)) * time_ps
 
     for sp in species:
-        assert isinstance(sp, Species)
+        assert isinstance(sp, (Species, Element)), f'got {type(sp)}'
 
         traj = trajectory.filter(sp.symbol)
         msd = traj.mean_squared_displacement()

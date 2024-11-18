@@ -508,7 +508,7 @@ class Trajectory(PymatgenTrajectory):
         """Return trajectory with center of mass for positions."""
         weights = []
         for s in self.species:
-            assert isinstance(s, Species)
+            assert isinstance(s, (Species, Element)), f'got {type(s)=}'
             weights.append(s.atomic_mass)
 
         positions_no_pbc = self.base_positions + self.cumulative_displacements
@@ -555,7 +555,7 @@ class Trajectory(PymatgenTrajectory):
         elif floating_species:
             species = set()
             for sp in self.species:
-                assert isinstance(sp, Species)
+                assert isinstance(sp, Species), f'got {type(sp)=}'
                 if sp.symbol not in floating_species:
                     species.add(sp)
 

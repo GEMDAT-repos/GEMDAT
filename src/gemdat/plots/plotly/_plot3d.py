@@ -246,35 +246,34 @@ def plot_jumps(jumps: Jumps, *, fig: go.Figure):
     fig : plotly.graph_objects.Figure
         Plotly figure to add traces too
     """
-    coords = jumps.sites.frac_coords
+    site_coords = jumps.sites.frac_coords
     lattice = jumps.trajectory.get_lattice()
 
-    for i, j in zip(*np.triu_indices(len(coords), k=1)):
+    for i, j in zip(*np.triu_indices(len(site_coords), k=1)):
         count = jumps.matrix()[i, j] + jumps.matrix()[j, i]
         if count == 0:
             continue
 
-        coord_i = tuple(coords[i].tolist())
-        coord_j = tuple(coords[j].tolist())
+        site_coord_i = tuple(site_coords[i].tolist())
+        site_coord_j = tuple(site_coords[j].tolist())
 
         lw = 1 + np.log(count)
 
-        length, image = lattice.get_distance_and_image(coord_i, coord_j)
+        length, image = lattice.get_distance_and_image(site_coord_i, site_coord_j)
 
         if np.any(image != 0):
-            lines = [(coord_i, coord_j + image), (coord_i - image, coord_j)]
+            lines = [(site_coord_i, site_coord_j + image), (site_coord_i - image, site_coord_j)]
         else:
-            lines = [(coord_i, coord_j)]
+            lines = [(site_coord_i, site_coord_j)]
 
         for line in lines:
-            coords = lattice.get_cartesian_coords(line)
-            coords_t = list(zip(*coords))  # transpose, but pythonic
+            x, y, z = lattice.get_cartesian_coords(line).T
 
             fig.add_trace(
                 go.Scatter3d(
-                    x=coords_t[0],
-                    y=coords_t[1],
-                    z=coords_t[2],
+                    x=x,
+                    y=y,
+                    z=z,
                     mode='lines',
                     showlegend=False,
                     line_dash='dashdot' if any(image) != 0 else 'solid',

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from pymatgen.core import Species
+from pymatgen.core import Element, Species
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
@@ -26,7 +26,7 @@ def _mean_displacements_per_element(
 
     grouped = defaultdict(list)
     for sp, distances in zip(species, trajectory.distances_from_base_position()):
-        assert isinstance(sp, Species)
+        assert isinstance(sp, (Species, Element)), f'got {type(sp)}'
 
         grouped[sp.symbol].append(distances)
 
