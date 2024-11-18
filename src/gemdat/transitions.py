@@ -6,6 +6,7 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from itertools import pairwise
+from warnings import warn
 
 import numpy as np
 import pandas as pd
@@ -67,6 +68,15 @@ class Transitions:
         inner_states : np.ndarray
             Input states for inner sites
         """
+        if not (sites.is_ordered):
+            warn(
+                'Input `sites` are disordered! '
+                'Although the code may work, it was written under the assumption '
+                'that an ordered structure would be passed. '
+                'See https://github.com/GEMDAT-repos/GEMDAT/issues/339 for more information.',
+                stacklevel=2,
+            )
+
         self.sites = sites
         self.trajectory = trajectory
         self.diff_trajectory = diff_trajectory
@@ -252,7 +262,10 @@ class Transitions:
         counts = counts / len(states)
         occupancies = dict(zip(unq, counts))
 
-        species = [{site.specie.name: occupancies.get(i, 0)} for i, site in enumerate(sites)]
+        species = [
+            {site.species.elements[0].name: occupancies.get(i, 0)}
+            for i, site in enumerate(sites)
+        ]
 
         return Structure(
             lattice=sites.lattice,
@@ -262,7 +275,22 @@ class Transitions:
             labels=sites.labels,
         )
 
-    def atom_locations(self):
+    def occupancy_by_site_type(self) -> dict[str, float]:
+        """Calculate average occupancy per a type of site.
+
+        Returns
+        -------
+        occupancy : dict[str, float]
+            Return dict with average occupancy per site type
+        """
+        compositions_by_label = defaultdict(list)
+
+        for site in self.occupancy():
+            compositions_by_label[site.label].append(site.species.num_atoms)
+
+        return {k: sum(v) / len(v) for k, v in compositions_by_label.items()}
+
+    def atom_locations(self) -> dict[str, float]:
         """Calculate fraction of time atoms spent at a type of site.
 
         Returns
@@ -270,19 +298,13 @@ class Transitions:
         dict[str, float]
             Return dict with the fraction of time atoms spent at a site
         """
-        multiplier = len(self.sites) / self.n_floating
-
+        n = self.n_floating
         compositions_by_label = defaultdict(list)
 
         for site in self.occupancy():
             compositions_by_label[site.label].append(site.species.num_atoms)
 
-        ret = {}
-
-        for k, v in compositions_by_label.items():
-            ret[k] = (sum(v) / len(v)) * multiplier
-
-        return ret
+        return {k: sum(v) / n for k, v in compositions_by_label.items()}
 
     def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.

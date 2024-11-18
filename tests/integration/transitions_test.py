@@ -133,6 +133,10 @@ class TestTransitions:  # type: ignore
             35.43733333333334,
         ]
 
+    def test_occupancy_by_site_type(self, vasp_transitions):
+        occ = vasp_transitions.occupancy_by_site_type()
+        assert occ == {'48h': 0.3806277777777776}
+
     def test_atom_locations(self, vasp_transitions):
         dct = vasp_transitions.atom_locations()
         assert dct == {'48h': 0.7612555555555552}
