@@ -69,9 +69,10 @@ class Pathway:
         length : FloatWithUnit
             Total distance in Ångstrom
         """
-        length = 0
+        length = 0.0
         for a, b in pairwise(self.frac_sites()):
             dist, _ = lattice.get_distance_and_image(a, b)
+            assert dist
             length += dist
         return FloatWithUnit(length, 'ang')
 

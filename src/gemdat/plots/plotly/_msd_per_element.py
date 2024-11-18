@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import plotly.graph_objects as go
+from pymatgen.core import Element, Species
 
 from gemdat.plots._shared import hex2rgba
 
@@ -31,6 +32,8 @@ def msd_per_element(*, trajectory: Trajectory) -> go.Figure:
     species = list(set(trajectory.species))
 
     for i, sp in enumerate(species):
+        assert isinstance(sp, (Species, Element)), f'got {type(sp)}'
+
         color_hex = fig.layout['template']['layout']['colorway'][i]
         color_rgba = hex2rgba(color_hex, opacity=0.3)
 

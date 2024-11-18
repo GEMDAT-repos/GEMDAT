@@ -81,7 +81,7 @@ def analyse_md(
     """
     trajectory = Trajectory.from_vasprun(vasp_xml)
 
-    equilibration_steps = round(equil_time / trajectory.time_step)
+    equilibration_steps = round(equil_time / trajectory.time_step)  # type: ignore
 
     trajectory = trajectory[equilibration_steps:]
 
