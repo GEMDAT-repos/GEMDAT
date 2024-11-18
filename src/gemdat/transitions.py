@@ -275,7 +275,22 @@ class Transitions:
             labels=sites.labels,
         )
 
-    def atom_locations(self):
+    def occupancy_by_site_type(self) -> dict[str, float]:
+        """Calculate average occupancy per a type of site.
+
+        Returns
+        -------
+        occupancy : dict[str, float]
+            Return dict with average occupancy per site type
+        """
+        compositions_by_label = defaultdict(list)
+
+        for site in self.occupancy():
+            compositions_by_label[site.label].append(site.species.num_atoms)
+
+        return {k: sum(v) / len(v) for k, v in compositions_by_label.items()}
+
+    def atom_locations(self) -> dict[str, float]:
         """Calculate fraction of time atoms spent at a type of site.
 
         Returns
@@ -283,19 +298,13 @@ class Transitions:
         dict[str, float]
             Return dict with the fraction of time atoms spent at a site
         """
-        multiplier = len(self.sites) / self.n_floating
-
+        n = self.n_floating
         compositions_by_label = defaultdict(list)
 
         for site in self.occupancy():
             compositions_by_label[site.label].append(site.species.num_atoms)
 
-        ret = {}
-
-        for k, v in compositions_by_label.items():
-            ret[k] = (sum(v) / len(v)) * multiplier
-
-        return ret
+        return {k: sum(v) / n for k, v in compositions_by_label.items()}
 
     def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
