@@ -6,6 +6,7 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from itertools import pairwise
+from warnings import warn
 
 import numpy as np
 import pandas as pd
@@ -67,6 +68,15 @@ class Transitions:
         inner_states : np.ndarray
             Input states for inner sites
         """
+        if not (sites.is_ordered):
+            warn(
+                'Input `sites` are disordered! '
+                'Although the code may work, it was written under the assumption '
+                'that an ordered structure would be passed. '
+                'See https://github.com/GEMDAT-repos/GEMDAT/issues/339 for more information.',
+                stacklevel=2,
+            )
+
         self.sites = sites
         self.trajectory = trajectory
         self.diff_trajectory = diff_trajectory
