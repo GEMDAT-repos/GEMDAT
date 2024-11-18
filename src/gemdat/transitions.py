@@ -252,7 +252,10 @@ class Transitions:
         counts = counts / len(states)
         occupancies = dict(zip(unq, counts))
 
-        species = [{site.specie.name: occupancies.get(i, 0)} for i, site in enumerate(sites)]
+        species = [
+            {site.species.elements[0].name: occupancies.get(i, 0)}
+            for i, site in enumerate(sites)
+        ]
 
         return Structure(
             lattice=sites.lattice,
