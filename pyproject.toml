@@ -50,7 +50,7 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 
 [project.optional-dependencies]
 develop = [
-    "kaleido",
+    "kaleido != 0.4.1",  # 0.4.1: https://github.com/plotly/Kaleido/issues/223
     "bump-my-version",
     "coverage[toml]",
     "mypy",
