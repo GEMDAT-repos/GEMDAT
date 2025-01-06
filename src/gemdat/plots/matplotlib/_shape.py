@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Collection, Sequence
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap, to_rgb
 import numpy as np
 
 if TYPE_CHECKING:
@@ -35,6 +36,43 @@ def shape(
     fig : matplotlib.figure.Figure
         Output figure
     """
+    # Define the custom colormap based on provided colors, isovals, and alphavals
+    colors = ['white', 'orangered', 'greenyellow', 'cyan']
+    isovals = [0.0, 0.65, 0.30, 0.05]
+    alphavals = [0.0, 0.5, 1, 0.5]
+
+    # Sort isovals along with colors and alphavals
+    sorted_indices = np.argsort(isovals)
+    isovals = np.array(isovals)[sorted_indices]
+    colors = np.array(colors)[sorted_indices]
+    alphavals = np.array(alphavals)[sorted_indices]
+
+    # Normalize isovals to create positions for the colormap
+    norm_isovals = isovals / max(isovals)
+
+    # Ensure the first and last points are at 0 and 1
+    if norm_isovals[0] != 0:
+        norm_isovals = np.insert(norm_isovals, 0, 0)
+        colors = np.insert(colors, 0, colors[0])
+        alphavals = np.insert(alphavals, 0, alphavals[0])
+
+    if norm_isovals[-1] != 1:
+        norm_isovals = np.append(norm_isovals, 1)
+        colors = np.append(colors, colors[-1])
+        alphavals = np.append(alphavals, alphavals[-1])
+
+    # Create a custom colormap
+    cdict = {'red': [], 'green': [], 'blue': [], 'alpha': []}
+
+    for iso, color, alpha in zip(norm_isovals, colors, alphavals):
+        r, g, b = to_rgb(color)
+        cdict['red'].append((iso, r, r))
+        cdict['green'].append((iso, g, g))
+        cdict['blue'].append((iso, b, b))
+        cdict['alpha'].append((iso, alpha, alpha))
+
+    custom_cmap = LinearSegmentedColormap('custom_cmap', segmentdata=cdict, N=256)
+
     x_labels = ('X / Å', 'Y / Å', 'Z / Å')
     y_labels = ('Y / Å', 'Z / Å', 'X / Å')
 
@@ -47,11 +85,10 @@ def shape(
     )
 
     distances = shape.distances()
-    distances_sq = distances**2
 
-    msd = np.mean(distances_sq)
-    std = np.std(distances_sq)
-    title = f'{shape.name}: MSD = {msd:.3f}$~Å^2$, std = {std:.3f}'
+    R = np.mean(distances)
+    std = np.std(distances)
+    title = f'{shape.name}: R = {R:.3f}$~Å$, std = {std:.3f}'
 
     mean_dist = np.mean(distances)
 
@@ -74,7 +111,7 @@ def shape(
         x_coords = coords[:, i]
         y_coords = coords[:, j]
 
-        ax0.hist2d(x=x_coords, y=y_coords, bins=bins)
+        ax0.hist2d(x=x_coords, y=y_coords, bins=bins, cmap=custom_cmap)
         ax0.set_ylabel(y_labels[col])
 
         circle = plt.Circle(

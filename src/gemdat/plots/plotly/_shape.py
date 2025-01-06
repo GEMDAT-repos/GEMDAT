@@ -60,14 +60,11 @@ def shape(
     )
 
     distances = shape.distances()
-    distances_sq = distances**2
-
-    msd = np.mean(distances_sq)
-    std = np.std(distances_sq)
-    # Latex can not be rendered in 3D plotly plots: https://github.com/plotly/plotly.js/issues/608
-    title = f'{shape.name}: MSD = {msd:.3f} Å^2, std = {std:.3f}'
 
     mean_dist = np.mean(distances)
+    std = np.std(distances)
+    # Latex can not be rendered in 3D plotly plots: https://github.com/plotly/plotly.js/issues/608
+    title = f'{shape.name}: R = {mean_dist:.3f} Å, std = {std:.3f}'
 
     _tmp_dict = defaultdict(list)
     vector_dict = {}
