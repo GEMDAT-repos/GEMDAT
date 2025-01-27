@@ -250,6 +250,6 @@ def radial_distribution_between_species(
     counts = rdf / norm
 
     str1 = specie_1 if isinstance(specie_1, str) else '/'.join(specie_1)
-    str2 = specie_1 if isinstance(specie_2, str) else '/'.join(specie_2)
+    str2 = specie_2 if isinstance(specie_2, str) else '/'.join(specie_2)
 
     return RDFData(x=bins[:-1], y=counts, label=f'{str1}-{str2}', state='')
