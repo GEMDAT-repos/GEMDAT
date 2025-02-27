@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
 from typing import TYPE_CHECKING, Collection, Optional
+import sys
 
 import numpy as np
 from pymatgen.core import Element, Lattice, Species
@@ -18,6 +19,8 @@ from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
 from ._plot_backend import plot_backend
+
+
 
 if TYPE_CHECKING:
     from pymatgen.core import Structure
@@ -271,6 +274,7 @@ class Trajectory(PymatgenTrajectory):
         data_file: Path | str,
         temperature: float,
         time_step: float,
+        element_dict: Optional[dict] = None,
         coords_format: str = 'xyz',
         atom_style: str = 'atomic',
         cache: Optional[str | Path] = None,
@@ -288,6 +292,8 @@ class Trajectory(PymatgenTrajectory):
             Temperature of simulation in K
         time_step : float
             Time step of the simulation in ps
+        element_dict : dict
+            Dictionary of species labels to elements
         coords_format: str
             Format of the coords file
         atom_style : str
@@ -330,15 +336,26 @@ class Trajectory(PymatgenTrajectory):
         if not constant_lattice:
             raise NotImplementedError('Lammps reader does not support NPT simulations')
 
-        lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)
+       
+        try:
+            lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)
+        except FileNotFoundError:
+            print('file not found')
+            sys.exit()
+        except:
+            print(f"Error: Could not parse LAMMPS data file '{data_file}'.")
+            print("\nSuggestion: Export the data file directly from LAMMPS using the 'write_data' command.")
+            sys.exit()
+            
         lattice = lammps_data.structure.lattice
 
         utraj = Universe(coords_file, format=coords_format)
         coords = utraj.trajectory.timeseries()
         coords = lattice.get_fractional_coords(coords)
 
-        species = [Element(sp) for sp in utraj.atoms.elements]
-
+        elements = [element_dict.get(i, i) for i in utraj.atoms.elements] if element_dict else utraj.atoms.elements
+        species = [Element(sp) for sp in elements]
+        
         obj = cls(
             species=species,
             coords=coords,
