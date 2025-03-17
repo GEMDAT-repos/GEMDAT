@@ -55,7 +55,8 @@ def assert_figures_similar(fig, *, name: str, ext: str = 'png', rms: float = 0.0
             err[key] = Path(err[key]).relative_to('.')
         raise AssertionError(
             (
-                'images not close (RMS {rms:.3f}):'
-                '\n\t{actual}\n\t{expected}\n\t{diff}'.format(**err)
+                'images not close (RMS {rms:.3f}):\n\t{actual}\n\t{expected}\n\t{diff}'.format(
+                    **err
+                )
             )
         )

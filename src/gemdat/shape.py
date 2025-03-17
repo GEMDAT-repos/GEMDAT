@@ -129,8 +129,8 @@ class ShapeAnalyzer:
             'Spacegroup',
             f'    {symbol} ({self.spacegroup.int_number})',
             'Lattice',
-            f"    abc   : {' '.join(to_str(val) for val in self.lattice.abc)}",
-            f"    angles: {' '.join(to_str(val) for val in self.lattice.angles)}",
+            f'    abc   : {" ".join(to_str(val) for val in self.lattice.abc)}',
+            f'    angles: {" ".join(to_str(val) for val in self.lattice.angles)}',
             f'Unique sites ({len(self.sites)})',
         ]
         for site in self.sites:

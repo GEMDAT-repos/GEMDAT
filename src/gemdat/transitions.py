@@ -465,7 +465,7 @@ def _compute_site_radius(
 
             raise ValueError(
                 'Crystallographic sites are too close together '
-                f'(expected: >{site_radius*2:.4f}, '
+                f'(expected: >{site_radius * 2:.4f}, '
                 f'got: {min_dist:.4f} for {msg}'
             )
 
