@@ -88,7 +88,7 @@ def energy_along_path(
                 go.Scatter(
                     x=np.arange(len(path.energy)),
                     y=path.energy,
-                    name=f'Alternative {idx+1}',
+                    name=f'Alternative {idx + 1}',
                     mode='lines',
                     line={'width': 1},
                 )

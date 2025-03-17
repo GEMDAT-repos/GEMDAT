@@ -212,7 +212,7 @@ def plot_paths(
             size = 6
             color = 'teal'
         else:
-            name = f'Alternative {idx+1}'
+            name = f'Alternative {idx + 1}'
             size = 5
             color = None
 

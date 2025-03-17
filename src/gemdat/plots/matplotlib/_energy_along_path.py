@@ -80,7 +80,7 @@ def energy_along_path(
         for idx, path in enumerate(other_paths):
             if path.energy is None:
                 raise ValueError('Pathway does not contain energy data')
-            ax.plot(range(len(path.energy)), path.energy, label=f'Alternative {idx+1}')
+            ax.plot(range(len(path.energy)), path.energy, label=f'Alternative {idx + 1}')
 
         ax.legend(fontsize=8)
 

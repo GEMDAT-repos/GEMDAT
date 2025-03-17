@@ -3,18 +3,20 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
-import numpy as np
+
+from .._shared import _jumps_vs_distance
 
 if TYPE_CHECKING:
     import matplotlib.figure
 
-    from gemdat import Jumps
+    from gemdat.jumps import Jumps
 
 
 def jumps_vs_distance(
     *,
     jumps: Jumps,
     jump_res: float = 0.1,
+    n_parts: int = 1,
 ) -> matplotlib.figure.Figure:
     """Plot jumps vs. distance histogram.
 
@@ -24,32 +26,27 @@ def jumps_vs_distance(
         Input data
     jump_res : float, optional
         Resolution of the bins in Angstrom
+    n_parts : int
+        Number of parts for error analysis
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         Output figure
     """
-    sites = jumps.sites
-
-    trajectory = jumps.trajectory
-    lattice = trajectory.get_lattice()
-
-    pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
-
-    bin_max = (1 + pdist.max() // jump_res) * jump_res
-    n_bins = int(bin_max / jump_res) + 1
-    x = np.linspace(0, bin_max, n_bins)
-    counts = np.zeros_like(x)
-
-    bin_idx = np.digitize(pdist, bins=x)
-    for idx, n in zip(bin_idx.flatten(), jumps.matrix().flatten()):
-        counts[idx] += n
+    df = _jumps_vs_distance(jumps=jumps, resolution=jump_res, n_parts=n_parts)
 
     fig, ax = plt.subplots()
 
-    ax.bar(x, counts, width=(jump_res * 0.8))
+    if n_parts == 1:
+        ax.bar('Displacement', 'mean', data=df, width=(jump_res * 0.8))
+    else:
+        ax.bar('Displacement', 'mean', yerr='std', data=df, width=(jump_res * 0.8))
 
-    ax.set(title='Jumps vs. Distance', xlabel='Distance (Å)', ylabel='Number of jumps')
+    ax.set(
+        title='Jumps vs. Distance',
+        xlabel='Distance (Å)',
+        ylabel='Number of jumps',
+    )
 
     return fig

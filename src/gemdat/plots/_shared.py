@@ -11,6 +11,7 @@ from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
 if TYPE_CHECKING:
+    from gemdat.jumps import Jumps
     from gemdat.orientations import Orientations
     from gemdat.trajectory import Trajectory
 
@@ -127,7 +128,7 @@ class VibrationalAmplitudeHist:
 def _get_vibrational_amplitudes_hist(
     *, trajectories: list[Trajectory], bins: int
 ) -> VibrationalAmplitudeHist:
-    """Calculate vabrational amplitudes histogram.
+    """Calculate vibrational amplitudes histogram.
 
     Helper for `vibrational_amplitudes`.
     """
@@ -150,3 +151,38 @@ def _get_vibrational_amplitudes_hist(
     std = np.std(data, axis=0)
 
     return VibrationalAmplitudeHist(amplitudes=amplitudes, counts=mean, std=std)
+
+
+def _jumps_vs_distance(jumps: Jumps, *, resolution: float, n_parts: int) -> pd.DataFrame:
+    """Calculate jumps vs distance histogram.
+
+    Helper for `jumps_vs_distance`.
+    """
+    sites = jumps.sites
+    trajectory = jumps.trajectory
+    lattice = trajectory.get_lattice()
+
+    pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
+
+    bin_max = (1 + pdist.max() // resolution) * resolution
+    n_bins = int(bin_max / resolution) + 1
+    x = np.linspace(0, bin_max, n_bins)
+
+    bin_idx = np.digitize(pdist, bins=x)
+    data = []
+    for transitions_part in jumps.split(n_parts=n_parts):
+        counts = np.zeros_like(x)
+        for idx, n in zip(bin_idx.flatten(), transitions_part.matrix().flatten()):
+            counts[idx] += n
+        for idx in range(n_bins):
+            if counts[idx] > 0:
+                data.append((x[idx], counts[idx]))
+
+    df = pd.DataFrame(data=data, columns=['Displacement', 'count'])
+
+    grouped = df.groupby(['Displacement'])
+    mean = grouped.mean().reset_index().rename(columns={'count': 'mean'})
+    std = grouped.std().reset_index().rename(columns={'count': 'std'})
+    df = mean.merge(std, how='inner')
+
+    return df

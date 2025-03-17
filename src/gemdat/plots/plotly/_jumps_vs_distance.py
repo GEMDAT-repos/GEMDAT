@@ -2,16 +2,21 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+
+from .._shared import _jumps_vs_distance
 
 if TYPE_CHECKING:
     from gemdat import Jumps
 
 
-def jumps_vs_distance(*, jumps: Jumps, jump_res: float = 0.1, n_parts: int = 1) -> go.Figure:
+def jumps_vs_distance(
+    *,
+    jumps: Jumps,
+    jump_res: float = 0.1,
+    n_parts: int = 1,
+) -> go.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
@@ -28,32 +33,7 @@ def jumps_vs_distance(*, jumps: Jumps, jump_res: float = 0.1, n_parts: int = 1) 
     fig : plotly.graph_objects.Figure
         Output figure
     """
-    sites = jumps.sites
-    trajectory = jumps.trajectory
-    lattice = trajectory.get_lattice()
-
-    pdist = lattice.get_all_distances(sites.frac_coords, sites.frac_coords)
-
-    bin_max = (1 + pdist.max() // jump_res) * jump_res
-    n_bins = int(bin_max / jump_res) + 1
-    x = np.linspace(0, bin_max, n_bins)
-
-    bin_idx = np.digitize(pdist, bins=x)
-    data = []
-    for transitions_part in jumps.split(n_parts=n_parts):
-        counts = np.zeros_like(x)
-        for idx, n in zip(bin_idx.flatten(), transitions_part.matrix().flatten()):
-            counts[idx] += n
-        for idx in range(n_bins):
-            if counts[idx] > 0:
-                data.append((x[idx], counts[idx]))
-
-    df = pd.DataFrame(data=data, columns=['Displacement', 'count'])
-
-    grouped = df.groupby(['Displacement'])
-    mean = grouped.mean().reset_index().rename(columns={'count': 'mean'})
-    std = grouped.std().reset_index().rename(columns={'count': 'std'})
-    df = mean.merge(std, how='inner')
+    df = _jumps_vs_distance(jumps=jumps, resolution=jump_res, n_parts=n_parts)
 
     if n_parts == 1:
         fig = px.bar(df, x='Displacement', y='mean', barmode='stack')
