@@ -749,6 +749,7 @@ class Trajectory(PymatgenTrajectory):
 
         return TrajectoryMetrics(trajectory=self)
 
+    @plot_backend
     def radial_distribution_between_species(self, *, module, **kwargs) -> RDFData:
         """See [gemdat.rdf.radial_distribution_between_species][] for more
         info."""
