@@ -57,5 +57,5 @@ loop_
  _atom_site_fract_y
  _atom_site_fract_z
  _atom_site_occupancy
-   Li   6b   6  0.00  0.00  0.00
-   Li  18e  18  0.66  0.00  0.25
+   Li   6b   6  0.00  0.00  0.00  1.00
+   Li  18e  18  0.66  0.00  0.25  1.00
