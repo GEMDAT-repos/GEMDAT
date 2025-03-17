@@ -11,7 +11,12 @@ if TYPE_CHECKING:
     from gemdat import Jumps
 
 
-def jumps_vs_distance(*, jumps: Jumps, jump_res: float = 0.1, n_parts: int = 1) -> go.Figure:
+def jumps_vs_distance(
+    *,
+    jumps: Jumps,
+    jump_res: float = 0.1,
+    n_parts: int = 1,
+) -> go.Figure:
     """Plot jumps vs. distance histogram.
 
     Parameters
