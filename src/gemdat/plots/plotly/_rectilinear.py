@@ -58,7 +58,7 @@ def rectilinear(
             z=hist,
             colorbar={
                 'title': 'Areal probability',
-                'titleside': 'right',
+                'title_side': 'right',
             },
         )
     )
