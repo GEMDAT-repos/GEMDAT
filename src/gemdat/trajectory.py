@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Collection, Optional
 
 import numpy as np
+import pandas as pd
 from pymatgen.core import Element, Lattice, Species
 from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
@@ -273,6 +274,7 @@ class Trajectory(PymatgenTrajectory):
         time_step: float,
         coords_format: str = 'xyz',
         atom_style: str = 'atomic',
+        type_mapping: Optional[dict[str, str]] = None,
         cache: Optional[str | Path] = None,
         constant_lattice: bool = True,
     ) -> Trajectory:
@@ -292,6 +294,10 @@ class Trajectory(PymatgenTrajectory):
             Format of the coords file
         atom_style : str
             Atom style for box file
+        type_mapping: dict[str, str], optional
+            If specified, map numbers to element names. This is for LAMMPS
+            data that do not contain element labels for the different species.
+            See: https://github.com/GEMDAT-repos/GEMDAT/issues/353
         cache : Optional[Path], optional
             Path to cache data for vasprun.xml
         constant_lattice : bool
@@ -330,6 +336,16 @@ class Trajectory(PymatgenTrajectory):
         if not constant_lattice:
             raise NotImplementedError('Lammps reader does not support NPT simulations')
 
+        try:
+            lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)
+        except pd.errors.ParserError as exc:
+            msg = (
+                f"Could not parse LAMMPS data file '{data_file}'."
+                '\nSuggestion: Export the data file directly from LAMMPS'
+                ' using the `write_data` command.'
+            )
+            raise IOError(msg) from exc
+
         lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)
         lattice = lammps_data.structure.lattice
 
@@ -337,7 +353,10 @@ class Trajectory(PymatgenTrajectory):
         coords = utraj.trajectory.timeseries()
         coords = lattice.get_fractional_coords(coords)
 
-        species = [Element(sp) for sp in utraj.atoms.elements]
+        if type_mapping:
+            species = [Element(type_mapping.get(_type)) for _type in utraj.atoms.types]  # type: ignore
+        else:
+            species = [Element(sp) for sp in utraj.atoms.elements]
 
         obj = cls(
             species=species,
