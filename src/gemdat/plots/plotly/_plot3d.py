@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 
 import numpy as np
 import plotly.express as px
@@ -65,7 +65,14 @@ def plot_lattice_vectors(lattice: Lattice, *, fig: go.Figure):
         )
 
 
-def plot_points(points: np.ndarray, labels: Sequence, *, fig: go.Figure, point_size: int = 5):
+def plot_points(
+    points: np.ndarray,
+    labels: Sequence,
+    *,
+    fig: go.Figure,
+    point_size: int = 5,
+    colors: Optional[dict[str, str]] = None,
+):
     """Plot points using plotly.
 
     Parameters
@@ -78,13 +85,18 @@ def plot_points(points: np.ndarray, labels: Sequence, *, fig: go.Figure, point_s
         Plotly figure to add traces to
     point_size : int, optional
         Size of the points
+    colors: dict, optional
+        Mapping of colors for the each label.
+        See the following link for a list of accepted colours:
+        https://developer.mozilla.org/en-US/docs/Web/CSS/named-color
     """
     assert len(points) == len(labels)
 
-    colors = {
-        label: px.colors.sample_colorscale('rainbow', [i / (len(labels) - 1)])
-        for i, label in enumerate(labels)
-    }
+    if not colors:
+        colors = {
+            label: px.colors.sample_colorscale('rainbow', [i / (len(labels) - 1)])
+            for i, label in enumerate(labels)
+        }
 
     for i, (x, y, z) in enumerate(points):
         label = labels[i]
