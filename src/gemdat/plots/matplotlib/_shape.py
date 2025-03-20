@@ -8,6 +8,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     import matplotlib.figure
+    from matplotlib.colors import Colormap
     from pymatgem.core import PeriodicSite
 
     from gemdat.shape import ShapeData
@@ -17,6 +18,7 @@ def shape(
     shape: ShapeData,
     bins: int | Sequence[float] = 50,
     sites: Collection[PeriodicSite] | None = None,
+    cmap: Colormap | None = None,
 ) -> matplotlib.figure.Figure:
     """Plot site cluster shapes.
 
@@ -47,11 +49,10 @@ def shape(
     )
 
     distances = shape.distances()
-    distances_sq = distances**2
 
-    msd = np.mean(distances_sq)
-    std = np.std(distances_sq)
-    title = f'{shape.name}: MSD = {msd:.3f}$~Å^2$, std = {std:.3f}'
+    R = np.mean(distances)
+    std = np.std(distances)
+    title = f'{shape.name}: R = {R:.3f}$~Å$, std = {std:.3f}'
 
     mean_dist = np.mean(distances)
 
@@ -74,7 +75,7 @@ def shape(
         x_coords = coords[:, i]
         y_coords = coords[:, j]
 
-        ax0.hist2d(x=x_coords, y=y_coords, bins=bins)
+        ax0.hist2d(x=x_coords, y=y_coords, bins=bins, cmap=cmap)
         ax0.set_ylabel(y_labels[col])
 
         circle = plt.Circle(
