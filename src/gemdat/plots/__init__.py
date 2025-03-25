@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .matplotlib import (
     jumps_3d_animation,
+    polar,
 )
 from .plotly import (
     autocorrelation,
@@ -47,4 +48,5 @@ __all__ = [
     'rectilinear',
     'shape',
     'vibrational_amplitudes',
+    'polar'
 ]

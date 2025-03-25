@@ -20,6 +20,8 @@ from ._radial_distribution import radial_distribution
 from ._rectilinear import rectilinear
 from ._shape import shape
 from ._vibrational_amplitudes import vibrational_amplitudes
+from ._polar import polar
+
 
 __all__ = [
     'autocorrelation',
@@ -39,4 +41,5 @@ __all__ = [
     'rectilinear',
     'shape',
     'vibrational_amplitudes',
+    'polar'
 ]
