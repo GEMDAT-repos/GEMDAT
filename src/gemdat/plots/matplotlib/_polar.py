@@ -17,8 +17,8 @@ def polar(
     shape: tuple[int, int] = (90, 360),
     normalize_histo: bool = True,
 ) -> matplotlib.figure.Figure:
-    """Plot a polar projection of a spherical function. This function
-    uses the transformed trajectory.
+    """Plot a polar projection of a spherical function. This function uses the
+    transformed trajectory.
 
     Parameters
     ----------
@@ -52,23 +52,23 @@ def polar(
 
     phi = np.radians(np.linspace(0, 360, axis_phi))
     theta = np.linspace(0, 180, axis_theta)
-    
-    theta, phi = np.meshgrid(theta,phi)
 
-    fig, (ax1,ax2) = plt.subplots(1,2, subplot_kw=dict(projection='polar'))
-    
+    theta, phi = np.meshgrid(theta, phi)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, subplot_kw=dict(projection='polar'))
+
     cs1 = ax1.contourf(phi, theta, hist.T)
-    ax1.set_title("θ < 90°")
+    ax1.set_title('θ < 90°')
     ax1.set_rmax(90)
     ax1.set_yticklabels([])
-    
-    cs2 = ax2.contourf(phi, 180 - theta, hist.T)
-    ax2.set_title("θ > 90°")
+
+    ax2.contourf(phi, 180 - theta, hist.T)
+    ax2.set_title('θ > 90°')
     ax2.set_rmax(90)
     ax2.set_yticklabels([])
 
     fig.colorbar(cs1, ax=[ax1, ax2], orientation='horizontal', label='Areal Probability')
-    
-    plt.subplots_adjust(wspace=0.5,bottom=0.35)  # Increase horizontal spacing
-    
+
+    plt.subplots_adjust(wspace=0.5, bottom=0.35)  # Increase horizontal spacing
+
     return fig
