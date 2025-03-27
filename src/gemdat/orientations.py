@@ -273,6 +273,11 @@ class Orientations:
         return module.rectilinear(orientations=self, **kwargs)
 
     @plot_backend
+    def plot_polar(self, *, module, **kwargs):
+        """See [gemdat.plots.polar][] for more info."""
+        return module.polar(orientations=self, **kwargs)
+
+    @plot_backend
     def plot_bond_length_distribution(self, *, module, **kwargs):
         """See [gemdat.plots.bond_length_distribution][] for more info."""
         return module.bond_length_distribution(orientations=self, **kwargs)

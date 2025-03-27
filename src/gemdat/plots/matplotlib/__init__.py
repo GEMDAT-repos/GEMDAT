@@ -16,6 +16,7 @@ from ._jumps_3d_animation import jumps_3d_animation
 from ._jumps_vs_distance import jumps_vs_distance
 from ._jumps_vs_time import jumps_vs_time
 from ._msd_per_element import msd_per_element
+from ._polar import polar
 from ._radial_distribution import radial_distribution
 from ._rectilinear import rectilinear
 from ._shape import shape
@@ -35,6 +36,7 @@ __all__ = [
     'jumps_vs_distance',
     'jumps_vs_time',
     'msd_per_element',
+    'polar',
     'radial_distribution',
     'rectilinear',
     'shape',
