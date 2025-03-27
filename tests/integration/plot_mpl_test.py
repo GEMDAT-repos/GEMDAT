@@ -129,3 +129,8 @@ def test_bond_length_distribution(vasp_orientations):
 @image_comparison2(baseline_images=['autocorrelation'])
 def test_autocorrelation(vasp_orientations):
     vasp_orientations.plot_autocorrelation(backend=BACKEND)
+
+
+@image_comparison2(baseline_images=['polar'])
+def test_polar(vasp_orientations):
+    vasp_orientations.plot_polar(backend=BACKEND)
