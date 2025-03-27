@@ -44,9 +44,9 @@ __all__ = [
     'msd_per_element',
     'msd_per_element',
     'plot_3d',
+    'polar',
     'radial_distribution',
     'rectilinear',
     'shape',
     'vibrational_amplitudes',
-    'polar'
 ]
