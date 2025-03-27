@@ -92,7 +92,7 @@ Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-dev
 
 ## How to Cite
 
-- Victor Azizi, Stef Smeets, Anastasiia K. Lavrinenko and Simone Ciarella. GEMDAT (Version 1.5.1) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
+- Victor Azizi, Stef Smeets, Anastasiia K. Lavrinenko and Simone Ciarella. GEMDAT (Version 1.6.0) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
 
 ## Credits
 
