@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .matplotlib import (
     jumps_3d_animation,
+    polar,
 )
 from .plotly import (
     autocorrelation,
@@ -45,6 +46,7 @@ __all__ = [
     'msd_per_element',
     'plot_3d',
     'plot_3d_points',
+    'polar',
     'radial_distribution',
     'rectilinear',
     'shape',
