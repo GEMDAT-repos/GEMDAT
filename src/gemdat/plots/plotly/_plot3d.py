@@ -70,7 +70,7 @@ def plot_3d_points(
     labels: Sequence,
     *,
     fig: go.Figure,
-    point_size: int = 5,
+    point_size: int = 3,
     colors: Optional[dict[str, str]] = None,
 ):
     """Plot points using plotly.
@@ -141,9 +141,13 @@ def plot_volume(
     *,
     fig: go.Figure,
     lattice: Lattice | None = None,
-    colors: list[str] = ['red', 'yellow', 'cyan'],
-    isovals: list[float] = [0.25, 0.10, 0.007],
-    alphavals: list[float] = [0.6, 0.3, 0.15],
+    colors: list[str] = [
+        '#DB5C68',
+        '#5302A2',
+        '#0D0887',
+    ],
+    isovals: list[float] = [0.4, 0.15, 0.01],
+    alphavals: list[float] = [0.3, 0.1, 0.05],
 ):
     """Plot volume using plotly.
 
