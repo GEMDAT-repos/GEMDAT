@@ -65,7 +65,7 @@ def plot_lattice_vectors(lattice: Lattice, *, fig: go.Figure):
         )
 
 
-def plot_points(
+def plot_3d_points(
     points: np.ndarray,
     labels: Sequence,
     *,
@@ -132,7 +132,7 @@ def plot_structure(structure: Structure, *, lattice: Lattice | None = None, fig:
     else:
         cart_coords = structure.cart_coords
 
-    plot_points(cart_coords, labels=structure.labels, fig=fig)
+    plot_3d_points(cart_coords, labels=structure.labels, fig=fig)
     plot_lattice_vectors(structure.lattice, fig=fig)
 
 
