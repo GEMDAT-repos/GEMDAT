@@ -18,7 +18,7 @@ def shape(
     shape: ShapeData,
     bins: int | Sequence[float] = 50,
     sites: Collection[PeriodicSite] | None = None,
-    cmap: Colormap | None = None,
+    cmap: Colormap | str | None = None,
 ) -> matplotlib.figure.Figure:
     """Plot site cluster shapes.
 
@@ -31,6 +31,8 @@ def shape(
         See [hist()][matplotlib.pyplot.hist] for more info.
     sites : Collection[PeriodicSite] | None
         Plot these sites on the shape density
+    cmap : Colormap | str, optional
+        Colormap for the 2D histogram
 
     Returns
     -------
