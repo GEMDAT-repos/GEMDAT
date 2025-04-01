@@ -70,7 +70,7 @@ def plot_3d_points(
     labels: Sequence,
     *,
     fig: go.Figure,
-    point_size: int = 3,
+    point_size: int = 5,
     colors: Optional[dict[str, str]] = None,
 ):
     """Plot points using plotly.
