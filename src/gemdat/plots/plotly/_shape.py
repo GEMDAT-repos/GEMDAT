@@ -17,6 +17,7 @@ def shape(
     shape: ShapeData,
     bins: int | Sequence[float] = 50,
     sites: Collection[PeriodicSite] | None = None,
+    cmap: str | None = None,
 ) -> go.Figure:
     """Plot site cluster shapes.
 
@@ -28,6 +29,8 @@ def shape(
         Number of bins or sequence of bin edges.
     sites : Collection[PeriodicSite] | None
         Plot these sites on the shape density
+    cmap : str, optional
+        Colormap for the 2D histogram
 
     Returns
     -------
@@ -90,6 +93,7 @@ def shape(
                 name=y_labels[col],
                 showscale=False,
                 showlegend=False,
+                colorscale=cmap,
             ),
             **top_row,
         )
