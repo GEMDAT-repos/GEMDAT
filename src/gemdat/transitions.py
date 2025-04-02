@@ -3,6 +3,7 @@ sites."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import typing
 from collections import defaultdict
 from itertools import pairwise
@@ -18,6 +19,8 @@ from .metrics import TrajectoryMetrics
 from .utils import bfill, ffill, integer_remap
 
 if typing.TYPE_CHECKING:
+    from pymatgen.core import Lattice
+
     from gemdat.jumps import Jumps
     from gemdat.rdf import RDFCollection
     from gemdat.trajectory import Trajectory
@@ -415,8 +418,59 @@ def _calculate_transition_events(
     return events
 
 
+@dataclass
+class SiteRadius:
+    radius: float      # site radius in Angstrom
+    pdist: np.ndarray  # pairwise distance matrix
+
+    _min_dist = None
+
+    @property
+    def min_dist(self) -> float:
+        """Minimum distance (Angstom) between atom pairs."""
+        if not self._min_dist:
+            self._min_dist = np.min(self.pdist[np.triu_indices_from(self.pdist, k=1)])
+        return self._min_dist
+
+    def shrink(self):
+        """In-place shrink site radius."""
+        new_radius = (0.5 * self.min_dist) - 0.005
+        self.radius = new_radius
+
+    def is_not_realistic(self) -> bool:
+        """Return True if the radius is not physically realistic."""
+        return self.radius * 2 < 0.5
+
+    def sites_are_overlapping(self) -> bool:
+        """Return True if sites any pairwise distances are within the site radius.."""
+        return self.min_dist < 2 * self.radius
+
+    def raise_if_overlapping(self, sites: Structure) -> None:
+        """Raise error if sites are overlapping."""
+        overlapping_idx = np.argwhere(self.pdist == self.min_dist)
+
+        lines = []
+
+        for i, j in overlapping_idx:
+            site_i = sites[i]
+            site_j = sites[j]
+            lines.append('\nToo close:')
+            lines.append(f'{site_i.specie.name}({i}) {site_i.frac_coords}')
+            lines.append(' - ')
+            lines.append(f'{site_j.specie.name}({j}) {site_j.frac_coords}')
+
+        msg = ''.join(lines)
+
+        raise ValueError(
+            'Crystallographic sites are too close together '
+            f'(expected: >{self.radius * 2:.4f}, '
+            f'got: {self.min_dist:.4f} for {msg}'
+        )
+
+
+
 def _compute_site_radius(
-    trajectory: Trajectory, sites: Structure, vibration_amplitude: float
+    trajectory: Trajectory, sites: Structure, vibration_amplitude: float,
 ) -> float:
     """Calculate tolerance wihin which atoms are considered to be close to a
     site.
@@ -427,6 +481,8 @@ def _compute_site_radius(
         Input trajectory
     sites : pymatgen.core.structure.Structure
         Input sites
+    vibration_amplitude: float
+        Vibration amplitude used to calculate site radius
 
     Returns
     -------
@@ -434,42 +490,23 @@ def _compute_site_radius(
         Atoms within this distance (in Angstrom) are considered to be close to a site
     """
     lattice = trajectory.get_lattice()
-    site_radius = 2 * vibration_amplitude
-
     site_coords = sites.frac_coords
 
     pdist = lattice.get_all_distances(site_coords, site_coords)
-    min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
 
-    if min_dist < 2 * site_radius:
+    site_radius = SiteRadius(radius=2 * vibration_amplitude, pdist=pdist)
+
+    if site_radius.sites_are_overlapping():
         # Crystallographic sites are overlapping with the chosen site_radius,
         # making it smaller
-        site_radius = (0.5 * min_dist) - 0.005
+        site_radius.shrink()
 
         # Two crystallographic sites are within half an Angstrom of each other
         # This is NOT realistic, check/change the given crystallographic site
-        if site_radius * 2 < 0.5:
-            idx = np.argwhere(pdist == min_dist)
+        if site_radius.is_not_realistic():
+            site_radius.raise_if_overlapping(sites=sites)
 
-            lines = []
-
-            for i, j in idx:
-                site_i = sites[i]
-                site_j = sites[j]
-                lines.append('\nToo close:')
-                lines.append(f'{site_i.specie.name}({i}) {site_i.frac_coords}')
-                lines.append(' - ')
-                lines.append(f'{site_j.specie.name}({j}) {site_j.frac_coords}')
-
-            msg = ''.join(lines)
-
-            raise ValueError(
-                'Crystallographic sites are too close together '
-                f'(expected: >{site_radius * 2:.4f}, '
-                f'got: {min_dist:.4f} for {msg}'
-            )
-
-    return site_radius
+    return site_radius.radius
 
 
 def _calculate_atom_states(
