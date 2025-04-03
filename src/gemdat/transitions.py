@@ -534,7 +534,7 @@ def _calculate_atom_states(
         site_index = periodic_tree.search_tree(cart_coords, radius * site_inner_fraction)
 
         if site_index.size == 0:
-            warn(f'No floating species in range of {label} ({radius=}', stacklevel=2)
+            warn(f'No floating species in range of {label} ({radius=})', stacklevel=2)
             continue
 
         siteno, index = site_index.T
