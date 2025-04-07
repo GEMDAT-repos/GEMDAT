@@ -3,9 +3,9 @@ sites."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import typing
 from collections import defaultdict
+from dataclasses import dataclass
 from itertools import pairwise
 from warnings import warn
 
@@ -19,8 +19,6 @@ from .metrics import TrajectoryMetrics
 from .utils import bfill, ffill, integer_remap
 
 if typing.TYPE_CHECKING:
-    from pymatgen.core import Lattice
-
     from gemdat.jumps import Jumps
     from gemdat.rdf import RDFCollection
     from gemdat.trajectory import Trajectory
@@ -123,25 +121,35 @@ class Transitions:
         if site_radius is None:
             vibration_amplitude = TrajectoryMetrics(diff_trajectory).vibration_amplitude()
 
-            site_radius = _compute_site_radius(
+            site_radius_obj = _compute_site_radius(
                 trajectory=trajectory,
                 sites=sites,
                 vibration_amplitude=vibration_amplitude,
             )
+            site_radius_dict = site_radius_obj.as_dict()
+        elif isinstance(site_radius, float):
+            lattice = trajectory.get_lattice()
+            site_coords = sites.frac_coords
 
-        if isinstance(site_radius, float):
-            site_radius = {'': site_radius}
+            pdist = lattice.get_all_distances(site_coords, site_coords)
+
+            site_radius_obj = SiteRadius(radius=site_radius, pdist=pdist)
+            site_radius_dict = site_radius_obj.as_dict()
+        elif isinstance(site_radius, dict):
+            site_radius_dict = site_radius
+        else:
+            raise TypeError('Invalid type for `site_radius`: {type(site_radius)}')
 
         states = _calculate_atom_states(
             sites=sites,
             trajectory=diff_trajectory,
-            site_radius=site_radius,
+            site_radius=site_radius_dict,
         )
 
         inner_states = _calculate_atom_states(
             sites=sites,
             trajectory=diff_trajectory,
-            site_radius=site_radius,
+            site_radius=site_radius_dict,
             site_inner_fraction=site_inner_fraction,
         )
 
@@ -420,7 +428,7 @@ def _calculate_transition_events(
 
 @dataclass
 class SiteRadius:
-    radius: float      # site radius in Angstrom
+    radius: float  # site radius in Angstrom
     pdist: np.ndarray  # pairwise distance matrix
 
     _min_dist = None
@@ -442,7 +450,8 @@ class SiteRadius:
         return self.radius * 2 < 0.5
 
     def sites_are_overlapping(self) -> bool:
-        """Return True if sites any pairwise distances are within the site radius.."""
+        """Return True if sites any pairwise distances are within the site
+        radius.."""
         return self.min_dist < 2 * self.radius
 
     def raise_if_overlapping(self, sites: Structure) -> None:
@@ -467,11 +476,15 @@ class SiteRadius:
             f'got: {self.min_dist:.4f} for {msg}'
         )
 
+    def as_dict(self) -> dict[str, float]:
+        return {'': self.radius}
 
 
 def _compute_site_radius(
-    trajectory: Trajectory, sites: Structure, vibration_amplitude: float,
-) -> float:
+    trajectory: Trajectory,
+    sites: Structure,
+    vibration_amplitude: float,
+) -> SiteRadius:
     """Calculate tolerance wihin which atoms are considered to be close to a
     site.
 
@@ -506,7 +519,7 @@ def _compute_site_radius(
         if site_radius.is_not_realistic():
             site_radius.raise_if_overlapping(sites=sites)
 
-    return site_radius.radius
+    return site_radius
 
 
 def _calculate_atom_states(
