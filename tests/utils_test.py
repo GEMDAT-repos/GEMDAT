@@ -149,7 +149,7 @@ def test_remove_disorder_from_structure():
         species=[{'Si': 0.5, 'Ge': 0.5}, {'Ge': 0.5}],
         labels=['A', 'B'],
     )
-    assert structure.is_ordered
+    assert not structure.is_ordered
 
     new_structure = remove_disorder_from_structure(structure)
     assert new_structure.is_ordered

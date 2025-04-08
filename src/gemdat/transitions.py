@@ -57,7 +57,6 @@ class Transitions:
         events: pd.DataFrame,
         states: np.ndarray,
         inner_states: np.ndarray,
-        set_partial_occupancies_to_1: bool = False,
     ):
         """Store event data for jumps and transitions between sites.
 
@@ -76,8 +75,6 @@ class Transitions:
             Input states
         inner_states : np.ndarray
             Input states for inner sites
-        set_partial_occupancies_to_1 : bool
-            Change partial occupancies in the disordered sites and set them to 1.
         """
         if not (sites.is_ordered):
             raise ValueError(self.DISORDER_ERROR_MSG)
