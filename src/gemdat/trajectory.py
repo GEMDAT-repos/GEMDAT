@@ -33,7 +33,7 @@ SP_NAME = re.compile(r'([a-zA-Z]+)')
 
 
 def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
-    """Calculate vector lengths using the metric tensor (Dunitz 1078, p227).
+    """Calculate vector lengths using the metric tensor (Dunitz 1978, p227).
 
     Parameters
     ----------
