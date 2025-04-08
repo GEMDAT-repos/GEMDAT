@@ -40,6 +40,13 @@ class Transitions:
         Assingn NOSITE if the atom is in transition
     """
 
+    DISORDER_ERROR_MSG = (
+        'Input `sites` are disordered! '
+        'Remove disorder and partial occupancies or try '
+        '`gemdat.utils.remove_disorder_from_structure(). '
+        'See https://github.com/GEMDAT-repos/GEMDAT/issues/339 for more information.'
+    )
+
     def __init__(
         self,
         *,
@@ -72,20 +79,7 @@ class Transitions:
             Change partial occupancies in the disordered sites and set them to 1.
         """
         if not (sites.is_ordered):
-            warn(
-                'Input `sites` are disordered! '
-                'Although the code may work, it was written under the assumption '
-                'that an ordered structure would be passed. '
-                'Use `set_partial_occupancies_to_1=True` to set all occupancies to 1.'
-                'See https://github.com/GEMDAT-repos/GEMDAT/issues/339 for more information.',
-                stacklevel=2,
-            )
-
-        if set_partial_occupancies_to_1:
-            for idx, site in enumerate(sites):
-                if site.is_ordered:
-                    continue
-                sites.replace(idx=idx, species=site.species.elements[0], label=site.label)
+            raise ValueError(self.DISORDER_ERROR_MSG)
 
         self.sites = sites
         self.trajectory = trajectory
@@ -125,6 +119,9 @@ class Transitions:
         -------
         transitions: Transitions
         """
+        if not (sites.is_ordered):
+            raise ValueError(cls.DISORDER_ERROR_MSG)
+
         diff_trajectory = trajectory.filter(floating_specie)
 
         if site_radius is None:

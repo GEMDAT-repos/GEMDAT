@@ -3,8 +3,16 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
+from pymatgen.core import Structure
 
-from gemdat.utils import bfill, cartesian_to_spherical, ffill, integer_remap, meanfreq
+from gemdat.utils import (
+    bfill,
+    cartesian_to_spherical,
+    ffill,
+    integer_remap,
+    meanfreq,
+    remove_disorder_from_structure,
+)
 
 
 @pytest.fixture
@@ -132,3 +140,18 @@ def test_cartesian_to_spherical():
         ]
     )
     assert_allclose(ret, expected, rtol=1e-5)
+
+
+def test_remove_disorder_from_structure():
+    structure = Structure(
+        lattice=np.eye(3) * 10,
+        coords=[(0, 0, 0), (0.5, 0.5, 0.5)],
+        species=[{'Si': 0.5, 'Ge': 0.5}, {'Ge': 0.5}],
+        labels=['A', 'B'],
+    )
+    assert structure.is_ordered
+
+    new_structure = remove_disorder_from_structure(structure)
+    assert new_structure.is_ordered
+    assert len(new_structure) == 2
+    assert new_structure.labels == structure.labels
