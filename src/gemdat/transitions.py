@@ -42,6 +42,7 @@ class Transitions:
 
     DISORDER_ERROR_MSG = (
         'Input `sites` are disordered! '
+        'The analysis does not work with disordered structures. '
         'Remove disorder and partial occupancies or try '
         '`gemdat.utils.remove_disorder_from_structure(). '
         'See https://github.com/GEMDAT-repos/GEMDAT/issues/339 for more information.'
