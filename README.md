@@ -94,6 +94,10 @@ Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-dev
 
 - Victor Azizi, Stef Smeets, Anastasiia K. Lavrinenko and Simone Ciarella. GEMDAT (Version 1.6.1) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
 
+## Dissemination
+
+- Lorentz workshop 7-11 April (2025): [Molecular Dynamics for Materials Science (pdf)](https://github.com/GEMDAT-repos/gemdat-dissemination/blob/fcf9c43e779deda0073846b4835e73066303210e/20250409_lorentz-workshop-gemdat.pdf)
+
 ## Credits
 
 The code in this repository is based on [Matlab code to analyse Molecular Dynamics simulations](https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/).
