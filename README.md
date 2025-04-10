@@ -96,7 +96,7 @@ Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-dev
 
 ## Dissemination
 
-- Lorentz workshop 7-11 April (2025): [Molecular Dynamics for Materials Science (pdf)](https://github.com/GEMDAT-repos/gemdat-dissemination/blob/fcf9c43e779deda0073846b4835e73066303210e/20250409_lorentz-workshop-gemdat.pdf)
+- Lorentz workshop 7-11 April (2025): [Molecular Dynamics for Materials Science (pdf)](https://github.com/GEMDAT-repos/gemdat-dissemination/blob/fcf9c43e779deda0073846b4835e73066303210e/20250409_lorentz-workshop-gemdat.pdf?raw=true)
 
 ## Credits
 
