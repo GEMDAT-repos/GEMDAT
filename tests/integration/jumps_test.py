@@ -20,14 +20,14 @@ class TestJumps:  # type: ignore
         )
         jumps = Jumps(transitions=transitions, minimal_residence=100)
 
-        assert len(jumps.data) == 267
+        assert len(jumps.data) == 258
         assert np.all(
             jumps.data[::100].to_numpy()
             == np.array(
                 [
-                    [0, 94, 0, 282, 303],
-                    [15, 74, 8, 1271, 1286],
-                    [34, 49, 33, 3141, 3296],
+                    [0, 0, 94, 385, 442],
+                    [16, 34, 42, 3268, 3298],
+                    [36, 19, 11, 1763, 1789],
                 ]
             )
         )
