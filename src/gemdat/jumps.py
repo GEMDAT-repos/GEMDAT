@@ -38,60 +38,53 @@ def _generic_transitions_to_jumps(
     events = events.rename(columns={'time': 'start time'})
 
     jumps = []
-    fromevent = None
-    candidate_jump = None
 
-    for _, event in events.iterrows():
-        # If we are jumping, but we go to the next atom index, reset
-        if fromevent is not None:
-            if fromevent['atom index'] != event['atom index']:
-                fromevent = None
+    atom_events = [atomevents for i, atomevents in events.groupby('atom index')]
 
-        # If we have a candidate jump, we must make sure it remains on the site
-        # for minimal_residence timesteps, this is that check, add it to the jumps
-        # if it passes
-        if candidate_jump is not None:
-            if candidate_jump['atom index'] != event['atom index']:
-                jumps.append(candidate_jump)
-                candidate_jump = None
-            elif event['start time'] - candidate_jump['stop time'] >= minimal_residence:
-                jumps.append(candidate_jump)
-                candidate_jump = None
-                fromevent = None
-            elif candidate_jump['destination site'] != event['destination site']:
-                candidate_jump = None
+    for events in atom_events:
+        fromevent = None
+        candidate_jump = None
 
-        # Specify the start of a jump if we encounter one
-        if event['start site'] != -1:
-            if event['start site'] != event['destination site']:
-                fromevent = event
+        for _, event in events.iterrows():
+            # We have a previous jump, but must still determine
+            # if it stays on the site long enough
+            if candidate_jump is not None:
+                if event['start time'] - candidate_jump['start time'] >= minimal_residence:
+                    jumps.append(candidate_jump)
+                    candidate_jump = None
+                # it moves to early! dont add the jump
+                elif candidate_jump['destination site'] != event['destination site']:
+                    candidate_jump = None
 
-        if fromevent is not None:
-            # if we jump back, remove fromevent
-            if fromevent['start site'] == event['destination site']:
-                fromevent = None
-                candidate_jump = None
-                continue
+            # Identify a transition away from a site, name it fromevent
+            if event['start site'] != -1:
+                if event['start site'] != event['destination site']:
+                    fromevent = event
 
-            # Check if jump to the inner site, add it to the jumps immediately
-            if event['destination inner site'] != -1:
-                event['start site'] = fromevent['start site']
-                event['start time'] = fromevent['start time']
-                fromevent = None
-                candidate_jump = None
-                jumps.append(event)
-                continue
+            if fromevent is not None:
+                # jump to same site is no jump
+                if event['destination site'] == fromevent['start site']:
+                    fromevent = None
+                    candidate_jump = None
 
-            # If we enter another site, create a candidate jump
-            if candidate_jump is None:
-                if event['destination site'] != -1:
+                # jump to another inner site is definitely jump
+                elif event['destination inner site'] != -1:
+                    event['start site'] = fromevent['start site']
+                    event['start time'] = fromevent['start time']
+                    jumps.append(event)
+                    fromevent = None
+                    candidate_jump = None
+
+                # jump to another site is a candidate_event
+                elif event['destination site'] != fromevent['destination site']:
                     event['start site'] = fromevent['start site']
                     event['start time'] = fromevent['start time']
                     candidate_jump = event
+                    fromevent = None
 
-    # Also add a last candidate jump (if there is one
-    if candidate_jump is not None:
-        jumps.append(candidate_jump)
+        # Also add a last candidate jump (if there is one)
+        if candidate_jump is not None:
+            jumps.append(candidate_jump)
 
     jumps = pd.DataFrame(data=jumps)
 
