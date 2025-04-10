@@ -82,9 +82,8 @@ def _generic_transitions_to_jumps(
                     candidate_jump = event
                     fromevent = None
 
-        # Also add a last candidate jump (if there is one)
-        if candidate_jump is not None:
-            jumps.append(candidate_jump)
+    if len(jumps) == 0:
+        raise ValueError('No jumps found')
 
     jumps = pd.DataFrame(data=jumps)
 
@@ -127,6 +126,7 @@ class Jumps:
         self.sites = transitions.sites
         self.conversion_method = conversion_method
         self.data = conversion_method(transitions, minimal_residence=minimal_residence)
+        self.minimal_residence = minimal_residence
 
     @property
     def n_jumps(self) -> int:
@@ -401,7 +401,14 @@ class Jumps:
         """
         parts = self.transitions.split(n_parts)
 
-        return [Jumps(part, conversion_method=self.conversion_method) for part in parts]
+        return [
+            Jumps(
+                part,
+                conversion_method=self.conversion_method,
+                minimal_residence=self.minimal_residence,
+            )
+            for part in parts
+        ]
 
     @weak_lru_cache()
     def rates(self, n_parts: int = 10) -> pd.DataFrame:
