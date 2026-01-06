@@ -7,4 +7,3 @@ pymatgen >= 2024.1.26, != 2024.2.20
 rich
 scikit-image
 scipy
-scipp
