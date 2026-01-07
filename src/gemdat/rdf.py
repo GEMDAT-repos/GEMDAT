@@ -4,9 +4,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from pymatgen.core import Structure
-
 import numpy as np
+from pymatgen.core import Structure
 from rich.progress import track
 
 from ._plot_backend import plot_backend
