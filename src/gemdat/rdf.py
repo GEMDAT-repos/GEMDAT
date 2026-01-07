@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
+
+from pymatgen.core import Structure
 
 import numpy as np
 from rich.progress import track
@@ -11,8 +13,6 @@ from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
     from typing import Collection
-
-    from pymatgen.core import Structure
 
     from gemdat import Trajectory
     from gemdat.transitions import Transitions
@@ -137,7 +137,8 @@ def radial_distribution(
     # note: needs trajectory with ALL species
     trajectory = transitions.trajectory
     sites = transitions.sites
-    base_structure = cast(Structure, trajectory.get_structure(0))
+    base_structure = trajectory.get_structure(0)
+    assert isinstance(base_structure, Structure)
     lattice = trajectory.get_lattice()
 
     coords = trajectory.positions
