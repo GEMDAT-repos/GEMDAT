@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from rich.progress import track
@@ -137,7 +137,7 @@ def radial_distribution(
     # note: needs trajectory with ALL species
     trajectory = transitions.trajectory
     sites = transitions.sites
-    base_structure = trajectory.get_structure(0)
+    base_structure = cast(Structure, trajectory.get_structure(0))
     lattice = trajectory.get_lattice()
 
     coords = trajectory.positions
