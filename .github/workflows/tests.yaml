@@ -52,6 +52,15 @@ jobs:
         run: |
           coverage run -m pytest
 
+      - name: Upload result_images
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-images
+          path: result_images/
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Report coverage
         run: |
           coverage json
