@@ -5,14 +5,13 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
+from pymatgen.core import Structure
 from rich.progress import track
 
 from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
     from typing import Collection
-
-    from pymatgen.core import Structure
 
     from gemdat import Trajectory
     from gemdat.transitions import Transitions
@@ -138,6 +137,7 @@ def radial_distribution(
     trajectory = transitions.trajectory
     sites = transitions.sites
     base_structure = trajectory.get_structure(0)
+    assert isinstance(base_structure, Structure)
     lattice = trajectory.get_lattice()
 
     coords = trajectory.positions
