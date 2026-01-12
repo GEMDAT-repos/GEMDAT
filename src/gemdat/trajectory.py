@@ -731,17 +731,18 @@ class Trajectory(PymatgenTrajectory):
         specie: str,
         *,
         step_skip: int = 1,
-        dt: "sc.Variable | None" = None,
-        dimension: str = "xyz",
-        distance_unit: str = "angstrom",
-        specie_indices: "sc.Variable | None" = None,
-        masses: "sc.Variable | None" = None,
+        dt: 'sc.Variable | None' = None,
+        dimension: str = 'xyz',
+        distance_unit: str = 'angstrom',
+        specie_indices: 'sc.Variable | None' = None,
+        masses: 'sc.Variable | None' = None,
         progress: bool = True,
     ) -> 'DiffusionAnalyzer':
-        """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT trajectory.
+        """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT 
+        trajectory.
 
         This method parses the GEMDAT trajectory with :class:`kinisi.pymatgen.PymatgenParser`.
-        It then computes the mean-squared displacement (MSD) using 
+        It then computes the mean-squared displacement (MSD) using
         :func:`kinisi.displacement.calculate_msd` and attaches it to the returned
         :class:`kinisi.analyze.DiffusionAnalyzer`.
 
@@ -812,7 +813,7 @@ class Trajectory(PymatgenTrajectory):
         )
 
         return diff
-    
+
     def transitions_between_sites(
         self,
         sites: Structure,
