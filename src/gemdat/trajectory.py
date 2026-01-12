@@ -737,6 +737,7 @@ class Trajectory(PymatgenTrajectory):
         specie_indices: 'sc.Variable | None' = None,
         masses: 'sc.Variable | None' = None,
         progress: bool = True,
+        cache: bool = True,
     ) -> 'DiffusionAnalyzer':
         """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT
         trajectory.
@@ -755,8 +756,7 @@ class Trajectory(PymatgenTrajectory):
         specie
             Specie to calculate diffusivity for, e.g. ``"Li"``.
         step_skip
-            Sampling frequency of the simulation trajectory: number of MD integrator
-            time steps between stored frames.
+            Number of MD integrator time steps between stored frames.
         dt
             Time intervals to calculate displacements over. Optional; if ``None``,
             kinisi defaults to a regular grid from the smallest interval
@@ -773,11 +773,15 @@ class Trajectory(PymatgenTrajectory):
             Masses for centre-of-mass handling. Optional.
         progress
             Show progress bars during parsing and MSD evaluation.
+        cache
+            Cache the populated analyzer on this trajectory instance.
+            Cached data can be accessed via ``trajectory.kinisi_diffusion_analyzer_cache``.
 
         Returns
         -------
         kinisi.analyze.DiffusionAnalyzer
-            A DiffusionAnalyzer with MSD already computed and attached.
+            A DiffusionAnalyzer with MSD already computed and attached 
+            (so .msd and .dt are available).
         """
         if step_skip < 1:
             raise ValueError('step_skip must be >= 1')
@@ -808,10 +812,15 @@ class Trajectory(PymatgenTrajectory):
 
         print(
             'This analysis uses the `kinisi` package. Please cite kinisi and report the kinisi'
-            'version used. See kinisi [documentation](https://github.com/kinisi-dev/kinisi.git)'
-            'for citation guidance.'
+            ' version used. See kinisi documentation (https://github.com/kinisi-dev/kinisi.git)'
+            ' for citation guidance.'
         )
 
+        cache_data = getattr(self, "kinisi_diffusion_analyzer_cache", None)
+
+        if cache and cache_data is None:
+            self.kinisi_diffusion_analyzer_cache = diff
+        
         return diff
 
     def transitions_between_sites(
@@ -880,6 +889,11 @@ class Trajectory(PymatgenTrajectory):
     def plot_msd_per_element(self, *, module, **kwargs):
         """See [gemdat.plots.msd_per_element][] for more info."""
         return module.msd_per_element(trajectory=self, **kwargs)
+
+    @plot_backend
+    def plot_msd_kinisi(self, *, module, **kwargs):
+        """See [gemdat.plots.msd_kinisi][] for more info."""
+        return module.msd_kinisi(trajectory=self, **kwargs)
 
     @plot_backend
     def plot_displacement_histogram(self, *, module, **kwargs):
