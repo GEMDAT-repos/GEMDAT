@@ -21,15 +21,14 @@ from pymatgen.io import vasp
 from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
+    import scipp as sc
+    from kinisi.analyze import DiffusionAnalyzer
     from pymatgen.core import Structure
 
     from .metrics import TrajectoryMetrics
     from .rdf import RDFData
     from .transitions import Transitions
     from .volume import Volume
-
-    import scipp as sc
-    from kinisi.analyze import DiffusionAnalyzer
 
 
 SP_NAME = re.compile(r'([a-zA-Z]+)')
@@ -728,22 +727,21 @@ class Trajectory(PymatgenTrajectory):
         return msd
 
     def to_kinisi_diffusion_analyzer(
-            self,
-            specie: str,
-            *,
-            step_skip: int = 1,
-            dt: "sc.Variable | None" = None,
-            dimension: str = "xyz",
-            distance_unit: str = "angstrom",
-            specie_indices: "sc.Variable | None" = None,
-            masses: "sc.Variable | None" = None,
-            progress: bool = True,
-    ) -> "DiffusionAnalyzer":
-        """
-        Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT trajectory.
+        self,
+        specie: str,
+        *,
+        step_skip: int = 1,
+        dt: "sc.Variable | None" = None,
+        dimension: str = "xyz",
+        distance_unit: str = "angstrom",
+        specie_indices: "sc.Variable | None" = None,
+        masses: "sc.Variable | None" = None,
+        progress: bool = True,
+    ) -> 'DiffusionAnalyzer':
+        """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT trajectory.
 
-        This method parses the GEMDAT trajectory with :class:`kinisi.pymatgen.PymatgenParser`. It then
-        computes the mean-squared displacement (MSD) using
+        This method parses the GEMDAT trajectory with :class:`kinisi.pymatgen.PymatgenParser`.
+        It then computes the mean-squared displacement (MSD) using 
         :func:`kinisi.displacement.calculate_msd` and attaches it to the returned
         :class:`kinisi.analyze.DiffusionAnalyzer`.
 
@@ -768,8 +766,8 @@ class Trajectory(PymatgenTrajectory):
             Unit of distance in the input structures, as a string understood by
             ``scipp.Unit(...)`` (default: ``"angstrom"``).
         specie_indices
-            Indices of the specie to calculate the diffusivity for. Optional; if ``None``, kinisi selects
-            indices based on ``specie``.
+            Indices of the specie to calculate the diffusivity for. Optional; if ``None``,
+            kinisi selects indices based on ``specie``.
         masses
             Masses for centre-of-mass handling. Optional.
         progress
@@ -781,15 +779,15 @@ class Trajectory(PymatgenTrajectory):
             A DiffusionAnalyzer with MSD already computed and attached.
         """
         if step_skip < 1:
-            raise ValueError("step_skip must be >= 1")
+            raise ValueError('step_skip must be >= 1')
 
         import scipp as sc
         from kinisi.analyze import DiffusionAnalyzer
         from kinisi.displacement import calculate_msd
         from kinisi.pymatgen import PymatgenParser
 
-        time_step = sc.scalar(self.time_step_ps, unit=sc.Unit("ps"))
-        step_skip_sc = sc.scalar(int(step_skip), unit=sc.Unit("dimensionless"))
+        time_step = sc.scalar(self.time_step_ps, unit=sc.Unit('ps'))
+        step_skip_sc = sc.scalar(int(step_skip), unit=sc.Unit('dimensionless'))
 
         parser = PymatgenParser(
             structures=self,
@@ -808,8 +806,9 @@ class Trajectory(PymatgenTrajectory):
         diff._dg = calculate_msd(parser, progress=progress)
 
         print(
-            "This analysis uses the `kinisi` package. Please cite kinisi and report the kinisi version used."
-            "See kinisi [documentation](https://github.com/kinisi-dev/kinisi.git) for citation guidance."
+            'This analysis uses the `kinisi` package. Please cite kinisi and report the kinisi '
+            'version used. See kinisi [documentation](https://github.com/kinisi-dev/kinisi.git) '
+            'for citation guidance.'
         )
 
         return diff
