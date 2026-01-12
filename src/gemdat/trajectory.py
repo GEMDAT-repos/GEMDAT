@@ -738,7 +738,7 @@ class Trajectory(PymatgenTrajectory):
         masses: 'sc.Variable | None' = None,
         progress: bool = True,
     ) -> 'DiffusionAnalyzer':
-        """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT 
+        """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT
         trajectory.
 
         This method parses the GEMDAT trajectory with :class:`kinisi.pymatgen.PymatgenParser`.
@@ -807,8 +807,8 @@ class Trajectory(PymatgenTrajectory):
         diff._dg = calculate_msd(parser, progress=progress)
 
         print(
-            'This analysis uses the `kinisi` package. Please cite kinisi and report the kinisi '
-            'version used. See kinisi [documentation](https://github.com/kinisi-dev/kinisi.git) '
+            'This analysis uses the `kinisi` package. Please cite kinisi and report the kinisi'
+            'version used. See kinisi [documentation](https://github.com/kinisi-dev/kinisi.git)'
             'for citation guidance.'
         )
 
