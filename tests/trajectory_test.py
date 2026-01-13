@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import scipp as sc
 from numpy.testing import assert_allclose
 from pymatgen.core import Lattice, Species
-import scipp
 
 from gemdat.trajectory import Trajectory
 
@@ -162,35 +162,37 @@ def test_mean_squared_displacement(trajectory):
     assert isinstance(msd, np.ndarray)
     assert_allclose(msd.mean(), 0.073875)
 
+
 def test_kinisi_cache(trajectory):
-    diff = trajectory.to_kinisi_diffusion_analyzer(specie='B')
+    diff = trajectory.to_kinisi_diffusion_analyzer(specie='B', progress=False)
     assert trajectory.kinisi_diffusion_analyzer_cache is not None
 
     diff2 = trajectory.kinisi_diffusion_analyzer_cache
 
-    assert diff.msd == diff2.msd
-    assert diff.dt == diff2.dt
-    assert diff.da == diff2.da
+    assert sc.identical(diff.da, diff2.da)
 
     assert_allclose(diff.msd.values, diff2.msd.values)
     assert_allclose(diff.msd.variances, diff2.msd.variances)
     assert_allclose(diff.dt.values, diff2.dt.values)
 
+
 def test_kinisi_mean_squared_displacement(trajectory):
-    diff = trajectory.to_kinisi_diffusion_analyzer(specie='B')
+    diff = trajectory.to_kinisi_diffusion_analyzer(specie='B', progress=False)
     assert diff.n_atoms == 1
     msd = diff.msd
     assert len(msd) == 4
     assert_allclose(msd.values, [0.042, 0.1525, 0.33666667, 0.585])
-    assert isinstance(msd, scipp._scipp.core.Variable)
+    assert isinstance(msd, sc._scipp.core.Variable)
     assert msd.unit == 'Å^2'
     assert_allclose(msd.variances, [0.000204, 0.00297, 0.01658, 0.081])
     dt = diff.dt
-    assert isinstance(dt, scipp._scipp.core.Variable)
+    assert isinstance(dt, sc._scipp.core.Variable)
     assert dt.unit == 'ps'
     assert_allclose(dt.values, [1.e+12, 2.e+12, 3.e+12, 4.e+12])
-    diff.diffusion(start_dt=scipp.scalar(4, unit='fs'))
-    assert diff.D.values.mean() == 2.017410897710085e-18
+    rng = np.random.RandomState(42)
+    diff.diffusion(start_dt=sc.scalar(0, unit='ps'), random_state=rng, progress=False)
+    assert diff.D.values.mean() == 2.046301680845264e-18
+
 
 def test_from_lammps():
     data_dir = Path(__file__).parent / 'data' / 'lammps'
