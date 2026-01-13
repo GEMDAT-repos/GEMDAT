@@ -57,8 +57,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-result-images
-          path: result_images/  
-      
+          path: result_images/
+
       - name: Report coverage
         run: |
           coverage json
