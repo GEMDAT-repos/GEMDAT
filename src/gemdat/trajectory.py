@@ -102,6 +102,15 @@ class Trajectory(PymatgenTrajectory):
 
         return '\n'.join(outs)
 
+    def __getstate__(self):
+        """Drop runtime-only kinisi caches (contain scipp objects, not picklable)."""
+        state = self.__dict__.copy()
+        state.pop("kinisi_diffusion_analyzer_cache", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+    
     def to_positions(self):
         """Pymatgen does not mod coords back to original unit cell.
 
