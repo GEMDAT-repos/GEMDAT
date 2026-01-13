@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 from gemdat.plots._shared import hex2rgba
 
 if TYPE_CHECKING:
+    import scipp as sc
+    from gemdat import Trajectory
     from kinisi.analyze import DiffusionAnalyzer
 
 
@@ -23,10 +25,12 @@ def msd_kinisi(
     specie_indices: 'sc.Variable | None' = None,
     masses: 'sc.Variable | None' = None,
     progress: bool = True,
-    cache: bool = True,
+    save_cache: bool = True,
+    return_cache: bool = True,
     show_shaded: bool = True,
 ) -> go.Figure:
-    """Plot mean-squared displacement (MSD) with uncertainties from a kinisi DiffusionAnalyzer.
+    """Plot mean-squared displacement (MSD) with uncertainties from a kinisi 
+    DiffusionAnalyzer.
 
     Parameters
     ----------
@@ -48,15 +52,16 @@ def msd_kinisi(
         Unit of distance in the input structures, as a string understood by
         ``scipp.Unit(...)`` (default: ``"angstrom"``).
     specie_indices
-        Indices of the specie to calculate the diffusivity for. Optional; if ``None``, kinisi selects
-        indices based on ``specie``.
+        Indices of the specie to calculate the diffusivity for. Optional; if ``None``,
+        kinisi selects indices based on ``specie``.
     masses
         Masses for centre-of-mass handling. Optional.
     progress
         Show progress bars during parsing and MSD evaluation.
-    cache
+    save_cache
         Cache the populated analyzer on this trajectory instance.
-        Cached data can be accessed via ``trajectory.kinisi_diffusion_analyzer_cache``.
+    return_cache
+        Use cached data.
     show_shaded : bool, optional
         If True, plot ±1σ uncertainties as a shaded region.
 
@@ -68,8 +73,6 @@ def msd_kinisi(
     if diffusion_analyzer:
         cache_data = diffusion_analyzer
     else:
-        cache_data = getattr(trajectory, 'kinisi_diffusion_analyzer_cache', None)
-    if cache_data is None:
         cache_data = trajectory.to_kinisi_diffusion_analyzer(
             specie=specie,
             step_skip=step_skip,
@@ -79,8 +82,9 @@ def msd_kinisi(
             specie_indices=specie_indices,
             masses=masses,
             progress=progress,
-            cache=cache,
-    )
+            save_cache=save_cache,
+            return_cache=return_cache,
+        )
 
     dt = cache_data.dt
     msd = cache_data.msd
@@ -136,7 +140,7 @@ def msd_kinisi(
             zorder=1,
         )
     )
-    
+
     fig.update_layout(
         showlegend=True,
         title='Mean squared displacement',
