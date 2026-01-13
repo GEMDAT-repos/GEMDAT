@@ -103,6 +103,13 @@ def test_msd_per_element(vasp_traj):
     assert_figures_similar(fig, name='msd_per_element', rms=0.5)
 
 
+def test_msd_kinisi(vasp_traj):
+    vasp_traj = vasp_traj[-500:]
+    fig = vasp_traj.plot_msd_kinisi(backend=BACKEND)
+
+    assert_figures_similar(fig, name='msd_kinisi', rms=0.5)
+
+
 def test_energy_along_path(vasp_path):
     structure = load_known_material('argyrodite')
     fig = vasp_path.plot_energy_along_path(backend=BACKEND, structure=structure)
