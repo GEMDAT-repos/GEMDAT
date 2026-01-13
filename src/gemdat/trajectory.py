@@ -103,14 +103,15 @@ class Trajectory(PymatgenTrajectory):
         return '\n'.join(outs)
 
     def __getstate__(self):
-        """Drop runtime-only kinisi caches (contain scipp objects, not picklable)."""
+        """Drop runtime-only kinisi caches (contain scipp objects, not
+        picklable)."""
         state = self.__dict__.copy()
-        state.pop("kinisi_diffusion_analyzer_cache", None)
+        state.pop('kinisi_diffusion_analyzer_cache', None)
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-    
+
     def to_positions(self):
         """Pymatgen does not mod coords back to original unit cell.
 
@@ -746,7 +747,8 @@ class Trajectory(PymatgenTrajectory):
         specie_indices: 'sc.Variable | None' = None,
         masses: 'sc.Variable | None' = None,
         progress: bool = True,
-        cache: bool = True,
+        save_cache: bool = True,
+        return_cache: bool = True,
     ) -> 'DiffusionAnalyzer':
         """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT
         trajectory.
@@ -782,14 +784,15 @@ class Trajectory(PymatgenTrajectory):
             Masses for centre-of-mass handling. Optional.
         progress
             Show progress bars during parsing and MSD evaluation.
-        cache
+        save_cache
             Cache the populated analyzer on this trajectory instance.
-            Cached data can be accessed via ``trajectory.kinisi_diffusion_analyzer_cache``.
+        return_cache
+            Return cached data.
 
         Returns
         -------
         kinisi.analyze.DiffusionAnalyzer
-            A DiffusionAnalyzer with MSD already computed and attached 
+            A DiffusionAnalyzer with MSD already computed and attached
             (so .msd and .dt are available).
         """
         if step_skip < 1:
@@ -800,37 +803,43 @@ class Trajectory(PymatgenTrajectory):
         from kinisi.displacement import calculate_msd
         from kinisi.pymatgen import PymatgenParser
 
-        time_step = sc.scalar(self.time_step_ps, unit=sc.Unit('ps'))
-        step_skip_sc = sc.scalar(int(step_skip), unit=sc.Unit('dimensionless'))
+        key = (specie, int(step_skip), dt, dimension, distance_unit, specie_indices, masses is not None)
+        cache_data = getattr(self, 'kinisi_diffusion_analyzer_cache', None)
+        cached_key = getattr(self, 'kinisi_diffusion_analyzer_cache_key', None)
+        if return_cache and cache_data is not None and cached_key == key:
+            return self.kinisi_diffusion_analyzer_cache
 
-        parser = PymatgenParser(
-            structures=self,
-            specie=specie,
-            time_step=time_step,
-            step_skip=step_skip_sc,
-            dt=dt,
-            dimension=dimension,
-            distance_unit=sc.Unit(distance_unit),
-            specie_indices=specie_indices,
-            masses=masses,
-            progress=progress,
-        )
+        else:
+            time_step = sc.scalar(self.time_step_ps, unit=sc.Unit('ps'))
+            step_skip_sc = sc.scalar(int(step_skip), unit=sc.Unit('dimensionless'))
 
-        diff = DiffusionAnalyzer(parser)
-        diff._dg = calculate_msd(parser, progress=progress)
+            parser = PymatgenParser(
+                structures=self,
+                specie=specie,
+                time_step=time_step,
+                step_skip=step_skip_sc,
+                dt=dt,
+                dimension=dimension,
+                distance_unit=sc.Unit(distance_unit),
+                specie_indices=specie_indices,
+                masses=masses,
+                progress=progress,
+            )
 
-        print(
-            'This analysis uses the `kinisi` package. Please cite kinisi and report the kinisi'
-            ' version used. See kinisi documentation (https://github.com/kinisi-dev/kinisi.git)'
-            ' for citation guidance.'
-        )
+            diff = DiffusionAnalyzer(parser)
+            diff._dg = calculate_msd(parser, progress=progress)
 
-        cache_data = getattr(self, "kinisi_diffusion_analyzer_cache", None)
+            print(
+                'This analysis uses the `kinisi` package. Please cite kinisi and report the kinisi'
+                ' version used. See kinisi documentation (https://github.com/kinisi-dev/kinisi.git)'
+                ' for citation guidance.'
+            )
 
-        if cache and cache_data is None:
-            self.kinisi_diffusion_analyzer_cache = diff
-        
-        return diff
+            if save_cache:
+                self.kinisi_diffusion_analyzer_cache = diff
+                self.kinisi_diffusion_analyzer_cache_key = key
+
+            return diff
 
     def transitions_between_sites(
         self,
