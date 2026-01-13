@@ -9,8 +9,9 @@ from gemdat.plots._shared import hex2rgba
 
 if TYPE_CHECKING:
     import scipp as sc
-    from gemdat import Trajectory
     from kinisi.analyze import DiffusionAnalyzer
+
+    from gemdat import Trajectory
 
 
 def msd_kinisi(
@@ -29,7 +30,7 @@ def msd_kinisi(
     return_cache: bool = True,
     show_shaded: bool = True,
 ) -> go.Figure:
-    """Plot mean-squared displacement (MSD) with uncertainties from a kinisi 
+    """Plot mean-squared displacement (MSD) with uncertainties from a kinisi
     DiffusionAnalyzer.
 
     Parameters
@@ -149,3 +150,4 @@ def msd_kinisi(
     )
 
     return fig
+
