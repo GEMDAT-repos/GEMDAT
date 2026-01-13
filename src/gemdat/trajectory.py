@@ -804,18 +804,18 @@ class Trajectory(PymatgenTrajectory):
         from kinisi.pymatgen import PymatgenParser
 
         key = {
-            'specie':specie,
-            'step_skip':int(step_skip),
-            'dt':dt,
-            'dimension':dimension,
-            'distance_unit':distance_unit,
-            'specie_indices':specie_indices,
-            'masses':masses,
+            'specie': specie,
+            'step_skip': int(step_skip),
+            'dt': dt,
+            'dimension': dimension,
+            'distance_unit': distance_unit,
+            'specie_indices': None if specie_indices is None else "provided",
+            'masses': None if masses is None else "provided",
         }
         cache_data = getattr(self, 'kinisi_diffusion_analyzer_cache', None)
         cached_key = getattr(self, 'kinisi_diffusion_analyzer_cache_key', None)
         if return_cache and cache_data is not None and cached_key == key:
-            return self.kinisi_diffusion_analyzer_cache
+            return cache_data
 
         else:
             time_step = sc.scalar(self.time_step_ps, unit=sc.Unit('ps'))
