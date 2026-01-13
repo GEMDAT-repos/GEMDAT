@@ -803,7 +803,15 @@ class Trajectory(PymatgenTrajectory):
         from kinisi.displacement import calculate_msd
         from kinisi.pymatgen import PymatgenParser
 
-        key = (specie, int(step_skip), dt, dimension, distance_unit, specie_indices, masses is not None)
+        key = {
+            'specie':specie,
+            'step_skip':int(step_skip),
+            'dt':dt,
+            'dimension':dimension,
+            'distance_unit':distance_unit,
+            'specie_indices':specie_indices,
+            'masses':masses,
+        }
         cache_data = getattr(self, 'kinisi_diffusion_analyzer_cache', None)
         cached_key = getattr(self, 'kinisi_diffusion_analyzer_cache_key', None)
         if return_cache and cache_data is not None and cached_key == key:
@@ -830,9 +838,9 @@ class Trajectory(PymatgenTrajectory):
             diff._dg = calculate_msd(parser, progress=progress)
 
             print(
-                'This analysis uses the `kinisi` package. Please cite kinisi and report the kinisi'
-                ' version used. See kinisi documentation (https://github.com/kinisi-dev/kinisi.git)'
-                ' for citation guidance.'
+                'This analysis uses the `kinisi` package. Please cite kinisi and report'
+                ' the kinisi version used. See kinisi documentation'
+                ' (https://github.com/kinisi-dev/kinisi.git) for citation guidance.'
             )
 
             if save_cache:
