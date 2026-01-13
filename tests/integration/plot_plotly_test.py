@@ -105,7 +105,7 @@ def test_msd_per_element(vasp_traj):
 
 def test_msd_kinisi(vasp_traj):
     vasp_traj = vasp_traj[-500:]
-    fig = vasp_traj.plot_msd_kinisi(backend=BACKEND)
+    fig = vasp_traj.plot_msd_kinisi(specie='Li', backend=BACKEND)
 
     assert_figures_similar(fig, name='msd_kinisi', rms=0.5)
 
