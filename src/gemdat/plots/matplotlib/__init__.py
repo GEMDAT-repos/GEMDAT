@@ -15,6 +15,7 @@ from ._jumps_3d import jumps_3d
 from ._jumps_3d_animation import jumps_3d_animation
 from ._jumps_vs_distance import jumps_vs_distance
 from ._jumps_vs_time import jumps_vs_time
+from ._msd_kinisi import msd_kinisi
 from ._msd_per_element import msd_per_element
 from ._polar import polar
 from ._radial_distribution import radial_distribution
@@ -35,6 +36,7 @@ __all__ = [
     'jumps_3d_animation',
     'jumps_vs_distance',
     'jumps_vs_time',
+    'msd_kinisi',
     'msd_per_element',
     'polar',
     'radial_distribution',

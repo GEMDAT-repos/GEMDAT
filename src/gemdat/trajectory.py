@@ -21,6 +21,8 @@ from pymatgen.io import vasp
 from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
+    import scipp as sc
+    from kinisi.analyze import DiffusionAnalyzer
     from pymatgen.core import Structure
 
     from .metrics import TrajectoryMetrics
@@ -99,6 +101,16 @@ class Trajectory(PymatgenTrajectory):
         outs.append(f'Time steps ({len(self)})')
 
         return '\n'.join(outs)
+
+    def __getstate__(self):
+        """Drop runtime-only kinisi caches (contain scipp objects, not
+        picklable)."""
+        state = self.__dict__.copy()
+        state.pop('kinisi_diffusion_analyzer_cache', None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
 
     def to_positions(self):
         """Pymatgen does not mod coords back to original unit cell.
@@ -724,6 +736,119 @@ class Trajectory(PymatgenTrajectory):
         msd = S1 - 2 * S2
         return msd
 
+    def to_kinisi_diffusion_analyzer(
+        self,
+        specie: str,
+        *,
+        step_skip: int = 1,
+        dt: 'sc.Variable | None' = None,
+        dimension: str = 'xyz',
+        distance_unit: str = 'angstrom',
+        specie_indices: 'sc.Variable | None' = None,
+        masses: 'sc.Variable | None' = None,
+        progress: bool = True,
+        save_cache: bool = True,
+        return_cache: bool = True,
+    ) -> 'DiffusionAnalyzer':
+        """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT
+        trajectory.
+
+        This method parses the GEMDAT trajectory with :class:`kinisi.pymatgen.PymatgenParser`.
+        It then computes the mean-squared displacement (MSD) using
+        :func:`kinisi.displacement.calculate_msd` and attaches it to the returned
+        :class:`kinisi.analyze.DiffusionAnalyzer`.
+
+        The algorithm of kinisi ``DiffusionAnalyzer`` is described in
+        [https://doi.org/10.1021/acs.jctc.4c01249].
+        See also [https://github.com/kinisi-dev/kinisi.git].
+
+        Parameters
+        ----------
+        specie
+            Specie to calculate diffusivity for, e.g. ``"Li"``.
+        step_skip
+            Number of MD integrator time steps between stored frames.
+        dt
+            Time intervals to calculate displacements over. Optional; if ``None``,
+            kinisi defaults to a regular grid from the smallest interval
+            (``time_step * step_skip``) to the full trajectory length.
+        dimension
+            Subset of ``"xyz"`` indicating displacement axes of interest.
+        distance_unit
+            Unit of distance in the input structures, as a string understood by
+            ``scipp.Unit(...)`` (default: ``"angstrom"``).
+        specie_indices
+            Indices of the specie to calculate the diffusivity for. Optional; if ``None``,
+            kinisi selects indices based on ``specie``.
+        masses
+            Masses for centre-of-mass handling. Optional.
+        progress
+            Show progress bars during parsing and MSD evaluation.
+        save_cache
+            Cache the populated analyzer on this trajectory instance.
+        return_cache
+            Return cached data.
+
+        Returns
+        -------
+        kinisi.analyze.DiffusionAnalyzer
+            A DiffusionAnalyzer with MSD already computed and attached
+            (so .msd and .dt are available).
+        """
+        if step_skip < 1:
+            raise ValueError('step_skip must be >= 1')
+
+        import scipp as sc
+        from kinisi.analyze import DiffusionAnalyzer
+        from kinisi.displacement import calculate_msd
+        from kinisi.pymatgen import PymatgenParser
+
+        key = {
+            'specie': specie,
+            'step_skip': int(step_skip),
+            'dt': dt,
+            'dimension': dimension,
+            'distance_unit': distance_unit,
+            'specie_indices': None if specie_indices is None else 'provided',
+            'masses': None if masses is None else 'provided',
+        }
+        cache_data = getattr(self, 'kinisi_diffusion_analyzer_cache', None)
+        cached_key = getattr(self, 'kinisi_diffusion_analyzer_cache_key', None)
+        if return_cache and cache_data is not None and cached_key == key:
+            return cache_data
+
+        else:
+            time_step = sc.scalar(self.time_step_ps, unit=sc.Unit('ps'))
+            step_skip_sc = sc.scalar(int(step_skip), unit=sc.Unit('dimensionless'))
+
+            parser = PymatgenParser(
+                structures=self,
+                specie=specie,
+                time_step=time_step,
+                step_skip=step_skip_sc,
+                dt=dt,
+                dimension=dimension,
+                distance_unit=sc.Unit(distance_unit),
+                specie_indices=specie_indices,
+                masses=masses,
+                progress=progress,
+            )
+
+            diff = DiffusionAnalyzer(parser)
+            diff._dg = calculate_msd(parser, progress=progress)
+
+            print(
+                'This analysis uses the `kinisi` package. Please cite kinisi and report'
+                ' the kinisi version used. See kinisi documentation'
+                ' (https://github.com/kinisi-dev/kinisi.git) for citation guidance.'
+            )
+
+            if save_cache:
+                self.kinisi_diffusion_analyzer_cache = diff
+                self.kinisi_diffusion_analyzer_cache_key = key
+
+            return diff
+
     def transitions_between_sites(
         self,
         sites: Structure,
@@ -790,6 +915,11 @@ class Trajectory(PymatgenTrajectory):
     def plot_msd_per_element(self, *, module, **kwargs):
         """See [gemdat.plots.msd_per_element][] for more info."""
         return module.msd_per_element(trajectory=self, **kwargs)
+
+    @plot_backend
+    def plot_msd_kinisi(self, *, module, **kwargs):
+        """See [gemdat.plots.msd_kinisi][] for more info."""
+        return module.msd_kinisi(trajectory=self, **kwargs)
 
     @plot_backend
     def plot_displacement_histogram(self, *, module, **kwargs):

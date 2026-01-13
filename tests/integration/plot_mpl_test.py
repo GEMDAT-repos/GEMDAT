@@ -101,6 +101,12 @@ def test_msd_per_element(vasp_traj):
     traj.plot_msd_per_element(backend=BACKEND)
 
 
+@image_comparison2(baseline_images=['msd_kinisi'])
+def test_msd_kinisi(vasp_traj):
+    traj = vasp_traj[-500:]
+    traj.plot_msd_kinisi(specie='Li', backend=BACKEND)
+
+
 @image_comparison2(baseline_images=['energy_along_path'])
 def test_energy_along_path(vasp_path):
     structure = load_known_material('argyrodite')
