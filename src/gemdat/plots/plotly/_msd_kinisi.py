@@ -96,19 +96,10 @@ def msd_kinisi(
     color_hex = fig.layout['template']['layout']['colorway'][0]
     color_rgba = hex2rgba(color_hex, opacity=0.3)
 
-    fig.add_trace(
-        go.Scatter(
-            x=x,
-            y=y,
-            line_color=color_hex,
-            name=f'{specie} MSD ± 1σ',
-            mode='lines',
-            line={'width': 3},
-            legendgroup=specie,
-            zorder=1,
-        )
-    )
+    name = f'{specie} MSD'
+
     if (yerr is not None) and show_shaded:
+        name = f'{specie} MSD ± 1σ'
         fig.add_trace(
             go.Scatter(
                 x=x,
@@ -134,7 +125,20 @@ def msd_kinisi(
             )
         )
 
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            name=name,
+            mode='lines',
+            line={'width': 3, 'color': color_hex},
+            legendgroup=specie,
+            zorder=1,
+        )
+    )
+    
     fig.update_layout(
+        showlegend=True,
         title='Mean squared displacement',
         xaxis_title=f'Time lag ({dt.unit})',
         yaxis_title=f'MSD ({msd.unit})',
