@@ -188,7 +188,7 @@ def test_kinisi_mean_squared_displacement(trajectory):
     dt = diff.dt
     assert isinstance(dt, sc._scipp.core.Variable)
     assert dt.unit == 'ps'
-    assert_allclose(dt.values, [1.e+12, 2.e+12, 3.e+12, 4.e+12])
+    assert_allclose(dt.values, [1.0e12, 2.0e12, 3.0e12, 4.0e12])
     rng = np.random.RandomState(42)
     diff.diffusion(start_dt=sc.scalar(0, unit='ps'), random_state=rng, progress=False)
     assert diff.D.values.mean() == 2.046301680845264e-18
