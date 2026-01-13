@@ -150,4 +150,3 @@ def msd_kinisi(
     )
 
     return fig
-
