@@ -809,8 +809,8 @@ class Trajectory(PymatgenTrajectory):
             'dt': dt,
             'dimension': dimension,
             'distance_unit': distance_unit,
-            'specie_indices': None if specie_indices is None else "provided",
-            'masses': None if masses is None else "provided",
+            'specie_indices': None if specie_indices is None else 'provided',
+            'masses': None if masses is None else 'provided',
         }
         cache_data = getattr(self, 'kinisi_diffusion_analyzer_cache', None)
         cached_key = getattr(self, 'kinisi_diffusion_analyzer_cache_key', None)
