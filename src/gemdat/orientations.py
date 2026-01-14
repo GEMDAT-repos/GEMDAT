@@ -91,7 +91,13 @@ class Orientations:
         )
         return distance
 
-    def _matching_matrix(self, distance: np.ndarray, frac_coord_cent: np.ndarray) -> np.ndarray:
+    def _matching_matrix(
+        self,
+        distance: np.ndarray,
+        frac_coord_cent: np.ndarray,
+        num_sat_atoms: int = 4,
+        cutoff_dist: float | None = None,
+    ) -> np.ndarray:
         """Determine which satellite atoms are close enough to central atom to
         be connected.
 
@@ -99,8 +105,12 @@ class Orientations:
         ----------
         distance: np.ndarray
             Distance between all the central-satellite pairs
-        frac_coord_cent; np.ndarray
+        frac_coord_cent: np.ndarray
             Fractional coordinates of all the central atoms
+        num_sat_atoms: int
+            Number of satellite atoms to connect to central atom, default is 4 atoms
+        cutoff_dist: float
+            Distance criteria, default is 1.5 times minimal distance
 
         Returns
         -------
@@ -108,12 +118,15 @@ class Orientations:
             Matrix that shows which center-satellite pair is closer than
             the matching criteria
         """
-        match_criteria = 1.5 * np.min(distance)
+        if cutoff_dist is None:
+            match_criteria = 1.5 * np.min(distance)
+        else:
+            match_criteria = cutoff_dist
 
         distance_match = np.where(distance < match_criteria, distance, 0)
-        matching_matrix = np.zeros((len(frac_coord_cent[0, :, 0]), 4), dtype=int)
+        matching_matrix = np.zeros((len(frac_coord_cent[0, :, 0]), num_sat_atoms), dtype=int)
         for k in range(len(frac_coord_cent[0, :, 0])):
-            matching_matrix[k, :] = np.where(distance_match[k, :] != 0)[0][:4]
+            matching_matrix[k, :] = np.where(distance_match[k, :] != 0)[0][:num_sat_atoms]
         return matching_matrix
 
     def _central_satellite_matrix(
