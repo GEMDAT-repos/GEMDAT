@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Collection, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
+from gemdat.plots._shared import density_matching_cmap_mpl
 
 if TYPE_CHECKING:
     import matplotlib.figure
@@ -39,6 +40,9 @@ def shape(
     fig : matplotlib.figure.Figure
         Output figure
     """
+    if cmap is None:
+        cmap = density_matching_cmap_mpl()
+
     x_labels = ('X / Å', 'Y / Å', 'Z / Å')
     y_labels = ('Y / Å', 'Z / Å', 'X / Å')
 
