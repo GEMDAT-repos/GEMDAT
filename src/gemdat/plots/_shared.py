@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap, to_rgb
 from pymatgen.core import Element, Species
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
-from matplotlib.colors import LinearSegmentedColormap, to_rgb
 
 if TYPE_CHECKING:
     from gemdat.jumps import Jumps
@@ -92,7 +92,7 @@ def hex2rgba(hex_color: str, *, opacity: float = 1) -> str:
     return f'rgba({r},{g},{b},{opacity})'
 
 
-def density_cmap():
+def density_matching_cmap_mpl():
     colors = ['white', 'orangered', 'greenyellow', 'cyan']
     isovals = [0.0, 0.65, 0.30, 0.05]
     alphavals = [0.0, 0.5, 1, 0.5]
