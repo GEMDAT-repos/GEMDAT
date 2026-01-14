@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Collection, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from gemdat.plots._shared import density_matching_cmap_mpl
 
 if TYPE_CHECKING:
