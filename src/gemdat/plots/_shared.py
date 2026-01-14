@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap, to_rgb
 from pymatgen.core import Element, Species
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
@@ -89,6 +90,45 @@ def hex2rgba(hex_color: str, *, opacity: float = 1) -> str:
     b = int(hex_color[5:7], 16)
 
     return f'rgba({r},{g},{b},{opacity})'
+
+
+def density_matching_cmap_mpl():
+    colors = ['white', 'orangered', 'greenyellow', 'cyan']
+    isovals = [0.0, 0.65, 0.30, 0.05]
+    alphavals = [0.0, 0.5, 1, 0.5]
+
+    # Sort isovals along with colors and alphavals
+    sorted_indices = np.argsort(isovals)
+    isovals = np.array(isovals)[sorted_indices]
+    colors = np.array(colors)[sorted_indices]
+    alphavals = np.array(alphavals)[sorted_indices]
+
+    # Normalize isovals to create positions for the colormap
+    norm_isovals = isovals / max(isovals)
+
+    # Ensure the first and last points are at 0 and 1
+    if norm_isovals[0] != 0:
+        norm_isovals = np.insert(norm_isovals, 0, 0)
+        colors = np.insert(colors, 0, colors[0])
+        alphavals = np.insert(alphavals, 0, alphavals[0])
+
+    if norm_isovals[-1] != 1:
+        norm_isovals = np.append(norm_isovals, 1)
+        colors = np.append(colors, colors[-1])
+        alphavals = np.append(alphavals, alphavals[-1])
+
+    # Create a custom colormap
+    cdict = {'red': [], 'green': [], 'blue': [], 'alpha': []}
+
+    for iso, color, alpha in zip(norm_isovals, colors, alphavals):
+        r, g, b = to_rgb(color)
+        cdict['red'].append((iso, r, r))
+        cdict['green'].append((iso, g, g))
+        cdict['blue'].append((iso, b, b))
+        cdict['alpha'].append((iso, alpha, alpha))
+
+    custom_cmap = LinearSegmentedColormap('custom_cmap', segmentdata=cdict, N=256)
+    return custom_cmap
 
 
 @dataclass

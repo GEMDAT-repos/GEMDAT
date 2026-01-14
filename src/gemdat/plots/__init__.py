@@ -5,6 +5,7 @@ from __future__ import annotations
 from .matplotlib import (
     jumps_3d_animation,
     polar,
+    shape,
 )
 from .plotly import (
     autocorrelation,
@@ -25,7 +26,6 @@ from .plotly import (
     plot_3d_points,
     radial_distribution,
     rectilinear,
-    shape,
     vibrational_amplitudes,
 )
 
