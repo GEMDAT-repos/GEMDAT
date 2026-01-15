@@ -5,9 +5,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import pickle
 import re
-import math
 import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
@@ -23,8 +23,8 @@ from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
     import scipp as sc
-    from kinisi.analyze import DiffusionAnalyzer
     from ase.io.trajectory import Trajectory as AseTrajectory
+    from kinisi.analyze import DiffusionAnalyzer
     from pymatgen.core import Structure
 
     from .metrics import TrajectoryMetrics
@@ -489,18 +489,18 @@ class Trajectory(PymatgenTrajectory):
         if cache:
             obj.to_cache(cache)
 
-        return (obj)
+        return obj
 
-    @ classmethod
+    @classmethod
     def from_ase_trajectory(
-            cls,
-            trajectory: str | Path | AseTrajectory,
-            *,
-            stride: int = 1,
-            constant_lattice: bool = True,
-            temperature: float | None = None,
-            time_step: float | None = None,
-            cache: str | Path | None = None,
+        cls,
+        trajectory: str | Path | AseTrajectory,
+        *,
+        stride: int = 1,
+        constant_lattice: bool = True,
+        temperature: float | None = None,
+        time_step: float | None = None,
+        cache: str | Path | None = None,
     ) -> Trajectory:
         """Create a trajectory from an ASE ``.traj`` file or ASE Trajectory.
 
@@ -589,9 +589,6 @@ class Trajectory(PymatgenTrajectory):
                 frac[j] = atoms.get_scaled_positions(wrap=False)
                 cells[j] = np.asarray(atoms.cell.array, dtype=float)
                 j += 1
-            if constant_lattice is None:
-                delta = np.max(np.abs(cells - cells[0]), axis=(1, 2))
-                constant_lattice = bool(np.all(delta <= lattice_match_tol))
 
             lattice = cells[0] if constant_lattice else cells
 
@@ -619,10 +616,10 @@ class Trajectory(PymatgenTrajectory):
                 ase_traj.close()
 
     def to_ase_trajectory(
-            self,
-            *,
-            filename: str | Path = 'md.traj',
-            stride: int = 1,
+        self,
+        *,
+        filename: str | Path = 'md.traj',
+        stride: int = 1,
     ) -> AseTrajectory:
         """Write trajectory to an ASE ``.traj`` file.
 
@@ -648,7 +645,8 @@ class Trajectory(PymatgenTrajectory):
         from ase.io.trajectory import Trajectory as AseTrajectory
 
         def _as_cell(lattice) -> np.ndarray:
-            """Return a (3, 3) cell matrix in Å from a pymatgen Lattice or array-like."""
+            """Return a (3, 3) cell matrix in Å from a pymatgen Lattice or
+            array-like."""
             if hasattr(lattice, 'matrix'):
                 return np.asarray(lattice.matrix, dtype=float)
             return np.asarray(lattice, dtype=float)
@@ -659,7 +657,11 @@ class Trajectory(PymatgenTrajectory):
         symbols = [getattr(s, 'symbol', str(s)) for s in self.species]
 
         constant_lattice = bool(getattr(self, 'constant_lattice', True))
-        lattice = self.get_lattice() if hasattr(self, 'get_lattice') else getattr(self, 'lattice', None)
+        lattice = (
+            self.get_lattice()
+            if hasattr(self, 'get_lattice')
+            else getattr(self, 'lattice', None)
+        )
 
         with AseTrajectory(str(filename), mode='w') as out:
             if constant_lattice:
