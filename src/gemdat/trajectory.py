@@ -527,7 +527,6 @@ class Trajectory(PymatgenTrajectory):
         """
 
         from ase.io.trajectory import Trajectory as AseTrajectory
-        from pymatgen.core.periodic_table import Element
 
         if stride < 1:
             raise ValueError(f'{stride=} must be >= 1')
@@ -567,7 +566,7 @@ class Trajectory(PymatgenTrajectory):
             n_frames = math.ceil(n_total / stride)
             atoms0 = ase_traj[0]
             symbols = atoms0.get_chemical_symbols()
-            species = [Element(sym) for sym in symbols]
+            species = [Species(sym) for sym in symbols]
             n_atoms = len(symbols)
 
             frac = np.empty((n_frames, n_atoms, 3), dtype=float)
