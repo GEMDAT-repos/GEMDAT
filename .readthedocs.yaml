@@ -27,3 +27,4 @@ python:
 submodules:
   include:
     - docs/notebooks
+    - docs/tutorials
