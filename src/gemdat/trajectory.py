@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     import scipp as sc
     from ase.io.trajectory import Trajectory as AseTrajectory
     from kinisi.analyze import DiffusionAnalyzer
-    from pymatgen.core import Structure
+    from pymatgen.core import Structure, Lattice
 
     from .metrics import TrajectoryMetrics
     from .rdf import RDFData
@@ -652,7 +652,6 @@ class Trajectory(PymatgenTrajectory):
             return np.asarray(lattice, dtype=float)
 
         filename = Path(filename)
-
         frac = np.asarray(self.positions[::stride], dtype=float)
         symbols = [getattr(s, 'symbol', str(s)) for s in self.species]
 
@@ -671,7 +670,7 @@ class Trajectory(PymatgenTrajectory):
                     atoms.set_scaled_positions(f)
                     out.write(atoms)
             else:
-                lattices = lattice
+                lattices = np.asarray(lattice, dtype=float)
                 lattices = lattices[::stride]
                 atoms = Atoms(symbols=symbols, pbc=True)
                 for f, lat in zip(frac, lattices):
