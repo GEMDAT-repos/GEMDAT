@@ -601,7 +601,7 @@ class Trajectory(PymatgenTrajectory):
                 coords=frac,
                 lattice=lattice,
                 constant_lattice=constant_lattice,
-                time_step=(time_step_ps * 1e-12) if time_step_ps is not None else None,  # ps -> s
+                time_step=(time_step_ps * 1e-12) if time_step_ps is not None else None,
                 metadata=md,
             )
             obj.to_positions()
