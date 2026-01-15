@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import pickle
 import re
 import xml.etree.ElementTree as ET
@@ -22,8 +23,9 @@ from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
     import scipp as sc
+    from ase.io.trajectory import Trajectory as AseTrajectory
     from kinisi.analyze import DiffusionAnalyzer
-    from pymatgen.core import Structure
+    from pymatgen.core import Lattice, Structure
 
     from .metrics import TrajectoryMetrics
     from .rdf import RDFData
@@ -488,6 +490,194 @@ class Trajectory(PymatgenTrajectory):
             obj.to_cache(cache)
 
         return obj
+
+    @classmethod
+    def from_ase_trajectory(
+        cls,
+        trajectory: str | Path | AseTrajectory,
+        *,
+        stride: int = 1,
+        constant_lattice: bool = True,
+        temperature: float | None = None,
+        time_step_ps: float | None = None,
+        cache: str | Path | None = None,
+    ) -> Trajectory:
+        """Create a trajectory from an ASE ``.traj`` file or ASE Trajectory.
+
+        Parameters
+        ----------
+        trajectory : str | Path | ase.io.trajectory.Trajectory
+            Input ASE trajectory or path to an ``.traj`` file.
+        stride : int, optional
+            Only read every ``stride``-th frame.
+        constant_lattice : bool | None, optional
+            Whether the lattice is constant. If None, it is inferred from the cells.
+        temperature : float | None
+            Temperature of simulation in K (stored in `metadata` if given).
+        time_step_ps : float | None
+            Time step of the simulation in ps.
+        cache : str | Path | None
+            If specified (or auto-derived for filename input), cache the parsed
+            Trajectory using pickle.
+
+        Returns
+        -------
+        trajectory : gemdat.Trajectory
+            A GEMDAT trajectory instance.
+        """
+
+        from ase.io.trajectory import Trajectory as AseTrajectory
+
+        if stride < 1:
+            raise ValueError(f'{stride=} must be >= 1')
+
+        close_when_done = False
+
+        if isinstance(trajectory, (str, Path)):
+            traj_path = Path(trajectory)
+            if not cache:
+                kwargs = {
+                    'trajectory': str(traj_path),
+                    'stride': stride,
+                    'constant_lattice': constant_lattice,
+                    'temperature': temperature,
+                    'time_step_ps': time_step_ps,
+                }
+                serialized = json.dumps(kwargs, sort_keys=True).encode()
+                hashid = hashlib.sha1(serialized).hexdigest()[:8]
+                cache = traj_path.with_suffix(f'.traj.{hashid}.cache')
+
+            if cache and Path(cache).exists():
+                try:
+                    return cls.from_cache(cache)
+                except Exception as e:
+                    print(e)
+                    print(f'Error reading from cache, reading {str(traj_path)!r}')
+
+            ase_traj = AseTrajectory(str(traj_path), 'r')
+            close_when_done = True
+        else:
+            if cache is not None:
+                raise ValueError('`cache` is only supported when reading from a filename/path')
+            ase_traj = trajectory
+
+        try:
+            n_total = len(ase_traj)
+            n_frames = math.ceil(n_total / stride)
+            atoms0 = ase_traj[0]
+            symbols = atoms0.get_chemical_symbols()
+            species = [Species(sym) for sym in symbols]
+            n_atoms = len(symbols)
+
+            frac = np.empty((n_frames, n_atoms, 3), dtype=float)
+            cells = np.empty((n_frames, 3, 3), dtype=float)
+
+            j = 0
+            for i in range(0, n_total, stride):
+                atoms = ase_traj[i]
+                if len(atoms) != n_atoms:
+                    raise ValueError(
+                        'ASE trajectory contains frames with a different number of atoms'
+                    )
+
+                if atoms.get_chemical_symbols() != symbols:
+                    raise ValueError(
+                        'ASE trajectory contains frames with different chemical symbols'
+                    )
+
+                frac[j] = atoms.get_scaled_positions(wrap=False)
+                cells[j] = np.asarray(atoms.cell.array, dtype=float)
+                j += 1
+
+            lattice = cells[0] if constant_lattice else cells
+
+            md: dict = {}
+            if temperature is not None:
+                md['temperature'] = temperature
+
+            obj = cls(
+                species=species,
+                coords=frac,
+                lattice=lattice,
+                constant_lattice=constant_lattice,
+                time_step=(time_step_ps * 1e-12) if time_step_ps is not None else None,
+                metadata=md,
+            )
+            obj.to_positions()
+
+            if cache:
+                obj.to_cache(cache)
+
+            return obj
+
+        finally:
+            if close_when_done and hasattr(ase_traj, 'close'):
+                ase_traj.close()
+
+    def to_ase_trajectory(
+        self,
+        *,
+        filename: str | Path = 'md.traj',
+        stride: int = 1,
+    ) -> AseTrajectory:
+        """Write trajectory to an ASE ``.traj`` file.
+
+        The resulting file can be opened by ASE and most ASE-compatible tools.
+
+        Parameters
+        ----------
+        filename : str | Path, optional
+            Output ASE trajectory filename.
+        stride : int, optional
+            Only write every ``stride``-th frame.
+
+        Returns
+        -------
+        ase_traj : ase.io.trajectory.Trajectory
+        ASE trajectory opened in read mode.
+        """
+
+        if stride < 1:
+            raise ValueError(f'{stride=} must be >= 1')
+
+        from ase import Atoms
+        from ase.io.trajectory import Trajectory as AseTrajectory
+
+        def _as_cell(lattice) -> np.ndarray:
+            """Return a (3, 3) cell matrix in Å from a pymatgen Lattice or
+            array-like."""
+            if hasattr(lattice, 'matrix'):
+                return np.asarray(lattice.matrix, dtype=float)
+            return np.asarray(lattice, dtype=float)
+
+        filename = Path(filename)
+        frac = np.asarray(self.positions[::stride], dtype=float)
+        symbols = [getattr(s, 'symbol', str(s)) for s in self.species]
+
+        constant_lattice = bool(getattr(self, 'constant_lattice', True))
+        lattice = (
+            self.get_lattice()
+            if hasattr(self, 'get_lattice')
+            else getattr(self, 'lattice', None)
+        )
+
+        with AseTrajectory(str(filename), mode='w') as out:
+            if constant_lattice:
+                cell = _as_cell(lattice)
+                atoms = Atoms(symbols=symbols, cell=cell, pbc=True)
+                for f in frac:
+                    atoms.set_scaled_positions(f)
+                    out.write(atoms)
+            else:
+                lattices = np.asarray(lattice, dtype=float)
+                lattices = lattices[::stride]
+                atoms = Atoms(symbols=symbols, pbc=True)
+                for f, lat in zip(frac, lattices):
+                    atoms.set_cell(_as_cell(lat), scale_atoms=False)
+                    atoms.set_scaled_positions(f)
+                    out.write(atoms)
+
+        return AseTrajectory(str(filename), mode='r')
 
     def get_lattice(self, idx: int | None = None) -> Lattice:
         """Get lattice.

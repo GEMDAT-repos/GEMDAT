@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=requirements_full.txt pyproject.toml
 #
+ase==3.27.0
+    # via GEMDAT (pyproject.toml)
 biopython==1.81
     # via mdanalysis
 certifi==2023.7.22
@@ -17,13 +19,9 @@ contourpy==1.1.0
 cycler==0.11.0
     # via matplotlib
 dynesty==3.0.0
-    # via
-    #   kinisi
-    #   uravu
+    # via uravu
 emcee==3.1.6
-    # via
-    #   kinisi
-    #   uravu
+    # via uravu
 fasteners==0.18
     # via mdanalysis
 fonttools==4.42.1
@@ -54,6 +52,7 @@ markdown-it-py==3.0.0
 matplotlib==3.7.3
     # via
     #   GEMDAT (pyproject.toml)
+    #   ase
     #   dynesty
     #   mdanalysis
     #   pymatgen
@@ -79,6 +78,7 @@ networkx==3.1
 numpy==1.25.2
     # via
     #   GEMDAT (pyproject.toml)
+    #   ase
     #   biopython
     #   contourpy
     #   dynesty
@@ -155,6 +155,7 @@ scikit-learn==1.8.0
 scipy==1.11.2
     # via
     #   GEMDAT (pyproject.toml)
+    #   ase
     #   dynesty
     #   griddataformats
     #   kinisi
