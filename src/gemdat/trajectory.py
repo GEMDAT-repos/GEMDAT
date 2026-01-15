@@ -499,7 +499,7 @@ class Trajectory(PymatgenTrajectory):
         stride: int = 1,
         constant_lattice: bool = True,
         temperature: float | None = None,
-        time_step: float | None = None,
+        time_step_ps: float | None = None,
         cache: str | Path | None = None,
     ) -> Trajectory:
         """Create a trajectory from an ASE ``.traj`` file or ASE Trajectory.
@@ -514,8 +514,8 @@ class Trajectory(PymatgenTrajectory):
             Whether the lattice is constant. If None, it is inferred from the cells.
         temperature : float | None
             Temperature of simulation in K (stored in `metadata` if given).
-        time_step : float | None
-            Time step of the simulation in ps (stored internally as seconds).
+        time_step_ps : float | None
+            Time step of the simulation in ps.
         cache : str | Path | None
             If specified (or auto-derived for filename input), cache the parsed
             Trajectory using pickle.
@@ -542,7 +542,7 @@ class Trajectory(PymatgenTrajectory):
                     'stride': stride,
                     'constant_lattice': constant_lattice,
                     'temperature': temperature,
-                    'time_step': time_step,
+                    'time_step_ps': time_step_ps,
                 }
                 serialized = json.dumps(kwargs, sort_keys=True).encode()
                 hashid = hashlib.sha1(serialized).hexdigest()[:8]
@@ -601,7 +601,7 @@ class Trajectory(PymatgenTrajectory):
                 coords=frac,
                 lattice=lattice,
                 constant_lattice=constant_lattice,
-                time_step=(time_step * 1e-12) if time_step is not None else None,  # ps -> s
+                time_step=(time_step_ps * 1e-12) if time_step_ps is not None else None,  # ps -> s
                 metadata=md,
             )
             obj.to_positions()
