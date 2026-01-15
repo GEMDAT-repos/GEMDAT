@@ -221,3 +221,27 @@ def test_from_gromacs():
     assert traj.positions.shape == (251, 18943, 3)
     assert len(traj.species) == 18943
     assert traj.time_step_ps == 2
+
+
+def test_to_ase_trajectory(trajectory):
+    ase_traj = trajectory.to_ase_trajectory()
+
+    assert np.all(ase_traj[3].positions == np.array([[0.8, 0.0, 0.0], [0.0, 0.0, 0.5], [0.0, 0.0, 0.5], [0.0, 0.0, 0.5]]))
+    assert len(ase_traj) == 5
+    assert np.all(ase_traj[0].get_atomic_numbers == np.array([ 5, 14, 16,  6]))
+
+
+def test_from_ase_trajectory(trajectory):
+    ase_traj = trajectory.to_ase_trajectory()
+    traj = Trajectory.from_ase_trajectory(trajectory=ase_traj, constant_lattice=True, temperature=123, time_step_ps=1e12,)
+
+    assert isinstance(traj, Trajectory)
+    assert traj.species == [
+        Species('B'),
+        Species('Si'),
+        Species('S'),
+        Species('C'),
+    ]
+    assert traj.positions.shape == (5, 4, 3)
+    assert traj.metadata == {'temperature': 123}
+    assert traj.time_step == 1
