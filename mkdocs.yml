@@ -8,7 +8,8 @@ nav:
   - Getting started: getting_started.md
   - Visualization: plotting.md
   - Dashboard: dashboard.md
-  - Tutorials: tutorials/README.md
+  - Tutorials:
+    - Introduction: tutorials/README.md
     - Basic Analysis: tutorials/gemdat_basic_analysis.ipynb
     - Rotational Analysis: tutorials/gemdat_rotation.ipynb
     - Percolation Analysis: tutorials/gemdat_percolation_analysis.ipynb
@@ -71,13 +72,13 @@ plugins:
       python:
         paths: [src]
         inventories:
-        - https://docs.python.org/3/objects.inv
-        - https://numpy.org/doc/stable/objects.inv
-        - https://docs.scipy.org/doc/scipy/objects.inv
-        - https://pandas.pydata.org/docs/objects.inv
-        - https://matplotlib.org/stable/objects.inv
-        - https://pymatgen.org/objects.inv
-        - https://scikit-image.org/docs/stable/objects.inv
+          - https://docs.python.org/3/objects.inv
+          - https://numpy.org/doc/stable/objects.inv
+          - https://docs.scipy.org/doc/scipy/objects.inv
+          - https://pandas.pydata.org/docs/objects.inv
+          - https://matplotlib.org/stable/objects.inv
+          - https://pymatgen.org/objects.inv
+          - https://scikit-image.org/docs/stable/objects.inv
         options:
           docstring_style: numpy
           docstring_options:
