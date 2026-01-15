@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     import scipp as sc
     from ase.io.trajectory import Trajectory as AseTrajectory
     from kinisi.analyze import DiffusionAnalyzer
-    from pymatgen.core import Structure, Lattice
+    from pymatgen.core import Lattice, Structure
 
     from .metrics import TrajectoryMetrics
     from .rdf import RDFData
