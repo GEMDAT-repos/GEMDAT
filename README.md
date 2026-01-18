@@ -3,7 +3,8 @@
 ![Coverage](https://gist.githubusercontent.com/stefsmeets/b599ff4ccf4a6d201a984502f049da73/raw/covbadge.svg)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/gemdat)](https://pypi.org/project/gemdat/)
 [![PyPI](https://img.shields.io/pypi/v/gemdat.svg?style=flat)](https://pypi.org/project/gemdat/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8401669.svg)](https://doi.org/10.5281/zenodo.8401669)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15235004.svg)](https://doi.org/10.5281/zenodo.15235004)
+
 
 ![GEMDAT banner](https://raw.githubusercontent.com/GEMDAT-repos/GEMDAT/main/src/gemdat/data/logo_on_white.png#gh-light-mode-only)
 ![GEMDAT banner](https://raw.githubusercontent.com/GEMDAT-repos/GEMDAT/main/src/gemdat/data/logo_on_black.png#gh-dark-mode-only)
