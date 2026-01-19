@@ -42,17 +42,20 @@ def trajectory_list():
 
     n_frames = 200
     lattice = np.eye(3)
-    species = [Species("B"), Species("Si"), Species("S"), Species("C")]
+    species = [Species('B'), Species('Si'), Species('S'), Species('C')]
 
     static_sites = np.array(
-        [[0.0, 0.0, 0.5],
-         [0.0, 0.0, 0.5],
-         [0.0, 0.0, 0.5]],
+        [[0.0, 0.0, 0.5], [0.0, 0.0, 0.5], [0.0, 0.0, 0.5]],
         dtype=float,
     )
 
     out = []
-    for temperature, step in [(400.0, 1.0e-3), (500.0, 1.2e-3), (600.0, 1.4e-3), (700.0, 1.6e-3)]:
+    for temperature, step in [
+        (400.0, 1.0e-3),
+        (500.0, 1.2e-3),
+        (600.0, 1.4e-3),
+        (700.0, 1.6e-3),
+    ]:
         coords = np.empty((n_frames, 4, 3), dtype=float)
 
         # diffusing B atom: small random walk (stays near 0.2, won’t wrap)
@@ -67,7 +70,7 @@ def trajectory_list():
                 species=species,
                 coords=coords,
                 lattice=lattice,
-                metadata={"temperature": temperature},
+                metadata={'temperature': temperature},
                 time_step=1,
             )
         )
