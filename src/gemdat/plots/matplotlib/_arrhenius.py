@@ -52,9 +52,10 @@ def arrhenius(*, fit: ArrheniusFit, show_std: bool = True,) -> 'matplotlib.figur
         v = np.column_stack([1.0 / t_line, np.ones_like(t_line)])
         var = np.einsum("ij,jk,ik->i", v, fit.cov, v)
         std = np.sqrt(np.maximum(var, 0.0))
-        ax.fill_between(x_line, ln_line - std, ln_line + std, alpha=0.2, label='±1σ', last_color)
+        ax.fill_between(x_line, ln_line - std, ln_line + std, alpha=0.2, label='±1σ', color=last_color)
 
     ax.set_xlabel(r"1000/T (K$^{-1}$)")
     ax.set_ylabel(r"ln(D)")
     return fig
+
 
