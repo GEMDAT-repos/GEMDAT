@@ -42,9 +42,9 @@ def arrhenius(
         ax.errorbar(x, y, yerr=yerr, fmt='o', capsize=3, label='data')
     else:
         ax.scatter(x, y, label='data')
-    
+
     last_color = ax.lines[-1].get_color()
-    
+
     # Fit line
     t_line = np.linspace(float(T.min()), float(T.max()), 200)
     x_line = 1000.0 / t_line
@@ -65,7 +65,3 @@ def arrhenius(
 
     ax.legend()
     return fig
-
-
-
-
