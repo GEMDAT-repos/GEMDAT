@@ -10,10 +10,9 @@ import uncertainties as u
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 
+from ._plot_backend import plot_backend
 from .caching import weak_lru_cache
 from .utils import meanfreq
-
-from ._plot_backend import plot_backend
 
 if typing.TYPE_CHECKING:
     from trajectory import Trajectory
@@ -363,7 +362,7 @@ class ArrheniusFit:
         diffusivities,
         diffusivities_std=None,
         particle_density=None,
-        diffusivity_unit: str = "m^2 s^-1",
+        diffusivity_unit: str = 'm^2 s^-1',
     ):
         self.temperatures = np.asarray(temperatures, dtype=float)
         self.diffusivities = np.asarray(diffusivities, dtype=float)
@@ -372,13 +371,16 @@ class ArrheniusFit:
         )
 
         if self.temperatures.shape[0] != self.diffusivities.shape[0]:
-            raise ValueError("Temperatures and diffusivities must have the same length")
+            raise ValueError('Temperatures and diffusivities must have the same length')
         if self.temperatures.size < 2:
-            raise ValueError("Need at least two points for Arrhenius fit.")
+            raise ValueError('Need at least two points for Arrhenius fit.')
         if np.any(self.diffusivities <= 0):
-            raise ValueError("Diffusivities must be > 0 for log-space fit.")
-        if diffusivities_std is not None and self.diffusivities_std.shape != self.diffusivities.shape:
-                raise ValueError("diffusivities_std must have the same shape as diffusivities.")
+            raise ValueError('Diffusivities must be > 0 for log-space fit.')
+        if (
+            diffusivities_std is not None
+            and self.diffusivities_std.shape != self.diffusivities.shape
+        ):
+            raise ValueError('diffusivities_std must have the same shape as diffusivities.')
 
         self.particle_density = particle_density
         self.diffusivity_unit = diffusivity_unit
@@ -398,9 +400,10 @@ class ArrheniusFit:
         dimensions: int = 3,
         n_parts: int = 10,
         equal_parts: bool = True,
-        diffusivity_unit: str = "m^2 s^-1",
-    ) -> "ArrheniusFit":
-        """Fit Arrhenius parameters from trajectories at different temperatures.
+        diffusivity_unit: str = 'm^2 s^-1',
+    ) -> 'ArrheniusFit':
+        """Fit Arrhenius parameters from trajectories at different
+        temperatures.
 
         Parameters
         ----------
@@ -433,7 +436,7 @@ class ArrheniusFit:
         particle_density = TrajectoryMetrics(diff_traj_0).particle_density()
 
         for traj in trajectories:
-            temperature = float(traj.metadata["temperature"])
+            temperature = float(traj.metadata['temperature'])
             diff_traj = traj.filter(diffusing_specie)
 
             parts = diff_traj.split(n_parts=n_parts, equal_parts=equal_parts)
@@ -489,7 +492,7 @@ class ArrheniusFit:
         """Return activation energy (eV) as ufloat(mean, std)."""
         ea = -self.slope * Boltzmann / elementary_charge
         ea_std = np.sqrt(self.cov[0, 0]) * Boltzmann / elementary_charge
-        return u.ufloat(FloatWithUnit(ea, "eV"), FloatWithUnit(ea_std, "eV"))
+        return u.ufloat(FloatWithUnit(ea, 'eV'), FloatWithUnit(ea_std, 'eV'))
 
     def prefactor(self) -> u.ufloat:
         """Return prefactor D0 as ufloat(mean, std) in `diffusivity_unit`."""
@@ -501,7 +504,8 @@ class ArrheniusFit:
         )
 
     def extrapolate_diffusivity(self, temperature: float) -> u.ufloat:
-        """Extrapolate diffusivity at given temperature (K), with uncertainty."""
+        """Extrapolate diffusivity at given temperature (K), with
+        uncertainty."""
         x = 1.0 / float(temperature)
         v = np.array([x, 1.0], dtype=float)
 
@@ -518,19 +522,23 @@ class ArrheniusFit:
         )
 
     def extrapolate_conductivity(self, temperature: float, *, z_ion: int) -> u.ufloat:
-        """Extrapolate tracer conductivity at given temperature (K), with uncertainty."""
+        """Extrapolate tracer conductivity at given temperature (K), with
+        uncertainty."""
         if self.particle_density is None:
-            raise ValueError("particle_density is not set on this ArrheniusFit")
+            raise ValueError('particle_density is not set on this ArrheniusFit')
 
         d = self.extrapolate_diffusivity(float(temperature))
-        factor = (elementary_charge**2) * (z_ion**2) * self.particle_density / (
-            Boltzmann * float(temperature)
+        factor = (
+            (elementary_charge**2)
+            * (z_ion**2)
+            * self.particle_density
+            / (Boltzmann * float(temperature))
         )
 
         sigma = float(factor * d.n)
         sigma_std = float(factor * d.s)
 
-        return u.ufloat(FloatWithUnit(sigma, "S m^-1"), FloatWithUnit(sigma_std, "S m^-1"))
+        return u.ufloat(FloatWithUnit(sigma, 'S m^-1'), FloatWithUnit(sigma_std, 'S m^-1'))
 
     @plot_backend
     def plot_arrhenius(self, *, module, **kwargs):
