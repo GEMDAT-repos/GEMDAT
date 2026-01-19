@@ -40,7 +40,7 @@ def arrhenius(*, fit: ArrheniusFit, show_std: bool = True) -> go.Figure:
     fig = go.Figure()
     color_hex = fig.layout['template']['layout']['colorway'][0]
     color_rgba = hex2rgba(color_hex, opacity=0.3)
-    
+
     fig.add_trace(
         go.Scatter(x=x, y=y, mode='markers', name='data', error_y=error_y, line_color=color_hex)
     )
@@ -86,5 +86,3 @@ def arrhenius(*, fit: ArrheniusFit, show_std: bool = True) -> go.Figure:
 
     fig.update_layout(xaxis_title='1000/T (K⁻¹)', yaxis_title='ln(D)')
     return fig
-
-
