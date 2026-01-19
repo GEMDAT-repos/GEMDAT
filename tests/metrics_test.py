@@ -56,7 +56,9 @@ def test_vibration_metrics_std(trajectory):
 
 def test_arrhenius(trajectory_list):
     arrhenius = ArrheniusFit.from_trajectories(
-        trajectories=trajectory_list, diffusing_specie='B', n_parts=2,
+        trajectories=trajectory_list,
+        diffusing_specie='B',
+        n_parts=2,
     )
 
     assert np.isclose(arrhenius.particle_density, 1e30)
