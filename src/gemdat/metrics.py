@@ -377,7 +377,7 @@ class ArrheniusFit:
         if np.any(self.diffusivities <= 0):
             raise ValueError('Diffusivities must be > 0 for log-space fit.')
         if (
-            diffusivities_std is not None
+            self.diffusivities_std is not None
             and self.diffusivities_std.shape != self.diffusivities.shape
         ):
             raise ValueError('diffusivities_std must have the same shape as diffusivities.')
