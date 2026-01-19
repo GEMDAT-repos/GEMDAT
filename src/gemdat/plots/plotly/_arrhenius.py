@@ -7,9 +7,9 @@ import plotly.graph_objects as go
 
 from gemdat.plots._shared import hex2rgba
 
-
 if TYPE_CHECKING:
     from gemdat.metrics import ArrheniusFit
+
 
 def arrhenius(*, fit: ArrheniusFit, show_std: bool = True) -> go.Figure:
     """Plot Arrhenius fit.
@@ -41,13 +41,17 @@ def arrhenius(*, fit: ArrheniusFit, show_std: bool = True) -> go.Figure:
     color_hex = fig.layout['template']['layout']['colorway'][0]
     color_rgba = hex2rgba(color_hex, opacity=0.3)
     
-    fig.add_trace(go.Scatter(x=x, y=y, mode='markers', name='data', error_y=error_y, line_color=color_hex))
+    fig.add_trace(
+        go.Scatter(x=x, y=y, mode='markers', name='data', error_y=error_y, line_color=color_hex)
+    )
 
     # Fit line
     t_line = np.linspace(float(T.min()), float(T.max()), 200)
     x_line = 1000.0 / t_line
     ln_line = fit.intercept + fit.slope * (1.0 / t_line)
-    fig.add_trace(go.Scatter(x=x_line, y=ln_line, mode='lines', name='fit', line_color=color_hex))
+    fig.add_trace(
+        go.Scatter(x=x_line, y=ln_line, mode='lines', name='fit', line_color=color_hex)
+    )
 
     # ±1σ band (in ln-space)
     if show_std and getattr(fit, 'cov', None) is not None:
@@ -57,7 +61,16 @@ def arrhenius(*, fit: ArrheniusFit, show_std: bool = True) -> go.Figure:
         upper = ln_line + std
         lower = ln_line - std
 
-        fig.add_trace(go.Scatter(x=x_line, y=upper, mode='lines', line=dict(width=0), showlegend=False, fillcolor=color_rgba))
+        fig.add_trace(
+            go.Scatter(
+                x=x_line,
+                y=upper,
+                mode='lines',
+                line=dict(width=0),
+                showlegend=False,
+                fillcolor=color_rgba,
+            )
+        )
         fig.add_trace(
             go.Scatter(
                 x=x_line,
@@ -73,4 +86,5 @@ def arrhenius(*, fit: ArrheniusFit, show_std: bool = True) -> go.Figure:
 
     fig.update_layout(xaxis_title='1000/T (K⁻¹)', yaxis_title='ln(D)')
     return fig
+
 
