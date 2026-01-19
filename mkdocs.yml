@@ -9,7 +9,7 @@ nav:
   - Visualization: plotting.md
   - Dashboard: dashboard.md
   - Tutorials:
-    - Introduction: tutorials/README.md
+    - Introduction: tutorials/overview.md
     - Basic Analysis: tutorials/gemdat_basic_analysis.ipynb
     - Rotational Analysis: tutorials/gemdat_rotation.ipynb
     - Percolation Analysis: tutorials/gemdat_percolation_analysis.ipynb
