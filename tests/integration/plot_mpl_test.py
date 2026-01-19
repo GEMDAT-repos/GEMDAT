@@ -8,6 +8,11 @@ from gemdat.io import load_known_material
 BACKEND = 'matplotlib'
 
 
+@image_comparison2(baseline_images=['arrhenius'])
+def test_arrhenius_plot(arrhenius_data):
+    arrhenius_data.plot_arrhenius(backend=BACKEND)
+
+
 @image_comparison2(baseline_images=['displacement_per_element'])
 def test_displacement_per_element(vasp_traj):
     vasp_traj.plot_displacement_per_element(backend=BACKEND)

@@ -8,6 +8,7 @@ from .matplotlib import (
     shape,
 )
 from .plotly import (
+    arrhenius,
     autocorrelation,
     bond_length_distribution,
     collective_jumps,
@@ -30,6 +31,7 @@ from .plotly import (
 )
 
 __all__ = [
+    'arrhenius',
     'autocorrelation',
     'bond_length_distribution',
     'collective_jumps',
