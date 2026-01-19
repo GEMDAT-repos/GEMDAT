@@ -500,8 +500,8 @@ class ArrheniusFit:
             FloatWithUnit(d0_std, self.diffusivity_unit),
         )
 
-    def predict_diffusivity(self, temperature: float) -> u.ufloat:
-        """Predict diffusivity at given temperature (K), with uncertainty."""
+    def extrapolate_diffusivity(self, temperature: float) -> u.ufloat:
+        """Extrapolate diffusivity at given temperature (K), with uncertainty."""
         x = 1.0 / float(temperature)
         v = np.array([x, 1.0], dtype=float)
 
@@ -517,12 +517,12 @@ class ArrheniusFit:
             FloatWithUnit(d_std, self.diffusivity_unit),
         )
 
-    def predict_conductivity(self, temperature: float, *, z_ion: int) -> u.ufloat:
-        """Predict tracer conductivity at given temperature (K), with uncertainty."""
+    def extrapolate_conductivity(self, temperature: float, *, z_ion: int) -> u.ufloat:
+        """Extrapolate tracer conductivity at given temperature (K), with uncertainty."""
         if self.particle_density is None:
             raise ValueError("particle_density is not set on this ArrheniusFit")
 
-        d = self.predict_diffusivity(float(temperature))
+        d = self.extrapolate_diffusivity(float(temperature))
         factor = (elementary_charge**2) * (z_ion**2) * self.particle_density / (
             Boltzmann * float(temperature)
         )
