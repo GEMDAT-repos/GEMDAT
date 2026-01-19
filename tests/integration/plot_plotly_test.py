@@ -8,6 +8,11 @@ from gemdat.io import load_known_material
 BACKEND = 'plotly'
 
 
+def test_arrhenius_plot(arrhenius_data):
+    fig = arrhenius_data.plot_arrhenius(backend=BACKEND)
+    assert_figures_similar(fig, name='arrhenius', rms=0.5)
+
+
 def test_displacement_per_element(vasp_traj):
     fig = vasp_traj.plot_displacement_per_element(backend=BACKEND)
 
