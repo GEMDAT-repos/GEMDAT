@@ -76,4 +76,3 @@ def trajectory_list():
         )
 
     return out
-
