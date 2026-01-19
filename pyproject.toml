@@ -10,13 +10,17 @@ description = "Generalized Molecular Dynamics Analysis Tool"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-	{name = "Victor Azizi", email = "v.azizi@esciencecenter.nl"},
-	{name = "Stef Smeets"},
-	{name = "Anastasia K. Lavrinenko", email = "a.k.lavrinenko@tudelft.nl"},
-	{name = "Simone Ciarella"},
-	{name = "Theodosios Famprikis"},
-	{name = "Victor Landgraf"},
-	{name = "Alexandros Vasileiadis", email = "a.vasileiadis@tudelft.nl"},
+  {name = "Victor Azizi"},
+  {name = "Stef Smeets"},
+  {name = "Anastasia K. Lavrinenko"},
+  {name = "Simone Ciarella"},
+  {name = "Theodosios Famprikis"},
+  {name = "Victor Landgraf"},
+  {name = "Alexandros Vasileiadis"},
+]
+maintainers = [
+  {name = "Anastasia K. Lavrinenko", email = "a.k.lavrinenko@tudelft.nl"},
+  {name = "Alexandros Vasileiadis", email = "a.vasileiadis@tudelft.nl"},
 ]
 keywords = [
     "analysis",
