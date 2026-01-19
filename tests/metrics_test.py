@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from gemdat.metrics import TrajectoryMetrics, TrajectoryMetricsStd
+from gemdat.metrics import TrajectoryMetrics, TrajectoryMetricsStd, ArrheniusFit
 
 
 def test_tracer_metrics(trajectory):
@@ -52,3 +52,26 @@ def test_vibration_metrics_std(trajectory):
     amplitudes_mean, amplitudes_std = metrics.amplitudes()
     assert np.isclose(amplitudes_mean, np.array([0.2]))
     assert np.isclose(amplitudes_std, np.array([2.77555756e-17]))
+
+
+def test_arrhenius(trajectory_list):
+    arrhenius = ArrheniusFit.from_trajectories(trajectories=traj_list, diffusing_specie='B', n_parts=2)
+
+    assert np.isclose(arrhenius.particle_density(), 1e30)
+    assert np.allclose(arrhenius.diffusivities, np.array([2.2e-27, 1.6e-26, 2.9e-26, 6.1e-27]))
+
+    ea = arrhenius.activation_energy()
+    assert np.isclose(ea.n, np.array([0.072302]))
+    assert np.isclose(ea.s, np.array([0.0400955]))
+
+    prefactor = arrhenius.prefactor()
+    assert np.isclose(prefactor.n, np.array([2.07e-26]))
+    assert np.isclose(prefactor.s, np.array([1.57e-26]))
+
+    diffusivity = arrhenius.extrapolate_diffusivity(temperature=100)
+    assert np.isclose(diffusivity.n, np.array([4.7e-30]))
+    assert np.isclose(diffusivity.s, np.array([1.8e-29]))
+
+    conductivity = arrhenius.extrapolate_conductivity(temperature=100, z_ion=1)
+    assert np.isclose(conductivity.n, np.array([8.7e-17]))
+    assert np.isclose(conductivity.s, np.array([3.4e-16]))
