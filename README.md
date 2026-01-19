@@ -92,7 +92,7 @@ Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-dev
 
 ## How to Cite
 
-- V. Azizi, S. Smeets, A. K. Lavrinenko, S. Ciarella, T. Famprikis, V. Landgraf, & A. Vasileiadis. GEMDAT (Version 1.6.2) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
+- V. Azizi, S. Smeets, A. K. Lavrinenko, S. Ciarella, T. Famprikis, V. Landgraf, & A. Vasileiadis. GEMDAT (Version 1.6.3) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
 
 ## Dissemination
 
