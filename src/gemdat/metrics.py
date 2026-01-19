@@ -544,4 +544,3 @@ class ArrheniusFit:
     def plot_arrhenius(self, *, module, **kwargs):
         """See [gemdat.plots.arrhenius][] for more info."""
         return module.arrhenius(fit=self, **kwargs)
-
