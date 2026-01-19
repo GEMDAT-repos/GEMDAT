@@ -141,7 +141,7 @@ def vasp_orientations_spherical(vasp_orientations):
     return cf_spheric
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture()
 def arrhenius_data(trajectory_list):
     arrhenius = ArrheniusFit.from_trajectories(trajectories=trajectory_list, diffusing_specie='B', n_parts=2)
     return arrhenius
