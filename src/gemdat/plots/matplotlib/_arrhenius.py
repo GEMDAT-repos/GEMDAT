@@ -56,6 +56,9 @@ def arrhenius(*, fit: ArrheniusFit, show_std: bool = True,) -> 'matplotlib.figur
 
     ax.set_xlabel(r"1000/T (K$^{-1}$)")
     ax.set_ylabel(r"ln(D)")
+
+    ax.legend()
     return fig
+
 
 
