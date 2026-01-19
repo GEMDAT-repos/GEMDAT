@@ -12,11 +12,11 @@ requires-python = ">=3.10"
 authors = [
 	{name = "Victor Azizi", email = "v.azizi@esciencecenter.nl"},
 	{name = "Stef Smeets"},
-	{name = "Anastasia K. Lavrinenko"},
+	{name = "Anastasia K. Lavrinenko", email = "a.k.lavrinenko@tudelft.nl"},
 	{name = "Simone Ciarella"},
 	{name = "Theodosios Famprikis"},
 	{name = "Victor Landgraf"},
-	{name = "Alexandros Vasileiadis"},
+	{name = "Alexandros Vasileiadis", email = "a.vasileiadis@tudelft.nl"},
 ]
 keywords = [
     "analysis",
