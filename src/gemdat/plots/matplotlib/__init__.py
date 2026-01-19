@@ -3,6 +3,7 @@ matplotlib."""
 
 from __future__ import annotations
 
+from ._arrhenius import arrhenius
 from ._autocorrelation import autocorrelation
 from ._bond_length_distribution import bond_length_distribution
 from ._collective_jumps import collective_jumps
@@ -24,6 +25,7 @@ from ._shape import shape
 from ._vibrational_amplitudes import vibrational_amplitudes
 
 __all__ = [
+    'arrhenius',
     'autocorrelation',
     'bond_length_distribution',
     'collective_jumps',
