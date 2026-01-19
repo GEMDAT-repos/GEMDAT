@@ -6,6 +6,7 @@ import pytest
 
 from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
+from gemdat.metrics import ArrheniusFit
 from gemdat.orientations import Orientations
 from gemdat.rdf import radial_distribution
 from gemdat.shape import ShapeAnalyzer
@@ -138,3 +139,9 @@ def vasp_orientations_spherical(vasp_orientations):
     cf = vasp_orientations.get_conventional_coordinates()
     cf_spheric = cf.get_vectors_spherical()
     return cf_spheric
+
+
+@pytest.fixture(scope='module')
+def arrhenius_data(trajectory_list):
+    arrhenius = ArrheniusFit.from_trajectories(trajectories=traj_list,diffusing_specie='B',n_parts=2)
+    return arrhenius
