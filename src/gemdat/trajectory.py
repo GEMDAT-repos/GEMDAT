@@ -74,6 +74,8 @@ class Trajectory(PymatgenTrajectory):
         """
         super().__init__(**kwargs)
         self.metadata = metadata if metadata else {}
+        self.kinisi_diffusion_analyzer_cache = None
+        self.kinisi_diffusion_analyzer_cache_key = None
 
     def __getitem__(self, frames):
         """Hack around pymatgen Trajectory limitations."""
@@ -996,11 +998,11 @@ class Trajectory(PymatgenTrajectory):
         key = {
             'specie': specie,
             'step_skip': int(step_skip),
-            'dt': dt,
+            'dt': None if dt is None else id(dt),
             'dimension': dimension,
             'distance_unit': distance_unit,
-            'specie_indices': None if specie_indices is None else 'provided',
-            'masses': None if masses is None else 'provided',
+            'specie_indices': None if specie_indices is None else id(specie_indices),
+            'masses': None if masses is None else id(masses),
         }
         cache_data = getattr(self, 'kinisi_diffusion_analyzer_cache', None)
         cached_key = getattr(self, 'kinisi_diffusion_analyzer_cache_key', None)
