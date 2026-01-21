@@ -36,6 +36,7 @@ def _generic_transitions_to_jumps(
     events = transitions.events.copy()
     events['stop time'] = events['time'] + 1
     events = events.rename(columns={'time': 'start time'})
+    last_stop_time = len(transitions.trajectory)
 
     jumps = []
 
@@ -44,31 +45,25 @@ def _generic_transitions_to_jumps(
     for events in atom_events:
         fromevent = None
         candidate_jump = None
-        last_stop_time = None
 
         for _, event in events.iterrows():
-            last_stop_time = event['stop time']
-            # We have a previous jump, but must still determine
-            # if it stays on the site long enough
+            # We have a previous jump, but must still determine if it stays on the site
+            # long enough; decide only when it leaves its destination site
             if candidate_jump is not None:
-                # If we reach the inner site while still on the same destination site,
-                # propagate that information to the candidate
-                if (
-                    event['destination site'] == candidate_jump['destination site']
-                    and event['destination inner site'] != -1
-                ):
-                    candidate_jump['destination inner site'] = event['destination inner site']
-
-                # Accept only if both inner_site and minimal_residence conditions are satisfied
-                # (independent checks)
-                if (
-                    event['start time'] - candidate_jump['start time'] >= minimal_residence
-                    and candidate_jump['destination inner site'] != -1
-                ):
-                    jumps.append(candidate_jump)
-                    candidate_jump = None
-                # it moves too early! don't add the jump
-                elif candidate_jump['destination site'] != event['destination site']:
+                # Still on the same destination site: only propagate "inner site reached"
+                if event['destination site'] == candidate_jump['destination site']:
+                    if event['destination inner site'] != -1:
+                        candidate_jump['destination inner site'] = event['destination inner site']
+                # Destination site changed, now we can calculate residence time
+                else:
+                    residence = event['start time'] - (candidate_jump['stop time'] - 1)
+                    if (
+                        residence >= minimal_residence
+                        and candidate_jump['destination inner site'] != -1
+                    ):
+                        candidate_jump['residence_time'] = residence
+                        jumps.append(candidate_jump)
+                    # Either way, once atom left the site, this candidate is finished
                     candidate_jump = None
 
             # Identify a transition away from a site, name it fromevent
@@ -99,10 +94,12 @@ def _generic_transitions_to_jumps(
 
         # Check pending candidate at end of this atom
         if candidate_jump is not None and last_stop_time is not None:
+            residence = last_stop_time - (candidate_jump['stop time'] - 1)
             if (
-                last_stop_time - candidate_jump['start time'] >= minimal_residence
+                residence >= minimal_residence
                 and candidate_jump['destination inner site'] != -1
             ):
+                candidate_jump['residence_time'] = residence
                 jumps.append(candidate_jump)
 
     if len(jumps) == 0:
