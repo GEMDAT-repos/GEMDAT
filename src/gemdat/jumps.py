@@ -44,23 +44,26 @@ def _generic_transitions_to_jumps(
     for events in atom_events:
         fromevent = None
         candidate_jump = None
+        last_stop_time = None
 
         for _, event in events.iterrows():
+            last_stop_time = event['stop time']
             # We have a previous jump, but must still determine
             # if it stays on the site long enough
             if candidate_jump is not None:
                 # If we reach the inner site while still on the same destination site,
                 # propagate that information to the candidate
                 if (
-                        event['destination site'] == candidate_jump['destination site']
-                        and event['destination inner site'] != -1
+                    event['destination site'] == candidate_jump['destination site']
+                    and event['destination inner site'] != -1
                 ):
                     candidate_jump['destination inner site'] = event['destination inner site']
 
-                # Accept only if both inner_site and minimal_residence conditions are satisfied (independent checks)
+                # Accept only if both inner_site and minimal_residence conditions are satisfied
+                # (independent checks)
                 if (
-                        event['start time'] - candidate_jump['start time'] >= minimal_residence
-                        and candidate_jump['destination inner site'] != -1
+                    event['start time'] - candidate_jump['start time'] >= minimal_residence
+                    and candidate_jump['destination inner site'] != -1
                 ):
                     jumps.append(candidate_jump)
                     candidate_jump = None
@@ -93,6 +96,14 @@ def _generic_transitions_to_jumps(
                     event['start time'] = fromevent['start time']
                     candidate_jump = event
                     fromevent = None
+
+        # Check pending candidate at end of this atom
+        if candidate_jump is not None and last_stop_time is not None:
+            if (
+                last_stop_time - candidate_jump['start time'] >= minimal_residence
+                and candidate_jump['destination inner site'] != -1
+            ):
+                jumps.append(candidate_jump)
 
     if len(jumps) == 0:
         raise ValueError('No jumps found')
