@@ -165,9 +165,10 @@ def test_mean_squared_displacement(trajectory):
 
 def test_kinisi_cache(trajectory):
     diff = trajectory.to_kinisi_diffusion_analyzer(specie='B', progress=False)
-    assert trajectory.kinisi_diffusion_analyzer_cache is not None
+    assert trajectory.kinisi_cache_data['diffusion_analyzer'] is not None
+    assert trajectory.kinisi_cache_data['cache_key'] is not None
 
-    diff2 = trajectory.kinisi_diffusion_analyzer_cache
+    diff2 = trajectory.kinisi_cache_data['diffusion_analyzer']
 
     assert sc.identical(diff.da, diff2.da)
 
