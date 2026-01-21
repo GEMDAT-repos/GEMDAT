@@ -49,10 +49,22 @@ def _generic_transitions_to_jumps(
             # We have a previous jump, but must still determine
             # if it stays on the site long enough
             if candidate_jump is not None:
-                if event['start time'] - candidate_jump['start time'] >= minimal_residence:
+                # If we reach the inner site while still on the same destination site,
+                # propagate that information to the candidate
+                if (
+                        event['destination site'] == candidate_jump['destination site']
+                        and event['destination inner site'] != -1
+                ):
+                    candidate_jump['destination inner site'] = event['destination inner site']
+
+                # Accept only if both inner_site and minimal_residence conditions are satisfied (independent checks)
+                if (
+                        event['start time'] - candidate_jump['start time'] >= minimal_residence
+                        and candidate_jump['destination inner site'] != -1
+                ):
                     jumps.append(candidate_jump)
                     candidate_jump = None
-                # it moves to early! dont add the jump
+                # it moves too early! don't add the jump
                 elif candidate_jump['destination site'] != event['destination site']:
                     candidate_jump = None
 
@@ -67,13 +79,13 @@ def _generic_transitions_to_jumps(
                     fromevent = None
                     candidate_jump = None
 
-                # jump to another inner site is definitely jump
+                # jump to another inner site is a candidate jump
+                # (so minimal_residence can also be applied)
                 elif event['destination inner site'] != -1:
                     event['start site'] = fromevent['start site']
                     event['start time'] = fromevent['start time']
-                    jumps.append(event)
+                    candidate_jump = event
                     fromevent = None
-                    candidate_jump = None
 
                 # jump to another site is a candidate_event
                 elif event['destination site'] != fromevent['destination site']:
