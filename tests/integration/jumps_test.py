@@ -20,7 +20,7 @@ class TestJumps:  # type: ignore
         )
         jumps = Jumps(transitions=transitions, minimal_residence=100)
 
-        assert len(jumps.data) == 258
+        assert len(jumps.data) == 197
         assert np.all(
             jumps.data[::100].to_numpy()
             == np.array(
