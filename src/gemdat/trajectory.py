@@ -8,6 +8,7 @@ import json
 import math
 import pickle
 import re
+import sys
 import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
@@ -74,8 +75,7 @@ class Trajectory(PymatgenTrajectory):
         """
         super().__init__(**kwargs)
         self.metadata = metadata if metadata else {}
-        self.kinisi_diffusion_analyzer_cache = None
-        self.kinisi_diffusion_analyzer_cache_key = None
+        self.kinisi_cache_data = {}
 
     def __getitem__(self, frames):
         """Hack around pymatgen Trajectory limitations."""
@@ -83,6 +83,7 @@ class Trajectory(PymatgenTrajectory):
         if isinstance(new, PymatgenTrajectory):
             new.__class__ = self.__class__
         new.metadata = self.metadata if hasattr(self, 'metadata') else {}
+        new.kinisi_cache_data = {}
         return new
 
     def __repr__(self):
@@ -110,11 +111,12 @@ class Trajectory(PymatgenTrajectory):
         """Drop runtime-only kinisi caches (contain scipp objects, not
         picklable)."""
         state = self.__dict__.copy()
-        state.pop('kinisi_diffusion_analyzer_cache', None)
+        state.pop('kinisi_cache_data', None)
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        self.kinisi_cache_data = {}
 
     def to_positions(self):
         """Pymatgen does not mod coords back to original unit cell.
@@ -995,51 +997,69 @@ class Trajectory(PymatgenTrajectory):
         from kinisi.displacement import calculate_msd
         from kinisi.pymatgen import PymatgenParser
 
-        key = {
-            'specie': specie,
-            'step_skip': int(step_skip),
-            'dt': None if dt is None else id(dt),
-            'dimension': dimension,
-            'distance_unit': distance_unit,
-            'specie_indices': None if specie_indices is None else id(specie_indices),
-            'masses': None if masses is None else id(masses),
-        }
-        cache_data = getattr(self, 'kinisi_diffusion_analyzer_cache', None)
-        cached_key = getattr(self, 'kinisi_diffusion_analyzer_cache_key', None)
-        if return_cache and cache_data is not None and cached_key == key:
-            return cache_data
+        cache_data = getattr(self, 'kinisi_cache_data', None)
+        if not isinstance(cache_data, dict):
+            cache_data = {}
+            self.kinisi_cache_data = cache_data
 
-        else:
-            time_step = sc.scalar(self.time_step_ps, unit=sc.Unit('ps'))
-            step_skip_sc = sc.scalar(int(step_skip), unit=sc.Unit('dimensionless'))
+        cache_key = (
+            specie,
+            int(step_skip),
+            None if dt is None else id(dt),
+            dimension,
+            distance_unit,
+            None if specie_indices is None else id(specie_indices),
+            None if masses is None else id(masses),
+        )
 
-            parser = PymatgenParser(
-                structures=self,
-                specie=specie,
-                time_step=time_step,
-                step_skip=step_skip_sc,
-                dt=dt,
-                dimension=dimension,
-                distance_unit=sc.Unit(distance_unit),
-                specie_indices=specie_indices,
-                masses=masses,
-                progress=progress,
-            )
+        if return_cache and cache_data.get('cache_key') == cache_key:
+            diffusion_analyzer = cache_data.get('diffusion_analyzer')
+            if diffusion_analyzer is not None:
+                return diffusion_analyzer
 
-            diff = DiffusionAnalyzer(parser)
-            diff._dg = calculate_msd(parser, progress=progress)
+        time_step = sc.scalar(self.time_step_ps, unit=sc.Unit('ps'))
+        step_skip_sc = sc.scalar(int(step_skip), unit=sc.Unit('dimensionless'))
 
-            print(
-                'This analysis uses the `kinisi` package. Please cite kinisi and report'
-                ' the kinisi version used. See kinisi documentation'
-                ' (https://github.com/kinisi-dev/kinisi.git) for citation guidance.'
-            )
+        parser = PymatgenParser(
+            structures=self,
+            specie=specie,
+            time_step=time_step,
+            step_skip=step_skip_sc,
+            dt=dt,
+            dimension=dimension,
+            distance_unit=sc.Unit(distance_unit),
+            specie_indices=specie_indices,
+            masses=masses,
+            progress=progress,
+        )
 
-            if save_cache:
-                self.kinisi_diffusion_analyzer_cache = diff
-                self.kinisi_diffusion_analyzer_cache_key = key
+        diff = DiffusionAnalyzer(parser)
+        diff._dg = calculate_msd(parser, progress=progress)
 
-            return diff
+        print(
+            'This analysis uses the `kinisi` package. Please additionally cite kinisi.'
+            ' See https://github.com/kinisi-dev/kinisi.git for citation guidance.',
+            file=sys.stderr,
+        )
+
+        if save_cache:
+            cache_data['diffusion_analyzer'] = diff
+            cache_data['cache_key'] = cache_key
+
+            input_params = {
+                'specie': specie,
+                'step_skip': int(step_skip),
+                'dt': dt,
+                'dimension': dimension,
+                'distance_unit': distance_unit,
+                'specie_indices': specie_indices,
+                'masses': masses,
+            }
+
+            cache_data.update(input_params)
+            self.kinisi_cache_data = cache_data
+
+        return diff
 
     def transitions_between_sites(
         self,
