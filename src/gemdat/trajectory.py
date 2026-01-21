@@ -12,7 +12,7 @@ import sys
 import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
-from typing import TYPE_CHECKING, Collection, Optional, Any
+from typing import TYPE_CHECKING, Any, Collection, Optional
 
 import numpy as np
 import pandas as pd
