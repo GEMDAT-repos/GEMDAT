@@ -54,7 +54,7 @@ def _generic_transitions_to_jumps(
                 if event['destination site'] == candidate_jump['destination site']:
                     if event['destination inner site'] != -1:
                         candidate_jump['destination inner site'] = event[
-                        'destination inner site'
+                            'destination inner site'
                         ]
                 # Destination site changed, now we can calculate residence time
                 else:
