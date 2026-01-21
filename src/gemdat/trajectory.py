@@ -12,7 +12,7 @@ import sys
 import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
-from typing import TYPE_CHECKING, Collection, Optional
+from typing import TYPE_CHECKING, Collection, Optional, Any
 
 import numpy as np
 import pandas as pd
@@ -75,7 +75,7 @@ class Trajectory(PymatgenTrajectory):
         """
         super().__init__(**kwargs)
         self.metadata = metadata if metadata else {}
-        self.kinisi_cache_data = {}
+        self.kinisi_cache_data: dict[Any, Any] = {}
 
     def __getitem__(self, frames):
         """Hack around pymatgen Trajectory limitations."""
