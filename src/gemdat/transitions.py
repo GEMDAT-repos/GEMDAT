@@ -48,7 +48,7 @@ class Transitions:
         'can lead to ambiguous site assignments. '
         'Remove partial occupancies manually, or set '
         '`remove_part_occup_from_structure=True` '
-        'to do it automatically.',
+        'to do it automatically.'
     )
 
     def __init__(
@@ -452,23 +452,23 @@ class SiteRadius:
 
     Attributes
     ----------
-    radius: float | int | dict
+    radius: dict[str, float]
         Site radius in Angstrom
-    inner_fraction: float | int | dict
+    inner_fraction: dict[str, float]
         Fraction of inner sphere
     pdist: np.ndarray
         Pairwise distance matrix between sites
-    site_pairs: dict | None = None
+    site_pairs: dict
         All site pairs for given site labels in site_radius
-    min_dist: dict | None = None
+    min_dist: dict
         Minimal distance between given sites
     """
 
-    radius: float | int | dict
-    inner_fraction: float | int | dict
+    radius: dict[str, float]
+    inner_fraction: dict[str, float]
     pdist: np.ndarray
-    site_pairs: dict | None = None
-    min_dist: dict | None = None
+    site_pairs: dict
+    min_dist: dict
 
     def radius_to_dict(self):
         if isinstance(self.radius, (int, float)):
@@ -496,8 +496,8 @@ class SiteRadius:
         *,
         trajectory: Trajectory,
         sites: Structure,
-        radius: float | int | dict,
-        inner_fraction: float | int | dict,
+        radius: float | dict[str, float],
+        inner_fraction: float | dict[str, float],
         fraction_of_overlap: float = 0.0,
     ) -> SiteRadius:
         """Create SiteRadius from given radius.
@@ -550,7 +550,7 @@ class SiteRadius:
         trajectory: Trajectory,
         sites: Structure,
         vibration_amplitude: float,
-        inner_fraction: float = 1.0,
+        inner_fraction: float | dict[str, float] = 1.0,
     ) -> SiteRadius:
         """Calculate tolerance wihin which atoms are considered to be close to
         a site.
