@@ -20,14 +20,13 @@ class TestJumps:  # type: ignore
         )
         jumps = Jumps(transitions=transitions, minimal_residence=100)
 
-        assert len(jumps.data) == 267
+        assert len(jumps.data) == 166
         assert np.all(
             jumps.data[::100].to_numpy()
             == np.array(
                 [
-                    [0, 94, 0, 282, 303],
-                    [15, 74, 8, 1271, 1286],
-                    [34, 49, 33, 3141, 3296],
+                    [0, 0, 94, 385, 442, 215],
+                    [28, 25, 55, 1397, 1406, 116],
                 ]
             )
         )
@@ -36,11 +35,15 @@ class TestJumps:  # type: ignore
         transitions = vasp_traj.transitions_between_sites(sites=structure, floating_specie='Li')
         jumps = Jumps(transitions=transitions, minimal_residence=3)
 
-        assert len(jumps.data) == 462
+        assert len(jumps.data) == 459
         assert np.all(
             jumps.data[::200].to_numpy()
             == np.array(
-                [[0, 94, 0, 282, 284], [18, 54, 24, 2937, 3015], [41, 41, 67, 849, 851]]
+                [
+                    [0, 94, 0, 282, 284, 47],
+                    [18, 24, 54, 3282, 3286, 51],
+                    [41, 67, 41, 1857, 1864, 176],
+                ]
             )
         )
 

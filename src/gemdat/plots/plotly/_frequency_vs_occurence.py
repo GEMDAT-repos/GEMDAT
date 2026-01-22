@@ -51,7 +51,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> go.Figure:
 
     y_max = np.max(sum_freqs)
 
-    attempt_freq, attempt_freq_std = metrics.attempt_frequency()
+    attempt_freq, attempt_freq_std = (float(i) for i in metrics.attempt_frequency())
 
     if attempt_freq:
         fig.add_vline(x=attempt_freq, line={'width': 2, 'color': 'red'})

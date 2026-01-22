@@ -8,6 +8,11 @@ from gemdat.io import load_known_material
 BACKEND = 'plotly'
 
 
+def test_arrhenius_plot(arrhenius_data):
+    fig = arrhenius_data.plot_arrhenius(backend=BACKEND)
+    assert_figures_similar(fig, name='arrhenius', rms=0.5)
+
+
 def test_displacement_per_element(vasp_traj):
     fig = vasp_traj.plot_displacement_per_element(backend=BACKEND)
 
@@ -101,6 +106,13 @@ def test_msd_per_element(vasp_traj):
     fig = vasp_traj.plot_msd_per_element(backend=BACKEND)
 
     assert_figures_similar(fig, name='msd_per_element', rms=0.5)
+
+
+def test_msd_kinisi(vasp_traj):
+    vasp_traj = vasp_traj[-500:]
+    fig = vasp_traj.plot_msd_kinisi(specie='Li', backend=BACKEND)
+
+    assert_figures_similar(fig, name='msd_kinisi', rms=0.5)
 
 
 def test_energy_along_path(vasp_path):

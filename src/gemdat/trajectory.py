@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import pickle
 import re
+import sys
 import xml.etree.ElementTree as ET
 from itertools import compress, pairwise
 from pathlib import Path
-from typing import TYPE_CHECKING, Collection, Optional
+from typing import TYPE_CHECKING, Any, Collection, Optional
 
 import numpy as np
 import pandas as pd
@@ -21,7 +23,10 @@ from pymatgen.io import vasp
 from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
-    from pymatgen.core import Structure
+    import scipp as sc
+    from ase.io.trajectory import Trajectory as AseTrajectory
+    from kinisi.analyze import DiffusionAnalyzer
+    from pymatgen.core import Lattice, Structure
 
     from .metrics import TrajectoryMetrics
     from .rdf import RDFData
@@ -33,7 +38,7 @@ SP_NAME = re.compile(r'([a-zA-Z]+)')
 
 
 def _lengths(vectors: np.ndarray, lattice: Lattice) -> np.ndarray:
-    """Calculate vector lengths using the metric tensor (Dunitz 1078, p227).
+    """Calculate vector lengths using the metric tensor (Dunitz 1978, p227).
 
     Parameters
     ----------
@@ -70,6 +75,7 @@ class Trajectory(PymatgenTrajectory):
         """
         super().__init__(**kwargs)
         self.metadata = metadata if metadata else {}
+        self.kinisi_cache_data: dict[Any, Any] = {}
 
     def __getitem__(self, frames):
         """Hack around pymatgen Trajectory limitations."""
@@ -77,6 +83,7 @@ class Trajectory(PymatgenTrajectory):
         if isinstance(new, PymatgenTrajectory):
             new.__class__ = self.__class__
         new.metadata = self.metadata if hasattr(self, 'metadata') else {}
+        new.kinisi_cache_data = {}
         return new
 
     def __repr__(self):
@@ -99,6 +106,17 @@ class Trajectory(PymatgenTrajectory):
         outs.append(f'Time steps ({len(self)})')
 
         return '\n'.join(outs)
+
+    def __getstate__(self):
+        """Drop runtime-only kinisi caches (contain scipp objects, not
+        picklable)."""
+        state = self.__dict__.copy()
+        state.pop('kinisi_cache_data', None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.kinisi_cache_data = {}
 
     def to_positions(self):
         """Pymatgen does not mod coords back to original unit cell.
@@ -477,6 +495,194 @@ class Trajectory(PymatgenTrajectory):
 
         return obj
 
+    @classmethod
+    def from_ase_trajectory(
+        cls,
+        trajectory: str | Path | AseTrajectory,
+        *,
+        stride: int = 1,
+        constant_lattice: bool = True,
+        temperature: float | None = None,
+        time_step_ps: float | None = None,
+        cache: str | Path | None = None,
+    ) -> Trajectory:
+        """Create a trajectory from an ASE ``.traj`` file or ASE Trajectory.
+
+        Parameters
+        ----------
+        trajectory : str | Path | ase.io.trajectory.Trajectory
+            Input ASE trajectory or path to an ``.traj`` file.
+        stride : int, optional
+            Only read every ``stride``-th frame.
+        constant_lattice : bool | None, optional
+            Whether the lattice is constant. If None, it is inferred from the cells.
+        temperature : float | None
+            Temperature of simulation in K (stored in `metadata` if given).
+        time_step_ps : float | None
+            Time step of the simulation in ps.
+        cache : str | Path | None
+            If specified (or auto-derived for filename input), cache the parsed
+            Trajectory using pickle.
+
+        Returns
+        -------
+        trajectory : gemdat.Trajectory
+            A GEMDAT trajectory instance.
+        """
+
+        from ase.io.trajectory import Trajectory as AseTrajectory
+
+        if stride < 1:
+            raise ValueError(f'{stride=} must be >= 1')
+
+        close_when_done = False
+
+        if isinstance(trajectory, (str, Path)):
+            traj_path = Path(trajectory)
+            if not cache:
+                kwargs = {
+                    'trajectory': str(traj_path),
+                    'stride': stride,
+                    'constant_lattice': constant_lattice,
+                    'temperature': temperature,
+                    'time_step_ps': time_step_ps,
+                }
+                serialized = json.dumps(kwargs, sort_keys=True).encode()
+                hashid = hashlib.sha1(serialized).hexdigest()[:8]
+                cache = traj_path.with_suffix(f'.traj.{hashid}.cache')
+
+            if cache and Path(cache).exists():
+                try:
+                    return cls.from_cache(cache)
+                except Exception as e:
+                    print(e)
+                    print(f'Error reading from cache, reading {str(traj_path)!r}')
+
+            ase_traj = AseTrajectory(str(traj_path), 'r')
+            close_when_done = True
+        else:
+            if cache is not None:
+                raise ValueError('`cache` is only supported when reading from a filename/path')
+            ase_traj = trajectory
+
+        try:
+            n_total = len(ase_traj)
+            n_frames = math.ceil(n_total / stride)
+            atoms0 = ase_traj[0]
+            symbols = atoms0.get_chemical_symbols()
+            species = [Species(sym) for sym in symbols]
+            n_atoms = len(symbols)
+
+            frac = np.empty((n_frames, n_atoms, 3), dtype=float)
+            cells = np.empty((n_frames, 3, 3), dtype=float)
+
+            j = 0
+            for i in range(0, n_total, stride):
+                atoms = ase_traj[i]
+                if len(atoms) != n_atoms:
+                    raise ValueError(
+                        'ASE trajectory contains frames with a different number of atoms'
+                    )
+
+                if atoms.get_chemical_symbols() != symbols:
+                    raise ValueError(
+                        'ASE trajectory contains frames with different chemical symbols'
+                    )
+
+                frac[j] = atoms.get_scaled_positions(wrap=False)
+                cells[j] = np.asarray(atoms.cell.array, dtype=float)
+                j += 1
+
+            lattice = cells[0] if constant_lattice else cells
+
+            md: dict = {}
+            if temperature is not None:
+                md['temperature'] = temperature
+
+            obj = cls(
+                species=species,
+                coords=frac,
+                lattice=lattice,
+                constant_lattice=constant_lattice,
+                time_step=(time_step_ps * 1e-12) if time_step_ps is not None else None,
+                metadata=md,
+            )
+            obj.to_positions()
+
+            if cache:
+                obj.to_cache(cache)
+
+            return obj
+
+        finally:
+            if close_when_done and hasattr(ase_traj, 'close'):
+                ase_traj.close()
+
+    def to_ase_trajectory(
+        self,
+        *,
+        filename: str | Path = 'md.traj',
+        stride: int = 1,
+    ) -> AseTrajectory:
+        """Write trajectory to an ASE ``.traj`` file.
+
+        The resulting file can be opened by ASE and most ASE-compatible tools.
+
+        Parameters
+        ----------
+        filename : str | Path, optional
+            Output ASE trajectory filename.
+        stride : int, optional
+            Only write every ``stride``-th frame.
+
+        Returns
+        -------
+        ase_traj : ase.io.trajectory.Trajectory
+        ASE trajectory opened in read mode.
+        """
+
+        if stride < 1:
+            raise ValueError(f'{stride=} must be >= 1')
+
+        from ase import Atoms
+        from ase.io.trajectory import Trajectory as AseTrajectory
+
+        def _as_cell(lattice) -> np.ndarray:
+            """Return a (3, 3) cell matrix in Å from a pymatgen Lattice or
+            array-like."""
+            if hasattr(lattice, 'matrix'):
+                return np.asarray(lattice.matrix, dtype=float)
+            return np.asarray(lattice, dtype=float)
+
+        filename = Path(filename)
+        frac = np.asarray(self.positions[::stride], dtype=float)
+        symbols = [getattr(s, 'symbol', str(s)) for s in self.species]
+
+        constant_lattice = bool(getattr(self, 'constant_lattice', True))
+        lattice = (
+            self.get_lattice()
+            if hasattr(self, 'get_lattice')
+            else getattr(self, 'lattice', None)
+        )
+
+        with AseTrajectory(str(filename), mode='w') as out:
+            if constant_lattice:
+                cell = _as_cell(lattice)
+                atoms = Atoms(symbols=symbols, cell=cell, pbc=True)
+                for f in frac:
+                    atoms.set_scaled_positions(f)
+                    out.write(atoms)
+            else:
+                lattices = np.asarray(lattice, dtype=float)
+                lattices = lattices[::stride]
+                atoms = Atoms(symbols=symbols, pbc=True)
+                for f, lat in zip(frac, lattices):
+                    atoms.set_cell(_as_cell(lat), scale_atoms=False)
+                    atoms.set_scaled_positions(f)
+                    out.write(atoms)
+
+        return AseTrajectory(str(filename), mode='r')
+
     def get_lattice(self, idx: int | None = None) -> Lattice:
         """Get lattice.
 
@@ -724,6 +930,137 @@ class Trajectory(PymatgenTrajectory):
         msd = S1 - 2 * S2
         return msd
 
+    def to_kinisi_diffusion_analyzer(
+        self,
+        specie: str,
+        *,
+        step_skip: int = 1,
+        dt: 'sc.Variable | None' = None,
+        dimension: str = 'xyz',
+        distance_unit: str = 'angstrom',
+        specie_indices: 'sc.Variable | None' = None,
+        masses: 'sc.Variable | None' = None,
+        progress: bool = True,
+        save_cache: bool = True,
+        return_cache: bool = True,
+    ) -> 'DiffusionAnalyzer':
+        """Construct a kinisi ``DiffusionAnalyzer`` from this GEMDAT
+        trajectory.
+
+        This method parses the GEMDAT trajectory with :class:`kinisi.pymatgen.PymatgenParser`.
+        It then computes the mean-squared displacement (MSD) using
+        :func:`kinisi.displacement.calculate_msd` and attaches it to the returned
+        :class:`kinisi.analyze.DiffusionAnalyzer`.
+
+        The algorithm of kinisi ``DiffusionAnalyzer`` is described in
+        [https://doi.org/10.1021/acs.jctc.4c01249].
+        See also [https://github.com/kinisi-dev/kinisi.git].
+
+        Parameters
+        ----------
+        specie
+            Specie to calculate diffusivity for, e.g. ``"Li"``.
+        step_skip
+            Number of MD integrator time steps between stored frames.
+        dt
+            Time intervals to calculate displacements over. Optional; if ``None``,
+            kinisi defaults to a regular grid from the smallest interval
+            (``time_step * step_skip``) to the full trajectory length.
+        dimension
+            Subset of ``"xyz"`` indicating displacement axes of interest.
+        distance_unit
+            Unit of distance in the input structures, as a string understood by
+            ``scipp.Unit(...)`` (default: ``"angstrom"``).
+        specie_indices
+            Indices of the specie to calculate the diffusivity for. Optional; if ``None``,
+            kinisi selects indices based on ``specie``.
+        masses
+            Masses for centre-of-mass handling. Optional.
+        progress
+            Show progress bars during parsing and MSD evaluation.
+        save_cache
+            Cache the populated analyzer on this trajectory instance.
+        return_cache
+            Return cached data.
+
+        Returns
+        -------
+        kinisi.analyze.DiffusionAnalyzer
+            A DiffusionAnalyzer with MSD already computed and attached
+            (so .msd and .dt are available).
+        """
+        if step_skip < 1:
+            raise ValueError('step_skip must be >= 1')
+
+        import scipp as sc
+        from kinisi.analyze import DiffusionAnalyzer
+        from kinisi.displacement import calculate_msd
+        from kinisi.pymatgen import PymatgenParser
+
+        cache_data = getattr(self, 'kinisi_cache_data', None)
+        if not isinstance(cache_data, dict):
+            cache_data = {}
+            self.kinisi_cache_data = cache_data
+
+        cache_key = (
+            specie,
+            int(step_skip),
+            None if dt is None else id(dt),
+            dimension,
+            distance_unit,
+            None if specie_indices is None else id(specie_indices),
+            None if masses is None else id(masses),
+        )
+
+        if return_cache and cache_data.get('cache_key') == cache_key:
+            diffusion_analyzer = cache_data.get('diffusion_analyzer')
+            if diffusion_analyzer is not None:
+                return diffusion_analyzer
+
+        time_step = sc.scalar(self.time_step_ps, unit=sc.Unit('ps'))
+        step_skip_sc = sc.scalar(int(step_skip), unit=sc.Unit('dimensionless'))
+
+        parser = PymatgenParser(
+            structures=self,
+            specie=specie,
+            time_step=time_step,
+            step_skip=step_skip_sc,
+            dt=dt,
+            dimension=dimension,
+            distance_unit=sc.Unit(distance_unit),
+            specie_indices=specie_indices,
+            masses=masses,
+            progress=progress,
+        )
+
+        diff = DiffusionAnalyzer(parser)
+        diff._dg = calculate_msd(parser, progress=progress)
+
+        print(
+            'This analysis uses the `kinisi` package. Please additionally cite kinisi.'
+            ' See https://github.com/kinisi-dev/kinisi.git for citation guidance.',
+            file=sys.stderr,
+        )
+
+        if save_cache:
+            cache_data['diffusion_analyzer'] = diff
+            cache_data['cache_key'] = cache_key
+
+            input_params = {
+                'specie': specie,
+                'step_skip': int(step_skip),
+                'dt': dt,
+                'dimension': dimension,
+                'distance_unit': distance_unit,
+                'specie_indices': specie_indices,
+                'masses': masses,
+            }
+
+            cache_data.update(input_params)
+            self.kinisi_cache_data = cache_data
+
+        return diff
+
     def transitions_between_sites(
         self,
         sites: Structure,
@@ -798,6 +1135,11 @@ class Trajectory(PymatgenTrajectory):
     def plot_msd_per_element(self, *, module, **kwargs):
         """See [gemdat.plots.msd_per_element][] for more info."""
         return module.msd_per_element(trajectory=self, **kwargs)
+
+    @plot_backend
+    def plot_msd_kinisi(self, *, module, **kwargs):
+        """See [gemdat.plots.msd_kinisi][] for more info."""
+        return module.msd_kinisi(trajectory=self, **kwargs)
 
     @plot_backend
     def plot_displacement_histogram(self, *, module, **kwargs):

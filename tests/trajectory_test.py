@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import scipp as sc
 from numpy.testing import assert_allclose
 from pymatgen.core import Lattice, Species
 
@@ -162,6 +163,38 @@ def test_mean_squared_displacement(trajectory):
     assert_allclose(msd.mean(), 0.073875)
 
 
+def test_kinisi_cache(trajectory):
+    diff = trajectory.to_kinisi_diffusion_analyzer(specie='B', progress=False)
+    assert trajectory.kinisi_cache_data['diffusion_analyzer'] is not None
+    assert trajectory.kinisi_cache_data['cache_key'] is not None
+
+    diff2 = trajectory.kinisi_cache_data['diffusion_analyzer']
+
+    assert sc.identical(diff.da, diff2.da)
+
+    assert_allclose(diff.msd.values, diff2.msd.values)
+    assert_allclose(diff.msd.variances, diff2.msd.variances)
+    assert_allclose(diff.dt.values, diff2.dt.values)
+
+
+def test_kinisi_mean_squared_displacement(trajectory):
+    diff = trajectory.to_kinisi_diffusion_analyzer(specie='B', progress=False)
+    assert diff.n_atoms == 1
+    msd = diff.msd
+    assert len(msd) == 4
+    assert_allclose(msd.values, [0.042, 0.1525, 0.33666667, 0.585])
+    assert isinstance(msd, sc._scipp.core.Variable)
+    assert msd.unit == 'Å^2'
+    assert_allclose(msd.variances, [0.000204, 0.00297, 0.01658, 0.081])
+    dt = diff.dt
+    assert isinstance(dt, sc._scipp.core.Variable)
+    assert dt.unit == 'ps'
+    assert_allclose(dt.values, [1.0e12, 2.0e12, 3.0e12, 4.0e12])
+    rng = np.random.RandomState(42)
+    diff.diffusion(start_dt=sc.scalar(0, unit='ps'), random_state=rng, progress=False)
+    assert diff.D.values.mean() == 2.046301680845264e-18
+
+
 def test_from_lammps():
     data_dir = Path(__file__).parent / 'data' / 'lammps'
 
@@ -189,3 +222,35 @@ def test_from_gromacs():
     assert traj.positions.shape == (251, 18943, 3)
     assert len(traj.species) == 18943
     assert traj.time_step_ps == 2
+
+
+def test_to_ase_trajectory(trajectory):
+    ase_traj = trajectory.to_ase_trajectory()
+
+    assert np.all(
+        ase_traj[3].positions
+        == np.array([[0.8, 0.0, 0.0], [0.0, 0.0, 0.5], [0.0, 0.0, 0.5], [0.0, 0.0, 0.5]])
+    )
+    assert len(ase_traj) == 5
+    assert np.all(ase_traj[0].get_atomic_numbers() == np.array([5, 14, 16, 6]))
+
+
+def test_from_ase_trajectory(trajectory):
+    ase_traj = trajectory.to_ase_trajectory()
+    traj = Trajectory.from_ase_trajectory(
+        trajectory=ase_traj,
+        constant_lattice=True,
+        temperature=123,
+        time_step_ps=1e12,
+    )
+
+    assert isinstance(traj, Trajectory)
+    assert traj.species == [
+        Species('B'),
+        Species('Si'),
+        Species('S'),
+        Species('C'),
+    ]
+    assert traj.positions.shape == (5, 4, 3)
+    assert traj.metadata == {'temperature': 123}
+    assert traj.time_step == 1

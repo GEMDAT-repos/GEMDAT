@@ -36,62 +36,76 @@ def _generic_transitions_to_jumps(
     events = transitions.events.copy()
     events['stop time'] = events['time'] + 1
     events = events.rename(columns={'time': 'start time'})
+    last_stop_time = len(transitions.trajectory)
 
     jumps = []
-    fromevent = None
-    candidate_jump = None
 
-    for _, event in events.iterrows():
-        # If we are jumping, but we go to the next atom index, reset
-        if fromevent is not None:
-            if fromevent['atom index'] != event['atom index']:
-                fromevent = None
+    atom_events = [atomevents for i, atomevents in events.groupby('atom index')]
 
-        # If we have a candidate jump, we must make sure it remains on the site
-        # for minimal_residence timesteps, this is that check, add it to the jumps
-        # if it passes
-        if candidate_jump is not None:
-            if candidate_jump['atom index'] != event['atom index']:
-                jumps.append(candidate_jump)
-                candidate_jump = None
-            elif event['start time'] - candidate_jump['stop time'] >= minimal_residence:
-                jumps.append(candidate_jump)
-                candidate_jump = None
-                fromevent = None
-            elif candidate_jump['destination site'] != event['destination site']:
-                candidate_jump = None
+    for events in atom_events:
+        fromevent = None
+        candidate_jump = None
 
-        # Specify the start of a jump if we encounter one
-        if event['start site'] != -1:
-            if event['start site'] != event['destination site']:
-                fromevent = event
+        for _, event in events.iterrows():
+            # We have a previous jump, but must still determine if it stays on the site
+            # long enough; decide only when it leaves its destination site
+            if candidate_jump is not None:
+                # Still on the same destination site: only propagate "inner site reached"
+                if event['destination site'] == candidate_jump['destination site']:
+                    if event['destination inner site'] != -1:
+                        candidate_jump['destination inner site'] = event[
+                            'destination inner site'
+                        ]
+                # Destination site changed, now we can calculate residence time
+                else:
+                    residence = event['start time'] - (candidate_jump['stop time'] - 1)
+                    if (
+                        residence >= minimal_residence
+                        and candidate_jump['destination inner site'] != -1
+                    ):
+                        candidate_jump['residence_time'] = residence
+                        jumps.append(candidate_jump)
+                    # Either way, once atom left the site, this candidate is finished
+                    candidate_jump = None
 
-        if fromevent is not None:
-            # if we jump back, remove fromevent
-            if fromevent['start site'] == event['destination site']:
-                fromevent = None
-                candidate_jump = None
-                continue
+            # Identify a transition away from a site, name it fromevent
+            if event['start site'] != -1:
+                if event['start site'] != event['destination site']:
+                    fromevent = event
 
-            # Check if jump to the inner site, add it to the jumps immediately
-            if event['destination inner site'] != -1:
-                event['start site'] = fromevent['start site']
-                event['start time'] = fromevent['start time']
-                fromevent = None
-                candidate_jump = None
-                jumps.append(event)
-                continue
+            if fromevent is not None:
+                # jump to same site is no jump
+                if event['destination site'] == fromevent['start site']:
+                    fromevent = None
+                    candidate_jump = None
 
-            # If we enter another site, create a candidate jump
-            if candidate_jump is None:
-                if event['destination site'] != -1:
+                # jump to another inner site is a candidate jump
+                # (so minimal_residence can also be applied)
+                elif event['destination inner site'] != -1:
                     event['start site'] = fromevent['start site']
                     event['start time'] = fromevent['start time']
                     candidate_jump = event
+                    fromevent = None
 
-    # Also add a last candidate jump (if there is one
-    if candidate_jump is not None:
-        jumps.append(candidate_jump)
+                # jump to another site is a candidate_event
+                elif event['destination site'] != fromevent['destination site']:
+                    event['start site'] = fromevent['start site']
+                    event['start time'] = fromevent['start time']
+                    candidate_jump = event
+                    fromevent = None
+
+        # Check pending candidate at end of this atom
+        if candidate_jump is not None and last_stop_time is not None:
+            residence = last_stop_time - (candidate_jump['stop time'] - 1)
+            if (
+                residence >= minimal_residence
+                and candidate_jump['destination inner site'] != -1
+            ):
+                candidate_jump['residence_time'] = residence
+                jumps.append(candidate_jump)
+
+    if len(jumps) == 0:
+        raise ValueError('No jumps found')
 
     jumps = pd.DataFrame(data=jumps)
 
@@ -134,6 +148,7 @@ class Jumps:
         self.sites = transitions.sites
         self.conversion_method = conversion_method
         self.data = conversion_method(transitions, minimal_residence=minimal_residence)
+        self.minimal_residence = minimal_residence
 
     @property
     def n_jumps(self) -> int:
@@ -408,7 +423,14 @@ class Jumps:
         """
         parts = self.transitions.split(n_parts)
 
-        return [Jumps(part, conversion_method=self.conversion_method) for part in parts]
+        return [
+            Jumps(
+                part,
+                conversion_method=self.conversion_method,
+                minimal_residence=self.minimal_residence,
+            )
+            for part in parts
+        ]
 
     @weak_lru_cache()
     def rates(self, n_parts: int = 10) -> pd.DataFrame:

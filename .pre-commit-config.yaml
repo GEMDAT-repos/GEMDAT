@@ -35,4 +35,4 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
-        additional_dependencies: [matplotlib, MDAnalysis, numpy, pymatgen, rich, scikit-image, scipy]
+        additional_dependencies: [matplotlib, MDAnalysis, kinisi, numpy, pymatgen, rich, scikit-image, scipy]

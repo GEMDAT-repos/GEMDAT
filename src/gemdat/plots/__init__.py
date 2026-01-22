@@ -5,8 +5,10 @@ from __future__ import annotations
 from .matplotlib import (
     jumps_3d_animation,
     polar,
+    shape,
 )
 from .plotly import (
+    arrhenius,
     autocorrelation,
     bond_length_distribution,
     collective_jumps,
@@ -19,16 +21,17 @@ from .plotly import (
     jumps_3d,
     jumps_vs_distance,
     jumps_vs_time,
+    msd_kinisi,
     msd_per_element,
     plot_3d,
     plot_3d_points,
     radial_distribution,
     rectilinear,
-    shape,
     vibrational_amplitudes,
 )
 
 __all__ = [
+    'arrhenius',
     'autocorrelation',
     'bond_length_distribution',
     'collective_jumps',
@@ -42,7 +45,7 @@ __all__ = [
     'jumps_3d_animation',
     'jumps_vs_distance',
     'jumps_vs_time',
-    'msd_per_element',
+    'msd_kinisi',
     'msd_per_element',
     'plot_3d',
     'plot_3d_points',

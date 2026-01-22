@@ -15,11 +15,12 @@ Gemdat is a Python library for the analysis of diffusion in solid-state electrol
 With Gemdat, you can:
 
 - Explore your MD simulation via an easy-to-use Python API
-- Load and analyze trajectories from VASP and LAMMPS simulation data
+- Load and analyze trajectories from VASP, LAMMPS, GROMACS, and ASE simulation data
 - Find jumps and transitions between sites
 - Effortlessly calculate tracer and jump diffusivity
+- Easily perform [kinisi](https://github.com/kinisi-dev/kinisi) diffusion analysis
 - Characterize and visualize diffusion pathways
-- Plot radial distribution functions
+- Plot main structural and diffusion properties
 
 To install:
 
@@ -44,6 +45,7 @@ trajectory.plot_displacement_per_element()
 
 diff_trajectory = trajectory.filter('Li')
 
+diff_trajectory.plot_msd_per_element()
 diff_trajectory.plot_displacement_per_atom()
 diff_trajectory.plot_displacement_histogram()
 diff_trajectory.plot_frequency_vs_occurence()
@@ -92,11 +94,15 @@ Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-dev
 
 ## How to Cite
 
-- Victor Azizi, Stef Smeets, Anastasiia K. Lavrinenko and Simone Ciarella. GEMDAT (Version 1.6.0) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
+- V. Azizi, S. Smeets, A.K. Lavrinenko, S. Ciarella, T. Famprikis, V. Landgraf, & A. Vasileiadis. GEMDAT (Version 1.6.3) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
+
+## Dissemination
+
+- Lorentz workshop 7-11 April (2025): [Molecular Dynamics for Materials Science (pdf)](https://github.com/GEMDAT-repos/gemdat-dissemination/blob/fcf9c43e779deda0073846b4835e73066303210e/20250409_lorentz-workshop-gemdat.pdf?raw=true)
 
 ## Credits
 
-The code in this repository is based on [Matlab code to analyse Molecular Dynamics simulations](https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/).
+Some parts of the code in this repository are based on [Matlab code to analyse Molecular Dynamics simulations](https://bitbucket.org/niekdeklerk/md-analysis-with-matlab/src/master/).
 
 For background information on how some of the properties are calculated, check out the accompanying paper:
 

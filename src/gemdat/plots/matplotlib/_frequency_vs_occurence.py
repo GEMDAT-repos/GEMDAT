@@ -45,7 +45,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> matplotlib.figure.Figur
 
     y_max = np.max(sum_freqs)
 
-    attempt_freq, attempt_freq_std = metrics.attempt_frequency()
+    attempt_freq, attempt_freq_std = (float(i) for i in metrics.attempt_frequency())
 
     if attempt_freq:
         ax.vlines([attempt_freq], 0, y_max, colors='red')

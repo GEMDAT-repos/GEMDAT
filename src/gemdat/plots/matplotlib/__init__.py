@@ -3,6 +3,7 @@ matplotlib."""
 
 from __future__ import annotations
 
+from ._arrhenius import arrhenius
 from ._autocorrelation import autocorrelation
 from ._bond_length_distribution import bond_length_distribution
 from ._collective_jumps import collective_jumps
@@ -15,6 +16,7 @@ from ._jumps_3d import jumps_3d
 from ._jumps_3d_animation import jumps_3d_animation
 from ._jumps_vs_distance import jumps_vs_distance
 from ._jumps_vs_time import jumps_vs_time
+from ._msd_kinisi import msd_kinisi
 from ._msd_per_element import msd_per_element
 from ._polar import polar
 from ._radial_distribution import radial_distribution
@@ -23,6 +25,7 @@ from ._shape import shape
 from ._vibrational_amplitudes import vibrational_amplitudes
 
 __all__ = [
+    'arrhenius',
     'autocorrelation',
     'bond_length_distribution',
     'collective_jumps',
@@ -35,6 +38,7 @@ __all__ = [
     'jumps_3d_animation',
     'jumps_vs_distance',
     'jumps_vs_time',
+    'msd_kinisi',
     'msd_per_element',
     'polar',
     'radial_distribution',

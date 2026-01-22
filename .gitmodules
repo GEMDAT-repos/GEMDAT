@@ -4,3 +4,6 @@
 [submodule "docs/notebooks"]
 	path = docs/notebooks
 	url = https://github.com/GEMDAT-repos/gemdat-notebooks.git
+[submodule "docs/tutorials"]
+	path = docs/tutorials
+	url = https://github.com/GEMDAT-repos/gemdat-workshop-2025.git

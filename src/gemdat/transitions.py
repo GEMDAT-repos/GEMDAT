@@ -41,6 +41,16 @@ class Transitions:
         Assingn NOSITE if the atom is in transition
     """
 
+    DISORDER_ERROR_MSG = (
+        'Input `sites` has partial occupancies. In GEMDAT, '
+        '`sites` is treated as the set of all possible sites '
+        'for the floating species, and partial occupancies '
+        'can lead to ambiguous site assignments. '
+        'Remove partial occupancies manually, or set '
+        '`remove_part_occup_from_structure=True` '
+        'to do it automatically.',
+    )
+
     def __init__(
         self,
         *,
@@ -73,14 +83,7 @@ class Transitions:
             site_radius used to calculate if an atom is at a site.
         """
         if not (sites.is_ordered):
-            warn(
-                'Input `sites` have partial occupancies! In the code, '
-                'input `sites` represent all potential sites that '
-                'the floating species might occupy. '
-                'Remove partial occupancies manually or set '
-                '`remove_part_occup_from_structure = True`',
-                stacklevel=2,
-            )
+            warn(self.DISORDER_ERROR_MSG, stacklevel=2)
 
         self.sites = sites
         self.trajectory = trajectory
@@ -131,14 +134,7 @@ class Transitions:
             if remove_part_occup_from_structure:
                 sites = remove_partial_occupancies_from_structure(structure=sites.copy())
             else:
-                warn(
-                    'Input `sites` have partial occupancies! In the code, '
-                    'input `sites` represent all potential sites that '
-                    'the floating species might occupy. '
-                    'Remove partial occupancies manually or set '
-                    '`remove_part_occup_from_structure = True`',
-                    stacklevel=2,
-                )
+                warn(cls.DISORDER_ERROR_MSG, stacklevel=2)
 
         diff_trajectory = trajectory.filter(floating_specie)
 

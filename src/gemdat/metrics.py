@@ -10,6 +10,7 @@ import uncertainties as u
 from pymatgen.core.units import FloatWithUnit
 from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 
+from ._plot_backend import plot_backend
 from .caching import weak_lru_cache
 from .utils import meanfreq
 
@@ -332,3 +333,214 @@ class TrajectoryMetricsStd:
         """
         amplitudes = [metric.amplitudes() for metric in self.metrics]
         return (np.mean(amplitudes, axis=0), np.std(amplitudes, axis=0))
+
+
+class ArrheniusFit:
+    """Arrhenius fit result for diffusion coefficients.
+
+    The model is:
+        D(T) = D0 * exp(-Ea / (k_B * T))
+
+    where the fit is performed in log-space:
+        ln D = ln D0 + m * (1/T)
+
+    with:
+        m = -Ea / k_B
+
+    Notes
+    -----
+    If `diffusivities_std` is provided, the fit is weighted using an
+    approximate log-uncertainty:
+
+        sigma_lnD ≈ sigma_D / D
+    """
+
+    def __init__(
+        self,
+        *,
+        temperatures,
+        diffusivities,
+        diffusivities_std=None,
+        particle_density=None,
+        diffusivity_unit: str = 'm^2 s^-1',
+    ):
+        self.temperatures = np.asarray(temperatures, dtype=float)
+        self.diffusivities = np.asarray(diffusivities, dtype=float)
+        self.diffusivities_std = (
+            None if diffusivities_std is None else np.asarray(diffusivities_std, dtype=float)
+        )
+
+        if self.temperatures.shape[0] != self.diffusivities.shape[0]:
+            raise ValueError('Temperatures and diffusivities must have the same length')
+        if self.temperatures.size < 2:
+            raise ValueError('Need at least two points for Arrhenius fit.')
+        if np.any(self.diffusivities <= 0):
+            raise ValueError('Diffusivities must be > 0 for log-space fit.')
+        if (
+            self.diffusivities_std is not None
+            and self.diffusivities_std.shape != self.diffusivities.shape
+        ):
+            raise ValueError('diffusivities_std must have the same shape as diffusivities.')
+
+        self.particle_density = particle_density
+        self.diffusivity_unit = diffusivity_unit
+
+        self.slope = 0.0
+        self.intercept = 0.0
+        self.cov = np.zeros((2, 2), dtype=float)
+
+        self._fit()
+
+    @classmethod
+    def from_trajectories(
+        cls,
+        trajectories,
+        *,
+        diffusing_specie: str,
+        dimensions: int = 3,
+        n_parts: int = 10,
+        equal_parts: bool = True,
+        diffusivity_unit: str = 'm^2 s^-1',
+    ) -> 'ArrheniusFit':
+        """Fit Arrhenius parameters from trajectories at different
+        temperatures.
+
+        Parameters
+        ----------
+        trajectories
+            List of trajectories, one per temperature. Each trajectory must have
+            `trajectory.metadata['temperature']` in K.
+        diffusing_specie
+            Element symbol of diffusing species (e.g. "Li").
+        dimensions
+            Number of diffusion dimensions used for tracer diffusivity.
+        n_parts
+            Number of parts to split each diffusing trajectory into for estimating
+            mean and standard deviation.
+        equal_parts
+            If True, split into equal-length parts.
+        diffusivity_unit
+            Unit label stored on the fit output.
+
+        Returns
+        -------
+        fit
+            ArrheniusFit instance.
+        """
+        temperatures = []
+        diffusivities = []
+        diffusivities_std = []
+
+        # Use the first trajectory to store particle density (m^-3) of the diffusing species
+        diff_traj_0 = trajectories[0].filter(diffusing_specie)
+        particle_density = TrajectoryMetrics(diff_traj_0).particle_density()
+
+        for traj in trajectories:
+            temperature = float(traj.metadata['temperature'])
+            diff_traj = traj.filter(diffusing_specie)
+
+            parts = diff_traj.split(n_parts=n_parts, equal_parts=equal_parts)
+            metrics_std = TrajectoryMetricsStd(trajectories=parts)
+            d = metrics_std.tracer_diffusivity(dimensions=dimensions)
+
+            temperatures.append(temperature)
+            diffusivities.append(float(d.n))
+            diffusivities_std.append(float(d.s))
+
+        order = np.argsort(temperatures)
+        temperatures = np.asarray(temperatures, dtype=float)[order]
+        diffusivities = np.asarray(diffusivities, dtype=float)[order]
+        diffusivities_std = np.asarray(diffusivities_std, dtype=float)[order]
+
+        return cls(
+            temperatures=temperatures,
+            diffusivities=diffusivities,
+            diffusivities_std=diffusivities_std,
+            particle_density=particle_density,
+            diffusivity_unit=diffusivity_unit,
+        )
+
+    def _fit(self) -> None:
+        x = 1.0 / self.temperatures
+        y = np.log(self.diffusivities)
+
+        a = np.column_stack((x, np.ones_like(x)))
+
+        if self.diffusivities_std is None:
+            w = np.ones_like(y)
+        else:
+            sigma_lnD = self.diffusivities_std / self.diffusivities
+            w = 1.0 / (sigma_lnD * sigma_lnD)
+
+        sw = np.sqrt(w)
+        aw = a * sw[:, None]
+        yw = y * sw
+
+        beta, _, _, _ = np.linalg.lstsq(aw, yw, rcond=None)
+        self.slope = float(beta[0])
+        self.intercept = float(beta[1])
+
+        resid = y - (a @ beta)
+        rss = float(np.sum(w * resid * resid))
+        n = y.shape[0]
+
+        atwa = a.T @ (a * w[:, None])
+        # scale by residual variance
+        self.cov = np.linalg.inv(atwa) * (rss / (n - 2))
+
+    def activation_energy(self) -> u.ufloat:
+        """Return activation energy (eV) as ufloat(mean, std)."""
+        ea = -self.slope * Boltzmann / elementary_charge
+        ea_std = np.sqrt(self.cov[0, 0]) * Boltzmann / elementary_charge
+        return u.ufloat(FloatWithUnit(ea, 'eV'), FloatWithUnit(ea_std, 'eV'))
+
+    def prefactor(self) -> u.ufloat:
+        """Return prefactor D0 as ufloat(mean, std) in `diffusivity_unit`."""
+        d0 = float(np.exp(self.intercept))
+        d0_std = d0 * float(np.sqrt(self.cov[1, 1]))
+        return u.ufloat(
+            FloatWithUnit(d0, self.diffusivity_unit),
+            FloatWithUnit(d0_std, self.diffusivity_unit),
+        )
+
+    def extrapolate_diffusivity(self, temperature: float) -> u.ufloat:
+        """Extrapolate diffusivity at given temperature (K), with
+        uncertainty."""
+        x = 1.0 / float(temperature)
+        v = np.array([x, 1.0], dtype=float)
+
+        ln_d = self.intercept + self.slope * x
+        var_ln_d = float(v @ self.cov @ v)
+        std_ln_d = float(np.sqrt(var_ln_d))
+
+        d = float(np.exp(ln_d))
+        d_std = d * std_ln_d
+
+        return u.ufloat(
+            FloatWithUnit(d, self.diffusivity_unit),
+            FloatWithUnit(d_std, self.diffusivity_unit),
+        )
+
+    def extrapolate_conductivity(self, temperature: float, *, z_ion: int) -> u.ufloat:
+        """Extrapolate tracer conductivity at given temperature (K), with
+        uncertainty."""
+        if self.particle_density is None:
+            raise ValueError('particle_density is not set on this ArrheniusFit')
+
+        d = self.extrapolate_diffusivity(float(temperature))
+        factor = (
+            (elementary_charge**2)
+            * (z_ion**2)
+            * self.particle_density
+            / (Boltzmann * float(temperature))
+        )
+
+        sigma = float(factor * d.n)
+        sigma_std = float(factor * d.s)
+
+        return u.ufloat(FloatWithUnit(sigma, 'S m^-1'), FloatWithUnit(sigma_std, 'S m^-1'))
+
+    @plot_backend
+    def plot_arrhenius(self, *, module, **kwargs):
+        """See [gemdat.plots.arrhenius][] for more info."""
+        return module.arrhenius(fit=self, **kwargs)

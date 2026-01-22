@@ -305,3 +305,27 @@ def fft_autocorrelation(coords: np.ndarray) -> np.ndarray:
     autocorrelation = autocorrelation / autocorrelation[:, 0, np.newaxis]
 
     return autocorrelation
+
+
+def remove_disorder_from_structure(structure: Structure) -> Structure:
+    """Attempts to remove disorder and partial occupancies from input
+    structure.
+
+    Parameters
+    ----------
+    structure : Structure
+        Input structure
+
+    Returns
+    -------
+    new_structure : Structure
+        Output structure with disorder removed
+    """
+    new_structure = structure.copy()
+
+    for idx, site in enumerate(new_structure):
+        if site.is_ordered:
+            continue
+        new_structure.replace(idx=idx, species=site.species.elements[0], label=site.label)
+
+    return new_structure
