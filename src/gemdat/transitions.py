@@ -613,7 +613,7 @@ class SiteRadius:
 
         site_radius_obj = SiteRadius(
             radius=site_radius, pdist=pdist, inner_fraction=inner_fraction
-            )
+        )
 
         site_radius_obj.radius_to_dict()
         site_radius_obj._site_pairs()
@@ -625,7 +625,7 @@ class SiteRadius:
         return {label: 1.0 for label in self.radius}
 
     def _site_pairs(self):
-        """Create site pairs with distances between them from defined 
+        """Create site pairs with distances between them from defined
         radius."""
         from itertools import combinations_with_replacement
 
