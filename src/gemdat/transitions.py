@@ -146,7 +146,6 @@ class Transitions:
                 sites=sites,
                 vibration_amplitude=vibration_amplitude,
                 inner_fraction=site_inner_fraction,
-
             )
 
         else:
@@ -157,7 +156,6 @@ class Transitions:
                 inner_fraction=site_inner_fraction,
                 fraction_of_overlap=fraction_of_overlap,
             )
-
 
         states = _calculate_atom_states(
             sites=sites,
@@ -447,6 +445,7 @@ def _calculate_transition_events(
     )
     return events
 
+
 @dataclass
 class SiteRadius:
     """Container class for sites radius.
@@ -464,11 +463,12 @@ class SiteRadius:
     min_dist: dict | None = None
         Minimal distance between given sites
     """
+
     radius: float | int | dict
     inner_fraction: float | int | dict
     pdist: np.ndarray
-    site_pairs: dict | None =dict
-    min_dist: dict | None = dict
+    site_pairs: dict | None = None
+    min_dist: dict | None = None
 
     def radius_to_dict(self):
         if isinstance(self.radius, (int, float)):
@@ -486,18 +486,20 @@ class SiteRadius:
         elif isinstance(self.inner_fraction, dict):
             self.inner_fraction = self.inner_fraction
         else:
-            raise TypeError(f'Invalid type for `site_inner_fraction`: {type(self.inner_fraction)}')
+            raise TypeError(
+                f'Invalid type for `site_inner_fraction`: {type(self.inner_fraction)}'
+            )
 
     @classmethod
     def from_given_radius(
         cls,
         *,
-        trajectory : Trajectory,
+        trajectory: Trajectory,
         sites: Structure,
         radius: float | int | dict,
         inner_fraction: float | int | dict,
-        fraction_of_overlap : float = 0.0,
-        ) -> SiteRadius:
+        fraction_of_overlap: float = 0.0,
+    ) -> SiteRadius:
         """Create SiteRadius from given radius.
 
         Parameters
@@ -525,9 +527,9 @@ class SiteRadius:
         pdist = lattice.get_all_distances(site_coords, site_coords)
 
         site_radius_obj = cls(
-            radius = radius,
-            inner_fraction = inner_fraction,
-            pdist = pdist,
+            radius=radius,
+            inner_fraction=inner_fraction,
+            pdist=pdist,
         )
 
         site_radius_obj.radius_to_dict()
@@ -538,9 +540,9 @@ class SiteRadius:
 
         if site_radius_obj.sites_are_overlapping(factor=factor):
             site_radius_obj.raise_if_overlapping(sites=sites, factor=factor)
-      
+
         return site_radius_obj
-    
+
     @classmethod
     def from_vibration_amplitude(
         cls,
@@ -548,10 +550,10 @@ class SiteRadius:
         trajectory: Trajectory,
         sites: Structure,
         vibration_amplitude: float,
-        inner_fraction:float = 1,
-        ) -> SiteRadius:
-        """Calculate tolerance wihin which atoms are considered to be close to a
-        site.
+        inner_fraction: float = 1.0,
+    ) -> SiteRadius:
+        """Calculate tolerance wihin which atoms are considered to be close to
+        a site.
 
         Parameters
         ----------
@@ -592,9 +594,13 @@ class SiteRadius:
                     site_i = sites[i]
                     site_j = sites[j]
                     lines.append('\nToo close:')
-                    lines.append(f'{site_i.specie.name}({i}) {site_i.label} {site_i.frac_coords}')
+                    lines.append(
+                        f'{site_i.specie.name}({i}) {site_i.label} {site_i.frac_coords}'
+                    )
                     lines.append(' - ')
-                    lines.append(f'{site_j.specie.name}({j}) {site_i.label} {site_j.frac_coords}')
+                    lines.append(
+                        f'{site_j.specie.name}({j}) {site_i.label} {site_j.frac_coords}'
+                    )
 
                 msg = ''.join(lines)
 
@@ -604,11 +610,9 @@ class SiteRadius:
                     f'Expected: > {site_radius * 2:.4f}, '
                     f'got: {min_dist:.4f} for {msg}'
                 )
-        
+
         site_radius_obj = SiteRadius(
-            radius=site_radius,
-            pdist=pdist,
-            inner_fraction=inner_fraction
+            radius=site_radius, pdist=pdist, inner_fraction=inner_fraction
             )
 
         site_radius_obj.radius_to_dict()
@@ -621,17 +625,16 @@ class SiteRadius:
         return {label: 1.0 for label in self.radius}
 
     def _site_pairs(self):
-        """Create site pairs with distances between them from defined radius."""
+        """Create site pairs with distances between them from defined 
+        radius."""
         from itertools import combinations_with_replacement
 
         pairs = list(combinations_with_replacement(self.radius.keys(), 2))
-        self.site_pairs = {
-            (i, j): self.radius[i] + self.radius[j] for (i, j) in pairs
-            }
+        self.site_pairs = {(i, j): self.radius[i] + self.radius[j] for (i, j) in pairs}
 
-    def _min_dist(self, sites:Structure):
+    def _min_dist(self, sites: Structure):
         """Minimum distance (Angstom) between sites pairs."""
-    
+
         self.min_dist = {}
 
         site_labels = np.array(sites.labels)
@@ -639,9 +642,9 @@ class SiteRadius:
         for (i, j), pair_dist in self.site_pairs.items():
             I = np.where(site_labels == i)[0]
             J = np.where(site_labels == j)[0]
-        
+
             if I.size == 0 or J.size == 0:
-                self.min_dist[(i, j)] = float("inf")
+                self.min_dist[(i, j)] = float('inf')
                 continue
 
             sub = self.pdist[np.ix_(I, J)]
@@ -651,7 +654,6 @@ class SiteRadius:
                 sub[i_idx, j_idx] = np.inf
 
             self.min_dist[(i, j)] = float(sub.min(initial=np.inf))
-
 
     def sites_are_overlapping(self, factor: float = 1.0) -> bool:
         """Return True if sites any pairwise distances are within the site
