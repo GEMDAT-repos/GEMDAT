@@ -11,7 +11,7 @@ from gemdat.utils import (
     ffill,
     integer_remap,
     meanfreq,
-    remove_disorder_from_structure,
+    remove_partial_occupancies_from_structure,
 )
 
 
@@ -142,7 +142,7 @@ def test_cartesian_to_spherical():
     assert_allclose(ret, expected, rtol=1e-5)
 
 
-def test_remove_disorder_from_structure():
+def test_remove_partial_occupancies_from_structure():
     structure = Structure(
         lattice=np.eye(3) * 10,
         coords=[(0, 0, 0), (0.5, 0.5, 0.5)],
@@ -151,7 +151,7 @@ def test_remove_disorder_from_structure():
     )
     assert not structure.is_ordered
 
-    new_structure = remove_disorder_from_structure(structure)
+    new_structure = remove_partial_occupancies_from_structure(structure)
     assert new_structure.is_ordered
     assert len(new_structure) == 2
     assert new_structure.labels == structure.labels

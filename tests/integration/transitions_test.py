@@ -13,7 +13,7 @@ import pandas as pd
 import pytest
 from numpy.testing import assert_allclose
 
-from gemdat.transitions import _compute_site_radius
+from gemdat.transitions import SiteRadius
 
 
 @pytest.vaspxml_available
@@ -22,12 +22,12 @@ class TestTransitions:  # type: ignore
     diffusing_element = 'Li'
 
     def test_site_radius(self, vasp_traj, structure):
-        site_radius = _compute_site_radius(
+        site_radius = SiteRadius.from_vibration_amplitude(
             trajectory=vasp_traj,
             sites=structure,
             vibration_amplitude=0.5204,
         )
-        assert isclose(site_radius, 0.9284961123176741)
+        assert isclose(site_radius.radius[''], 0.9284961123176741)
 
     def test_site_radius_dict(self, vasp_traj, structure):
         sites = structure.copy()

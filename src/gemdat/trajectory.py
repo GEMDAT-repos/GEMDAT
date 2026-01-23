@@ -1066,7 +1066,9 @@ class Trajectory(PymatgenTrajectory):
         sites: Structure,
         floating_specie: str,
         site_radius: float | dict[str, float] | None = None,
-        site_inner_fraction: float = 1.0,
+        site_inner_fraction: float | dict[str, float] = 1.0,
+        remove_part_occup_from_structure: bool = False,
+        fraction_of_overlap: float = 0.0,
     ) -> Transitions:
         """Compute transitions between given sites for floating specie.
 
@@ -1081,9 +1083,13 @@ class Trajectory(PymatgenTrajectory):
             if an atom is at a site. A dict keyed by the site label can
             be used to have a site per atom type, e.g.
             `site_radius = {'Li1': 1.0, 'Li2': 1.2}.
-        site_inner_fraction:
+        site_inner_fraction: Optional[float, dict[str, float]]
             A fraction of the site radius which is determined to be the `inner site`
             which is used in jump calculations
+        remove_part_occup_from_structure: bool
+            A flag to remove partial occupancies from structure
+        fraction_of_overlap: float
+            Fraction of allowed overlap between sites
 
         Returns
         -------
@@ -1097,6 +1103,8 @@ class Trajectory(PymatgenTrajectory):
             floating_specie=floating_specie,
             site_radius=site_radius,
             site_inner_fraction=site_inner_fraction,
+            remove_part_occup_from_structure=remove_part_occup_from_structure,
+            fraction_of_overlap=fraction_of_overlap,
         )
 
     def metrics(self) -> TrajectoryMetrics:

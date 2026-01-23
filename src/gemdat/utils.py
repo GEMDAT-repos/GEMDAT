@@ -307,9 +307,8 @@ def fft_autocorrelation(coords: np.ndarray) -> np.ndarray:
     return autocorrelation
 
 
-def remove_disorder_from_structure(structure: Structure) -> Structure:
-    """Attempts to remove disorder and partial occupancies from input
-    structure.
+def remove_partial_occupancies_from_structure(structure: Structure) -> Structure:
+    """Reset partial occupancies to 1 in input structure.
 
     Parameters
     ----------
@@ -319,7 +318,7 @@ def remove_disorder_from_structure(structure: Structure) -> Structure:
     Returns
     -------
     new_structure : Structure
-        Output structure with disorder removed
+        Output structure with partial occupancies set to 1
     """
     new_structure = structure.copy()
 

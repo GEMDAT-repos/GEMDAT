@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import typing
 from collections import defaultdict
+from dataclasses import dataclass
 from itertools import pairwise
 from warnings import warn
 
@@ -15,7 +16,7 @@ from pymatgen.core import Structure
 
 from .caching import weak_lru_cache
 from .metrics import TrajectoryMetrics
-from .utils import bfill, ffill, integer_remap
+from .utils import bfill, ffill, integer_remap, remove_partial_occupancies_from_structure
 
 if typing.TYPE_CHECKING:
     from gemdat.jumps import Jumps
@@ -41,11 +42,13 @@ class Transitions:
     """
 
     DISORDER_ERROR_MSG = (
-        'Input `sites` are disordered! '
-        'The analysis does not work with disordered structures. '
-        'Remove disorder and partial occupancies or try '
-        '`gemdat.utils.remove_disorder_from_structure(). '
-        'See https://github.com/GEMDAT-repos/GEMDAT/issues/339 for more information.'
+        'Input `sites` has partial occupancies. In GEMDAT, '
+        '`sites` is treated as the set of all possible sites '
+        'for the floating species, and partial occupancies '
+        'can lead to ambiguous site assignments. '
+        'Remove partial occupancies manually, or set '
+        '`remove_part_occup_from_structure=True` '
+        'to do it automatically.'
     )
 
     def __init__(
@@ -57,6 +60,7 @@ class Transitions:
         events: pd.DataFrame,
         states: np.ndarray,
         inner_states: np.ndarray,
+        site_radius: SiteRadius,
     ):
         """Store event data for jumps and transitions between sites.
 
@@ -75,9 +79,11 @@ class Transitions:
             Input states
         inner_states : np.ndarray
             Input states for inner sites
+        site_radius: SiteRadius
+            site_radius used to calculate if an atom is at a site.
         """
         if not (sites.is_ordered):
-            raise ValueError(self.DISORDER_ERROR_MSG)
+            warn(self.DISORDER_ERROR_MSG, stacklevel=2)
 
         self.sites = sites
         self.trajectory = trajectory
@@ -85,6 +91,7 @@ class Transitions:
         self.states = states
         self.inner_states = inner_states
         self.events = events
+        self.site_radius = site_radius
 
     @classmethod
     def from_trajectory(
@@ -94,7 +101,9 @@ class Transitions:
         sites: Structure,
         floating_specie: str,
         site_radius: float | dict[str, float] | None = None,
-        site_inner_fraction: float = 1.0,
+        site_inner_fraction: float | dict[str, float] = 1.0,
+        remove_part_occup_from_structure: bool = False,
+        fraction_of_overlap: float = 0.0,
     ) -> Transitions:
         """Compute transitions between given sites for floating specie.
 
@@ -109,42 +118,57 @@ class Transitions:
             if an atom is at a site. A dict keyed by the site label can
             be used to have a site per atom type, e.g.
             `site_radius = {'Li1': 1.0, 'Li2': 1.2}.
-        site_inner_fraction:
+        site_inner_fraction: float | dict[str, float]
             A fraction of the site radius which is determined to be the `inner site`
             which is used in jump calculations
+        remove_part_occup_from_structure: bool
+            A flag to remove partial occupancies from structure
+        fraction_of_overlap: float
+            Fraction of allowed overlap between sites
 
         Returns
         -------
         transitions: Transitions
         """
-        if not (sites.is_ordered):
-            raise ValueError(cls.DISORDER_ERROR_MSG)
+        if not sites.is_ordered:
+            if remove_part_occup_from_structure:
+                sites = remove_partial_occupancies_from_structure(structure=sites.copy())
+            else:
+                warn(cls.DISORDER_ERROR_MSG, stacklevel=2)
 
         diff_trajectory = trajectory.filter(floating_specie)
 
         if site_radius is None:
             vibration_amplitude = TrajectoryMetrics(diff_trajectory).vibration_amplitude()
 
-            site_radius = _compute_site_radius(
+            site_radius_obj = SiteRadius.from_vibration_amplitude(
                 trajectory=trajectory,
                 sites=sites,
                 vibration_amplitude=vibration_amplitude,
+                inner_fraction=site_inner_fraction,
             )
 
-        if isinstance(site_radius, float):
-            site_radius = {'': site_radius}
+        else:
+            site_radius_obj = SiteRadius.from_given_radius(
+                trajectory=trajectory,
+                sites=sites,
+                radius=site_radius,
+                inner_fraction=site_inner_fraction,
+                fraction_of_overlap=fraction_of_overlap,
+            )
 
         states = _calculate_atom_states(
             sites=sites,
             trajectory=diff_trajectory,
-            site_radius=site_radius,
+            site_radius=site_radius_obj.radius,
+            site_inner_fraction=site_radius_obj.outer_states_fraction(),
         )
 
         inner_states = _calculate_atom_states(
             sites=sites,
             trajectory=diff_trajectory,
-            site_radius=site_radius,
-            site_inner_fraction=site_inner_fraction,
+            site_radius=site_radius_obj.radius,
+            site_inner_fraction=site_radius_obj.inner_fraction,
         )
 
         events = _calculate_transition_events(atom_sites=states, atom_inner_sites=inner_states)
@@ -156,6 +180,7 @@ class Transitions:
             events=events,
             states=states,
             inner_states=inner_states,
+            site_radius=site_radius_obj,
         )
 
         return obj
@@ -342,6 +367,7 @@ class Transitions:
                     states=split_states[i],
                     inner_states=split_inner_states[i],
                     events=split_events[i],
+                    site_radius=self.site_radius,
                 )
             )
 
@@ -420,68 +446,264 @@ def _calculate_transition_events(
     return events
 
 
-def _compute_site_radius(
-    trajectory: Trajectory, sites: Structure, vibration_amplitude: float
-) -> float:
-    """Calculate tolerance wihin which atoms are considered to be close to a
-    site.
+@dataclass
+class SiteRadius:
+    """Container class for sites radius.
 
-    Parameters
+    Attributes
     ----------
-    trajectory : Trajectory
-        Input trajectory
-    sites : pymatgen.core.structure.Structure
-        Input sites
-
-    Returns
-    -------
-    site_radius : float
-        Atoms within this distance (in Angstrom) are considered to be close to a site
+    radius: dict[str, float]
+        Site radius in Angstrom
+    inner_fraction: dict[str, float]
+        Fraction of inner sphere
+    pdist: np.ndarray
+        Pairwise distance matrix between sites
+    site_pairs: dict
+        All site pairs for given site labels in site_radius
+    min_dist: dict
+        Minimal distance between given sites
     """
-    lattice = trajectory.get_lattice()
-    site_radius = 2 * vibration_amplitude
 
-    site_coords = sites.frac_coords
+    radius: dict[str, float]
+    inner_fraction: dict[str, float]
+    pdist: np.ndarray
+    site_pairs: dict
+    min_dist: dict
 
-    pdist = lattice.get_all_distances(site_coords, site_coords)
-    min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
+    @classmethod
+    def from_given_radius(
+        cls,
+        *,
+        trajectory: Trajectory,
+        sites: Structure,
+        radius: float | dict[str, float],
+        inner_fraction: float | dict[str, float],
+        fraction_of_overlap: float = 0.0,
+    ) -> SiteRadius:
+        """Create SiteRadius from given radius.
 
-    if min_dist < 2 * site_radius:
-        # Crystallographic sites are overlapping with the chosen site_radius,
-        # making it smaller
-        site_radius = (0.5 * min_dist) - 0.005
+        Parameters
+        ----------
+        trajectory : Trajectory
+            Input trajectory
+        sites: Structure
+            Input structure with atom sites
+        radius: float | dict[str, float]
+            Site radius (per site label) in Angstrom
+        inner_fraction: float | dict[str, float]
+            Fraction of inner sphere
+        fraction_of_overlap: float
+            Fraction of allowed overlap between sites
 
-        # Two crystallographic sites are within half an Angstrom of each other
-        # This is NOT realistic, check/change the given crystallographic site
-        if site_radius * 2 < 0.5:
-            idx = np.argwhere(pdist == min_dist)
+        Returns
+        -------
+        site_radius_obj: SiteRadius object
+        """
+        if fraction_of_overlap > 1:
+            raise ValueError('fraction_of_overlap must be <= 1.0')
 
-            lines = []
+        lattice = trajectory.get_lattice()
+        site_coords = sites.frac_coords
+        pdist = lattice.get_all_distances(site_coords, site_coords)
 
-            for i, j in idx:
-                site_i = sites[i]
-                site_j = sites[j]
-                lines.append('\nToo close:')
-                lines.append(f'{site_i.specie.name}({i}) {site_i.frac_coords}')
-                lines.append(' - ')
-                lines.append(f'{site_j.specie.name}({j}) {site_j.frac_coords}')
+        r, f = _radius_to_dict(radius=radius, inner_fraction=inner_fraction)
+        site_radius_obj = cls(
+            radius=r,
+            inner_fraction=f,
+            pdist=pdist,
+            site_pairs={},
+            min_dist={},
+        )
 
-            msg = ''.join(lines)
+        site_radius_obj._site_pairs()
+        site_radius_obj._min_dist(sites)
 
-            raise ValueError(
-                'Crystallographic sites are too close together '
-                f'(expected: >{site_radius * 2:.4f}, '
-                f'got: {min_dist:.4f} for {msg}'
-            )
+        factor = 1 + fraction_of_overlap
 
-    return site_radius
+        if site_radius_obj.sites_are_overlapping(factor=factor):
+            site_radius_obj.raise_if_overlapping(sites=sites, factor=factor)
+
+        return site_radius_obj
+
+    @classmethod
+    def from_vibration_amplitude(
+        cls,
+        *,
+        trajectory: Trajectory,
+        sites: Structure,
+        vibration_amplitude: float,
+        inner_fraction: float | dict[str, float] = 1.0,
+    ) -> SiteRadius:
+        """Calculate tolerance wihin which atoms are considered to be close to
+        a site.
+
+        Parameters
+        ----------
+        trajectory : Trajectory
+            Input trajectory
+        sites : pymatgen.core.structure.Structure
+            Input sites
+        vibration_amplitude: float
+            Vibration amplitude used to calculate site radius
+
+        Returns
+        -------
+        site_radius : SiteRadius
+            SiteRadius dataclass
+        """
+
+        lattice = trajectory.get_lattice()
+        site_radius = 2 * vibration_amplitude
+
+        site_coords = sites.frac_coords
+
+        pdist = lattice.get_all_distances(site_coords, site_coords)
+        min_dist = np.min(pdist[np.triu_indices_from(pdist, k=1)])
+
+        if min_dist < 2 * site_radius:
+            # Sites are overlapping with the chosen site_radius,
+            # making it smaller
+            site_radius = (0.5 * min_dist) - 0.005
+
+            # Two sites are within half an Angstrom of each other
+            # This is NOT realistic, check/change the given site
+            if site_radius * 2 < 0.5:
+                idx = np.argwhere(np.triu(pdist, k=1) == min_dist)
+
+                lines = []
+
+                for i, j in idx:
+                    site_i = sites[i]
+                    site_j = sites[j]
+                    lines.append('\nToo close:')
+                    lines.append(
+                        f'{site_i.specie.name}({i}) {site_i.label} {site_i.frac_coords}'
+                    )
+                    lines.append(' - ')
+                    lines.append(
+                        f'{site_j.specie.name}({j}) {site_i.label} {site_j.frac_coords}'
+                    )
+
+                msg = ''.join(lines)
+
+                raise ValueError(
+                    'Two sites are within half an Angstrom of each other. '
+                    'This is not realistic, check/change the given sites. '
+                    f'Expected: > {site_radius * 2:.4f}, '
+                    f'got: {min_dist:.4f} for {msg}'
+                )
+
+        r, f = _radius_to_dict(radius=site_radius, inner_fraction=inner_fraction)
+        site_radius_obj = SiteRadius(
+            radius=r,
+            pdist=pdist,
+            inner_fraction=f,
+            site_pairs={},
+            min_dist={},
+        )
+
+        site_radius_obj._site_pairs()
+        site_radius_obj._min_dist(sites)
+
+        return site_radius_obj
+
+    def outer_states_fraction(self) -> dict[str, float]:
+        return {label: 1.0 for label in self.radius}
+
+    def _site_pairs(self):
+        """Create site pairs with distances between them from defined
+        radius."""
+        from itertools import combinations_with_replacement
+
+        pairs = list(combinations_with_replacement(self.radius.keys(), 2))
+        self.site_pairs = {(i, j): self.radius[i] + self.radius[j] for (i, j) in pairs}
+
+    def _min_dist(self, sites: Structure):
+        """Minimum distance (Angstom) between sites pairs."""
+
+        self.min_dist = {}
+
+        site_labels = np.array(sites.labels)
+
+        for (i, j), pair_dist in self.site_pairs.items():
+            I_idx = np.where(site_labels == i)[0]
+            J_idx = np.where(site_labels == j)[0]
+
+            if I_idx.size == 0 or J_idx.size == 0:
+                self.min_dist[(i, j)] = float('inf')
+                continue
+
+            sub = self.pdist[np.ix_(I_idx, J_idx)]
+
+            _, i_idx, j_idx = np.intersect1d(I_idx, J_idx, return_indices=True)
+            if i_idx.size:
+                sub[i_idx, j_idx] = np.inf
+
+            self.min_dist[(i, j)] = float(sub.min(initial=np.inf))
+
+    def sites_are_overlapping(self, factor: float = 1.0) -> bool:
+        """Return True if sites any pairwise distances are within the site
+        radius."""
+        for key, pair_dist in self.site_pairs.items():
+            min_dist = self.min_dist[key]
+            if factor * min_dist < pair_dist:
+                return True
+        return False
+
+    def raise_if_overlapping(self, sites: Structure, factor: float = 1.0) -> None:
+        """Raise error if sites are overlapping."""
+        lines = []
+        for key, pair_dist in self.site_pairs.items():
+            min_dist = self.min_dist[key]
+            if factor * min_dist < pair_dist:
+                idx = np.argwhere(np.triu(self.pdist, k=1) == min_dist)
+                for i, j in idx:
+                    site_i = sites[i]
+                    site_j = sites[j]
+                    lines.append('\nOverlapping: ')
+                    lines.append(f'{site_i.specie.name}({i}) {site_i.frac_coords}')
+                    lines.append(' - ')
+                    lines.append(f'{site_j.specie.name}({j}) {site_j.frac_coords}, ')
+                    lines.append(f'expected < {min_dist / 2:.2f}, ')
+                    lines.append(f'got {site_i.label}: {self.radius[site_i.label]} ')
+                    lines.append(f'and {site_j.label}: {self.radius[site_j.label]}')
+        msg = ''.join(lines)
+
+        raise ValueError(
+            'Sites are overlapping with the chosen site_radius '
+            'and fraction_of_overlap, make site_radius smaller '
+            f'for {msg}'
+        )
+
+
+def _radius_to_dict(
+    radius: float | dict[str, float],
+    inner_fraction: float | dict[str, float],
+):
+    if isinstance(radius, (int, float)):
+        if isinstance(inner_fraction, dict):
+            r = {label: radius for label in inner_fraction.keys()}
+        elif isinstance(inner_fraction, (int, float)):
+            r = {'': radius}
+    elif isinstance(radius, dict):
+        r = radius
+    else:
+        raise TypeError(f'Invalid type for `site_radius`: {type(radius)}')
+
+    if isinstance(inner_fraction, (int, float)):
+        f = {label: inner_fraction for label in r.keys()}
+    elif isinstance(inner_fraction, dict):
+        f = inner_fraction
+    else:
+        raise TypeError(f'Invalid type for `site_inner_fraction`: {type(inner_fraction)}')
+    return r, f
 
 
 def _calculate_atom_states(
     sites: Structure,
     trajectory: Trajectory,
     site_radius: dict[str, float],
-    site_inner_fraction: float = 1.0,
+    site_inner_fraction: dict[str, float],
 ) -> np.ndarray:
     """Calculate nearest site for each atom coordinate in the trajectory.
 
@@ -498,9 +720,10 @@ def _calculate_atom_states(
     site_radius : dict[str, float]
         Atoms within this distance (in Angstrom) are considered to be close to a site.
         Can also be a dict keyed by the site label to specify the radius by atom type.
-    site_inner_fraction: float
+    site_inner_fraction: dict[str, float]
         Atoms that are closer than (site_radius*site_inner_fraction) to a site,
-        are considered to be in the inner site
+        are considered to be in the inner site. Can also be a dict keyed by the
+        site label to specify the radius by atom type.
 
     Returns
     -------
@@ -536,7 +759,7 @@ def _calculate_atom_states(
             key = None
 
         cart_coords = lattice.get_cartesian_coords(frac_coords)
-        site_index = periodic_tree.search_tree(cart_coords, radius * site_inner_fraction)
+        site_index = periodic_tree.search_tree(cart_coords, radius * site_inner_fraction[label])
 
         if site_index.size == 0:
             warn(f'No floating species in range of {label} ({radius=})', stacklevel=2)
