@@ -699,6 +699,7 @@ def _radius_to_dict(
         raise TypeError(f'Invalid type for `site_inner_fraction`: {type(inner_fraction)}')
     return r, f
 
+
 def _calculate_atom_states(
     sites: Structure,
     trajectory: Trajectory,
