@@ -626,16 +626,16 @@ class SiteRadius:
         site_labels = np.array(sites.labels)
 
         for (i, j), pair_dist in self.site_pairs.items():
-            I = np.where(site_labels == i)[0]
-            J = np.where(site_labels == j)[0]
+            I_idx = np.where(site_labels == i)[0]
+            J_idx = np.where(site_labels == j)[0]
 
-            if I.size == 0 or J.size == 0:
+            if I_idx.size == 0 or J_idx.size == 0:
                 self.min_dist[(i, j)] = float('inf')
                 continue
 
-            sub = self.pdist[np.ix_(I, J)]
+            sub = self.pdist[np.ix_(I_idx, J_idx)]
 
-            _, i_idx, j_idx = np.intersect1d(I, J, return_indices=True)
+            _, i_idx, j_idx = np.intersect1d(I_idx, J_idx, return_indices=True)
             if i_idx.size:
                 sub[i_idx, j_idx] = np.inf
 
@@ -680,23 +680,23 @@ def _radius_to_dict(
     radius: float | dict[str, float],
     inner_fraction: float | dict[str, float],
 ):
-        if isinstance(radius, (int, float)):
-            if isinstance(inner_fraction, dict):
-                r = {label: radius for label in inner_fraction.keys()}
-            elif isinstance(inner_fraction, (int, float)):
-                r = {'': radius}
-        elif isinstance(radius, dict):
-            r = radius
-        else:
-            raise TypeError(f'Invalid type for `site_radius`: {type(radius)}')
+    if isinstance(radius, (int, float)):
+        if isinstance(inner_fraction, dict):
+            r = {label: radius for label in inner_fraction.keys()}
+        elif isinstance(inner_fraction, (int, float)):
+            r = {'': radius}
+    elif isinstance(radius, dict):
+        r = radius
+    else:
+        raise TypeError(f'Invalid type for `site_radius`: {type(radius)}')
 
-        if isinstance(inner_fraction, (int, float)):
-            f = {label: inner_fraction for label in r.keys()}
-        elif isinstance(inner_fraction, dict):
-            f = inner_fraction
-        else:
-            raise TypeError(f'Invalid type for `site_inner_fraction`: {type(inner_fraction)}')
-        return r, f
+    if isinstance(inner_fraction, (int, float)):
+        f = {label: inner_fraction for label in r.keys()}
+    elif isinstance(inner_fraction, dict):
+        f = inner_fraction
+    else:
+        raise TypeError(f'Invalid type for `site_inner_fraction`: {type(inner_fraction)}')
+    return r, f
 
 def _calculate_atom_states(
     sites: Structure,
