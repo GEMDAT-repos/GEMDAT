@@ -157,7 +157,6 @@ class Transitions:
                 fraction_of_overlap=fraction_of_overlap,
             )
 
-
         states = _calculate_atom_states(
             sites=sites,
             trajectory=diff_trajectory,
