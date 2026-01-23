@@ -470,31 +470,6 @@ class SiteRadius:
     site_pairs: dict
     min_dist: dict
 
-    def radius_to_dict(
-        radius: float | dict[str, float],
-        inner_fraction: float | dict[str, float],
-        ):
-
-        if isinstance(radius, (int, float)):
-            if isinstance(inner_fraction, dict):
-                r = {label: radius for label in inner_fraction.keys()}
-            elif isinstance(inner_fraction, (int, float)):
-                r = {'': radius}
-        elif isinstance(radius, dict):
-            r = radius
-        else:
-            raise TypeError(f'Invalid type for `site_radius`: {type(radius)}')
-
-        if isinstance(inner_fraction, (int, float)):
-            f = {label: inner_fraction for label in r.keys()}
-        elif isinstance(inner_fraction, dict):
-            f = self.inner_fraction
-        else:
-            raise TypeError(
-                f'Invalid type for `site_inner_fraction`: {type(inner_fraction)}'
-            )
-        return r, f
-
     @classmethod
     def from_given_radius(
         cls,
@@ -531,7 +506,7 @@ class SiteRadius:
         site_coords = sites.frac_coords
         pdist = lattice.get_all_distances(site_coords, site_coords)
 
-        r, f = radius_to_dict(radius=radius, inner_fraction=inner_fraction)
+        r, f = _radius_to_dict(radius=radius, inner_fraction=inner_fraction)
         site_radius_obj = cls(
             radius=r,
             inner_fraction=f,
@@ -540,7 +515,6 @@ class SiteRadius:
             min_dist={},
         )
 
-        site_radius_obj.radius_to_dict()
         site_radius_obj._site_pairs()
         site_radius_obj._min_dist(sites)
 
@@ -619,7 +593,7 @@ class SiteRadius:
                     f'got: {min_dist:.4f} for {msg}'
                 )
 
-        r, f = radius_to_dict(radius=site_radius, inner_fraction=inner_fractionn)
+        r, f = _radius_to_dict(radius=site_radius, inner_fraction=inner_fraction)
         site_radius_obj = SiteRadius(
             radius=r,
             pdist=pdist,
@@ -628,7 +602,6 @@ class SiteRadius:
             min_dist={},
         )
 
-        site_radius_obj.radius_to_dict()
         site_radius_obj._site_pairs()
         site_radius_obj._min_dist(sites)
 
@@ -702,6 +675,28 @@ class SiteRadius:
             f'for {msg}'
         )
 
+
+def _radius_to_dict(
+    radius: float | dict[str, float],
+    inner_fraction: float | dict[str, float],
+):
+        if isinstance(radius, (int, float)):
+            if isinstance(inner_fraction, dict):
+                r = {label: radius for label in inner_fraction.keys()}
+            elif isinstance(inner_fraction, (int, float)):
+                r = {'': radius}
+        elif isinstance(radius, dict):
+            r = radius
+        else:
+            raise TypeError(f'Invalid type for `site_radius`: {type(radius)}')
+
+        if isinstance(inner_fraction, (int, float)):
+            f = {label: inner_fraction for label in r.keys()}
+        elif isinstance(inner_fraction, dict):
+            f = inner_fraction
+        else:
+            raise TypeError(f'Invalid type for `site_inner_fraction`: {type(inner_fraction)}')
+        return r, f
 
 def _calculate_atom_states(
     sites: Structure,
