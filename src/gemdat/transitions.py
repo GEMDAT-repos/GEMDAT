@@ -470,25 +470,30 @@ class SiteRadius:
     site_pairs: dict
     min_dist: dict
 
-    def radius_to_dict(self):
-        if isinstance(self.radius, (int, float)):
-            if isinstance(self.inner_fraction, dict):
-                self.radius = {label: self.radius for label in self.inner_fraction.keys()}
-            elif isinstance(self.inner_fraction, (int, float)):
-                self.radius = {'': self.radius}
-        elif isinstance(self.radius, dict):
-            self.radius = self.radius
-        else:
-            raise TypeError(f'Invalid type for `site_radius`: {type(self.radius)}')
+    def radius_to_dict(
+        radius: float | dict[str, float],
+        inner_fraction: float | dict[str, float],
+        ):
 
-        if isinstance(self.inner_fraction, (int, float)):
-            self.inner_fraction = {label: self.inner_fraction for label in self.radius.keys()}
-        elif isinstance(self.inner_fraction, dict):
-            self.inner_fraction = self.inner_fraction
+        if isinstance(radius, (int, float)):
+            if isinstance(inner_fraction, dict):
+                r = {label: radius for label in inner_fraction.keys()}
+            elif isinstance(inner_fraction, (int, float)):
+                r = {'': radius}
+        elif isinstance(radius, dict):
+            r = radius
+        else:
+            raise TypeError(f'Invalid type for `site_radius`: {type(radius)}')
+
+        if isinstance(inner_fraction, (int, float)):
+            f = {label: inner_fraction for label in r.keys()}
+        elif isinstance(inner_fraction, dict):
+            f = self.inner_fraction
         else:
             raise TypeError(
-                f'Invalid type for `site_inner_fraction`: {type(self.inner_fraction)}'
+                f'Invalid type for `site_inner_fraction`: {type(inner_fraction)}'
             )
+        return r, f
 
     @classmethod
     def from_given_radius(
@@ -508,9 +513,9 @@ class SiteRadius:
             Input trajectory
         sites: Structure
             Input structure with atom sites
-        radius: float | int | dict
+        radius: float | dict[str, float]
             Site radius (per site label) in Angstrom
-        inner_fraction: float | int | dict
+        inner_fraction: float | dict[str, float]
             Fraction of inner sphere
         fraction_of_overlap: float
             Fraction of allowed overlap between sites
@@ -526,10 +531,13 @@ class SiteRadius:
         site_coords = sites.frac_coords
         pdist = lattice.get_all_distances(site_coords, site_coords)
 
+        r, f = radius_to_dict(radius=radius, inner_fraction=inner_fraction)
         site_radius_obj = cls(
-            radius=radius,
-            inner_fraction=inner_fraction,
+            radius=r,
+            inner_fraction=f,
             pdist=pdist,
+            site_pairs={},
+            min_dist={},
         )
 
         site_radius_obj.radius_to_dict()
@@ -611,8 +619,13 @@ class SiteRadius:
                     f'got: {min_dist:.4f} for {msg}'
                 )
 
+        r, f = radius_to_dict(radius=site_radius, inner_fraction=inner_fractionn)
         site_radius_obj = SiteRadius(
-            radius=site_radius, pdist=pdist, inner_fraction=inner_fraction
+            radius=r,
+            pdist=pdist,
+            inner_fraction=f,
+            site_pairs={},
+            min_dist={},
         )
 
         site_radius_obj.radius_to_dict()
