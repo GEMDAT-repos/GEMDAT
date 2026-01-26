@@ -129,11 +129,12 @@ def plot_structure(structure: Structure, *, lattice: Lattice | None = None, fig:
     """
     if lattice:
         cart_coords = lattice.get_cartesian_coords(structure.frac_coords)
+        plot_lattice_vectors(lattice, fig=fig)
     else:
         cart_coords = structure.cart_coords
+        plot_lattice_vectors(structure.lattice, fig=fig)
 
     plot_3d_points(cart_coords, labels=structure.labels, fig=fig)
-    plot_lattice_vectors(structure.lattice, fig=fig)
 
 
 def plot_volume(
