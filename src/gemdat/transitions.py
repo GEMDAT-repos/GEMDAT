@@ -73,7 +73,7 @@ class Transitions:
             for which transitions are generated
         sites : Structure
             Structure with known sites used for calculation of events
-        events : np.ndarray
+        events : np.DataFrame
             Input events
         states : np.ndarray
             Input states
