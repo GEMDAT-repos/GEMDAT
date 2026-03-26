@@ -699,7 +699,7 @@ class Trajectory(PymatgenTrajectory):
         if self.constant_lattice:
             return Lattice(self.lattice)  # type: ignore
 
-        latt = self.lattices[idx]  # type: ignore
+        latt = self.lattice[idx]  # type: ignore
         return Lattice(latt)
 
     @property
@@ -856,9 +856,10 @@ class Trajectory(PymatgenTrajectory):
         return self.__class__(
             species=new_species,
             coords=new_coords,
-            lattice=self.get_lattice(),
+            lattice=self.lattice,
             metadata=self.metadata,
             time_step=self.time_step,
+            constant_lattice=self.constant_lattice,
         )
 
     def split(self, n_parts: int = 10, equal_parts: bool = False) -> list[Trajectory]:
