@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
-from pymatgen.core import Structure
+from pymatgen.core import Structure, Lattice
 from rich.progress import track
 
 from ._plot_backend import plot_backend
@@ -220,34 +220,44 @@ def radial_distribution_between_species(
     """
     coords_1 = trajectory.filter(specie_1).coords
     coords_2 = trajectory.filter(specie_2).coords
-    lattice = trajectory.get_lattice()
 
+    if coords_1.ndim == 2:
+        coords_1 = coords_1[None, :, :]
     if coords_2.ndim == 2:
-        num_time_steps = 1
-        num_atoms, num_dimensions = coords_2.shape
-    else:
-        num_time_steps, num_atoms, num_dimensions = coords_2.shape
+        coords_2 = coords_2[None, :, :]
 
-    particle_vol = num_atoms / lattice.volume
+    num_time_steps, num_atoms_2, _ = coords_2.shape
+    _, num_atoms_1, _ = coords_1.shape
 
-    all_dists = np.concatenate(
-        [
-            lattice.get_all_distances(coords_1[t, :, :], coords_2[t, :, :])
-            for t in range(num_time_steps)
-        ]
-    )
-    distances = all_dists.flatten()
+    lattices = trajectory.lattice
+    if trajectory.constant_lattice:
+        lattices = np.array([lattices] * num_time_steps)
 
     bins = np.arange(0, max_dist + resolution, resolution)
-    rdf, _ = np.histogram(distances, bins=bins, density=False)
 
-    def normalize(radius: np.ndarray) -> np.ndarray:
+    def normalize(radius: np.ndarray, particle_vol: float) -> np.ndarray:
         """Normalize bin to volume."""
         shell = (radius + resolution) ** 3 - radius**3
         return particle_vol * (4 / 3) * np.pi * shell
 
-    norm = normalize(bins)[:-1]
-    counts = rdf / norm
+    counts = np.zeros(len(bins) - 1, dtype=float)
+
+    for t, lat in enumerate(lattices):
+        lat = Lattice(lat)
+        dist_mat = lat.get_all_distances(coords_1[t], coords_2[t])
+        if specie_1 == specie_2:
+            mask = ~np.eye(num_atoms_1, dtype=bool)
+            dists_t = dist_mat[mask]  # removes i == j for self pairs
+        else:
+            dists_t = dist_mat.ravel()
+        hist_t, _ = np.histogram(dists_t, bins=bins, density=False)
+
+        particle_vol_t = num_atoms_2 * num_atoms_1 / lat.volume
+        norm_t = normalize(bins, particle_vol_t)[:-1]
+
+        counts += hist_t / norm_t
+
+    counts /= num_time_steps
 
     str1 = specie_1 if isinstance(specie_1, str) else '/'.join(specie_1)
     str2 = specie_2 if isinstance(specie_2, str) else '/'.join(specie_2)
