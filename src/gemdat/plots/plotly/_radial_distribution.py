@@ -40,7 +40,7 @@ def radial_distribution(rdfs: Iterable[RDFData]) -> go.Figure:
     fig.update_layout(
         title=f'Radial distribution function{state_suffix}',
         xaxis_title='Distance (Å)',
-        yaxis_title='Counts',
+        yaxis_title='g(r)',
     )
 
     return fig
