@@ -35,7 +35,7 @@ def radial_distribution(rdfs: Iterable[RDFData]) -> matplotlib.figure.Figure:
     ax.set(
         title=f'Radial distribution function{state_suffix}',
         xlabel='Distance (Å)',
-        ylabel='Counts',
+        ylabel='g(r)',
     )
 
     return fig
