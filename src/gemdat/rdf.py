@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
-from pymatgen.core import Structure, Lattice
+from pymatgen.core import Lattice, Structure
 from rich.progress import track
 
 from ._plot_backend import plot_backend
@@ -230,6 +230,9 @@ def radial_distribution_between_species(
     _, num_atoms_1, _ = coords_1.shape
 
     lattices = trajectory.lattice
+    if lattices is None:
+        raise RuntimeError("trajectory.lattice unexpectedly None")
+        
     if trajectory.constant_lattice:
         lattices = np.array([lattices] * num_time_steps)
 
