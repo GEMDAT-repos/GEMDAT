@@ -3,9 +3,8 @@ matplotlib >= 3.6.0
 MDAnalysis
 kinisi
 ase
-numpy <= 2.4.2
-pymatgen >= 2024.1.26, != 2024.2.20
+numpy
+pymatgen >= 2024.1.26, != 2024.2.20, < 2026.3.23
 rich
 scikit-image
 scipy
-plotly <= 6.6.0
