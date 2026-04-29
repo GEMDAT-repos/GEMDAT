@@ -231,8 +231,8 @@ def radial_distribution_between_species(
 
     lattices = trajectory.lattice
     if lattices is None:
-        raise RuntimeError("trajectory.lattice unexpectedly None")
-        
+        raise RuntimeError('trajectory.lattice unexpectedly None')
+
     if trajectory.constant_lattice:
         lattices = np.array([lattices] * num_time_steps)
 
