@@ -4,8 +4,8 @@
   outputs = { self, nixpkgs, ... }:
     let
     pkgs = nixpkgs.legacyPackages.x86_64-linux;
-    mypython = pkgs.python313;
-    pythonpkgs = pkgs.python313Packages;
+    mypython = pkgs.python314;
+    pythonpkgs = pkgs.python314Packages;
     in with pkgs; {
       devShell.x86_64-linux =
         mkShell { buildInputs = [
