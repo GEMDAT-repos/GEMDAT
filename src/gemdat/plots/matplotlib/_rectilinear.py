@@ -17,8 +17,9 @@ def rectilinear(
     shape: tuple[int, int] = (90, 360),
     normalize_histo: bool = True,
 ) -> matplotlib.figure.Figure:
-    """Plot a rectilinear projection of a spherical function. This function
-    uses the transformed trajectory.
+    """Plot a rectilinear projection of a spherical function.
+
+    This function uses the transformed trajectory.
 
     Parameters
     ----------

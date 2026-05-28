@@ -21,7 +21,6 @@ def displacement_per_atom(*, trajectory: Trajectory) -> go.Figure:
     fig : plotly.graph_objects.Figure
         Output figure
     """
-
     fig = go.Figure()
 
     distances = [dist for dist in trajectory.distances_from_base_position()]

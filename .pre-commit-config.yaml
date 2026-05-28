@@ -19,7 +19,7 @@ repos:
     rev: v0.3.0
     hooks:
       - id: nbcheckorder
-  - repo: https://github.com/myint/docformatter
+  - repo: https://github.com/PyCQA/docformatter
     rev: v1.7.8
     hooks:
       - id: docformatter
