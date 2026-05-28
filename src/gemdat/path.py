@@ -176,7 +176,6 @@ def free_energy_graph(
     G : nx.Graph
         Graph of free energy
     """
-
     # Define possible movements in 3D space
     movements = np.array([(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)])
     if diagonal:
@@ -232,8 +231,10 @@ _PATHFINDING_METHODS = Literal[
 
 
 def calculate_path_difference(path1: list, path2: list) -> float:
-    """Calculate the difference between two paths. This difference is defined
-    as the percentage of sites that are not shared between the two paths.
+    """Calculate the difference between two paths.
+
+    This difference is defined as the percentage of sites that are not shared between
+    the two paths.
 
     Parameters
     ----------
@@ -247,7 +248,6 @@ def calculate_path_difference(path1: list, path2: list) -> float:
     difference : float
         Difference between the two paths
     """
-
     # Find the shortest and longest paths
     shortest, longest = sorted((path1, path2), key=len)
 
@@ -277,7 +277,6 @@ def _paths_too_similar(path: list, list_of_paths: list, min_diff: float) -> bool
     too_similar : bool
         True if the path is too similar to the other paths
     """
-
     for good_path in list_of_paths:
         if calculate_path_difference(path, good_path.sites) < min_diff:
             return True
@@ -437,7 +436,6 @@ def _optimal_path_minmax_energy(
     optimal_path: list
         Optimal path on the graph between start and stop
     """
-
     max_energy = max([F_graph.nodes[node]['energy'] for node in optimal_path])
     minmax_energy = max_energy
     pruned_F_graph = F_graph.copy()
