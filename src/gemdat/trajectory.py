@@ -249,7 +249,8 @@ class Trajectory(PymatgenTrajectory):
         kwargs.setdefault('parse_potcar_file', False)
 
         if not cache:
-            serialized = json.dumps(kwargs, sort_keys=True).encode()
+            hash_kwargs = {**kwargs, 'constant_lattice': constant_lattice}
+            serialized = json.dumps(hash_kwargs, sort_keys=True).encode()
             hashid = hashlib.sha1(serialized).hexdigest()[:8]
             cache = Path(xml_file).with_suffix(f'.xml.{hashid}.cache')
 
@@ -339,6 +340,7 @@ class Trajectory(PymatgenTrajectory):
                 'data_file': data_file,
                 'temperature': temperature,
                 'time_step': time_step,
+                'constant_lattice': constant_lattice,
             }
             serialized = json.dumps(kwargs, sort_keys=True).encode()
             hashid = hashlib.sha1(serialized).hexdigest()[:8]
@@ -439,6 +441,7 @@ class Trajectory(PymatgenTrajectory):
                 'coords_file': coords_file,
                 'edr_file': edr_file,
                 'temperature': temperature,
+                'constant_lattice': constant_lattice,
             }
             serialized = json.dumps(kwargs, sort_keys=True).encode()
             hashid = hashlib.sha1(serialized).hexdigest()[:8]
