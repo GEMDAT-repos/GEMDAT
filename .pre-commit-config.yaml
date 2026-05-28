@@ -23,6 +23,7 @@ repos:
     rev: v1.7.8
     hooks:
       - id: docformatter
+        additional_dependencies: [charset_normalizer]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.14
     hooks:

@@ -70,7 +70,6 @@ def msd_kinisi(
     fig : matplotlib.figure.Figure
         Output figure.
     """
-
     if diffusion_analyzer:
         cache_data = diffusion_analyzer
     else:
