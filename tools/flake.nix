@@ -7,8 +7,8 @@
     let
     pkgs = nixpkgs.legacyPackages.x86_64-linux;
     ruffpkg = ruff_0_1_5.legacyPackages.x86_64-linux.ruff;
-    mypython = pkgs.python311;
-    pythonpkgs = pkgs.python311Packages;
+    mypython = pkgs.python313;
+    pythonpkgs = pkgs.python313Packages;
     in with pkgs; {
       devShell.x86_64-linux =
         mkShell { buildInputs = [
@@ -18,6 +18,7 @@
           pythonpkgs.scipy
           pythonpkgs.pandas
           pythonpkgs.pyarrow
+          gh
         ];
         pythonWithPkgs = mypython.withPackages (pythonPkgs: with pythonPkgs; [
           # This list contains tools for Python development.
