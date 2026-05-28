@@ -1,18 +1,14 @@
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-  inputs.ruff_287.url = "github:nixos/nixpkgs/e32a63389adb6ee017f8b344e21c80432bb75c10";
-  inputs.ruff_0_1_5.url = "github:nixos/nixpkgs/aa1d7f6320c32010a990ba6c78fcb24cf9e99270";
 
-  outputs = { self, nixpkgs, ruff_0_1_5, ... }:
+  outputs = { self, nixpkgs, ... }:
     let
     pkgs = nixpkgs.legacyPackages.x86_64-linux;
-    ruffpkg = ruff_0_1_5.legacyPackages.x86_64-linux.ruff;
     mypython = pkgs.python313;
     pythonpkgs = pkgs.python313Packages;
     in with pkgs; {
       devShell.x86_64-linux =
         mkShell { buildInputs = [
-          ruffpkg
           pythonpkgs.numpy
           pythonpkgs.matplotlib
           pythonpkgs.scipy
