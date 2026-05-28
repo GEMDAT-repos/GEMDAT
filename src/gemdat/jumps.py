@@ -337,6 +337,29 @@ class Jumps:
         counter = Counter(zip(self.data['start site'], self.data['destination site']))
         return counter
 
+    def residence_time(self) -> pd.DataFrame:
+        """Return the residence time of atoms on individual sites.
+
+        The residence time is the number of timesteps an atom resides on a
+        site after jumping onto it, before it jumps away again. This is the
+        same quantity that `minimal_residence` is applied to. Note that the
+        residence time of the last site visited by each atom is censored by
+        the end of the simulation.
+
+        Returns
+        -------
+        df : pd.DataFrame
+            Dataframe with one row per site visit and columns `atom index`,
+            `site` (site index), `label` (site label) and `time` (residence
+            time in number of timesteps).
+        """
+        labels = self.sites.labels
+        df = self.data[['atom index', 'destination site', 'residence_time']].rename(
+            columns={'destination site': 'site', 'residence_time': 'time'}
+        )
+        df = df.assign(label=[labels[i] for i in df['site']])
+        return df[['atom index', 'site', 'label', 'time']].reset_index(drop=True)
+
     def activation_energy_between_sites(self, start: str, stop: str) -> float:
         """Returns activation energy between two sites.
 

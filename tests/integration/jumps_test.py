@@ -52,6 +52,28 @@ class TestJumps:  # type: ignore
         assert vasp_jumps.n_jumps == 462
         assert isclose(vasp_jumps.solo_fraction, 0.974026, abs_tol=1e-4)
 
+    def test_residence_time(self, vasp_jumps):
+        residence = vasp_jumps.residence_time()
+
+        assert isinstance(residence, pd.DataFrame)
+        assert list(residence.columns) == ['atom index', 'site', 'label', 'time']
+        assert len(residence) == vasp_jumps.n_jumps
+
+        # values mirror the residence_time column of the underlying jumps data
+        assert np.array_equal(residence['site'], vasp_jumps.data['destination site'])
+        assert np.array_equal(residence['time'], vasp_jumps.data['residence_time'])
+
+        assert np.all(
+            residence[['atom index', 'site', 'time']][::200].to_numpy()
+            == np.array(
+                [
+                    [0, 0, 47],
+                    [18, 24, 62],
+                    [41, 67, 227],
+                ]
+            )
+        )
+
     def test_rates(self, vasp_jumps):
         rates = vasp_jumps.rates(n_parts=10)
         assert isinstance(rates, pd.DataFrame)
