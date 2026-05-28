@@ -318,7 +318,7 @@ class ShapeAnalyzer:
 
     def shift_sites(
         self,
-        vectors: Sequence[None | Sequence[float]],
+        vectors: Sequence[None | Sequence[float] | np.ndarray],
         coords_are_cartesian: bool = True,
     ) -> ShapeAnalyzer:
         """Shift `.unique_sites` by given vectors.

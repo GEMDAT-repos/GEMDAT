@@ -24,7 +24,7 @@ from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
     import scipp as sc
-    from ase.io.trajectory import Trajectory as AseTrajectory
+    from ase.io.trajectory import TrajectoryReader as AseTrajectory
     from kinisi.analyze import DiffusionAnalyzer
     from pymatgen.core import Lattice, Structure
 
