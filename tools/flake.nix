@@ -14,7 +14,6 @@
           pythonpkgs.scipy
           pythonpkgs.pandas
           pythonpkgs.pyarrow
-          gh
         ];
         pythonWithPkgs = mypython.withPackages (pythonPkgs: with pythonPkgs; [
           # This list contains tools for Python development.
