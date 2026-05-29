@@ -341,8 +341,7 @@ class Transitions:
 
         The residence time is the number of consecutive timesteps an atom
         spends on a site, derived directly from the site occupation
-        (`states`). This captures every contiguous dwell within a site
-        radius, independent of any jump filter such as `minimal_residence`.
+        (`states`). This captures every contiguous occupancy on a site.
 
         Visits at the very start and end of the simulation are omitted,
         since the arrival or departure time is not observed and the true
@@ -357,18 +356,17 @@ class Transitions:
         """
         states = self.states
         labels = self.sites.labels
-        n_time = states.shape[0]
 
         rows = []
         for atom in range(states.shape[1]):
             col = states[:, atom]
+            # np.diff gives us a state changes, np.nonzero gives the indices
             boundaries = np.nonzero(np.diff(col))[0] + 1
-            starts = np.concatenate(([0], boundaries))
-            ends = np.concatenate((boundaries, [n_time]))
-            for start, end in zip(starts, ends):
-                site = int(col[start])
-                # skip transit and boundary-omitted residences
-                if site == NOSITE or start == 0 or end == n_time:
+            # remove start and end residences
+            for start, end in zip(boundaries[:-1], boundaries[1:]):
+                site = col[start]
+                # skip transit steps
+                if site == NOSITE:
                     continue
                 rows.append((atom, site, labels[site], int(end - start)))
 
