@@ -137,6 +137,17 @@ class TestTransitions:  # type: ignore
         occ = vasp_transitions.occupancy_by_site_type()
         assert occ == {'48h': 0.3806277777777776}
 
+    def test_residence_time(self, vasp_transitions):
+        residence = vasp_transitions.residence_time()
+
+        assert isinstance(residence, pd.DataFrame)
+        assert list(residence.columns) == ['atom index', 'site', 'label', 'time']
+        assert len(residence) == 1016
+        assert_allclose(
+            residence[['atom index', 'site', 'time']][::500].to_numpy(),
+            np.array([[0, 94, 4], [23, 82, 471], [47, 47, 196]]),
+        )
+
     def test_atom_locations(self, vasp_transitions):
         dct = vasp_transitions.atom_locations()
         assert dct == {'48h': 0.7612555555555552}

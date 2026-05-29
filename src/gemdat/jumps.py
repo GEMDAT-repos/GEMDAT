@@ -15,7 +15,7 @@ from ._plot_backend import plot_backend
 from .caching import weak_lru_cache
 from .collective import Collective
 from .metrics import TrajectoryMetrics
-from .transitions import NOSITE, Transitions, _calculate_transitions_matrix
+from .transitions import Transitions, _calculate_transitions_matrix
 
 if TYPE_CHECKING:
     from mypy_extensions import DefaultNamedArg
@@ -336,45 +336,6 @@ class Jumps:
         """
         counter = Counter(zip(self.data['start site'], self.data['destination site']))
         return counter
-
-    def residence_time(self) -> pd.DataFrame:
-        """Return the residence time of atoms on individual sites.
-
-        The residence time is the number of consecutive timesteps an atom
-        spends on a site. It is computed directly from the site occupation
-        (`transitions.states`) rather than from the jump data, so it is
-        independent of `minimal_residence` and also captures short visits
-        that would otherwise be filtered out as vibrations.
-
-        Residences at the very start and end of the simulation are omitted,
-        since the atom is already on (or still on) the site at the boundary
-        and the true duration cannot be determined.
-
-        Returns
-        -------
-        df : pd.DataFrame
-            Dataframe with one row per site visit and columns `atom index`,
-            `site` (site index), `label` (site label) and `time` (residence
-            time in number of timesteps).
-        """
-        states = self.transitions.states
-        labels = self.sites.labels
-        n_time = states.shape[0]
-
-        rows = []
-        for atom in range(states.shape[1]):
-            col = states[:, atom]
-            boundaries = np.nonzero(np.diff(col))[0] + 1
-            starts = np.concatenate(([0], boundaries))
-            ends = np.concatenate((boundaries, [n_time]))
-            for start, end in zip(starts, ends):
-                site = int(col[start])
-                # skip transitions and boundary-omitted residences
-                if site == NOSITE or start == 0 or end == n_time:
-                    continue
-                rows.append((atom, site, labels[site], int(end - start)))
-
-        return pd.DataFrame(rows, columns=['atom index', 'site', 'label', 'time'])
 
     def activation_energy_between_sites(self, start: str, stop: str) -> float:
         """Returns activation energy between two sites.

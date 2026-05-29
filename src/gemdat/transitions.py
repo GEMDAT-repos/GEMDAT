@@ -336,6 +336,44 @@ class Transitions:
 
         return {k: sum(v) / n for k, v in compositions_by_label.items()}
 
+    def residence_time(self) -> pd.DataFrame:
+        """Return the residence time of atoms on individual sites.
+
+        The residence time is the number of consecutive timesteps an atom
+        spends on a site, derived directly from the site occupation
+        (`states`). This captures every contiguous dwell within a site
+        radius, independent of any jump filter such as `minimal_residence`.
+
+        Visits at the very start and end of the simulation are omitted,
+        since the arrival or departure time is not observed and the true
+        duration cannot be determined.
+
+        Returns
+        -------
+        df : pd.DataFrame
+            Dataframe with one row per site visit and columns `atom index`,
+            `site` (site index), `label` (site label) and `time` (residence
+            time in number of timesteps).
+        """
+        states = self.states
+        labels = self.sites.labels
+        n_time = states.shape[0]
+
+        rows = []
+        for atom in range(states.shape[1]):
+            col = states[:, atom]
+            boundaries = np.nonzero(np.diff(col))[0] + 1
+            starts = np.concatenate(([0], boundaries))
+            ends = np.concatenate((boundaries, [n_time]))
+            for start, end in zip(starts, ends):
+                site = int(col[start])
+                # skip transit and boundary-omitted residences
+                if site == NOSITE or start == 0 or end == n_time:
+                    continue
+                rows.append((atom, site, labels[site], int(end - start)))
+
+        return pd.DataFrame(rows, columns=['atom index', 'site', 'label', 'time'])
+
     def split(self, n_parts: int = 10) -> list[Transitions]:
         """Split data into equal parts in time for statistics.
 

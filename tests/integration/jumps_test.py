@@ -1,52 +1,12 @@
 from __future__ import annotations
 
 from math import isclose
-from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from gemdat import Jumps, TrajectoryMetrics
-
-
-def test_residence_time():
-    # site occupation per timestep for two atoms (-1 == no site / in transit)
-    states = np.array(
-        [
-            [0, -1],
-            [0, -1],
-            [1, 2],
-            [1, 2],
-            [1, -1],
-            [-1, -1],
-            [1, -1],
-            [2, 0],
-            [2, 0],
-            [2, -1],
-        ]
-    )
-    stub = SimpleNamespace(
-        transitions=SimpleNamespace(states=states),
-        sites=SimpleNamespace(labels=['A', 'B', 'C']),
-    )
-
-    residence = Jumps.residence_time(stub)
-
-    expected = pd.DataFrame(
-        [
-            # atom 0 omits the initial site-0 visit (start of simulation) and the
-            # final site-2 visit (end of simulation); the 1-step site-1 visit
-            # is kept even though it is shorter than typical minimal_residence
-            (0, 1, 'B', 3),
-            (0, 1, 'B', 1),
-            (1, 2, 'C', 2),
-            (1, 0, 'A', 2),
-        ],
-        columns=['atom index', 'site', 'label', 'time'],
-    )
-
-    pd.testing.assert_frame_equal(residence, expected)
 
 
 @pytest.vaspxml_available
