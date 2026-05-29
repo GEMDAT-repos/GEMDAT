@@ -1,12 +1,52 @@
 from __future__ import annotations
 
 from math import isclose
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from gemdat import Jumps, TrajectoryMetrics
+
+
+def test_residence_time():
+    # site occupation per timestep for two atoms (-1 == no site / in transit)
+    states = np.array(
+        [
+            [0, -1],
+            [0, -1],
+            [1, 2],
+            [1, 2],
+            [1, -1],
+            [-1, -1],
+            [1, -1],
+            [2, 0],
+            [2, 0],
+            [2, -1],
+        ]
+    )
+    stub = SimpleNamespace(
+        transitions=SimpleNamespace(states=states),
+        sites=SimpleNamespace(labels=['A', 'B', 'C']),
+    )
+
+    residence = Jumps.residence_time(stub)
+
+    expected = pd.DataFrame(
+        [
+            # atom 0 omits the initial site-0 visit (start of simulation) and the
+            # final site-2 visit (end of simulation); the 1-step site-1 visit
+            # is kept even though it is shorter than typical minimal_residence
+            (0, 1, 'B', 3),
+            (0, 1, 'B', 1),
+            (1, 2, 'C', 2),
+            (1, 0, 'A', 2),
+        ],
+        columns=['atom index', 'site', 'label', 'time'],
+    )
+
+    pd.testing.assert_frame_equal(residence, expected)
 
 
 @pytest.vaspxml_available
@@ -51,28 +91,6 @@ class TestJumps:  # type: ignore
         assert vasp_jumps.n_solo_jumps == 450
         assert vasp_jumps.n_jumps == 462
         assert isclose(vasp_jumps.solo_fraction, 0.974026, abs_tol=1e-4)
-
-    def test_residence_time(self, vasp_jumps):
-        residence = vasp_jumps.residence_time()
-
-        assert isinstance(residence, pd.DataFrame)
-        assert list(residence.columns) == ['atom index', 'site', 'label', 'time']
-        assert len(residence) == vasp_jumps.n_jumps
-
-        # values mirror the residence_time column of the underlying jumps data
-        assert np.array_equal(residence['site'], vasp_jumps.data['destination site'])
-        assert np.array_equal(residence['time'], vasp_jumps.data['residence_time'])
-
-        assert np.all(
-            residence[['atom index', 'site', 'time']][::200].to_numpy()
-            == np.array(
-                [
-                    [0, 0, 47],
-                    [18, 24, 62],
-                    [41, 67, 227],
-                ]
-            )
-        )
 
     def test_rates(self, vasp_jumps):
         rates = vasp_jumps.rates(n_parts=10)
