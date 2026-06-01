@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from .io import load_known_material, read_cif
+from .crystallizer import Crystallizer, CrystallizerResult
+from .io import load_known_material, read_cif, write_cif
 from .jumps import Jumps
 from .metrics import TrajectoryMetrics
 from .orientations import Orientations
@@ -12,6 +13,8 @@ from .volume import Volume, trajectory_to_volume
 
 __version__ = '1.7.2'
 __all__ = [
+    'Crystallizer',
+    'CrystallizerResult',
     'Jumps',
     'load_known_material',
     'Orientations',
@@ -23,4 +26,5 @@ __all__ = [
     'trajectory_to_volume',
     'Transitions',
     'Volume',
+    'write_cif',
 ]
