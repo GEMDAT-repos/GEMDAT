@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import numpy as np
 import scipy.ndimage as ndi
@@ -271,6 +271,39 @@ class Volume:
 
         return regionprops(labels, intensity_image=data)
 
+    def _props_to_occupancies(
+        self,
+        *,
+        props: list[RegionProperties],
+        n_frames: int,
+    ) -> np.ndarray:
+        """Compute the occupancy of each region.
+
+        The occupancy is the mean number of atoms residing on the site per
+        frame: the total number of (raw) coordinate counts inside the region
+        divided by `n_frames`. A value of 1.0 means the site is occupied by one
+        atom in every frame.
+
+        Note: this reads the *raw* counts from `self.data`, not the normalized
+        `intensity_image` stored on the regionprops. It must be called before
+        [gemdat.Volume._props_to_frac_coords_centroid][], which mutates
+        `prop.coords` in place.
+
+        Parameters
+        ----------
+        props : list[RegionProperties]
+            Regions as returned by [gemdat.Volume._peaks_to_props][]
+        n_frames : int
+            Number of frames the volume was generated from
+
+        Returns
+        -------
+        occupancies : np.ndarray
+            Occupancy per region
+        """
+        counts = [self.data[tuple(prop.coords.T)].sum() for prop in props]
+        return np.array(counts) / n_frames
+
     def _props_to_frac_coords_centroid(
         self,
         *,
@@ -304,6 +337,8 @@ class Volume:
         specie: str = 'X',
         background_level: float = 0.1,
         peaks: Optional[np.ndarray] = None,
+        return_occupancies: bool = False,
+        n_frames: int | None = None,
         **kwargs,
     ) -> Structure:
         """Converts a volume back to a structure using peak detection. Uses the
@@ -322,6 +357,13 @@ class Volume:
             Must be between 0 and 1
         peaks : Optional[np.ndarray]
             Voxel coordinates to use as starting points for watershed algorithm.
+        return_occupancies : bool
+            If True, assign a partial occupancy to each site, computed as the
+            integrated (raw) density of the region divided by `n_frames`. Sites
+            merged during deduplication have their occupancies summed.
+        n_frames : int | None
+            Number of frames the volume was generated from. Required when
+            `return_occupancies` is True.
         **kwargs : dict
             These keywords parameters are passed to [gemdat.Volume.find_peaks][].
             Only applies if `peaks == None`.
@@ -336,19 +378,32 @@ class Volume:
 
         props = self._peaks_to_props(peaks=peaks, background_level=background_level)
 
-        props_to_frac_coords = self._props_to_frac_coords_centroid
+        if len(props) == 0:
+            return Structure(lattice=self.lattice, species=[], coords=np.empty((0, 3)))
 
-        frac_coords = props_to_frac_coords(props=props)
+        if return_occupancies:
+            if n_frames is None:
+                raise ValueError('`n_frames` is required when `return_occupancies` is True.')
+            # Must run before `_props_to_frac_coords_centroid`, which mutates
+            # `prop.coords` in place.
+            occupancies = self._props_to_occupancies(props=props, n_frames=n_frames)
+            species: list = [{specie: occ} for occ in occupancies]
+            merge_mode: Literal['sum', 'average'] = 'sum'
+        else:
+            species = [specie for _ in props]
+            merge_mode = 'average'
+
+        frac_coords = self._props_to_frac_coords_centroid(props=props)
 
         frac_coords = np.mod(frac_coords, 1)
 
         structure = Structure(
             lattice=self.lattice,
             coords=frac_coords,
-            species=[specie for _ in frac_coords],
+            species=species,
         )
 
-        structure.merge_sites(tol=0.1, mode='average')
+        structure.merge_sites(tol=0.1, mode=merge_mode)
 
         return structure
 
