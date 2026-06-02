@@ -21,8 +21,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class CrystallizerResult:
-    """Container for the result of [Crystallizer.crystallize][gemdat.crystallize
-    r.Crystallizer.crystallize].
+    """Container for the result of
+    [Crystallizer.crystallize][gemdat.crystallize r.Crystallizer.crystallize].
 
     Parameters
     ----------
@@ -180,13 +180,14 @@ class Crystallizer:
     ) -> tuple[Structure, np.ndarray]:
         """Combine framework + mobile sites into a geometry-only structure.
 
-        The returned structure has every site at full occupancy (element symbols
-        only). Symmetry must be searched on this structure: the per-site
-        occupancies are continuous floats, and feeding them to the symmetry
-        finder would make every mobile site distinct and collapse the result to
-        P1. The occupancies are returned separately, aligned to the structure's
-        site order (framework sites are 1.0), so they can be averaged over the
-        symmetry-equivalent classes afterwards.
+        The returned structure has every site at full occupancy (element
+        symbols only). Symmetry must be searched on this structure: the
+        per-site occupancies are continuous floats, and feeding them to
+        the symmetry finder would make every mobile site distinct and
+        collapse the result to P1. The occupancies are returned
+        separately, aligned to the structure's site order (framework
+        sites are 1.0), so they can be averaged over the symmetry-
+        equivalent classes afterwards.
         """
         framework = self.framework()
         mobile = self.mobile_sites(background_level=background_level, **find_peaks_kwargs)
