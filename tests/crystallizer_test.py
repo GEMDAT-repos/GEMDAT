@@ -72,6 +72,20 @@ def test_crystallize(crystal_trajectory):
     assert result.symprec in (0.01, 0.05, 0.1, 0.2, 0.3, 0.5)
 
 
+def test_crystallize_empty_framework(crystal_trajectory):
+    # A trajectory holding only the floating specie (e.g. already filtered with
+    # `trajectory.filter('Li')`) has no static framework. Crystallizing it must
+    # not crash on the empty framework, and should yield only mobile sites.
+    mobile_only = crystal_trajectory.filter('Li')
+    cr = Crystallizer.from_trajectory(mobile_only, floating_specie='Li', resolution=0.5)
+
+    result = cr.crystallize()
+
+    assert isinstance(result, CrystallizerResult)
+    assert len(result.structure) > 0
+    assert {next(iter(site.species.as_dict())) for site in result.structure} == {'Li'}
+
+
 def test_to_cif(crystal_trajectory, tmp_path):
     cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
 
