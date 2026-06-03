@@ -26,6 +26,7 @@ nav:
     - Multiple paths: notebooks/multiple_paths.ipynb
     - Orientation tracking: notebooks/orientations.ipynb
     - GOAC integration: notebooks/goac_integration_demo.ipynb
+    - Crystallizer: notebooks/crystallizer.ipynb
   - Python API:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md
