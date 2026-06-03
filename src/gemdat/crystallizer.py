@@ -198,7 +198,11 @@ class Crystallizer:
         occupancies = [1.0] * len(framework)
         occupancies += [site.species.num_atoms for site in mobile]
 
-        coords = np.vstack([framework.frac_coords, mobile.frac_coords])
+        # `framework` is empty when every species is the floating specie (e.g.
+        # an already Li-filtered trajectory); its `frac_coords` then has no
+        # column axis and can't be stacked, so drop empty parts.
+        parts = [s.frac_coords for s in (framework, mobile) if len(s) > 0]
+        coords = np.vstack(parts) if parts else np.empty((0, 3))
 
         geometry = Structure(
             lattice=framework.lattice,
