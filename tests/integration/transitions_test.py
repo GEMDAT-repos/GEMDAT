@@ -16,8 +16,8 @@ from numpy.testing import assert_allclose
 from gemdat.transitions import SiteRadius
 
 
-@pytest.vaspxml_available
-class TestTransitions:  # type: ignore
+@pytest.vaspxml_available  # type: ignore
+class TestTransitions:
     n_parts = 10
     diffusing_element = 'Li'
 

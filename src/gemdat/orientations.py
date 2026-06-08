@@ -16,9 +16,10 @@ if TYPE_CHECKING:
 
 @dataclass
 class Orientations:
-    """Container for orientational data. It computes trajectories of unit
-    vectors defined as the distance between a central and satellite atoms,
-    meant to track orientation of molecules or clusters.
+    """Container for orientational data.
+
+    It computes trajectories of unit vectors defined as the distance between a central
+    and satellite atoms, meant to track orientation of molecules or clusters.
 
     Parameters
     ----------

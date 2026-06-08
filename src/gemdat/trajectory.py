@@ -24,7 +24,7 @@ from ._plot_backend import plot_backend
 
 if TYPE_CHECKING:
     import scipp as sc
-    from ase.io.trajectory import Trajectory as AseTrajectory
+    from ase.io.trajectory import TrajectoryReader as AseTrajectory
     from kinisi.analyze import DiffusionAnalyzer
     from pymatgen.core import Lattice, Structure
 
@@ -426,7 +426,6 @@ class Trajectory(PymatgenTrajectory):
         trajectory : Trajectory
             Output trajectory
         """
-
         import MDAnalysis as mda
         from pymatgen.core import Lattice
 
@@ -529,7 +528,6 @@ class Trajectory(PymatgenTrajectory):
         trajectory : gemdat.Trajectory
             A GEMDAT trajectory instance.
         """
-
         from ase.io.trajectory import Trajectory as AseTrajectory
 
         if stride < 1:
@@ -640,7 +638,6 @@ class Trajectory(PymatgenTrajectory):
         ase_traj : ase.io.trajectory.Trajectory
         ASE trajectory opened in read mode.
         """
-
         if stride < 1:
             raise ValueError(f'{stride=} must be >= 1')
 
@@ -796,8 +793,9 @@ class Trajectory(PymatgenTrajectory):
         fixed_species: None | str | Collection[str] = None,
         floating_species: None | str | Collection[str] = None,
     ) -> Trajectory:
-        """Apply drift correction to trajectory. For details see
-        [drift()][gemdat.trajectory.Trajectory.drift].
+        """Apply drift correction to trajectory.
+
+        For details see [drift()][gemdat.trajectory.Trajectory.drift].
 
         If no species are specified, use all species to calculate drift.
 

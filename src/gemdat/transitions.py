@@ -551,7 +551,6 @@ class SiteRadius:
         site_radius : SiteRadius
             SiteRadius dataclass
         """
-
         lattice = trajectory.get_lattice()
         site_radius = 2 * vibration_amplitude
 
@@ -620,7 +619,6 @@ class SiteRadius:
 
     def _min_dist(self, sites: Structure):
         """Minimum distance (Angstom) between sites pairs."""
-
         self.min_dist = {}
 
         site_labels = np.array(sites.labels)
