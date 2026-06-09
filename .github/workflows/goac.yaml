@@ -1,0 +1,36 @@
+name: GOAC Installation Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/install_goac.py"
+      - "tests/install_goac_test.py"
+      - ".github/workflows/goac.yaml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/install_goac.py"
+      - "tests/install_goac_test.py"
+      - ".github/workflows/goac.yaml"
+  workflow_dispatch:
+
+jobs:
+  test-goac-installation:
+    name: Test GOAC Installation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran gcc meson ninja-build libomp-dev pkg-config python3-pip python3-dev git
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install pytest numpy pymatgen meson-python --break-system-packages --ignore-installed
+
+      - name: Test GOAC installation
+        run: pytest tests/install_goac_test.py -v --noconftest

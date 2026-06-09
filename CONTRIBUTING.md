@@ -41,6 +41,8 @@ One of the code owners will review your code and request changes if needed. Once
 
 *GEMDAT* targets Python 3.10 or newer.
 
+#### Python Environment
+
 Clone the repository into the `gemdat` directory:
 
 ```console
@@ -54,6 +56,12 @@ cd gemdat
 python3 -m venv env
 source env/bin/activate
 python3 -m pip install -e .[develop]
+```
+
+For optional GOAC support (requires gfortran, meson >= 1.6.0, ninja >= 1.11.1.2, OpenMP):
+```console
+sudo apt-get install gfortran meson ninja-build libomp-dev  # Ubuntu/Debian
+python3 tools/install_goac.py
 ```
 
 Alternatively, install using Conda:
