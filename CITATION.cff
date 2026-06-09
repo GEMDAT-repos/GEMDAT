@@ -61,12 +61,16 @@ preferred-citation:
       family-names: Famprikis
     - given-names: Victor
       family-names: Landgraf
-    - given-names: Victor
-      family-names: Azizi
+    - given-names: Jouke R.
+      family-names: Heringa
     - given-names: Stef
       family-names: Smeets
+    - given-names: Victor
+      family-names: Azizi
     - given-names: Simone
       family-names: Ciarella
+    - given-names: Marnix
+      family-names: Wagemaker
     - given-names: Alexandros
       family-names: Vasileiadis
   journal: "npj Computational Materials"
