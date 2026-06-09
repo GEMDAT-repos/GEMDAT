@@ -4,7 +4,7 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/gemdat)](https://pypi.org/project/gemdat/)
 [![PyPI](https://img.shields.io/pypi/v/gemdat.svg?style=flat)](https://pypi.org/project/gemdat/)
 [![DOI](https://img.shields.io/badge/DOI-10.1038%2Fs41524--026--02133--7-blue)](https://doi.org/10.1038/s41524-026-02133-7)
-[![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.8401669.svg)](https://doi.org/10.5281/zenodo.8401669)
+[![Zenodo](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.8401669-grey)](https://doi.org/10.5281/zenodo.8401669)
 
 ![GEMDAT banner](https://raw.githubusercontent.com/GEMDAT-repos/GEMDAT/main/src/gemdat/data/logo_on_white.png#gh-light-mode-only)
 ![GEMDAT banner](https://raw.githubusercontent.com/GEMDAT-repos/GEMDAT/main/src/gemdat/data/logo_on_black.png#gh-dark-mode-only)
