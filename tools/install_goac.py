@@ -165,57 +165,60 @@ def install_goac() -> None:
 
         print('  Installing GOAC package...')
 
-        # Install to all active site-packages locations to avoid stale imports.
-        candidate_sites = {
-            Path(sysconfig.get_paths()['purelib']),
-            *(Path(p) for p in site.getsitepackages()),
-        }
+        # Install to a writable site-packages directory.
+        # In a virtualenv, use the venv's purelib (always writable by the venv owner).
+        # Outside a venv, use USER_SITE (~/.local/...) to avoid PermissionError on
+        # system site-packages (e.g. CI runners running as non-root).
+        if sys.prefix != sys.base_prefix:
+            site_packages = Path(sysconfig.get_paths()['purelib'])
+        else:
+            user_site = site.USER_SITE
+            if not user_site:
+                sys.exit('Cannot determine writable site-packages directory')
+            site_packages = Path(user_site)
+        site_packages.mkdir(parents=True, exist_ok=True)
 
-        for site_packages in sorted(candidate_sites):
-            if not site_packages.exists():
-                continue
+        pkg_dst = site_packages / 'goac'
+        if pkg_dst.exists():
+            shutil.rmtree(pkg_dst)
+        pkg_dst.mkdir()
 
-            pkg_dst = site_packages / 'goac'
-            if pkg_dst.exists():
-                shutil.rmtree(pkg_dst)
-            pkg_dst.mkdir(exist_ok=True)
+        for so in (so1, so2):
+            shutil.copy(so, pkg_dst)
+            # Upstream GOAC files use absolute imports like "import ABCEwald".
+            # Also place extensions at top-level site-packages as a compatibility shim.
+            shutil.copy(so, site_packages)
 
-            for so in (so1, so2):
-                shutil.copy(so, pkg_dst)
-                # Upstream GOAC files use absolute imports like "import ABCEwald".
-                # Also place extensions at top-level site-packages as a compatibility shim.
-                shutil.copy(so, site_packages)
+        for fn in (
+            'IterationProblem.py',
+            'GreedySolver.py',
+            'RandomSolver.py',
+            'Solver.py',
+            '__main__.py',
+        ):
+            shutil.copy(pkg / fn, pkg_dst)
 
-            for fn in (
-                'IterationProblem.py',
-                'GreedySolver.py',
-                'RandomSolver.py',
-                'Solver.py',
-                '__main__.py',
+        # Final safety pass on installed sources to enforce package-relative imports.
+        for pyfile in pkg_dst.glob('*.py'):
+            text = pyfile.read_text()
+            for old, new in (
+                ('from Solver import', 'from .Solver import'),
+                ('from IterationProblem import', 'from .IterationProblem import'),
+                ('from ABCEwald import', 'from .ABCEwald import'),
+                ('import ABCEwald', 'from . import ABCEwald'),
             ):
-                shutil.copy(pkg / fn, pkg_dst)
+                text = text.replace(old, new)
+            pyfile.write_text(text)
 
-            # Final safety pass on installed sources to enforce package-relative imports.
-            for pyfile in pkg_dst.glob('*.py'):
-                text = pyfile.read_text()
-                for old, new in (
-                    ('from Solver import', 'from .Solver import'),
-                    ('from IterationProblem import', 'from .IterationProblem import'),
-                    ('from ABCEwald import', 'from .ABCEwald import'),
-                    ('import ABCEwald', 'from . import ABCEwald'),
-                ):
-                    text = text.replace(old, new)
-                pyfile.write_text(text)
-
-            # Force a clean, minimal package init for reliable imports.
-            (pkg_dst / '__init__.py').write_text(
-                'from .GOAC import *\n'
-                'from .GOAC import energy, monte_carlo, ga, remc, rega, greedy, '
-                'local_minimizer, branch_n_bound, occupied, valid_solutions, '
-                'solution_unique, random_samples\n'
-                'from . import ABCEwald\n'
-                '__version__ = "2024.1.0"\n'
-            )
+        # Force a clean, minimal package init for reliable imports.
+        (pkg_dst / '__init__.py').write_text(
+            'from .GOAC import *\n'
+            'from .GOAC import energy, monte_carlo, ga, remc, rega, greedy, '
+            'local_minimizer, branch_n_bound, occupied, valid_solutions, '
+            'solution_unique, random_samples\n'
+            'from . import ABCEwald\n'
+            '__version__ = "2024.1.0"\n'
+        )
 
     print('\n\u2713 GOAC installed successfully!')
 
