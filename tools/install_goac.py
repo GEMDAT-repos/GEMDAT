@@ -133,18 +133,21 @@ def install_goac() -> None:
             '__version__ = "2024.1.0"\n'
         )
 
-        (pkg / 'pyproject.toml').write_text(
-            '[build-system]\n'
-            'requires = ["setuptools"]\n'
-            'build-backend = "setuptools.build_meta"\n'
-            '\n'
-            '[project]\n'
-            'name = "goac"\n'
-            'version = "2024.1.0"\n'
-            'description = "Global Optimization of Atomistic Configurations by Coulomb"\n'
-            '\n'
-            '[tool.setuptools.packages.find]\n'
-            'include = []\n'
+        (pkg / 'setup.py').write_text(
+            'from setuptools import setup\n'
+            'setup(\n'
+            '    name="goac",\n'
+            '    version="2024.1.0",\n'
+            '    description="Global Optimization of Atomistic Configurations by Coulomb",\n'
+            '    py_modules=[\n'
+            '        "GOAC",\n'
+            '        "ABCEwald",\n'
+            '        "Solver",\n'
+            '        "RandomSolver",\n'
+            '        "GreedySolver",\n'
+            '        "IterationProblem",\n'
+            '    ],\n'
+            ')\n'
         )
 
         print('  Installing GOAC package...')
