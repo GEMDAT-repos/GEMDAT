@@ -30,9 +30,12 @@ a fresh build of the Fortran sources against the local toolchain.
 
 from __future__ import annotations
 
+import re
 import shutil
+import site
 import subprocess
 import sys
+import sysconfig
 import tempfile
 from pathlib import Path
 
@@ -96,15 +99,13 @@ def _build_f2py(work_dir: Path, source: str, module: str) -> Path:
         result = subprocess.run(
             base_cmd + extra,
             cwd=work_dir,
-            capture_output=True,
-            text=True,
         )
         if result.returncode == 0:
             break
         if extra:
             print('  OpenMP build failed, retrying without OpenMP...')
     if result.returncode != 0:
-        sys.exit(f'f2py build failed for {module}:\n{result.stderr}')
+        sys.exit(f'f2py build failed for {module}')
     return next(work_dir.glob(f'{module}*.so'))
 
 
@@ -143,6 +144,14 @@ def install_goac() -> None:
                 ('from ABCEwald import', 'from .ABCEwald import'),
             ):
                 text = text.replace(old, new)
+            # Rewrite "import ABCEwald [as alias]" to "from . import ABCEwald [as alias]"
+            _re_abcewald = re.compile(
+                r'(^|\n)([ \t]*)import[ \t]+ABCEwald([ \t]+as[ \t]+\w+)?([ \t]*)(?=\n|$)'
+            )
+            text = _re_abcewald.sub(
+                lambda m: f'{m[1]}{m[2]}from . import ABCEwald{m[3] or ""}{m[4]}',
+                text,
+            )
             (pkg / fn).write_text(text)
 
         (pkg / '__init__.py').write_text(
@@ -150,41 +159,63 @@ def install_goac() -> None:
             'from .GOAC import energy, monte_carlo, ga, remc, rega, greedy, '
             'local_minimizer, branch_n_bound, occupied, valid_solutions, '
             'solution_unique, random_samples\n'
-            'from .IterationProblem import Iteration_Problem\n'
-            'from .GreedySolver import Greedy_Solver\n'
-            'from .RandomSolver import Random_Solver\n'
-            'from .Solver import Solver\n'
             'from . import ABCEwald\n'
             '__version__ = "2024.1.0"\n'
         )
 
         print('  Installing GOAC package...')
 
-        # Install the .py files and .so extensions directly into site-packages
-        site_packages = Path(
-            subprocess.run(
-                [sys.executable, '-c', 'import site; print(site.getsitepackages()[0])'],
-                capture_output=True,
-                text=True,
-                check=True,
-            ).stdout.strip()
-        )
+        # Install to all active site-packages locations to avoid stale imports.
+        candidate_sites = {
+            Path(sysconfig.get_paths()['purelib']),
+            *(Path(p) for p in site.getsitepackages()),
+        }
 
-        pkg_dst = site_packages / 'goac'
-        pkg_dst.mkdir(exist_ok=True)
+        for site_packages in sorted(candidate_sites):
+            if not site_packages.exists():
+                continue
 
-        for so in (so1, so2):
-            shutil.copy(so, pkg_dst)
+            pkg_dst = site_packages / 'goac'
+            if pkg_dst.exists():
+                shutil.rmtree(pkg_dst)
+            pkg_dst.mkdir(exist_ok=True)
 
-        for fn in (
-            '__init__.py',
-            'IterationProblem.py',
-            'GreedySolver.py',
-            'RandomSolver.py',
-            'Solver.py',
-            '__main__.py',
-        ):
-            shutil.copy(pkg / fn, pkg_dst)
+            for so in (so1, so2):
+                shutil.copy(so, pkg_dst)
+                # Upstream GOAC files use absolute imports like "import ABCEwald".
+                # Also place extensions at top-level site-packages as a compatibility shim.
+                shutil.copy(so, site_packages)
+
+            for fn in (
+                'IterationProblem.py',
+                'GreedySolver.py',
+                'RandomSolver.py',
+                'Solver.py',
+                '__main__.py',
+            ):
+                shutil.copy(pkg / fn, pkg_dst)
+
+            # Final safety pass on installed sources to enforce package-relative imports.
+            for pyfile in pkg_dst.glob('*.py'):
+                text = pyfile.read_text()
+                for old, new in (
+                    ('from Solver import', 'from .Solver import'),
+                    ('from IterationProblem import', 'from .IterationProblem import'),
+                    ('from ABCEwald import', 'from .ABCEwald import'),
+                    ('import ABCEwald', 'from . import ABCEwald'),
+                ):
+                    text = text.replace(old, new)
+                pyfile.write_text(text)
+
+            # Force a clean, minimal package init for reliable imports.
+            (pkg_dst / '__init__.py').write_text(
+                'from .GOAC import *\n'
+                'from .GOAC import energy, monte_carlo, ga, remc, rega, greedy, '
+                'local_minimizer, branch_n_bound, occupied, valid_solutions, '
+                'solution_unique, random_samples\n'
+                'from . import ABCEwald\n'
+                '__version__ = "2024.1.0"\n'
+            )
 
     print('\n\u2713 GOAC installed successfully!')
 
