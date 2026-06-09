@@ -133,26 +133,27 @@ def install_goac() -> None:
             '__version__ = "2024.1.0"\n'
         )
 
-        (pkg / 'setup.py').write_text(
-            'from setuptools import setup\n'
-            'setup(\n'
-            '    name="goac",\n'
-            '    version="2024.1.0",\n'
-            '    description="Global Optimization of Atomistic Configurations by Coulomb",\n'
-            '    py_modules=[\n'
-            '        "GOAC",\n'
-            '        "ABCEwald",\n'
-            '        "Solver",\n'
-            '        "RandomSolver",\n'
-            '        "GreedySolver",\n'
-            '        "IterationProblem",\n'
-            '    ],\n'
-            ')\n'
+        print('  Installing GOAC package...')
+
+        # Install the .py files and .so extensions directly into site-packages
+        site_packages = Path(
+            subprocess.run(
+                [sys.executable, '-c', 'import site; print(site.getsitepackages()[0])'],
+                capture_output=True, text=True, check=True,
+            ).stdout.strip()
         )
 
-        print('  Installing GOAC package...')
-        subprocess.run([sys.executable, '-m', 'pip', 'install', str(pkg)], check=True)
-    print('\n✓ GOAC installed successfully!')
+        pkg_dst = site_packages / 'goac'
+        pkg_dst.mkdir(exist_ok=True)
+
+        for so in (so1, so2):
+            shutil.copy(so, pkg_dst)
+
+        for fn in ('__init__.py', 'IterationProblem.py', 'GreedySolver.py',
+                   'RandomSolver.py', 'Solver.py', '__main__.py'):
+            shutil.copy(pkg / fn, pkg_dst)
+
+    print('\n\u2713 GOAC installed successfully!')
 
 
 def main() -> None:
