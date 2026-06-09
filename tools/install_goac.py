@@ -6,6 +6,26 @@ GOAC requires compilation of Fortran code via f2py. System prerequisites:
 
 Usage:
     python tools/install_goac.py
+
+Installation strategy
+---------------------
+GOAC is not available on PyPI and its original build system relies on the classic
+``numpy.distutils`` (deprecated). We handle installation as follows:
+
+1. **Clone** the GOAC repository from the IFF GitLab.
+2. **Build** the two Fortran extension modules (``GOAC`` and ``ABCEwald``) via
+   ``numpy.f2py`` with the ``meson`` backend and ``openmp`` dependency.
+3. **Rewrite imports** in the Python source files so that relative imports
+   (``from .Solver import``) are used instead of top-level ones, making the
+   code work as a proper package.
+4. **Assemble** a minimal package structure with an ``__init__.py`` that
+   re-exports all public symbols.
+5. **Install** directly into the active environment's ``site-packages/goac/``
+   by copying the compiled ``.so`` files and rewritten ``.py`` files.
+
+This avoids depending on a full ``setup.py`` / ``pyproject.toml`` for GOAC,
+and mirrors what a ``pip install`` of a versioned release would do, but with
+a fresh build of the Fortran sources against the local toolchain.
 """
 
 from __future__ import annotations
@@ -60,24 +80,29 @@ def check_dependencies() -> None:
 def _build_f2py(work_dir: Path, source: str, module: str) -> Path:
     """Build one f2py extension and return the .so path."""
     print(f'  Building {module}...')
-    result = subprocess.run(
-        [
-            sys.executable,
-            '-m',
-            'numpy.f2py',
-            '-c',
-            source,
-            '-m',
-            module,
-            '--backend',
-            'meson',
-            '--dep',
-            'openmp',
-        ],
-        cwd=work_dir,
-        capture_output=True,
-        text=True,
-    )
+    base_cmd = [
+        sys.executable,
+        '-m',
+        'numpy.f2py',
+        '-c',
+        source,
+        '-m',
+        module,
+        '--backend',
+        'meson',
+    ]
+    # Try with OpenMP first, fall back to without if meson can't find it
+    for extra in (['--dep', 'openmp'], []):
+        result = subprocess.run(
+            base_cmd + extra,
+            cwd=work_dir,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            break
+        if extra:
+            print('  OpenMP build failed, retrying without OpenMP...')
     if result.returncode != 0:
         sys.exit(f'f2py build failed for {module}:\n{result.stderr}')
     return next(work_dir.glob(f'{module}*.so'))
@@ -121,15 +146,15 @@ def install_goac() -> None:
             (pkg / fn).write_text(text)
 
         (pkg / '__init__.py').write_text(
-            'from GOAC import *\n'
-            'from GOAC import energy, monte_carlo, ga, remc, rega, greedy, '
+            'from .GOAC import *\n'
+            'from .GOAC import energy, monte_carlo, ga, remc, rega, greedy, '
             'local_minimizer, branch_n_bound, occupied, valid_solutions, '
             'solution_unique, random_samples\n'
             'from .IterationProblem import Iteration_Problem\n'
             'from .GreedySolver import Greedy_Solver\n'
             'from .RandomSolver import Random_Solver\n'
             'from .Solver import Solver\n'
-            'import ABCEwald\n'
+            'from . import ABCEwald\n'
             '__version__ = "2024.1.0"\n'
         )
 
@@ -139,7 +164,9 @@ def install_goac() -> None:
         site_packages = Path(
             subprocess.run(
                 [sys.executable, '-c', 'import site; print(site.getsitepackages()[0])'],
-                capture_output=True, text=True, check=True,
+                capture_output=True,
+                text=True,
+                check=True,
             ).stdout.strip()
         )
 
@@ -149,8 +176,14 @@ def install_goac() -> None:
         for so in (so1, so2):
             shutil.copy(so, pkg_dst)
 
-        for fn in ('__init__.py', 'IterationProblem.py', 'GreedySolver.py',
-                   'RandomSolver.py', 'Solver.py', '__main__.py'):
+        for fn in (
+            '__init__.py',
+            'IterationProblem.py',
+            'GreedySolver.py',
+            'RandomSolver.py',
+            'Solver.py',
+            '__main__.py',
+        ):
             shutil.copy(pkg / fn, pkg_dst)
 
     print('\n\u2713 GOAC installed successfully!')

@@ -23,20 +23,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gfortran meson ninja-build libomp-dev pkg-config
+          sudo apt-get install -y gfortran meson ninja-build libomp-dev pkg-config python3-pip git
 
       - name: Install Python dependencies
         run: |
-          pip install --upgrade pip
-          pip install -e .[develop]
-          pip install meson-python
+          python3 -m pip install -e .[develop] --break-system-packages --ignore-installed
+          python3 -m pip install meson-python --break-system-packages --ignore-installed
 
       - name: Test GOAC installation
         run: pytest tests/install_goac_test.py -v
