@@ -234,7 +234,6 @@ class Jumps:
         collective : Collective
             Output class with data on collective jumps
         """
-
         trajectory = self.trajectory
         sites = self.transitions.sites
 
@@ -326,13 +325,14 @@ class Jumps:
 
     @weak_lru_cache()
     def _counter(self) -> Counter[tuple[int, int]]:
-        """Count number of jumps between sites. Keys are site indices.
+        """Count number of jumps between sites.
 
-        Returns
-        -------
-        counter : Counter[tuple[int, int]]
-            Dictionary with site pairs as keys and corresponding
-            number of jumps as dictionary values
+        Keys are site indices.
+                Returns
+                -------
+                counter : Counter[tuple[int, int]]
+                    Dictionary with site pairs as keys and corresponding
+                    number of jumps as dictionary values
         """
         counter = Counter(zip(self.data['start site'], self.data['destination site']))
         return counter

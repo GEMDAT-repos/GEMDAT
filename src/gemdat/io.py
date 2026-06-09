@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import warnings
 from importlib.resources import files
 from pathlib import Path
@@ -86,6 +87,11 @@ def load_known_material(
 
     if supercell:
         structure.make_supercell(supercell)
+        # Newer pymatgen suffixes duplicate site labels with _1, _2, ... when
+        # building a supercell. Strip the suffix so symmetry-equivalent sites
+        # keep a shared label, which the jump/transition analysis groups on.
+        for site in structure:
+            site.label = re.sub(r'_\d+$', '', site.label)
 
     return structure
 

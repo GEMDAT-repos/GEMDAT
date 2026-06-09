@@ -18,7 +18,7 @@ def jumps_vs_distance(
     jump_res: float = 0.1,
     n_parts: int = 1,
 ) -> matplotlib.figure.Figure:
-    """Plot jumps vs. distance histogram.
+    """Plot jumps vs distance histogram.
 
     Parameters
     ----------

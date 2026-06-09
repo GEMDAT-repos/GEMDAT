@@ -40,5 +40,4 @@ Returns
 fig : plotly.graph_objects.Figure or matplotlib.figure.Figure depending on backend.
     Output figure
 """
-
     return wrap

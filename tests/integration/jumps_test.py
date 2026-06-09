@@ -9,8 +9,8 @@ import pytest
 from gemdat import Jumps, TrajectoryMetrics
 
 
-@pytest.vaspxml_available
-class TestJumps:  # type: ignore
+@pytest.vaspxml_available  # type: ignore
+class TestJumps:
     n_parts = 10
     diffusing_element = 'Li'
 
