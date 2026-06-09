@@ -142,6 +142,10 @@ def install_goac() -> None:
             'name = "goac"\n'
             'version = "2024.1.0"\n'
             'description = "Global Optimization of Atomistic Configurations by Coulomb"\n'
+            '\n'
+            '[tool.setuptools]\n'
+            'packages = []\n'
+            'py-modules = []\n'
         )
 
         print('  Installing GOAC package...')
