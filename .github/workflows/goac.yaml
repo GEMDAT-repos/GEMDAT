@@ -38,4 +38,4 @@ jobs:
           pip install -e .[develop]
 
       - name: Test GOAC installation
-        run: pytest tests/install_goac_test.py -v -k "not full_installation"
+        run: pytest tests/install_goac_test.py -v
