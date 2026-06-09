@@ -48,5 +48,35 @@ keywords:
 identifiers:
   - type: doi
     value: 10.5281/zenodo.8401669
+    description: "Software archive on Zenodo"
 license: Apache-2.0
 version: 1.7.2
+preferred-citation:
+  type: article
+  title: "GEMDAT: a Python toolkit for site-resolved diffusion analysis in solid-state molecular dynamics"
+  authors:
+    - given-names: Anastasia K.
+      family-names: Lavrinenko
+    - given-names: Theodosios
+      family-names: Famprikis
+    - given-names: Victor
+      family-names: Landgraf
+    - given-names: Jouke R.
+      family-names: Heringa
+    - given-names: Stef
+      family-names: Smeets
+    - given-names: Victor
+      family-names: Azizi
+    - given-names: Simone
+      family-names: Ciarella
+    - given-names: Marnix
+      family-names: Wagemaker
+    - given-names: Alexandros
+      family-names: Vasileiadis
+  journal: "npj Computational Materials"
+  year: 2026
+  # volume:
+  # issue:
+  # start:
+  # end:
+  doi: "10.1038/s41524-026-02133-7"
