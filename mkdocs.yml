@@ -24,9 +24,11 @@ nav:
     - Percolation: notebooks/percolation.ipynb
     - Multiple paths: notebooks/multiple_paths.ipynb
     - Orientation tracking: notebooks/orientations.ipynb
+    - Crystallizer: notebooks/crystallizer.ipynb
   - Python API:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md
+    - gemdat.crystallizer: api/gemdat_crystallizer.md
     - gemdat.io: api/gemdat_io.md
     - gemdat.plots: api/gemdat_plots.md
     - gemdat.rdf: api/gemdat_rdf.md

@@ -8,6 +8,7 @@ from importlib.resources import files
 from pathlib import Path
 
 from pymatgen.core import Structure
+from pymatgen.io.cif import CifWriter
 
 DATA = Path(files('gemdat') / 'data')  # type: ignore
 
@@ -22,7 +23,7 @@ SUPERCELL = {
 }
 
 
-def write_cif(structure: Structure, filename: Path | str):
+def write_cif(structure: Structure, filename: Path | str, **kwargs):
     """Write structure to cif file using [pymatgen.io.cif.CifWriter][].
 
     Parameters
@@ -31,9 +32,13 @@ def write_cif(structure: Structure, filename: Path | str):
         Structure to save
     filename : Path | str
         Filename to write to
+    **kwargs : dict
+        Additional keyword arguments passed to
+        [pymatgen.io.cif.CifWriter][]. In particular, pass `symprec` to detect
+        and write the space group symmetry (otherwise the cif is written in P1).
     """
     filename = str(Path(filename).with_suffix('.cif'))
-    structure.to_file(filename)
+    CifWriter(structure, **kwargs).write_file(filename)
 
 
 def read_cif(filename: Path | str) -> Structure:
