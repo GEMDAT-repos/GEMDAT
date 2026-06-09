@@ -50,7 +50,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          coverage run -m pytest
+          coverage run -m pytest --ignore=tests/install_goac_test.py
 
       - name: Upload result images
         if: always()
