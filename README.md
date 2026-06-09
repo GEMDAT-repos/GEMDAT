@@ -28,6 +28,42 @@ To install:
 pip install gemdat
 ```
 
+### Optional Dependencies
+
+#### GOAC (Global Optimization of Atomistic Configurations by Coulomb)
+
+GOAC is an optional dependency for global optimization of atomistic configurations.
+
+**Installation Steps:**
+
+1. **Install system dependencies** (required first):
+   - gfortran compiler
+   - meson >= 1.6.0
+   - ninja >= 1.11.1.2
+   - OpenMP library
+
+   **Ubuntu/Debian:**
+   ```console
+   sudo apt-get install gfortran meson ninja-build libomp-dev
+   ```
+
+   **macOS (with Homebrew):**
+   ```console
+   brew install gfortran meson ninja
+   ```
+
+2. **Install GOAC** using the automated helper script:
+   ```console
+   python3 tools/install_goac.py
+   ```
+
+   This script will:
+   - Check for required system and Python dependencies
+   - Provide clear instructions if anything is missing
+   - Automatically install GOAC once dependencies are satisfied
+
+Note: GOAC is not a Python package and requires compilation of Fortran code. Ensure system dependencies are installed before installing GOAC.
+
 The source code is available from [Github](https://github.com/GEMDAT-repos/GEMDAT).
 
 Suggestions, improvements, and edits are most welcome.
