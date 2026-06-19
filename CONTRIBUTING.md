@@ -61,7 +61,7 @@ python3 -m pip install -e .[develop]
 For optional GOAC support (requires gfortran, meson >= 1.6.0, ninja >= 1.11.1.2, OpenMP):
 ```console
 sudo apt-get install gfortran meson ninja-build libomp-dev  # Ubuntu/Debian
-python3 tools/install_goac.py
+pip install git+https://github.com/GEMDAT-repos/GOAC.git
 ```
 
 Alternatively, install using Conda:
