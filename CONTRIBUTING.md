@@ -58,10 +58,10 @@ source env/bin/activate
 python3 -m pip install -e .[develop]
 ```
 
-For optional GOAC support (requires gfortran, meson >= 1.6.0, ninja >= 1.11.1.2, OpenMP):
+For optional GOAC support
 ```console
-sudo apt-get install gfortran meson ninja-build libomp-dev  # Ubuntu/Debian
-pip install git+https://github.com/GEMDAT-repos/GOAC.git
+pip install GOAC --find-links https://github.com/GEMDAT-repos/GOAC/releases/expanded_assets/0.1.1
+
 ```
 
 Alternatively, install using Conda:
