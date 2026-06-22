@@ -122,6 +122,8 @@ pyvenv.cfg
 
 # vscode
 .vscode/
+.github/copilot-instructions.md
+.actrc
 
 # Rope project settings
 .ropeproject

@@ -24,6 +24,7 @@ nav:
     - Percolation: notebooks/percolation.ipynb
     - Multiple paths: notebooks/multiple_paths.ipynb
     - Orientation tracking: notebooks/orientations.ipynb
+    - GOAC integration: notebooks/goac_integration_demo.ipynb
   - Python API:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md

@@ -29,6 +29,16 @@ To install:
 pip install gemdat
 ```
 
+### Optional Dependencies
+
+#### GOAC (Global Optimization of Atomistic Configurations by Coulomb)
+
+GOAC is an optional dependency for global optimization of atomistic configurations. It can be installed directly from GitHub:
+
+```console
+pip install GOAC --find-links https://github.com/GEMDAT-repos/GOAC/releases/expanded_assets/0.1.1
+```
+
 The source code is available from [Github](https://github.com/GEMDAT-repos/GEMDAT).
 
 Suggestions, improvements, and edits are most welcome.

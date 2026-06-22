@@ -42,7 +42,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  'matplotlib >= 3.6.0',
+  'matplotlib >= 3.6.0, < 3.11',
   'MDAnalysis',
   'kinisi',
   'ase',
