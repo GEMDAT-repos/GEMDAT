@@ -41,6 +41,8 @@ One of the code owners will review your code and request changes if needed. Once
 
 *GEMDAT* targets Python 3.10 or newer.
 
+#### Python Environment
+
 Clone the repository into the `gemdat` directory:
 
 ```console
@@ -54,6 +56,12 @@ cd gemdat
 python3 -m venv env
 source env/bin/activate
 python3 -m pip install -e .[develop]
+```
+
+For optional GOAC support
+```console
+pip install GOAC --find-links https://github.com/GEMDAT-repos/GOAC/releases/expanded_assets/0.1.1
+
 ```
 
 Alternatively, install using Conda:

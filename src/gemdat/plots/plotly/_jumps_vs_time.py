@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 def jumps_vs_time(*, jumps: Jumps, bins: int = 8, n_parts: int = 1) -> go.Figure:
-    """Plot jumps vs. distance histogram.
+    """Plot jumps vs distance histogram.
 
     Parameters
     ----------

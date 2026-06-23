@@ -3,7 +3,8 @@
 ![Coverage](https://gist.githubusercontent.com/stefsmeets/b599ff4ccf4a6d201a984502f049da73/raw/covbadge.svg)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/gemdat)](https://pypi.org/project/gemdat/)
 [![PyPI](https://img.shields.io/pypi/v/gemdat.svg?style=flat)](https://pypi.org/project/gemdat/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8401669.svg)](https://doi.org/10.5281/zenodo.8401669)
+[![DOI](https://img.shields.io/badge/DOI-10.1038%2Fs41524--026--02133--7-blue)](https://doi.org/10.1038/s41524-026-02133-7)
+[![Zenodo](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.8401669-grey)](https://doi.org/10.5281/zenodo.8401669)
 
 ![GEMDAT banner](https://raw.githubusercontent.com/GEMDAT-repos/GEMDAT/main/src/gemdat/data/logo_on_white.png#gh-light-mode-only)
 ![GEMDAT banner](https://raw.githubusercontent.com/GEMDAT-repos/GEMDAT/main/src/gemdat/data/logo_on_black.png#gh-dark-mode-only)
@@ -26,6 +27,16 @@ To install:
 
 ```console
 pip install gemdat
+```
+
+### Optional Dependencies
+
+#### GOAC (Global Optimization of Atomistic Configurations by Coulomb)
+
+GOAC is an optional dependency for global optimization of atomistic configurations. It can be installed directly from GitHub:
+
+```console
+pip install GOAC --find-links https://github.com/GEMDAT-repos/GOAC/releases/expanded_assets/0.1.1
 ```
 
 The source code is available from [Github](https://github.com/GEMDAT-repos/GEMDAT).
@@ -94,7 +105,7 @@ Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-dev
 
 ## How to Cite
 
-- V. Azizi, S. Smeets, A.K. Lavrinenko, S. Ciarella, T. Famprikis, V. Landgraf, & A. Vasileiadis. GEMDAT (Version 1.7.1) [Computer software]. https://github.com/GEMDAT-repos/GEMDAT, doi: [10.5281/zenodo.8401669](https://dx.doi.org/10.5281/zenodo.8401669)
+- A.K. Lavrinenko, T. Famprikis, V. Landgraf, J.R. Heringa, S. Smeets, V. Azizi, S. Ciarella, M. Wagemaker & A. Vasileiadis. GEMDAT: a Python toolkit for site-resolved diffusion analysis in solid-state molecular dynamics. npj Comput Mater (2026). doi: [10.1038/s41524-026-02133-7](https://doi.org/10.1038/s41524-026-02133-7)
 
 ## Dissemination
 

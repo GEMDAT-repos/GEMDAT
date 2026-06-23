@@ -27,7 +27,6 @@ def arrhenius(*, fit: ArrheniusFit, show_std: bool = True) -> go.Figure:
     fig : plotly.graph_objects.Figure
         Output figure
     """
-
     T = fit.temperatures
     x = 1000.0 / T
     y = np.log(fit.diffusivities)

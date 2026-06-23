@@ -14,8 +14,9 @@ def polar(
     shape: tuple[int, int] = (90, 360),
     normalize_histo: bool = True,
 ) -> go.Figure:
-    """Plot a polar projection of a spherical function. This function uses the
-    transformed trajectory.
+    """Plot a polar projection of a spherical function.
+
+    This function uses the transformed trajectory.
 
     Parameters
     ----------

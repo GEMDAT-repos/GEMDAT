@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> matplotlib.figure.Figure:
-    """Plot jumps vs. time histogram.
+    """Plot jumps vs time histogram.
 
     Parameters
     ----------
@@ -25,7 +25,6 @@ def jumps_vs_time(*, jumps: Jumps, binsize: int = 500) -> matplotlib.figure.Figu
     fig : matplotlib.figure.Figure
         Output figure
     """
-
     trajectory = jumps.trajectory
 
     n_steps = len(trajectory)
