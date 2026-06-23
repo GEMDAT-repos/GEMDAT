@@ -73,6 +73,54 @@ def test_voxel_size(volume):
     assert_allclose(volume.voxel_size, (2.0, 2.0, 2.0))
 
 
+def test_dedup_pbc_peaks_merges_boundary_split():
+    """Two peaks that only coincide across a periodic boundary collapse to one."""
+    latt = Lattice.from_parameters(10, 10, 10, 90, 90, 90)
+    vol = Volume(data=np.ones((20, 20, 20)), lattice=latt)
+
+    # Same site split across the x=0 face (voxel 1 and voxel 19 of 20), plus an
+    # unrelated interior peak that must be kept.
+    peaks = np.array([[1, 10, 10], [19, 10, 10], [10, 5, 5]])
+    out = vol._dedup_pbc_peaks(peaks, tol=1.0)
+
+    assert len(out) == 2
+    # the interior peak survives untouched
+    assert any(np.array_equal(p, [10, 5, 5]) for p in out)
+
+
+def test_dedup_pbc_peaks_keeps_genuinely_close_interior_peaks():
+    """Interior peaks that are close in direct space are not merged."""
+    latt = Lattice.from_parameters(10, 10, 10, 90, 90, 90)
+    vol = Volume(data=np.ones((20, 20, 20)), lattice=latt)
+
+    # Two adjacent interior peaks ~0.5 Å apart (direct distance < tol): a real,
+    # if dense, pair of sites — not a wrap artefact, so both are kept.
+    peaks = np.array([[10, 10, 10], [11, 10, 10]])
+    out = vol._dedup_pbc_peaks(peaks, tol=1.0)
+
+    assert len(out) == 2
+
+
+def test_to_structure_snap_to_lower():
+    """`snap_to_lower` moves an on-face site to the lower end; default keeps it."""
+    latt = Lattice.from_parameters(10, 10, 10, 90, 90, 90)
+    # A single blob straddling the x=0 face, with most of its mass on the high
+    # side (voxels 8, 9, 0), so its centroid lands just below the upper face.
+    data = np.zeros((10, 10, 10))
+    for x in (8, 9, 0):
+        data[x, 5, 5] = 1.0
+    vol = Volume(data=data, lattice=latt)
+    peaks = np.array([[9, 5, 5]])
+
+    default = vol.to_structure(peaks=peaks, background_level=0.1)
+    snapped = vol.to_structure(peaks=peaks, background_level=0.1, snap_to_lower=True)
+
+    assert len(default) == len(snapped) == 1
+    # default: reported near the upper boundary; snapped: pulled to ~0
+    assert default.frac_coords[0, 0] > 0.9
+    assert snapped.frac_coords[0, 0] == 0.0
+
+
 def test_to_vasp_volume(volume):
     structure = Structure(
         lattice=volume.lattice,
