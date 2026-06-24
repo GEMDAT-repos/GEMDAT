@@ -93,14 +93,21 @@ def plot_3d_points(
     assert len(points) == len(labels)
 
     if not colors:
+        unique_labels = list(dict.fromkeys(labels))
         colors = {
-            label: px.colors.sample_colorscale('rainbow', [i / (len(labels) - 1)])
-            for i, label in enumerate(labels)
+            label: px.colors.sample_colorscale('rainbow', [i / max(len(unique_labels) - 1, 1)])
+            for i, label in enumerate(unique_labels)
         }
+
+    # Show a single legend entry per label and tie every point of that label to
+    # the same legendgroup, so clicking the legend toggles the whole species.
+    seen_labels: set = set()
 
     for i, (x, y, z) in enumerate(points):
         label = labels[i]
         color = colors[label]
+        show_in_legend = label not in seen_labels
+        seen_labels.add(label)
 
         fig.add_trace(
             go.Scatter3d(
@@ -109,8 +116,9 @@ def plot_3d_points(
                 z=[z],
                 mode='markers',
                 name=label,
+                legendgroup=label,
                 marker={'size': point_size, 'color': color, 'line': {'width': 2.5}},
-                showlegend=False,
+                showlegend=show_in_legend,
             )
         )
 
