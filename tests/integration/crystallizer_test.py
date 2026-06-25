@@ -45,8 +45,9 @@ def test_crystallize_matches_argyrodite_reference(vasp_crystallizer):
     """The reconstructed structure should reproduce the known argyrodite Li
     sublattice.
 
-    The bundled `argyrodite.cif` only describes the Li sites, so this reference
-    comparison is only meaningful for the Li diffusing species.
+    The bundled `argyrodite.cif` only describes the Li sites, so this
+    reference comparison is only meaningful for the Li diffusing
+    species.
     """
     if vasp_crystallizer.floating_specie != 'Li':
         pytest.skip('reference comparison only applies to the Li sublattice')
