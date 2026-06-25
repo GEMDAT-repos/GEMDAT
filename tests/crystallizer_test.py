@@ -11,9 +11,12 @@ from gemdat.trajectory import Trajectory
 
 @pytest.fixture()
 def crystal_trajectory():
-    """A well-sampled toy trajectory: two mobile Li sites that are visited every
-    frame, plus a static P/S framework. Sampled densely enough that the density
-    peak detection finds the mobile sites."""
+    """A well-sampled toy trajectory: two mobile Li sites that are visited
+    every frame, plus a static P/S framework.
+
+    Sampled densely enough that the density peak detection finds the
+    mobile sites.
+    """
     rng = np.random.default_rng(0)
     n_frames = 200
 

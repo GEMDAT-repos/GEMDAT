@@ -74,7 +74,8 @@ def test_voxel_size(volume):
 
 
 def test_dedup_pbc_peaks_merges_boundary_split():
-    """Two peaks that only coincide across a periodic boundary collapse to one."""
+    """Two peaks that only coincide across a periodic boundary collapse to
+    one."""
     latt = Lattice.from_parameters(10, 10, 10, 90, 90, 90)
     vol = Volume(data=np.ones((20, 20, 20)), lattice=latt)
 
@@ -102,7 +103,8 @@ def test_dedup_pbc_peaks_keeps_genuinely_close_interior_peaks():
 
 
 def test_to_structure_snap_to_lower():
-    """`snap_to_lower` moves an on-face site to the lower end; default keeps it."""
+    """`snap_to_lower` moves an on-face site to the lower end; default keeps
+    it."""
     latt = Lattice.from_parameters(10, 10, 10, 90, 90, 90)
     # A single blob straddling the x=0 face, with most of its mass on the high
     # side (voxels 8, 9, 0), so its centroid lands just below the upper face.
