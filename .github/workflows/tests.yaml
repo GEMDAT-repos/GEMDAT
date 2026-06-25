@@ -24,7 +24,7 @@ jobs:
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: 'true'
 
@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         id: cache-virtualenv
         with:
           path: ${{ env.pythonLocation }}
@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload result images
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-result-images-py${{ matrix.python-version }}
           path: result_images/
@@ -76,7 +76,7 @@ jobs:
 
       - name: Make coverage badge
         if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == '3.10' }}
-        uses: schneegans/dynamic-badges-action@v1.7.0
+        uses: schneegans/dynamic-badges-action@v1.8.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: b599ff4ccf4a6d201a984502f049da73
