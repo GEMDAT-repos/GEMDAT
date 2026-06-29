@@ -94,10 +94,12 @@ def plot_3d_points(
 
     if not colors:
         unique_labels = list(dict.fromkeys(labels))
-        colors = {
-            label: px.colors.sample_colorscale('rainbow', [i / max(len(unique_labels) - 1, 1)])
-            for i, label in enumerate(unique_labels)
-        }
+        # Labels are categorical (one per species / Wyckoff site), so use a
+        # qualitative palette of distinct hues rather than sampling a continuous
+        # colorscale -- the latter puts a few categories close together (e.g. the
+        # magenta-to-red end of 'rainbow') and they read as shades of one colour.
+        palette = px.colors.qualitative.Plotly
+        colors = {label: palette[i % len(palette)] for i, label in enumerate(unique_labels)}
 
     # Show a single legend entry per label and tie every point of that label to
     # the same legendgroup, so clicking the legend toggles the whole species.
