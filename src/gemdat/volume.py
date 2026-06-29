@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import numpy as np
 import scipy.ndimage as ndi
@@ -162,6 +162,7 @@ class Volume:
         self,
         pad: int = 3,
         remove_outside: bool = True,
+        pbc_tol: float = 1.0,
         **kwargs,
     ) -> np.ndarray:
         """Find peaks using the [Difference of
@@ -179,6 +180,10 @@ class Volume:
         remove_outside : bool
             If True, remove peaks outside the lattice. Only applicable
             if pad > 0.
+        pbc_tol : float
+            Distance threshold (Ångstrom) for merging peaks that coincide only
+            across a periodic boundary (see
+            [gemdat.Volume._dedup_pbc_peaks][]). Set to 0 to disable.
         **kwargs
             Additional keyword arguments are passed to [skimage.feature.blob_dog][]
 
@@ -206,7 +211,74 @@ class Volume:
 
             coords = coords[c0 & c1 & c2]
 
-        return coords[:, 0:3].astype(int)
+        coords = coords[:, 0:3].astype(int)
+
+        if pbc_tol:
+            coords = self._dedup_pbc_peaks(coords, tol=pbc_tol)
+
+        return coords
+
+    def _dedup_pbc_peaks(self, coords: np.ndarray, *, tol: float = 1.0) -> np.ndarray:
+        """Merge peaks that coincide only across a periodic boundary.
+
+        ``blob_dog`` can detect a single site sitting on a cell face as two
+        peaks, one just inside each side of the face. Their minimum-image
+        distance is tiny, while their direct (non-wrapped) distance spans
+        almost the whole cell. Left in place, these wrap-duplicate peaks seed
+        two watershed basins for one physical site, splitting it into two
+        partially-occupied sites near opposite faces.
+
+        Each such cluster is collapsed to its highest-density peak. Genuinely
+        close interior sites are left untouched: their *direct* distance is
+        already below ``tol``, so they are not treated as a wrap artefact.
+
+        Parameters
+        ----------
+        coords : np.ndarray
+            Integer voxel coordinates of the peaks, shape ``(n, 3)``.
+        tol : float
+            Distance threshold in Ångstrom.
+
+        Returns
+        -------
+        np.ndarray
+            Deduplicated voxel coordinates.
+        """
+        n = len(coords)
+        if n < 2:
+            return coords
+
+        data = self.normalized()
+        frac = (coords + 0.5) / np.array(self.dims)
+
+        # Union-find over wrap-duplicate pairs.
+        parent = list(range(n))
+
+        def find(i: int) -> int:
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                dfrac = frac[i] - frac[j]
+                direct = np.linalg.norm(self.lattice.get_cartesian_coords(dfrac))
+                mic = np.linalg.norm(self.lattice.get_cartesian_coords(dfrac - np.round(dfrac)))
+                # Close only after wrapping around the cell -> same site.
+                if mic < tol <= direct:
+                    parent[find(i)] = find(j)
+
+        clusters: dict[int, list[int]] = {}
+        for i in range(n):
+            clusters.setdefault(find(i), []).append(i)
+
+        keep = []
+        for members in clusters.values():
+            intensities = [data[tuple(coords[m])] for m in members]
+            keep.append(members[int(np.argmax(intensities))])
+
+        return coords[sorted(keep)]
 
     def to_vasp_volume(
         self,
@@ -271,6 +343,39 @@ class Volume:
 
         return regionprops(labels, intensity_image=data)
 
+    def _props_to_occupancies(
+        self,
+        *,
+        props: list[RegionProperties],
+        n_frames: int,
+    ) -> np.ndarray:
+        """Compute the occupancy of each region.
+
+        The occupancy is the mean number of atoms residing on the site per
+        frame: the total number of (raw) coordinate counts inside the region
+        divided by `n_frames`. A value of 1.0 means the site is occupied by one
+        atom in every frame.
+
+        Note: this reads the *raw* counts from `self.data`, not the normalized
+        `intensity_image` stored on the regionprops. It must be called before
+        [gemdat.Volume._props_to_frac_coords_centroid][], which mutates
+        `prop.coords` in place.
+
+        Parameters
+        ----------
+        props : list[RegionProperties]
+            Regions as returned by [gemdat.Volume._peaks_to_props][]
+        n_frames : int
+            Number of frames the volume was generated from
+
+        Returns
+        -------
+        occupancies : np.ndarray
+            Occupancy per region
+        """
+        counts = [self.data[tuple(prop.coords.T)].sum() for prop in props]
+        return np.array(counts) / n_frames
+
     def _props_to_frac_coords_centroid(
         self,
         *,
@@ -304,6 +409,9 @@ class Volume:
         specie: str = 'X',
         background_level: float = 0.1,
         peaks: Optional[np.ndarray] = None,
+        return_occupancies: bool = False,
+        n_frames: int | None = None,
+        snap_to_lower: bool = False,
         **kwargs,
     ) -> Structure:
         """Converts a volume back to a structure using peak detection. Uses the
@@ -322,6 +430,21 @@ class Volume:
             Must be between 0 and 1
         peaks : Optional[np.ndarray]
             Voxel coordinates to use as starting points for watershed algorithm.
+        return_occupancies : bool
+            If True, assign a partial occupancy to each site, computed as the
+            integrated (raw) density of the region divided by `n_frames`. Sites
+            merged during deduplication have their occupancies summed.
+        n_frames : int | None
+            Number of frames the volume was generated from. Required when
+            `return_occupancies` is True.
+        snap_to_lower : bool
+            A site sitting on a cell face is equally ~0.0 or ~1.0, and `mod`
+            picks inconsistently between the two. If True, coordinates within
+            one voxel of the upper face are snapped to the lower end (0) so
+            on-face sites get a single canonical representation. This trades a
+            sub-voxel loss of precision for that consistency, so it is off by
+            default; enable it when you specifically want boundary sites
+            reported at the lower end of the axis.
         **kwargs : dict
             These keywords parameters are passed to [gemdat.Volume.find_peaks][].
             Only applies if `peaks == None`.
@@ -336,19 +459,38 @@ class Volume:
 
         props = self._peaks_to_props(peaks=peaks, background_level=background_level)
 
-        props_to_frac_coords = self._props_to_frac_coords_centroid
+        if len(props) == 0:
+            return Structure(lattice=self.lattice, species=[], coords=np.empty((0, 3)))
 
-        frac_coords = props_to_frac_coords(props=props)
+        if return_occupancies:
+            if n_frames is None:
+                raise ValueError('`n_frames` is required when `return_occupancies` is True.')
+            # Must run before `_props_to_frac_coords_centroid`, which mutates
+            # `prop.coords` in place.
+            occupancies = self._props_to_occupancies(props=props, n_frames=n_frames)
+            species: list = [{specie: occ} for occ in occupancies]
+            merge_mode: Literal['sum', 'average'] = 'sum'
+        else:
+            species = [specie for _ in props]
+            merge_mode = 'average'
+
+        frac_coords = self._props_to_frac_coords_centroid(props=props)
 
         frac_coords = np.mod(frac_coords, 1)
+
+        if snap_to_lower:
+            # Snap coordinates within one voxel of the upper face to the lower
+            # end (0) so on-face sites have one canonical representation.
+            snap = 1.0 / np.array(self.dims)
+            frac_coords[frac_coords > 1 - snap] = 0.0
 
         structure = Structure(
             lattice=self.lattice,
             coords=frac_coords,
-            species=[specie for _ in frac_coords],
+            species=species,
         )
 
-        structure.merge_sites(tol=0.1, mode='average')
+        structure.merge_sites(tol=0.1, mode=merge_mode)
 
         return structure
 
@@ -369,9 +511,14 @@ class Volume:
             Free energy in eV on the voxel grid
         """
         prob = self.probability()
-        free_energy = (
-            -temperature * physical_constants['Boltzmann constant in eV/K'][0] * np.log(prob)
-        )
+        # Empty voxels (never visited) have prob == 0; log(0) = -inf is expected
+        # here and is handled by nan_to_num below, so silence the warning.
+        with np.errstate(divide='ignore'):
+            free_energy = (
+                -temperature
+                * physical_constants['Boltzmann constant in eV/K'][0]
+                * np.log(prob)
+            )
 
         return FreeEnergyVolume(
             data=np.nan_to_num(free_energy),

@@ -8,6 +8,7 @@ from importlib.resources import files
 from pathlib import Path
 
 from pymatgen.core import Structure
+from pymatgen.io.cif import CifWriter
 
 DATA = Path(files('gemdat') / 'data')  # type: ignore
 
@@ -22,7 +23,7 @@ SUPERCELL = {
 }
 
 
-def write_cif(structure: Structure, filename: Path | str):
+def write_cif(structure: Structure, filename: Path | str, **kwargs):
     """Write structure to cif file using [pymatgen.io.cif.CifWriter][].
 
     Parameters
@@ -31,9 +32,31 @@ def write_cif(structure: Structure, filename: Path | str):
         Structure to save
     filename : Path | str
         Filename to write to
+    **kwargs : dict
+        Additional keyword arguments passed to
+        [pymatgen.io.cif.CifWriter][]. In particular, pass `symprec` to detect
+        and write the space group symmetry (otherwise the cif is written in P1).
     """
     filename = str(Path(filename).with_suffix('.cif'))
-    structure.to_file(filename)
+    CifWriter(structure, **kwargs).write_file(filename)
+
+
+def _strip_label_suffixes(structure: Structure) -> None:
+    """Strip pymatgen's `_1, _2, ...` site label suffixes in place.
+
+    When expanding symmetry (on read) or building a supercell, pymatgen
+    appends a numeric suffix to disambiguate the symmetry-equivalent copies
+    of a labelled site (e.g. `48h` -> `48h_1, 48h_2, ...`). Gemdat groups the
+    jump/transition analysis on these labels, so we strip the suffix to keep a
+    shared label per crystallographic site.
+
+    Parameters
+    ----------
+    structure : pymatgen.core.structure.Structure
+        Structure to relabel in place
+    """
+    for site in structure:
+        site.label = re.sub(r'_\d+$', '', site.label)
 
 
 def read_cif(filename: Path | str) -> Structure:
@@ -54,6 +77,8 @@ def read_cif(filename: Path | str) -> Structure:
         # Hide warning from https://github.com/materialsproject/pymatgen/pull/3419
         warnings.simplefilter('ignore')
         structure = Structure.from_file(filename, primitive=False)
+
+    _strip_label_suffixes(structure)
 
     return structure
 
@@ -87,11 +112,7 @@ def load_known_material(
 
     if supercell:
         structure.make_supercell(supercell)
-        # Newer pymatgen suffixes duplicate site labels with _1, _2, ... when
-        # building a supercell. Strip the suffix so symmetry-equivalent sites
-        # keep a shared label, which the jump/transition analysis groups on.
-        for site in structure:
-            site.label = re.sub(r'_\d+$', '', site.label)
+        _strip_label_suffixes(structure)
 
     return structure
 

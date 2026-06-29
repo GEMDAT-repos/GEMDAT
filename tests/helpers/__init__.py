@@ -18,10 +18,12 @@ image_comparison2 = partial(
 
 def assert_figures_similar(fig, *, name: str, ext: str = 'png', rms: float = 0.0):
     """Compare plotly figures and raise if different."""
-    # Ensure same font is used on different machines (local/CI)
+    # Ensure same font is used on different machines (local/CI). DejaVu Sans is
+    # bundled inside kaleido, so it renders identically everywhere without
+    # depending on a system-installed font (e.g. Arial).
     fig.update_layout(
-        font_family='Arial',
-        title_font_family='Arial',
+        font_family='DejaVu Sans',
+        title_font_family='DejaVu Sans',
     )
 
     # Get path of caller
