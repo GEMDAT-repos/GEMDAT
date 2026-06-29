@@ -511,9 +511,14 @@ class Volume:
             Free energy in eV on the voxel grid
         """
         prob = self.probability()
-        free_energy = (
-            -temperature * physical_constants['Boltzmann constant in eV/K'][0] * np.log(prob)
-        )
+        # Empty voxels (never visited) have prob == 0; log(0) = -inf is expected
+        # here and is handled by nan_to_num below, so silence the warning.
+        with np.errstate(divide='ignore'):
+            free_energy = (
+                -temperature
+                * physical_constants['Boltzmann constant in eV/K'][0]
+                * np.log(prob)
+            )
 
         return FreeEnergyVolume(
             data=np.nan_to_num(free_energy),
