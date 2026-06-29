@@ -222,6 +222,8 @@ def plot_volume(
         verts = (verts + 0.5) / np.array(data.shape)
         cart_verts = lattice.get_cartesian_coords(verts)
 
+        # Tie every isosurface to the same legendgroup and only show one legend
+        # entry, so clicking it toggles the whole density at once.
         fig.add_trace(
             go.Mesh3d(
                 x=cart_verts[:, 0],
@@ -230,10 +232,11 @@ def plot_volume(
                 i=faces[:, 0],
                 j=faces[:, 1],
                 k=faces[:, 2],
-                name=f'{isoval=}',
+                name='Density',
+                legendgroup='density',
                 opacity=alphavals[i],
                 color=colors[i],
-                showlegend=False,
+                showlegend=i == 0,
             )
         )
 
