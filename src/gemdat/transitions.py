@@ -15,6 +15,7 @@ from MDAnalysis.lib.pkdtree import PeriodicKDTree
 from pymatgen.core import Structure
 
 from .caching import weak_lru_cache
+from .io import _strip_label_suffixes
 from .metrics import TrajectoryMetrics
 from .utils import bfill, ffill, integer_remap, remove_partial_occupancies_from_structure
 
@@ -130,6 +131,11 @@ class Transitions:
         -------
         transitions: Transitions
         """
+        # `make_supercell` (and older pymatgen on symmetry expansion) appends a
+        # `_1, _2, ...` suffix to symmetry-equivalent site labels. Strip it so
+        # the transition/jump analysis and plots group on the shared label.
+        _strip_label_suffixes(sites)
+
         if not sites.is_ordered:
             if remove_part_occup_from_structure:
                 sites = remove_partial_occupancies_from_structure(structure=sites.copy())
