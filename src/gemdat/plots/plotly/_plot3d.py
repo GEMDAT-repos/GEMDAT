@@ -72,6 +72,7 @@ def plot_3d_points(
     fig: go.Figure,
     point_size: int = 5,
     colors: Optional[dict[str, str]] = None,
+    occupancies: Optional[Sequence[float]] = None,
 ):
     """Plot points using plotly.
 
@@ -89,17 +90,37 @@ def plot_3d_points(
         Mapping of colors for the each label.
         See the following link for a list of accepted colours:
         https://developer.mozilla.org/en-US/docs/Web/CSS/named-color
+    occupancies : Sequence[float], optional
+        Site occupancies, one per point. When given, the occupancy is shown in
+        the hover tooltip and summarised in the legend entry of each label.
     """
     assert len(points) == len(labels)
+    if occupancies is not None:
+        assert len(points) == len(occupancies)
+
+    unique_labels = list(dict.fromkeys(labels))
 
     if not colors:
-        unique_labels = list(dict.fromkeys(labels))
         # Labels are categorical (one per species / Wyckoff site), so use a
         # qualitative palette of distinct hues rather than sampling a continuous
         # colorscale -- the latter puts a few categories close together (e.g. the
         # magenta-to-red end of 'rainbow') and they read as shades of one colour.
         palette = px.colors.qualitative.Plotly
         colors = {label: palette[i % len(palette)] for i, label in enumerate(unique_labels)}
+
+    # Summarise occupancy per label for the legend: append the shared value when
+    # all sites of a label agree (and it is not 1), or the mean prefixed with '~'
+    # when they differ. Full occupancy is left implicit.
+    legend_names = {label: str(label) for label in unique_labels}
+    if occupancies is not None:
+        occ_arr = np.asarray(occupancies, dtype=float)
+        for label in unique_labels:
+            occ = occ_arr[[lab == label for lab in labels]]
+            if np.allclose(occ, occ[0]):
+                if not np.isclose(occ[0], 1.0):
+                    legend_names[label] = f'{label} ({occ[0]:.2f})'
+            else:
+                legend_names[label] = f'{label} (~{occ.mean():.2f})'
 
     # Show a single legend entry per label and tie every point of that label to
     # the same legendgroup, so clicking the legend toggles the whole species.
@@ -111,16 +132,24 @@ def plot_3d_points(
         show_in_legend = label not in seen_labels
         seen_labels.add(label)
 
+        # Occupancy is shown on hover only, so full-occupancy sites keep their
+        # original markers-only look.
+        hovertext = str(label)
+        if occupancies is not None:
+            hovertext = f'{label}<br>occupancy: {occupancies[i]:.2f}'
+
         fig.add_trace(
             go.Scatter3d(
                 x=[x],
                 y=[y],
                 z=[z],
                 mode='markers',
-                name=label,
+                name=legend_names[label],
                 legendgroup=label,
                 marker={'size': point_size, 'color': color, 'line': {'width': 2.5}},
                 showlegend=show_in_legend,
+                hovertext=[hovertext],
+                hovertemplate='%{hovertext}<extra></extra>',
             )
         )
 
@@ -144,7 +173,11 @@ def plot_structure(structure: Structure, *, lattice: Lattice | None = None, fig:
         cart_coords = structure.cart_coords
         plot_lattice_vectors(structure.lattice, fig=fig)
 
-    plot_3d_points(cart_coords, labels=structure.labels, fig=fig)
+    # `num_atoms` is the total occupancy of the site composition (1.0 for
+    # ordinary, fully-occupied structures).
+    occupancies = [site.species.num_atoms for site in structure]
+
+    plot_3d_points(cart_coords, labels=structure.labels, occupancies=occupancies, fig=fig)
 
 
 def plot_volume(
