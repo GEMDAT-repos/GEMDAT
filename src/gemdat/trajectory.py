@@ -460,6 +460,7 @@ class Trajectory(PymatgenTrajectory):
             lattices = [Lattice.from_parameters(*ts.dimensions) for ts in utraj.trajectory]
             for ts, lat in enumerate(lattices):
                 coords[ts, :, :] = lat.get_fractional_coords(coords[ts, :, :])
+            lattice = lattices
         else:
             lattice = Lattice.from_parameters(*utraj.trajectory[0].dimensions)
             coords = lattice.get_fractional_coords(coords)
@@ -659,21 +660,16 @@ class Trajectory(PymatgenTrajectory):
         symbols = [getattr(s, 'symbol', str(s)) for s in self.species]
 
         constant_lattice = bool(getattr(self, 'constant_lattice', True))
-        lattice = (
-            self.get_lattice()
-            if hasattr(self, 'get_lattice')
-            else getattr(self, 'lattice', None)
-        )
 
         with AseTrajectory(str(filename), mode='w') as out:
             if constant_lattice:
-                cell = _as_cell(lattice)
+                cell = _as_cell(self.get_lattice())
                 atoms = Atoms(symbols=symbols, cell=cell, pbc=True)
                 for f in frac:
                     atoms.set_scaled_positions(f)
                     out.write(atoms)
             else:
-                lattices = np.asarray(lattice, dtype=float)
+                lattices = np.asarray(self.lattice, dtype=float)
                 lattices = lattices[::stride]
                 atoms = Atoms(symbols=symbols, pbc=True)
                 for f, lat in zip(frac, lattices):
@@ -689,15 +685,26 @@ class Trajectory(PymatgenTrajectory):
         Parameters
         ----------
         idx : int | None, optional
-            Optionally, get lattice at specified index if the lattice is not constant
+            Frame index of the lattice to return. Required when the lattice is not
+            constant; ignored when it is.
 
         Returns
         -------
         lattice : pymatgen.core.lattice.Lattice
             Pymatgen Lattice object
+
+        Raises
+        ------
+        ValueError
+            If the lattice is not constant and no frame index is given.
         """
         if self.constant_lattice:
             return Lattice(self.lattice)  # type: ignore
+
+        if idx is None:
+            raise ValueError(
+                'Lattice is not constant; a frame index must be given to get_lattice().'
+            )
 
         latt = self.lattice[idx]  # type: ignore
         return Lattice(latt)
@@ -716,18 +723,21 @@ class Trajectory(PymatgenTrajectory):
         """Return total distances from base positions.
 
         Ignores periodic boundary conditions.
-        """
-        lattice = self.get_lattice()
 
+        For a non-constant (e.g. NPT) lattice, each frame is converted
+        to cartesian coordinates using that frame's own lattice.
+        """
         all_distances = []
 
-        for diff_vectors in self.cumulative_displacements:
-            distances = _lengths(diff_vectors, lattice=lattice)
-            all_distances.append(distances)
+        if self.constant_lattice:
+            lattice = self.get_lattice()
+            for diff_vectors in self.cumulative_displacements:
+                all_distances.append(_lengths(diff_vectors, lattice=lattice))
+        else:
+            for idx, diff_vectors in enumerate(self.cumulative_displacements):
+                all_distances.append(_lengths(diff_vectors, lattice=self.get_lattice(idx)))
 
-        all_distances = np.array(all_distances).T
-
-        return all_distances
+        return np.array(all_distances).T
 
     def center_of_mass(self) -> Trajectory:
         """Return trajectory with center of mass for positions."""
@@ -743,7 +753,8 @@ class Trajectory(PymatgenTrajectory):
         return self.__class__(
             species=['X'],
             coords=center_of_mass,
-            lattice=self.get_lattice(),
+            lattice=self.lattice,
+            constant_lattice=self.constant_lattice,
             metadata=self.metadata,
             time_step=self.time_step,
         )
@@ -823,7 +834,8 @@ class Trajectory(PymatgenTrajectory):
         return self.__class__(
             species=self.species,
             coords=self.displacements - drift,
-            lattice=self.get_lattice(),
+            lattice=self.lattice,
+            constant_lattice=self.constant_lattice,
             metadata=self.metadata,
             coords_are_displacement=True,
             base_positions=self.base_positions,
@@ -901,8 +913,12 @@ class Trajectory(PymatgenTrajectory):
         computing-mean-square-displacement-using-python-and-fft].
         """
         r = self.cumulative_displacements
-        lattice = self.get_lattice()
-        r = lattice.get_cartesian_coords(r)
+        if self.constant_lattice:
+            r = self.get_lattice().get_cartesian_coords(r)
+        else:
+            # Convert each frame with its own lattice (e.g. NPT).
+            matrices = np.asarray(self.lattice, dtype=float)
+            r = np.einsum('fai,fik->fak', r, matrices)
 
         pos = np.transpose(r, (1, 0, 2))
         n_times = pos.shape[1]

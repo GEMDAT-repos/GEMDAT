@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 import scipp as sc
 from numpy.testing import assert_allclose
 from pymatgen.core import Lattice, Species
@@ -43,6 +44,87 @@ def test_get_lattice(trajectory):
 
     assert isinstance(lattice, Lattice)
     assert lattice == expected_lattice
+
+
+def _variable_lattice_trajectory():
+    """Trajectory with a per-frame (non-constant) lattice, as in an NPT run."""
+    coords = np.array(
+        [
+            [[0.2, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.4, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.6, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        ]
+    )
+    lattices = np.array([np.eye(3) * s for s in (1.0, 1.1, 1.2)])
+    return Trajectory(
+        species=[Species('Li'), Species('S')],
+        coords=coords,
+        lattice=lattices,
+        constant_lattice=False,
+        metadata={'temperature': 123},
+        time_step=1,
+    )
+
+
+def test_get_lattice_variable():
+    # See GitHub issue #394: get_lattice() without an index used to crash for
+    # a non-constant lattice.
+    traj = _variable_lattice_trajectory()
+
+    # With an index, return that frame's lattice.
+    assert traj.get_lattice(0) == Lattice(np.eye(3))
+    assert traj.get_lattice(1) == Lattice(np.eye(3) * 1.1)
+    assert traj.get_lattice(2) == Lattice(np.eye(3) * 1.2)
+
+    # Without an index, a non-constant lattice is ambiguous -> raise.
+    with pytest.raises(ValueError, match='not constant'):
+        traj.get_lattice()
+
+
+def test_filter_variable_lattice():
+    # issue #394: filter() must preserve the per-frame lattice.
+    traj = _variable_lattice_trajectory()
+    filtered = traj.filter('Li')
+
+    assert filtered.species == [Species('Li')]
+    assert filtered.constant_lattice is False
+    assert_allclose(filtered.lattice, traj.lattice)
+
+
+def test_mean_squared_displacement_variable_lattice():
+    # issue #394: mean_squared_displacement() called get_lattice() with no index.
+    traj = _variable_lattice_trajectory()
+    msd = traj.mean_squared_displacement()
+
+    assert msd.shape == (2, 3)
+
+
+def test_mean_squared_displacement_variable_matches_constant():
+    # When every frame's lattice is identical, the per-frame path must match the
+    # constant-lattice path exactly.
+    coords = np.array(
+        [
+            [[0.2, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.4, 0.1, 0.0], [0.0, 0.0, 0.5]],
+            [[0.6, 0.2, 0.1], [0.0, 0.0, 0.5]],
+        ]
+    )
+    lattice = np.diag([2.0, 3.0, 4.0])
+
+    kwargs = dict(
+        species=[Species('Li'), Species('S')],
+        coords=coords,
+        metadata={'temperature': 123},
+        time_step=1,
+    )
+    const = Trajectory(lattice=lattice, constant_lattice=True, **kwargs)
+    var = Trajectory(
+        lattice=np.array([lattice, lattice, lattice]),
+        constant_lattice=False,
+        **kwargs,
+    )
+
+    assert_allclose(var.mean_squared_displacement(), const.mean_squared_displacement())
 
 
 def test_caching(trajectory, tmpdir):
