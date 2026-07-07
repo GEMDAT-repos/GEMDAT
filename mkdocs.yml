@@ -6,6 +6,7 @@ repo_name: GitHub
 nav:
   - Home: index.md
   - Getting started: getting_started.md
+  - FAQ: faq.md
   - Visualization: plotting.md
   - Dashboard: dashboard.md
   - Tutorials:
@@ -32,6 +33,7 @@ nav:
     - gemdat.plots: api/gemdat_plots.md
     - gemdat.rdf: api/gemdat_rdf.md
     - gemdat.metrics: api/gemdat_metrics.md
+    - gemdat.shape: api/gemdat_shape.md
     - gemdat.trajectory: api/gemdat_trajectory.md
     - gemdat.transitions: api/gemdat_transitions.md
     - gemdat.jumps: api/gemdat_jumps.md
