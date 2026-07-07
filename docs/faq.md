@@ -73,7 +73,7 @@ See [issue #371](https://github.com/GEMDAT-repos/GEMDAT/issues/371).
 ### My sites are rotated or distorted compared to the ideal structure — what should I do?
 
 Different layers of a structure can distort differently during the MD, and the
-diffusion probability density faithfully reports what the simulation produces —
+diffusion probability density reports what the simulation produces —
 so an apparent rotation of the occupied sites relative to the ideal crystal is
 usually a real physical effect rather than an artifact.
 
@@ -94,7 +94,7 @@ See [issue #370](https://github.com/GEMDAT-repos/GEMDAT/issues/370).
 The vibration amplitude reported by
 [`TrajectoryMetrics.vibration_amplitude`][gemdat.metrics.TrajectoryMetrics.vibration_amplitude]
 is a **global empirical displacement measure referenced to each ion's initial
-position**, not a local per-site rattling amplitude.
+position**, not a local per-site amplitude.
 
 Concretely, GEMDAT works from the scalar distance of each ion to its base
 position — the first frame, `coords[0]` — using the full trajectory without any
