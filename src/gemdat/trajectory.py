@@ -757,18 +757,23 @@ class Trajectory(PymatgenTrajectory):
         """Compute drift by averaging the displacement from the base positions
         per frame.
 
-        If no species are specified, use all species to calculate drift.
+        Drift is always computed from the displacement of the *fixed*
+        (framework) species. `fixed_species` names them directly, while
+        `floating_species` names the complement: the fixed species are taken
+        to be every other species in the trajectory. The two arguments are
+        just two ways to select the same fixed set; only one should be given.
 
-        Only one of `fixed_species` and `floating_species` should be specified.
+        If neither is specified, all species are used to calculate drift.
 
         Parameters
         ----------
         fixed_species : None | str | Collection[str]
-            These species are assumed fixed, and are used to calculate drift
-            (e.g. framework species).
+            The fixed (e.g. framework) species. Their displacement is averaged
+            to obtain the drift.
         floating_species : None | str | Collection[str]
-            These species are assumed floating, and is used to determine the
-            fixed species.
+            The floating (diffusing) species. Drift is computed from every
+            species *except* these, i.e. this selects the fixed species by
+            exclusion.
 
         Returns
         -------
@@ -800,20 +805,22 @@ class Trajectory(PymatgenTrajectory):
     ) -> Trajectory:
         """Apply drift correction to trajectory.
 
+        Drift is always computed from the displacement of the *fixed*
+        (framework) species; `floating_species` selects those by exclusion.
         For details see [drift()][gemdat.trajectory.Trajectory.drift].
 
-        If no species are specified, use all species to calculate drift.
-
-        Only one of `fixed_species` and `floating_species` should be specified.
+        If neither is specified, all species are used to calculate drift.
+        Only one of `fixed_species` and `floating_species` should be given.
 
         Parameters
         ----------
         fixed_species : None | str | Collection[str]
-            These species are assumed fixed, and are used to calculate
-            drift (e.g. framework species).
+            The fixed (e.g. framework) species. Their displacement is averaged
+            to obtain the drift.
         floating_species : None | str | Collection[str]
-            These species are assumed floating, and is used to determine
-            the fixed species.
+            The floating (diffusing) species. Drift is computed from every
+            species *except* these, i.e. this selects the fixed species by
+            exclusion.
 
         Returns
         -------
