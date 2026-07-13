@@ -31,6 +31,7 @@ jobs:
       - name: Extract Test Data
         run: |
           tar -C tests/data/short_simulation -xjf tests/data/short_simulation/vasprun.xml.bz2
+          tar -C tests/data/short_simulation_npt -xjf tests/data/short_simulation_npt/vasprun_npt.xml.bz2
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
