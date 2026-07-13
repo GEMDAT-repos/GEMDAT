@@ -16,6 +16,7 @@ from gemdat.volume import trajectory_to_volume
 DATA_DIR = Path(__file__).parents[1] / 'data'
 VASP_XML = DATA_DIR / 'short_simulation' / 'vasprun.xml'
 VASP_ORI_CACHE = DATA_DIR / 'short_simulation' / 'vasprun_rotations.cache'
+VASP_NPT_XML = DATA_DIR / 'short_simulation_npt' / 'vasprun_npt.xml'
 
 
 def pytest_configure():
@@ -37,6 +38,15 @@ def pytest_configure():
             '-xjf tests/data/short_simulation/vasprun.xml.bz2`'
         ),
     )
+    pytest.npt_vaspxml_available = pytest.mark.skipif(
+        not VASP_NPT_XML.exists(),
+        reason=(
+            'NPT (variable-lattice) vasprun example is required for this test. '
+            'Run `git submodule init`/`update`, and extract using '
+            '`tar -C tests/data/short_simulation_npt '
+            '-xjf tests/data/short_simulation_npt/vasprun_npt.xml.bz2`'
+        ),
+    )
 
 
 @pytest.fixture(scope='module')
@@ -56,6 +66,12 @@ def vasp_traj_orientations():
 def vasp_full_traj():
     trajectory = Trajectory.from_vasprun(VASP_XML)
     return trajectory
+
+
+@pytest.fixture(scope='module')
+def npt_traj():
+    # Variable-lattice (NPT, ISIF=3) run; see GEMDAT issue #394.
+    return Trajectory.from_vasprun(VASP_NPT_XML, constant_lattice=False)
 
 
 @pytest.fixture(scope='module')
