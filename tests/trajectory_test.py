@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import scipp as sc
 from numpy.testing import assert_allclose
-from pymatgen.core import Lattice, Species
+from pymatgen.core import Element, Lattice, Species
 
 from gemdat.trajectory import Trajectory
 
@@ -108,6 +108,30 @@ def test_drift_correction(trajectory):
 
     # drift must now be effectively removed
     assert_allclose(global_drift2, [[0.0, 0.0, 0.0]])
+
+
+def test_drift_floating_species(trajectory):
+    # 'C' is the only floating species, so the fixed set is B, Si, S, matching
+    # fixed_species=['B', 'Si', 'S']
+    drift = trajectory.drift(floating_species='C')
+    assert drift.shape == (5, 1, 3)
+    assert not np.isnan(drift).any()
+    assert_allclose(drift, trajectory.drift(fixed_species=['B', 'Si', 'S']))
+
+
+def test_drift_floating_species_element(trajectory):
+    # Trajectories from e.g. from_vasprun carry Element (not Species) sites;
+    # drift(floating_species=...) must accept those too (issue #406).
+    element_traj = Trajectory(
+        species=[Element(sp.symbol) for sp in trajectory.species],
+        coords=trajectory.positions,
+        lattice=trajectory.lattice,
+        metadata=trajectory.metadata,
+        time_step=trajectory.time_step,
+    )
+    drift = element_traj.drift(floating_species='C')
+    assert drift.shape == (5, 1, 3)
+    assert_allclose(drift, trajectory.drift(floating_species='C'))
 
 
 def test_distances_from_base_position(trajectory):

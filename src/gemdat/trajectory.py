@@ -778,13 +778,15 @@ class Trajectory(PymatgenTrajectory):
         if fixed_species:
             displacements = self.filter(species=fixed_species).displacements
         elif floating_species:
-            species = set()
+            if isinstance(floating_species, str):
+                floating_species = [floating_species]
+            fixed_symbols = set()
             for sp in self.species:
-                assert isinstance(sp, Species), f'got {type(sp)=}'
+                assert isinstance(sp, (Species, Element)), f'got {type(sp)=}'
                 if sp.symbol not in floating_species:
-                    species.add(sp)
+                    fixed_symbols.add(sp.symbol)
 
-            displacements = self.filter(species=species).displacements  # type: ignore
+            displacements = self.filter(species=fixed_symbols).displacements
         else:
             displacements = self.displacements
 
