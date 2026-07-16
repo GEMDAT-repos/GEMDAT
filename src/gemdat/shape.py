@@ -158,7 +158,8 @@ class ShapeAnalyzer:
 
     @classmethod
     def from_structure(cls, structure: Structure):
-        """Construct instance from [Structure][pymatgen.core.Structure].
+        """Construct instance from
+        [Structure][pymatgen.core.structure.Structure].
 
         The input structure will be symmetrized using
         [SpacegroupAnalyzer][pymatgen.symmetry.analyzer.SpacegroupAnalyzer].
@@ -239,7 +240,8 @@ class ShapeAnalyzer:
     ) -> list[ShapeData]:
         """Perform shape analysis on trajectory.
 
-        Similar to [analyze_positions()][ShapeAnalyzer.analyze_positions]. Handles
+        Similar to
+        [analyze_positions()][gemdat.shape.ShapeAnalyzer.analyze_positions]. Handles
         coordinate conversion it trajectory is a supercell of the structure used to
         instantiate this class. The trajectory lattice must be similar or a
         supercell thereof.
@@ -254,7 +256,7 @@ class ShapeAnalyzer:
             lattice.
         radius : float, optional
             Cluster symmetrically equivalent positions
-            within this distance from [unique_sites][ShapeAnalyzer.unique_sites].
+            within this distance from the analyzer's `sites`.
 
         Returns
         -------
@@ -292,7 +294,7 @@ class ShapeAnalyzer:
             lattice.
         radius : float, optional
             Cluster symmetrically equivalent positions
-            within this distance from [unique_sites][ShapeAnalyzer.unique_sites].
+            within this distance from the analyzer's `sites`.
 
         Returns
         -------

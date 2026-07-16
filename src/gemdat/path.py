@@ -149,11 +149,6 @@ class Pathway:
         """See [gemdat.plots.energy_along_path][] for more info."""
         return module.energy_along_path(path=self, **kwargs)
 
-    @plot_backend
-    def plot_path_on_grid(self, module, **kwargs):
-        """See [gemdat.plots.path_on_grid][] for more info."""
-        return module.path_on_grid(path=self, **kwargs)
-
 
 def free_energy_graph(
     F: np.ndarray | FreeEnergyVolume,
