@@ -14,47 +14,27 @@ plots.radial_distribution(rdfs)
 
 All plotting functions take a [gemdat.Trajectory][], [gemdat.Jumps][], [gemdat.Transitions][], [gemdat.rdf.RDFData][] or a combination as input. In addition, for some plots you have a few parameters to tune the output.
 
+All available plots are documented in the [gemdat.plots API reference](api/gemdat_plots.md). Some highlights are listed below.
 
 ## Trajectory and displacements plots
 
-::: gemdat.plots
-    options:
-      show_root_toc_entry: false
-      heading_level: 3
-      members:
-        - displacement_per_atom
-        - displacement_per_element
-        - displacement_histogram
-
+- [gemdat.plots.displacement_per_atom][]
+- [gemdat.plots.displacement_per_element][]
+- [gemdat.plots.displacement_histogram][]
 
 ## Simulation metrics plots
 
-::: gemdat.plots
-    options:
-      show_root_toc_entry: false
-      heading_level: 3
-      members:
-        - frequency_vs_occurence
-        - vibrational_amplitudes
+- [gemdat.plots.frequency_vs_occurence][]
+- [gemdat.plots.vibrational_amplitudes][]
 
 ## Jumps and transition plots
 
-::: gemdat.plots
-    options:
-      show_root_toc_entry: false
-      heading_level: 3
-      members:
-        - jumps_vs_distance
-        - jumps_vs_time
-        - collective_jumps
-        - jumps_3d
-        - jumps_3d_animation
+- [gemdat.plots.jumps_vs_distance][]
+- [gemdat.plots.jumps_vs_time][]
+- [gemdat.plots.collective_jumps][]
+- [gemdat.plots.jumps_3d][]
+- [gemdat.plots.jumps_3d_animation][]
 
 ## Radial distribution plots
 
-::: gemdat.plots
-    options:
-      show_root_toc_entry: false
-      heading_level: 3
-      members:
-        - radial_distribution
+- [gemdat.plots.radial_distribution][]
