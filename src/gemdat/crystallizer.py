@@ -21,8 +21,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class CrystallizerResult:
-    """Container for the result of
-    [Crystallizer.crystallize][gemdat.crystallizer.Crystallizer.crystallize].
+    """Result of [crystallize][gemdat.crystallizer.Crystallizer.crystallize].
 
     Parameters
     ----------
