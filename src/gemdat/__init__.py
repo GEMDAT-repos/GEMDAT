@@ -11,7 +11,7 @@ from .trajectory import Trajectory
 from .transitions import Transitions
 from .volume import Volume, trajectory_to_volume
 
-__version__ = '1.7.2'
+__version__ = '1.7.3'
 __all__ = [
     'Crystallizer',
     'CrystallizerResult',
