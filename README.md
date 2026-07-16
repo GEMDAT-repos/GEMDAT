@@ -101,7 +101,7 @@ metrics.vibration_amplitude()
 
 ## Development
 
-Check out our [Contributing Guidelines](CONTRIBUTING.md#Getting-started-with-development) to get started with development.
+Check out our [Contributing Guidelines](CONTRIBUTING.md#getting-started-with-development) to get started with development.
 
 ## How to Cite
 

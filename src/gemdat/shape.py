@@ -23,8 +23,8 @@ class ShapeData:
 
     Parameters
     ----------
-    name : str
-        Name or label for associated with this shape
+    site : PeriodicSite
+        Site associated with this shape
     coords : np.ndarray
         (n, 3) coordinate array in cartesian system (Å)
     radius : float
@@ -158,7 +158,8 @@ class ShapeAnalyzer:
 
     @classmethod
     def from_structure(cls, structure: Structure):
-        """Construct instance from [Structure][pymatgen.core.Structure].
+        """Construct instance from
+        [Structure][pymatgen.core.structure.Structure].
 
         The input structure will be symmetrized using
         [SpacegroupAnalyzer][pymatgen.symmetry.analyzer.SpacegroupAnalyzer].
@@ -239,7 +240,8 @@ class ShapeAnalyzer:
     ) -> list[ShapeData]:
         """Perform shape analysis on trajectory.
 
-        Similar to [analyze_positions()][ShapeAnalyzer.analyze_positions]. Handles
+        Similar to
+        [analyze_positions()][gemdat.shape.ShapeAnalyzer.analyze_positions]. Handles
         coordinate conversion it trajectory is a supercell of the structure used to
         instantiate this class. The trajectory lattice must be similar or a
         supercell thereof.
@@ -254,7 +256,7 @@ class ShapeAnalyzer:
             lattice.
         radius : float, optional
             Cluster symmetrically equivalent positions
-            within this distance from [unique_sites][ShapeAnalyzer.unique_sites].
+            within this distance from the analyzer's `sites`.
 
         Returns
         -------
@@ -286,13 +288,9 @@ class ShapeAnalyzer:
         positions : np.ndarray
             (n, 3) input array fractional coordinates. These must correspond to
             the same lattice as the structure used to instantiate this class.
-        supercell : None | tuple[float, float, float], optional
-            If the trajectory is in a supercell of the input structure,
-            the given supercell used to fold trajectory positions into same
-            lattice.
         radius : float, optional
             Cluster symmetrically equivalent positions
-            within this distance from [unique_sites][ShapeAnalyzer.unique_sites].
+            within this distance from the analyzer's `sites`.
 
         Returns
         -------

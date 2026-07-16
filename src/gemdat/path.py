@@ -149,11 +149,6 @@ class Pathway:
         """See [gemdat.plots.energy_along_path][] for more info."""
         return module.energy_along_path(path=self, **kwargs)
 
-    @plot_backend
-    def plot_path_on_grid(self, module, **kwargs):
-        """See [gemdat.plots.path_on_grid][] for more info."""
-        return module.path_on_grid(path=self, **kwargs)
-
 
 def free_energy_graph(
     F: np.ndarray | FreeEnergyVolume,
@@ -317,7 +312,7 @@ def optimal_n_paths(
         - 'bellman-ford': Bellman-Ford algorithm
         - 'minmax-energy': Minmax energy algorithm
         - 'dijkstra-exp': Dijkstra's algorithm with exponential weights
-    Npaths : int
+    n_paths : int
         Number of paths to be calculated
     min_diff : float
         Minimum difference between the paths
