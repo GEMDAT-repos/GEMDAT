@@ -312,7 +312,7 @@ def optimal_n_paths(
         - 'bellman-ford': Bellman-Ford algorithm
         - 'minmax-energy': Minmax energy algorithm
         - 'dijkstra-exp': Dijkstra's algorithm with exponential weights
-    Npaths : int
+    n_paths : int
         Number of paths to be calculated
     min_diff : float
         Minimum difference between the paths

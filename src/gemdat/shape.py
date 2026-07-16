@@ -23,8 +23,8 @@ class ShapeData:
 
     Parameters
     ----------
-    name : str
-        Name or label for associated with this shape
+    site : PeriodicSite
+        Site associated with this shape
     coords : np.ndarray
         (n, 3) coordinate array in cartesian system (Å)
     radius : float
@@ -288,10 +288,6 @@ class ShapeAnalyzer:
         positions : np.ndarray
             (n, 3) input array fractional coordinates. These must correspond to
             the same lattice as the structure used to instantiate this class.
-        supercell : None | tuple[float, float, float], optional
-            If the trajectory is in a supercell of the input structure,
-            the given supercell used to fold trajectory positions into same
-            lattice.
         radius : float, optional
             Cluster symmetrically equivalent positions
             within this distance from the analyzer's `sites`.
