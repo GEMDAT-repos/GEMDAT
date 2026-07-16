@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 @dataclass
 class CrystallizerResult:
     """Container for the result of
-    [Crystallizer.crystallize][gemdat.crystallize r.Crystallizer.crystallize].
+    [Crystallizer.crystallize][gemdat.crystallizer.Crystallizer.crystallize].
 
     Parameters
     ----------
@@ -71,7 +71,7 @@ class Crystallizer:
             species are treated as the static framework.
         resolution : float
             Minimum resolution for the density voxels in Ångstrom, passed to
-            [gemdat.Trajectory.to_volume][].
+            [gemdat.trajectory.Trajectory.to_volume][].
         """
         self.trajectory = trajectory
         self.floating_specie = floating_specie
@@ -124,9 +124,9 @@ class Crystallizer:
         ----------
         background_level : float
             Fraction of the maximum density used as the segmentation floor, see
-            [gemdat.Volume.to_structure][].
+            [gemdat.volume.Volume.to_structure][].
         **find_peaks_kwargs : dict
-            Passed through to [gemdat.Volume.find_peaks][].
+            Passed through to [gemdat.volume.Volume.find_peaks][].
 
         Returns
         -------
@@ -233,7 +233,7 @@ class Crystallizer:
         background_level : float
             Fraction of the maximum density used as the segmentation floor.
         **find_peaks_kwargs : dict
-            Passed through to [gemdat.Volume.find_peaks][].
+            Passed through to [gemdat.volume.Volume.find_peaks][].
 
         Returns
         -------

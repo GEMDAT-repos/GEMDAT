@@ -182,8 +182,8 @@ class Volume:
             if pad > 0.
         pbc_tol : float
             Distance threshold (Ångstrom) for merging peaks that coincide only
-            across a periodic boundary (see
-            [gemdat.Volume._dedup_pbc_peaks][]). Set to 0 to disable.
+            across a periodic boundary (see `Volume._dedup_pbc_peaks`).
+            Set to 0 to disable.
         **kwargs
             Additional keyword arguments are passed to [skimage.feature.blob_dog][]
 
