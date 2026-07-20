@@ -768,18 +768,23 @@ class Trajectory(PymatgenTrajectory):
         """Compute drift by averaging the displacement from the base positions
         per frame.
 
-        If no species are specified, use all species to calculate drift.
+        Drift is always computed from the displacement of the *fixed*
+        (framework) species. `fixed_species` names them directly, while
+        `floating_species` names the complement: the fixed species are taken
+        to be every other species in the trajectory. The two arguments are
+        just two ways to select the same fixed set; only one should be given.
 
-        Only one of `fixed_species` and `floating_species` should be specified.
+        If neither is specified, all species are used to calculate drift.
 
         Parameters
         ----------
         fixed_species : None | str | Collection[str]
-            These species are assumed fixed, and are used to calculate drift
-            (e.g. framework species).
+            The fixed (e.g. framework) species. Their displacement is averaged
+            to obtain the drift.
         floating_species : None | str | Collection[str]
-            These species are assumed floating, and is used to determine the
-            fixed species.
+            The floating (diffusing) species. Drift is computed from every
+            species *except* these, i.e. this selects the fixed species by
+            exclusion.
 
         Returns
         -------
@@ -789,13 +794,15 @@ class Trajectory(PymatgenTrajectory):
         if fixed_species:
             displacements = self.filter(species=fixed_species).displacements
         elif floating_species:
-            species = set()
+            if isinstance(floating_species, str):
+                floating_species = [floating_species]
+            fixed_symbols = set()
             for sp in self.species:
-                assert isinstance(sp, Species), f'got {type(sp)=}'
+                assert isinstance(sp, (Species, Element)), f'got {type(sp)=}'
                 if sp.symbol not in floating_species:
-                    species.add(sp)
+                    fixed_symbols.add(sp.symbol)
 
-            displacements = self.filter(species=species).displacements  # type: ignore
+            displacements = self.filter(species=fixed_symbols).displacements
         else:
             displacements = self.displacements
 
@@ -809,20 +816,22 @@ class Trajectory(PymatgenTrajectory):
     ) -> Trajectory:
         """Apply drift correction to trajectory.
 
+        Drift is always computed from the displacement of the *fixed*
+        (framework) species; `floating_species` selects those by exclusion.
         For details see [drift()][gemdat.trajectory.Trajectory.drift].
 
-        If no species are specified, use all species to calculate drift.
-
-        Only one of `fixed_species` and `floating_species` should be specified.
+        If neither is specified, all species are used to calculate drift.
+        Only one of `fixed_species` and `floating_species` should be given.
 
         Parameters
         ----------
         fixed_species : None | str | Collection[str]
-            These species are assumed fixed, and are used to calculate
-            drift (e.g. framework species).
+            The fixed (e.g. framework) species. Their displacement is averaged
+            to obtain the drift.
         floating_species : None | str | Collection[str]
-            These species are assumed floating, and is used to determine
-            the fixed species.
+            The floating (diffusing) species. Drift is computed from every
+            species *except* these, i.e. this selects the fixed species by
+            exclusion.
 
         Returns
         -------

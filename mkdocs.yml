@@ -6,6 +6,7 @@ repo_name: GitHub
 nav:
   - Home: index.md
   - Getting started: getting_started.md
+  - FAQ: faq.md
   - Visualization: plotting.md
   - Dashboard: dashboard.md
   - Tutorials:
@@ -25,13 +26,18 @@ nav:
     - Multiple paths: notebooks/multiple_paths.ipynb
     - Orientation tracking: notebooks/orientations.ipynb
     - GOAC integration: notebooks/goac_integration_demo.ipynb
+    - Crystallizer mobile sites: notebooks/crystallizer.ipynb
+    - Crystallizer immobile sites: notebooks/crystallizer_framework.ipynb
   - Python API:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md
+    - gemdat.crystallizer: api/gemdat_crystallizer.md
     - gemdat.io: api/gemdat_io.md
+    - gemdat.path: api/gemdat_path.md
     - gemdat.plots: api/gemdat_plots.md
     - gemdat.rdf: api/gemdat_rdf.md
-    - gemdat.metrics: api/gemdat_metrics.md
+    - gemdat.metrics: api/gemdat_simulation_metrics.md
+    - gemdat.shape: api/gemdat_shape.md
     - gemdat.trajectory: api/gemdat_trajectory.md
     - gemdat.transitions: api/gemdat_transitions.md
     - gemdat.jumps: api/gemdat_jumps.md
@@ -62,7 +68,6 @@ markdown_extensions:
       generic: true
 
 extra_javascript:
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 plugins:

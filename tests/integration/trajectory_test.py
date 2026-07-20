@@ -38,7 +38,9 @@ def test_volume_to_structure_centroid(vasp_vol):
     structure = vasp_vol.to_structure(specie='Li', pad=5)
 
     assert isinstance(structure, Structure)
-    assert len(structure) == 157
+    # 155, not 157: two sites that were split across a periodic boundary into
+    # duplicate basins are now merged by the PBC peak dedup in find_peaks.
+    assert len(structure) == 155
     assert np.min(structure.frac_coords) >= 0
     assert np.max(structure.frac_coords) < 1
     assert all(sp.symbol == 'Li' for sp in structure.species)
