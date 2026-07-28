@@ -95,6 +95,8 @@ from pymatgen.core.lattice import Lattice
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from tqdm import tqdm
 
+from gemdat.utils import DATA
+
 try:
     import GOAC
     from GOAC.IterationProblem import Iteration_Problem
@@ -106,7 +108,7 @@ except ImportError as exc:  # pragma: no cover - optional dependency
         'https://github.com/GEMDAT-repos/GOAC/releases/expanded_assets/0.1.1'
     ) from exc
 
-DEFAULT_CIF = Path(__file__).parent / 'data' / 'Li3YCl3Br3-c2m.cif'
+DEFAULT_CIF = Path(str(DATA / 'Li3YCl3Br3-c2m.cif'))
 
 # Formal charges. Cl- and Br- are given the same charge on purpose: to a point-charge
 # model they are indistinguishable, so halogen ordering cannot change the energy (the
