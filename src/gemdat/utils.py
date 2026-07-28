@@ -22,6 +22,7 @@ VASPCACHE_ORIENTATIONS = (
 )
 
 DATA = files('gemdat') / 'data'
+SCRIPTS_DIR = Path(__file__).parents[2] / 'scripts'
 
 
 def nearest_structure_reference(structure: Structure) -> tuple[cKDTree, list[int]]:

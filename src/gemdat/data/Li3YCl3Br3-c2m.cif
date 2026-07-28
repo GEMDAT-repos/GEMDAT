@@ -1,0 +1,49 @@
+######################################################################
+data_Li3YCl3Br3
+_gsas_GSASII_version  5209
+
+# phase info for Li3YCl3Br3 follows
+_pd_phase_name  Li3YCl3Br3
+_cell_measurement_temperature  ?
+_cell_length_a  6.752(6)
+_cell_length_b  11.6629(12)
+_cell_length_c  6.678(5)
+_cell_angle_alpha  90
+_cell_angle_beta   109.774(14)
+_cell_angle_gamma  90
+_cell_volume  494.81(11)
+_exptl_crystal_density_diffrn  3.0596
+_symmetry_cell_setting  monoclinic
+_symmetry_space_group_name_H-M  "C 2/m"
+loop_
+    _space_group_symop_id
+    _space_group_symop_operation_xyz
+     1  x,y,z
+     2  -x,y,-z
+     3  -x,-y,-z
+     4  x,-y,z
+     5  1/2+x,1/2+y,z
+     6  1/2-x,1/2+y,-z
+     7  1/2-x,1/2-y,-z
+     8  1/2+x,1/2-y,z
+
+# ATOMIC COORDINATES AND DISPLACEMENT PARAMETERS
+loop_
+   _atom_site_label
+   _atom_site_type_symbol
+   _atom_site_fract_x
+   _atom_site_fract_y
+   _atom_site_fract_z
+   _atom_site_occupancy
+   _atom_site_adp_type
+   _atom_site_U_iso_or_equiv
+   _atom_site_site_symmetry_multiplicity
+Br1    Br   0.24920     0.16790     0.24100     0.5000     Uiso 0.0310     8
+Br2    Br   0.75040     0.00000     0.24170     0.5000     Uiso 0.0310     4
+Li1    Li   0.00000     0.16700     0.50000     0.7400     Uiso 0.0100     4
+Li2    Li   0.00000     0.33360     0.00000     0.2600     Uiso 0.0100     4
+Y1     Y    0.00000     0.00000     0.00000     0.6100     Uiso 0.0310     2
+Cl6    Cl   0.24920     0.16790     0.24100     0.5000     Uiso 0.0310     8
+Cl7    Cl   0.75040     0.00000     0.24170     0.5000     Uiso 0.0310     4
+Li8    Li   0.15060     0.33300     0.37100     0.2500     Uiso 0.0100     8
+Y9     Y    0.00000     0.33364     0.00000     0.1950     Uiso 0.0310     4
