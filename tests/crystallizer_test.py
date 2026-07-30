@@ -102,3 +102,13 @@ def test_to_cif(crystal_trajectory, tmp_path):
     assert len(reread) > 0
     # symmetry was written (more than just P1 with the asymmetric unit)
     assert '_symmetry_space_group_name_H-M' in filename.read_text()
+
+
+def test_framework_rejects_variable_lattice(variable_lattice_trajectory):
+    crystallizer = Crystallizer(trajectory=variable_lattice_trajectory, floating_specie='Li')
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        crystallizer.framework()
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        crystallizer.crystallize()

@@ -46,30 +46,10 @@ def test_get_lattice(trajectory):
     assert lattice == expected_lattice
 
 
-def _variable_lattice_trajectory():
-    """Trajectory with a per-frame (non-constant) lattice, as in an NPT run."""
-    coords = np.array(
-        [
-            [[0.2, 0.0, 0.0], [0.0, 0.0, 0.5]],
-            [[0.4, 0.0, 0.0], [0.0, 0.0, 0.5]],
-            [[0.6, 0.0, 0.0], [0.0, 0.0, 0.5]],
-        ]
-    )
-    lattices = np.array([np.eye(3) * s for s in (1.0, 1.1, 1.2)])
-    return Trajectory(
-        species=[Species('Li'), Species('S')],
-        coords=coords,
-        lattice=lattices,
-        constant_lattice=False,
-        metadata={'temperature': 123},
-        time_step=1,
-    )
-
-
-def test_get_lattice_variable():
+def test_get_lattice_variable(variable_lattice_trajectory):
     # See GitHub issue #394: get_lattice() without an index used to crash for
     # a non-constant lattice.
-    traj = _variable_lattice_trajectory()
+    traj = variable_lattice_trajectory
 
     # With an index, return that frame's lattice.
     assert traj.get_lattice(0) == Lattice(np.eye(3))
@@ -81,9 +61,9 @@ def test_get_lattice_variable():
         traj.get_lattice()
 
 
-def test_filter_variable_lattice():
+def test_filter_variable_lattice(variable_lattice_trajectory):
     # issue #394: filter() must preserve the per-frame lattice.
-    traj = _variable_lattice_trajectory()
+    traj = variable_lattice_trajectory
     filtered = traj.filter('Li')
 
     assert filtered.species == [Species('Li')]
@@ -91,12 +71,24 @@ def test_filter_variable_lattice():
     assert_allclose(filtered.lattice, traj.lattice)
 
 
-def test_mean_squared_displacement_variable_lattice():
+def test_mean_squared_displacement_variable_lattice(variable_lattice_trajectory):
     # issue #394: mean_squared_displacement() called get_lattice() with no index.
-    traj = _variable_lattice_trajectory()
-    msd = traj.mean_squared_displacement()
+    msd = variable_lattice_trajectory.mean_squared_displacement()
 
     assert msd.shape == (2, 3)
+
+
+def test_from_lammps_rejects_variable_lattice():
+    # The reader's explicit NotImplementedError is now the shared decorator, so
+    # it fires before the cache is consulted.
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        Trajectory.from_lammps(
+            coords_file='does_not_exist.xyz',
+            data_file='does_not_exist.data',
+            temperature=300,
+            time_step=1,
+            constant_lattice=False,
+        )
 
 
 def test_mean_squared_displacement_variable_matches_constant():

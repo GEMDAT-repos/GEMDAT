@@ -12,6 +12,7 @@ from gemdat.utils import (
     integer_remap,
     meanfreq,
     remove_partial_occupancies_from_structure,
+    require_constant_lattice,
 )
 
 
@@ -155,3 +156,115 @@ def test_remove_partial_occupancies_from_structure():
     assert new_structure.is_ordered
     assert len(new_structure) == 2
     assert new_structure.labels == structure.labels
+
+
+class _FakeTrajectory:
+    def __init__(self, constant_lattice: bool):
+        self.constant_lattice = constant_lattice
+
+
+def test_require_constant_lattice_from_trajectory_argument():
+    @require_constant_lattice
+    def analyse(trajectory, factor=2):
+        return factor
+
+    assert analyse(_FakeTrajectory(True)) == 2
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        analyse(_FakeTrajectory(False))
+
+
+def test_require_constant_lattice_from_self():
+    class Analysis:
+        def __init__(self, trajectory):
+            self.trajectory = trajectory
+
+        @require_constant_lattice
+        def run(self):
+            return 'ok'
+
+    assert Analysis(_FakeTrajectory(True)).run() == 'ok'
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        Analysis(_FakeTrajectory(False)).run()
+
+
+def test_require_constant_lattice_from_flag():
+    # Readers take the flag directly, before a trajectory exists. The default
+    # must be honoured when the argument is not passed.
+    @require_constant_lattice
+    def read(path, constant_lattice=True):
+        return path
+
+    assert read('a.xyz') == 'a.xyz'
+    assert read('a.xyz', constant_lattice=True) == 'a.xyz'
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        read('a.xyz', constant_lattice=False)
+
+
+def test_require_constant_lattice_names_the_function():
+    @require_constant_lattice
+    def some_analysis(trajectory):
+        return None
+
+    with pytest.raises(NotImplementedError, match='some_analysis'):
+        some_analysis(_FakeTrajectory(False))
+
+
+def test_require_constant_lattice_without_a_source():
+    @require_constant_lattice
+    def nothing_to_check(value):
+        return value
+
+    with pytest.raises(TypeError, match='constant_lattice'):
+        nothing_to_check(1)
+
+
+def test_require_constant_lattice_from_a_wrapper_object():
+    # rdf.radial_distribution takes `transitions`, not a trajectory.
+    class Transitions:
+        def __init__(self, trajectory):
+            self.trajectory = trajectory
+
+    @require_constant_lattice
+    def analyse(*, transitions):
+        return 'ok'
+
+    assert analyse(transitions=Transitions(_FakeTrajectory(True))) == 'ok'
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        analyse(transitions=Transitions(_FakeTrajectory(False)))
+
+
+def test_require_constant_lattice_skips_unrelated_arguments():
+    # `sites` comes first in _calculate_atom_states and carries no lattice flag.
+    @require_constant_lattice
+    def analyse(sites, trajectory):
+        return 'ok'
+
+    assert analyse(object(), _FakeTrajectory(True)) == 'ok'
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        analyse(object(), _FakeTrajectory(False))
+
+
+def test_require_constant_lattice_runs_on_cache_hit():
+    # The guard must sit above weak_lru_cache, or a cached call skips it.
+    from gemdat.caching import weak_lru_cache
+
+    class Analysis:
+        def __init__(self, trajectory):
+            self.trajectory = trajectory
+
+        @require_constant_lattice
+        @weak_lru_cache()
+        def run(self, dimensions):
+            return dimensions
+
+    analysis = Analysis(_FakeTrajectory(True))
+    assert analysis.run(3) == 3
+
+    analysis.trajectory.constant_lattice = False
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        analysis.run(3)

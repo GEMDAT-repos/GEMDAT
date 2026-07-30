@@ -9,6 +9,7 @@ from pymatgen.core import Lattice, Structure
 from rich.progress import track
 
 from ._plot_backend import plot_backend
+from .utils import require_constant_lattice
 
 if TYPE_CHECKING:
     from typing import Collection
@@ -108,6 +109,7 @@ class RDFCollection(list[RDFData]):
         return module.radial_distribution(rdfs=self, **kwargs)
 
 
+@require_constant_lattice
 def radial_distribution(
     *,
     transitions: Transitions,

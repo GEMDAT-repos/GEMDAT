@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from gemdat.metrics import ArrheniusFit, TrajectoryMetrics, TrajectoryMetricsStd
 
@@ -79,3 +80,10 @@ def test_arrhenius(trajectory_list):
     conductivity = arrhenius.extrapolate_conductivity(temperature=100, z_ion=1)
     assert np.isclose(conductivity.n, np.array([8.7e-17]))
     assert np.isclose(conductivity.s, np.array([3.4e-16]))
+
+
+def test_particle_density_rejects_variable_lattice(variable_lattice_trajectory):
+    metrics = TrajectoryMetrics(variable_lattice_trajectory)
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        metrics.particle_density()

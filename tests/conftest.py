@@ -30,6 +30,28 @@ def trajectory():
 
 
 @pytest.fixture()
+def variable_lattice_trajectory():
+    """Trajectory with a per-frame (non-constant) lattice, as in an NPT run."""
+    coords = np.array(
+        [
+            [[0.2, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.4, 0.0, 0.0], [0.0, 0.0, 0.5]],
+            [[0.6, 0.0, 0.0], [0.0, 0.0, 0.5]],
+        ]
+    )
+    lattices = np.array([np.eye(3) * s for s in (1.0, 1.1, 1.2)])
+
+    return Trajectory(
+        species=[Species('Li'), Species('S')],
+        coords=coords,
+        lattice=lattices,
+        constant_lattice=False,
+        metadata={'temperature': 123},
+        time_step=1,
+    )
+
+
+@pytest.fixture()
 def orientations(trajectory):
     center_type = 'B'
     satellite_type = 'Si'

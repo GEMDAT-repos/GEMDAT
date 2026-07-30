@@ -16,6 +16,7 @@ from .caching import weak_lru_cache
 from .collective import Collective
 from .metrics import TrajectoryMetrics
 from .transitions import Transitions, _calculate_transitions_matrix
+from .utils import require_constant_lattice
 
 if TYPE_CHECKING:
     from mypy_extensions import DefaultNamedArg
@@ -182,6 +183,7 @@ class Jumps:
         """Return list of jump names."""
         return ['->'.join(key) for key in self.site_pairs]
 
+    @require_constant_lattice
     @weak_lru_cache()
     def jump_diffusivity(self, dimensions: int) -> float:
         """Calculate jump diffusivity.
@@ -220,6 +222,7 @@ class Jumps:
         """
         return _calculate_transitions_matrix(self.data, n_sites=self.transitions.n_sites)
 
+    @require_constant_lattice
     @weak_lru_cache()
     def collective(self, max_dist: float = 1) -> Collective:
         """Calculate collective jumps.

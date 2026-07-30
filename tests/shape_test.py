@@ -118,3 +118,10 @@ def test_shape_analyzer_optimize_sites(shape_analyzer):
 
     site = shifted.sites[0]
     assert_allclose(site.frac_coords, (0.3, 0.4, 0.5))
+
+
+def test_analyze_trajectory_rejects_variable_lattice(
+    shape_analyzer, variable_lattice_trajectory
+):
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        shape_analyzer.analyze_trajectory(variable_lattice_trajectory)

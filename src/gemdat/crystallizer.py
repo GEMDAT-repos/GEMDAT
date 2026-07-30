@@ -12,6 +12,7 @@ from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from .io import write_cif
+from .utils import require_constant_lattice
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -142,6 +143,7 @@ class Crystallizer:
             **find_peaks_kwargs,
         )
 
+    @require_constant_lattice
     def framework(self) -> Structure:
         """Return the static host framework as a fully-occupied structure.
 

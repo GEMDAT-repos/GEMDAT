@@ -21,6 +21,7 @@ from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
 from ._plot_backend import plot_backend
+from .utils import require_constant_lattice
 
 if TYPE_CHECKING:
     import scipp as sc
@@ -284,6 +285,7 @@ class Trajectory(PymatgenTrajectory):
         return obj
 
     @classmethod
+    @require_constant_lattice
     def from_lammps(
         cls,
         *,
@@ -352,9 +354,6 @@ class Trajectory(PymatgenTrajectory):
             except Exception as e:
                 print(e)
                 print(f'Error reading from cache, reading {coords_file!r}')
-
-        if not constant_lattice:
-            raise NotImplementedError('Lammps reader does not support NPT simulations')
 
         try:
             lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)

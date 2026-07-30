@@ -133,3 +133,10 @@ def test_to_vasp_volume(volume):
     vol_data = volume.to_vasp_volume(structure=structure, other=[volume2])
     assert isinstance(vol_data, VolumetricData)
     assert set(vol_data.data.keys()) == {'total', 'free_energy'}
+
+
+def test_trajectory_to_volume_rejects_variable_lattice(variable_lattice_trajectory):
+    from gemdat.volume import trajectory_to_volume
+
+    with pytest.raises(NotImplementedError, match='variable lattice'):
+        trajectory_to_volume(variable_lattice_trajectory)

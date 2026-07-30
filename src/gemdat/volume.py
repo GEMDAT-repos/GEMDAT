@@ -17,6 +17,7 @@ from skimage.measure import regionprops
 
 from ._plot_backend import plot_backend
 from .segmentation import watershed_pbc
+from .utils import require_constant_lattice
 
 if TYPE_CHECKING:
     import networkx as nx
@@ -593,6 +594,7 @@ class FreeEnergyVolume(Volume):
         return optimal_percolating_path(self, **kwargs)
 
 
+@require_constant_lattice
 def trajectory_to_volume(
     trajectory: Trajectory,
     resolution: float = 0.2,
