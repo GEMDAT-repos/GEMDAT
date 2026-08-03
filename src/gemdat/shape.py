@@ -9,7 +9,7 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from ._plot_backend import plot_backend
 from .trajectory import Trajectory
-from .utils import warn_lattice_not_close
+from .utils import require_constant_lattice, warn_lattice_not_close
 
 if TYPE_CHECKING:
     from pymatgen.symmetry.analyzer import SpacegroupOperations
@@ -231,6 +231,7 @@ class ShapeAnalyzer:
         cart_coords = self.lattice.get_cartesian_coords(centered)
         return cart_coords
 
+    @require_constant_lattice
     def analyze_trajectory(
         self,
         trajectory: Trajectory,
@@ -263,7 +264,7 @@ class ShapeAnalyzer:
         shapes : list[ShapeData]
             Output shapes
         """
-        test_lattice = trajectory.get_lattice(0)
+        test_lattice = trajectory.get_lattice()
         positions = trajectory.positions.reshape(-1, 3)
 
         if supercell is not None:

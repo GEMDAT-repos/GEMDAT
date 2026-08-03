@@ -12,7 +12,7 @@ from scipy.constants import Avogadro, Boltzmann, angstrom, elementary_charge
 
 from ._plot_backend import plot_backend
 from .caching import weak_lru_cache
-from .utils import meanfreq
+from .utils import meanfreq, require_constant_lattice
 
 if typing.TYPE_CHECKING:
     from trajectory import Trajectory
@@ -46,6 +46,7 @@ class TrajectoryMetrics:
         distances = self.trajectory.distances_from_base_position()
         return np.diff(distances, prepend=0)
 
+    @require_constant_lattice
     @weak_lru_cache()
     def particle_density(self) -> FloatWithUnit:
         """Calculate number of particles per unit of volume from trajectory.

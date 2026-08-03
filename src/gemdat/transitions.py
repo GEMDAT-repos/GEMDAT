@@ -17,7 +17,13 @@ from pymatgen.core import Structure
 from .caching import weak_lru_cache
 from .io import _strip_label_suffixes
 from .metrics import TrajectoryMetrics
-from .utils import bfill, ffill, integer_remap, remove_partial_occupancies_from_structure
+from .utils import (
+    bfill,
+    ffill,
+    integer_remap,
+    remove_partial_occupancies_from_structure,
+    require_constant_lattice,
+)
 
 if typing.TYPE_CHECKING:
     from gemdat.jumps import Jumps
@@ -513,6 +519,7 @@ class SiteRadius:
     min_dist: dict
 
     @classmethod
+    @require_constant_lattice
     def from_given_radius(
         cls,
         *,
@@ -568,6 +575,7 @@ class SiteRadius:
         return site_radius_obj
 
     @classmethod
+    @require_constant_lattice
     def from_vibration_amplitude(
         cls,
         *,
@@ -739,6 +747,7 @@ def _radius_to_dict(
     return r, f
 
 
+@require_constant_lattice
 def _calculate_atom_states(
     sites: Structure,
     trajectory: Trajectory,

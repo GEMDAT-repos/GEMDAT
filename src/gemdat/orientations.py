@@ -52,9 +52,15 @@ class Orientations:
         if in_vectors is not None:
             self.vectors = in_vectors
         else:
-            lattice = self.trajectory.get_lattice()
             direction = self._fractional_directions(self._distances)
-            self.vectors = lattice.get_cartesian_coords(direction)
+
+            if self.trajectory.constant_lattice:
+                lattice = self.trajectory.get_lattice()
+                self.vectors = lattice.get_cartesian_coords(direction)
+            else:
+                # Convert each frame with its own lattice (e.g. NPT).
+                matrices = np.asarray(self.trajectory.lattice, dtype=float)
+                self.vectors = np.einsum('fai,fik->fak', direction, matrices)
 
     @property
     def _time_step(self) -> float:
@@ -80,7 +86,9 @@ class Orientations:
         assert central_start_coord is not None
         satellite_start_coord = self._trajectory_sat.base_positions
         assert satellite_start_coord is not None
-        lattice = self.trajectory.get_lattice()
+        # Matches central atoms to their ligands from the base (first frame)
+        # positions, so the first frame's lattice is the right one to use.
+        lattice = self.trajectory.get_lattice(0)
         distance = np.array(
             [
                 [

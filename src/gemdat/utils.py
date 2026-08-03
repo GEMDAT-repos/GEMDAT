@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import functools
+import inspect
 import warnings
 from importlib.resources import files
 from pathlib import Path
+from typing import Callable, ParamSpec, TypeVar
 
 import numpy as np
 from pymatgen.core import Lattice, Structure
@@ -23,6 +26,88 @@ VASPCACHE_ORIENTATIONS = (
 
 DATA = files('gemdat') / 'data'
 SCRIPTS_DIR = Path(__file__).parents[2] / 'scripts'
+
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
+
+
+def _bound_lattice_is_constant(bound: inspect.BoundArguments) -> bool:
+    """Work out whether the call operates on a constant lattice.
+
+    A `constant_lattice` argument wins (readers take the flag directly,
+    before a trajectory exists). Otherwise the arguments are scanned in
+    signature order for the first one carrying the flag, either directly
+    (a `Trajectory`) or via a `trajectory` attribute (`self`, or a
+    `jumps`/`transitions` argument).
+    """
+    arguments = bound.arguments
+
+    if 'constant_lattice' in arguments:
+        return bool(arguments['constant_lattice'])
+
+    for value in arguments.values():
+        constant_lattice = getattr(value, 'constant_lattice', None)
+
+        if constant_lattice is None:
+            trajectory = getattr(value, 'trajectory', None)
+            constant_lattice = getattr(trajectory, 'constant_lattice', None)
+
+        if constant_lattice is not None:
+            return bool(constant_lattice)
+
+    raise TypeError(
+        'require_constant_lattice found no `constant_lattice` argument, and no '
+        'argument holding a trajectory to read it from.'
+    )
+
+
+def require_constant_lattice(func: Callable[_P, _R]) -> Callable[_P, _R]:
+    """Reject calls that operate on a variable (non-constant) lattice.
+
+    Analyses that pin a single lattice -- site distances, voxel grids, the
+    cartesian frame of a whole trajectory -- are only defined for a constant
+    cell. Without this guard they fail deep inside with a
+    [get_lattice()][gemdat.trajectory.Trajectory.get_lattice] `ValueError`
+    asking for a frame index the caller has no way to supply.
+
+    The lattice is read from a `constant_lattice` argument if there is one,
+    else from the first argument that holds a trajectory -- including `self`,
+    or a `jumps`/`transitions` argument.
+
+    Apply below `classmethod`, but *above* `weak_lru_cache` -- under the cache
+    the guard would be skipped on a cache hit.
+
+    ```python
+    @classmethod
+    @require_constant_lattice
+    def from_given_radius(cls, *, trajectory, ...): ...
+
+    @require_constant_lattice
+    @weak_lru_cache()
+    def jump_diffusivity(self, dimensions): ...
+    ```
+
+    Raises
+    ------
+    NotImplementedError
+        If the lattice is not constant.
+    """
+    signature = inspect.signature(func)
+
+    @functools.wraps(func)
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        bound = signature.bind(*args, **kwargs)
+        bound.apply_defaults()
+
+        if not _bound_lattice_is_constant(bound):
+            raise NotImplementedError(
+                f'{func.__qualname__}() does not support a variable lattice '
+                '(constant_lattice=False), such as from an NPT simulation.'
+            )
+
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def nearest_structure_reference(structure: Structure) -> tuple[cKDTree, list[int]]:
