@@ -21,7 +21,6 @@ from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
 from ._plot_backend import plot_backend
-from .utils import require_constant_lattice
 
 if TYPE_CHECKING:
     import scipp as sc
@@ -285,7 +284,6 @@ class Trajectory(PymatgenTrajectory):
         return obj
 
     @classmethod
-    @require_constant_lattice
     def from_lammps(
         cls,
         *,
@@ -306,7 +304,9 @@ class Trajectory(PymatgenTrajectory):
         coords_file : Path | str
             LAMMPS coords file with trajectory data
         data_file : Path | str
-            LAMMPS data file with the lattice
+            LAMMPS data file with the lattice. With `constant_lattice=False`
+            the box in this file is ignored, as the cell is taken per frame
+            from the coords file; the file is still read, so it must parse.
         temperature : float
             Temperature of simulation in K
         time_step : float
@@ -323,12 +323,23 @@ class Trajectory(PymatgenTrajectory):
             Path to cache data for vasprun.xml
         constant_lattice : bool
             Whether the lattice changes during the simulation,
-            such as in an NPT MD simulation.
+            such as in an NPT MD simulation. With `constant_lattice=False`
+            the cell is taken per frame from the coords file, so that file
+            must store the box; the default `coords_format='xyz'` does not,
+            use `coords_format='LAMMPSDUMP'` instead. A tilted (triclinic)
+            box is supported: a dump stores the `xy`, `xz` and `yz` tilt
+            factors alongside the bounds.
 
         Returns
         -------
         trajectory : Trajectory
             Output trajectory
+
+        Raises
+        ------
+        ValueError
+            If `constant_lattice=False` and the coords file carries no
+            per-frame box.
         """
         from MDAnalysis import Universe
         from pymatgen.io.lammps.data import LammpsData
@@ -365,12 +376,34 @@ class Trajectory(PymatgenTrajectory):
             )
             raise IOError(msg) from exc
 
-        lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)
-        lattice = lammps_data.structure.lattice
-
         utraj = Universe(coords_file, format=coords_format)
         coords = utraj.trajectory.timeseries()
-        coords = lattice.get_fractional_coords(coords)
+
+        if constant_lattice:
+            lattice = lammps_data.structure.lattice
+            coords = lattice.get_fractional_coords(coords)
+        else:
+            lattices = []
+
+            # `ts.dimensions` is a view that the reader overwrites per frame,
+            # so the lattice must be built inside the loop. Take the box from
+            # `triclinic_dimensions`, whose convention (a along x, b in the
+            # x/y-plane) is the one the dump's cartesian coordinates are in;
+            # `Lattice.from_parameters` would reorient a tilted box and so
+            # give wrong fractional coordinates.
+            for ts in utraj.trajectory:
+                if ts.dimensions is None or not np.all(ts.dimensions[:3] > 0):
+                    raise ValueError(
+                        f'{coords_file!r} read as {coords_format=} contains no box, so '
+                        'the per-frame lattice needed for `constant_lattice=False` '
+                        'cannot be determined. Use a LAMMPS dump file with '
+                        "`coords_format='LAMMPSDUMP'`."
+                    )
+                lattices.append(Lattice(ts.triclinic_dimensions))
+
+            for ts, lat in enumerate(lattices):
+                coords[ts, :, :] = lat.get_fractional_coords(coords[ts, :, :])
+            lattice = lattices  # type: ignore[assignment]
 
         if type_mapping:
             species = [Element(type_mapping.get(_type)) for _type in utraj.atoms.types]  # type: ignore
@@ -456,12 +489,15 @@ class Trajectory(PymatgenTrajectory):
         coords = utraj.trajectory.timeseries()
 
         if not constant_lattice:
-            lattices = [Lattice.from_parameters(*ts.dimensions) for ts in utraj.trajectory]
+            # `ts.triclinic_dimensions`, not `Lattice.from_parameters`: the
+            # latter reorients a tilted box away from the frame the cartesian
+            # coordinates are in. See `from_lammps`.
+            lattices = [Lattice(ts.triclinic_dimensions) for ts in utraj.trajectory]
             for ts, lat in enumerate(lattices):
                 coords[ts, :, :] = lat.get_fractional_coords(coords[ts, :, :])
             lattice = lattices
         else:
-            lattice = Lattice.from_parameters(*utraj.trajectory[0].dimensions)
+            lattice = Lattice(utraj.trajectory[0].triclinic_dimensions)
             coords = lattice.get_fractional_coords(coords)
 
         species = [Element(SP_NAME.match(sp).group().capitalize()) for sp in utraj.atoms.names]  # type: ignore
