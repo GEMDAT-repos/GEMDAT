@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .crystallizer import Crystallizer, CrystallizerResult
+from .exceptions import NotSupportedError
 from .io import load_known_material, read_cif, write_cif
 from .jumps import Jumps
 from .metrics import TrajectoryMetrics
@@ -17,6 +18,7 @@ __all__ = [
     'CrystallizerResult',
     'Jumps',
     'load_known_material',
+    'NotSupportedError',
     'Orientations',
     'radial_distribution',
     'read_cif',

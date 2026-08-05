@@ -8,6 +8,7 @@ import scipp as sc
 from numpy.testing import assert_allclose
 from pymatgen.core import Element, Lattice, Species
 
+from gemdat.exceptions import NotSupportedError
 from gemdat.trajectory import Trajectory
 
 
@@ -166,6 +167,63 @@ ITEM: ATOMS id type x y z
 """
 
 
+# The same two frames as above, but written as a *general* triclinic box
+# (`dump_modify triclinic/general`): 12 parameters, being 3 arbitrary edge
+# vectors A, B, C plus their origin, instead of the 9 of the restricted form.
+# The cell is the restricted one rotated by 30 deg about z then 20 deg about x
+# and shifted to origin (1, 2, 3), and the coordinates are rotated with it, so
+# a reader that undoes the rotation must recover the same fractional positions
+# (0.1, 0.1, 0.1) -> (0.2, 0.1, 0.1) and (0.5, 0.5, 0.5).
+LAMMPS_NPT_GENERAL_TRICLINIC_DUMP_FILE = """ITEM: TIMESTEP
+0
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS abc origin pp pp pp
+8.660254 5.000000 0.000000 1.000000
+-2.966412 9.137977 3.420201 2.000000
+1.166587 -0.020588 10.422987 3.000000
+ITEM: ATOMS id type x y z
+1 1 1.686043 3.411739 4.384319
+2 2 4.430214 9.058694 9.921594
+ITEM: TIMESTEP
+1
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS abc origin pp pp pp
+17.320508 10.000000 0.000000 1.000000
+-5.932825 18.275954 6.840403 2.000000
+2.333174 -0.041177 20.845973 3.000000
+ITEM: ATOMS id type x y z
+1 1 4.104137 5.823478 5.768638
+2 2 7.860429 16.117389 16.843188
+"""
+
+
+# A data file carrying the same general triclinic box, as `avec`/`bvec`/`cvec`
+# plus `abc origin`, instead of the `xlo xhi` bounds and `xy xz yz` tilts of
+# the restricted form.
+LAMMPS_GENERAL_TRICLINIC_DATA_FILE = """LAMMPS data file for tests
+
+2 atoms
+2 atom types
+
+8.660254 5.000000 0.000000 avec
+-2.966412 9.137977 3.420201 bvec
+1.166587 -0.020588 10.422987 cvec
+1.000000 2.000000 3.000000 abc origin
+
+Masses
+
+1 6.941
+2 32.06
+
+Atoms # atomic
+
+1 1 1.686043 3.411739 4.384319
+2 2 4.430214 9.058694 9.921594
+"""
+
+
 @pytest.fixture
 def lammps_npt_files(tmp_path):
     """Write a minimal NPT LAMMPS dump plus its data file to a temp dir."""
@@ -286,6 +344,77 @@ def test_from_lammps_variable_lattice_needs_a_box_in_the_coords_file(tmp_path):
             data_file=data_file,
             temperature=300,
             time_step=1,
+            constant_lattice=False,
+        )
+
+
+def test_from_lammps_variable_lattice_general_triclinic(tmp_path):
+    # A general triclinic box is the restricted one rotated and shifted, so it
+    # describes a cell gemdat could handle -- but nothing here undoes the
+    # rotation. Until it does, say so: MDAnalysis keys off the token count of
+    # the BOX BOUNDS header, reads `abc origin` as an orthogonal box, and trips
+    # over the 4 columns of its vector lines with `too many values to unpack`.
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_npt_general_triclinic.lammpstrj'
+    data_file.write_text(LAMMPS_DATA_FILE)
+    coords_file.write_text(LAMMPS_NPT_GENERAL_TRICLINIC_DUMP_FILE)
+
+    with pytest.raises(NotSupportedError, match='general triclinic'):
+        Trajectory.from_lammps(
+            coords_file=coords_file,
+            data_file=data_file,
+            coords_format='LAMMPSDUMP',
+            temperature=300,
+            time_step=1,
+            type_mapping={'1': 'Li', '2': 'S'},
+            constant_lattice=False,
+        )
+
+
+def test_from_lammps_general_triclinic_data_file(tmp_path):
+    # The silent one: with constant_lattice=True the cell comes from the data
+    # file, and pymatgen matches neither the `avec`/`bvec`/`cvec` nor the `abc
+    # origin` header, falling back to its default bounds -- a 1 A cube that
+    # every downstream analysis then happily uses. The coords are read from an
+    # xyz file here, so nothing but the data file can raise.
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_coords.xyz'
+    data_file.write_text(LAMMPS_GENERAL_TRICLINIC_DATA_FILE)
+    coords_file.write_text(
+        '2\nAtoms. Timestep: 0\nLi 1.686043 3.411739 4.384319\nS 4.430214 9.058694 9.921594\n'
+    )
+
+    with pytest.raises(NotSupportedError, match='general triclinic'):
+        Trajectory.from_lammps(
+            coords_file=coords_file,
+            data_file=data_file,
+            temperature=300,
+            time_step=1,
+            constant_lattice=True,
+        )
+
+
+def test_from_lammps_keeps_unrelated_value_errors(tmp_path):
+    # The general triclinic check sits behind a broad `except ValueError`, so
+    # make sure a dump that is simply broken keeps its own error rather than
+    # being relabelled as unsupported.
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_broken.lammpstrj'
+    data_file.write_text(LAMMPS_DATA_FILE)
+    coords_file.write_text(
+        LAMMPS_NPT_DUMP_FILE.replace(
+            '0.0 10.0\n0.0 10.0\n0.0 10.0', '0.0 oops\n0.0 10.0\n0.0 10.0'
+        )
+    )
+
+    with pytest.raises(ValueError, match='could not convert string to float'):
+        Trajectory.from_lammps(
+            coords_file=coords_file,
+            data_file=data_file,
+            coords_format='LAMMPSDUMP',
+            temperature=300,
+            time_step=1,
+            type_mapping={'1': 'Li', '2': 'S'},
             constant_lattice=False,
         )
 
