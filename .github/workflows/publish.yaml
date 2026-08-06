@@ -21,8 +21,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        # tomli backports tomllib, which tools/generate_requirements_txt.py needs on 3.10.
-        python -m pip install --upgrade pip pip-tools setuptools tomli
+        python -m pip install --upgrade pip pip-tools setuptools
 
     - name: Set configuration
       run: |
