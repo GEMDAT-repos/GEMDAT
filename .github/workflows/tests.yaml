@@ -15,13 +15,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  supported-pythons:
     if: github.event.pull_request.draft == false
+    name: Determine Supported Python Versions
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.pythons.outputs.json }}
+      newest-python: ${{ steps.pythons.outputs.newest }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/supported-python
+        id: pythons
+
+  test:
+    needs: supported-pythons
     name: Run Coverage and Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ${{ fromJSON(needs.supported-pythons.outputs.versions) }}
 
     steps:
       - uses: actions/checkout@v7
@@ -34,6 +48,7 @@ jobs:
           tar -C tests/data/short_simulation_npt -xjf tests/data/short_simulation_npt/vasprun_npt.xml.bz2
 
       - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -41,13 +56,23 @@ jobs:
       - uses: actions/cache@v6
         id: cache-virtualenv
         with:
-          path: ${{ env.pythonLocation }}
-          key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+          # Cache a virtualenv of our own, never the interpreter the runner image
+          # ships. actions/cache unpacks over whatever is already on disk, so
+          # caching ${{ env.pythonLocation }} overlays one image version's Python
+          # onto another's and can leave a half-and-half pip that cannot import
+          # itself. A .venv does not exist until we make it, so it always restores
+          # clean.
+          path: .venv
+          key: venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
         run: |
-          python -m pip install -e .[develop]
+          python -m venv --upgrade-deps .venv
+          .venv/bin/python -m pip install -e .[develop]
+
+      - name: Use the virtualenv for the remaining steps
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Output installed packages
         run: |
@@ -76,7 +101,7 @@ jobs:
           echo $'\n```' >> $GITHUB_STEP_SUMMARY
 
       - name: Make coverage badge
-        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == '3.10' }}
+        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == needs.supported-pythons.outputs.newest-python }}
         uses: schneegans/dynamic-badges-action@v1.8.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}

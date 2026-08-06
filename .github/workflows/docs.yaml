@@ -27,21 +27,31 @@ jobs:
         run: |
           git submodule update --init docs/notebooks docs/tutorials
 
+      - uses: ./.github/actions/supported-python
+        id: pythons
+
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: ${{ steps.pythons.outputs.newest }}
 
       - uses: actions/cache@v5
         id: cache-virtualenv
         with:
-          path: ${{ env.pythonLocation }}
-          key: docs-${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+          # A virtualenv of our own rather than the image's interpreter; see the
+          # note on the same cache in tests.yaml.
+          path: .venv
+          key: docs-venv-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
         run: |
-          python -m pip install -e .[docs]
+          python -m venv --upgrade-deps .venv
+          .venv/bin/python -m pip install -e .[docs]
+
+      - name: Use the virtualenv for the remaining steps
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Build documentation
         run: |

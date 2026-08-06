@@ -20,7 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+    - uses: ./.github/actions/supported-python
+      id: pythons
     - uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: ${{ steps.pythons.outputs.newest }}
     - uses: pre-commit/action@v3.0.1
