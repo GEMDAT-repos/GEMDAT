@@ -67,7 +67,11 @@ jobs:
         id: cache-virtualenv
         with:
           path: ${{ env.pythonLocation }}
-          key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+          # ImageVersion is part of the key because this caches the whole Python
+          # installation, pip included. A runner image can ship a new pip under an
+          # unchanged Python patch version, and restoring the old cache over it
+          # leaves a half-and-half pip that fails to import.
+          key: ${{ env.pythonLocation }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'

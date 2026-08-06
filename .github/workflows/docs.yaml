@@ -39,7 +39,9 @@ jobs:
         id: cache-virtualenv
         with:
           path: ${{ env.pythonLocation }}
-          key: docs-${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+          # See the note on the same key in tests.yaml: the cached directory
+          # includes pip, so it must not outlive the runner image.
+          key: docs-${{ env.pythonLocation }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Install dependencies
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
