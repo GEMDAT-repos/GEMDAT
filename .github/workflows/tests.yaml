@@ -20,9 +20,6 @@ jobs:
     name: Determine Supported Python Versions
     runs-on: ubuntu-latest
     outputs:
-      # The test matrix comes from the classifiers in pyproject.toml, which also
-      # drive the PyPI version badge in README.md, so we can never advertise one
-      # set of versions and test another.
       versions: ${{ steps.pythons.outputs.json }}
       oldest-python: ${{ steps.pythons.outputs.oldest }}
 
@@ -59,10 +56,6 @@ jobs:
         id: cache-virtualenv
         with:
           path: ${{ env.pythonLocation }}
-          # ImageVersion is part of the key because this caches the whole Python
-          # installation, pip included. A runner image can ship a new pip under an
-          # unchanged Python patch version, and restoring the old cache over it
-          # leaves a half-and-half pip that fails to import.
           key: ${{ env.pythonLocation }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-${{ hashFiles('pyproject.toml') }}
 
       - name: Install dependencies
