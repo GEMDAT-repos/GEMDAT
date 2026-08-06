@@ -14,9 +14,13 @@ jobs:
     - uses: actions/checkout@v7
     - uses: ./.github/actions/supported-python
       id: pythons
+    # The oldest supported version, not the newest: pip-compile resolves against
+    # the running interpreter, so environment markers are evaluated for it. Doing
+    # that on the oldest version keeps requirements_full.txt valid across the
+    # whole supported range.
     - uses: actions/setup-python@v6
       with:
-        python-version: ${{ steps.pythons.outputs.newest }}
+        python-version: ${{ steps.pythons.outputs.oldest }}
 
     - name: Install dependencies
       run: |
