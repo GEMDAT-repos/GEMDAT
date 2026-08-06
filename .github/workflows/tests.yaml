@@ -20,26 +20,33 @@ jobs:
     name: Build and Inspect Package
     runs-on: ubuntu-latest
     outputs:
-      # Derived from the `Programming Language :: Python :: X.Y` classifiers in
-      # pyproject.toml, which also drive the PyPI version badge in README.md, so
-      # the test matrix below can never drift from what we advertise.
-      matrix: ${{ steps.baipp.outputs.supported_python_classifiers_json_job_matrix_value }}
-      oldest-python: ${{ fromJSON(steps.baipp.outputs.supported_python_classifiers_json_array)[0] }}
+      # The test matrix comes from the classifiers in pyproject.toml, which also
+      # drive the PyPI version badge in README.md, so we can never advertise one
+      # set of versions and test another.
+      versions: ${{ steps.pythons.outputs.json }}
+      oldest-python: ${{ steps.pythons.outputs.oldest }}
 
     steps:
       - uses: actions/checkout@v7
 
+      - uses: ./.github/actions/supported-python
+        id: pythons
+
+      # Not needed for the matrix, but building the package on every PR catches
+      # packaging breakage (wheel contents, PyPI README) before release day.
       # Pinned exactly: as of v3 this action no longer force-pushes floating
       # `@v3`/`@v3.0` tags, so upgrades are deliberate.
       - uses: hynek/build-and-inspect-python-package@v3.0.1
-        id: baipp
+        with:
+          python-version: ${{ steps.pythons.outputs.newest }}
 
   test:
     needs: build-package
     name: Run Coverage and Tests
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.build-package.outputs.matrix) }}
+      matrix:
+        python-version: ${{ fromJSON(needs.build-package.outputs.versions) }}
 
     steps:
       - uses: actions/checkout@v7
