@@ -37,8 +37,7 @@ classifiers = [
     "Operating System :: OS Independent",
     # These classifiers are the single source of truth for the supported Python
     # versions: they drive the "PyPI - Python Version" badge in README.md, and
-    # .github/workflows/tests.yaml derives its test matrix from them. Keep in
-    # sync with requires-python.
+    # .github/workflows/tests.yaml derives its test matrix from them.
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
