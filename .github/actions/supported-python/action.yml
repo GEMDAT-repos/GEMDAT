@@ -13,10 +13,10 @@ inputs:
 
 outputs:
   json:
-    description: All supported versions as a JSON array, oldest first, e.g. `["3.10", "3.11"]`.
+    description: All supported versions as a JSON array, oldest first, e.g. `["3.11", "3.12"]`.
     value: ${{ steps.parse.outputs.json }}
   oldest:
-    description: The oldest supported version, e.g. `3.10`.
+    description: The oldest supported version, e.g. `3.11`.
     value: ${{ steps.parse.outputs.oldest }}
   newest:
     description: The newest supported version, e.g. `3.14`.
