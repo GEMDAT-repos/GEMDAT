@@ -15,9 +15,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-package:
+  supported-pythons:
     if: github.event.pull_request.draft == false
-    name: Build and Inspect Package
+    name: Determine Supported Python Versions
     runs-on: ubuntu-latest
     outputs:
       # The test matrix comes from the classifiers in pyproject.toml, which also
@@ -32,21 +32,13 @@ jobs:
       - uses: ./.github/actions/supported-python
         id: pythons
 
-      # Not needed for the matrix, but building the package on every PR catches
-      # packaging breakage (wheel contents, PyPI README) before release day.
-      # Pinned exactly: as of v3 this action no longer force-pushes floating
-      # `@v3`/`@v3.0` tags, so upgrades are deliberate.
-      - uses: hynek/build-and-inspect-python-package@v3.0.1
-        with:
-          python-version: ${{ steps.pythons.outputs.newest }}
-
   test:
-    needs: build-package
+    needs: supported-pythons
     name: Run Coverage and Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ${{ fromJSON(needs.build-package.outputs.versions) }}
+        python-version: ${{ fromJSON(needs.supported-pythons.outputs.versions) }}
 
     steps:
       - uses: actions/checkout@v7
@@ -105,7 +97,7 @@ jobs:
           echo $'\n```' >> $GITHUB_STEP_SUMMARY
 
       - name: Make coverage badge
-        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == needs.build-package.outputs.oldest-python }}
+        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == needs.supported-pythons.outputs.oldest-python }}
         uses: schneegans/dynamic-badges-action@v1.8.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}

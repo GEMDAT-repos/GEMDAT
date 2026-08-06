@@ -67,16 +67,26 @@ jobs:
     - uses: ./.github/actions/supported-python
       id: pythons
 
-    # Builds the sdist and wheel on the newest supported Python, and checks the
-    # wheel contents and the PyPI README render before we upload for real.
-    # Pinned exactly: as of v3 this action no longer force-pushes floating
-    # `@v3`/`@v3.0` tags, so upgrades are deliberate.
-    - uses: hynek/build-and-inspect-python-package@v3.0.1
-      id: baipp
+    # Builds the sdist and wheel on the newest supported Python.
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ steps.pythons.outputs.newest }}
 
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install build setuptools>=61.2 wheel twine
+
+    - name: Build package
+      run: |
+        python -m build --no-isolation
+
+    # PyPI rejects an upload whose long description does not render, and by this
+    # point the release tag and version bump have already been pushed. Catching
+    # it here fails the job before that upload is attempted.
+    - name: Check package metadata
+      run: |
+        python -m twine check --strict dist/*
+
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        packages-dir: ${{ steps.baipp.outputs.dist }}
