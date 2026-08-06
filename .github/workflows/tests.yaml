@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       versions: ${{ steps.pythons.outputs.json }}
-      oldest-python: ${{ steps.pythons.outputs.oldest }}
+      newest-python: ${{ steps.pythons.outputs.newest }}
 
     steps:
       - uses: actions/checkout@v7
@@ -90,7 +90,7 @@ jobs:
           echo $'\n```' >> $GITHUB_STEP_SUMMARY
 
       - name: Make coverage badge
-        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == needs.supported-pythons.outputs.oldest-python }}
+        if: ${{ github.ref == 'refs/heads/main' && matrix.python-version == needs.supported-pythons.outputs.newest-python }}
         uses: schneegans/dynamic-badges-action@v1.8.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
