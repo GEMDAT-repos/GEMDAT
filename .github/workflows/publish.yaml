@@ -23,9 +23,6 @@ jobs:
       with:
         python-version: ${{ steps.pythons.outputs.oldest }}
 
-    # uv replaces pip-tools here: pip-compile imports pip internals, which pip
-    # keeps moving (pip 26.2 removed pip._internal.utils.compat.stdlib_pkgs and
-    # broke pip-tools 7.6.0). uv resolves on its own and can't break that way.
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip uv setuptools
