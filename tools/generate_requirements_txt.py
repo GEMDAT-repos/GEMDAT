@@ -1,13 +1,7 @@
 from __future__ import annotations
 
-import sys
+import tomllib
 from pathlib import Path
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    # tomllib is stdlib from Python 3.11; 3.10 needs the backport it was based on.
-    import tomli as tomllib
 
 this_script = Path(__file__)
 root = this_script.parents[1]

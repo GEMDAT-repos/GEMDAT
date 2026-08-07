@@ -4,6 +4,10 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  # Dry run on every PR: everything below runs except the steps that push back to
+  # the repository or upload to PyPI, so breakage in the release tooling surfaces
+  # in review instead of halfway through a release.
+  pull_request:
 
 
 jobs:
@@ -21,8 +25,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        # tomli backports tomllib, which tools/generate_requirements_txt.py needs on 3.10.
-        python -m pip install --upgrade pip pip-tools setuptools tomli
+        python -m pip install --upgrade pip uv setuptools
 
     - name: Set configuration
       run: |
@@ -32,17 +35,20 @@ jobs:
     - name: Create requirements files
       run: |
         python tools/generate_requirements_txt.py
-        pip-compile -o requirements_full.txt pyproject.toml
+        uv pip compile -o requirements_full.txt pyproject.toml
         git add requirements_full.txt requirements.txt
         git commit -m "Updated requirements.txt files" || true
 
+    # Skipped on PRs: GITHUB_REF_NAME is the PR merge ref there, not a version.
     - name: Bump version to new tag
+      if: github.event_name != 'pull_request'
       run: |
         python -m pip install bump-my-version
         bump-my-version bump --new-version $GITHUB_REF_NAME patch
         git commit -am "Bump version to: $GITHUB_REF_NAME"
 
     - name: Push back changes to main and tag
+      if: github.event_name != 'pull_request'
       run: |
         git tag --force $GITHUB_REF_NAME HEAD
         git push --force --tags
@@ -52,7 +58,9 @@ jobs:
   deploy:
     needs: fix_release_deps
     runs-on: ubuntu-latest
-    environment: release
+    # No environment on PRs, so a dry run never waits on release reviewers or
+    # gets near the environment's secrets. Empty means "no environment".
+    environment: ${{ github.event_name != 'pull_request' && 'release' || '' }}
     permissions:
       # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
@@ -60,7 +68,8 @@ jobs:
     steps:
     - uses: actions/checkout@v7
       with:
-        ref: ${{ github.ref_name }}
+        # The tag being released; on PRs, empty falls back to the merge ref.
+        ref: ${{ github.event_name != 'pull_request' && github.ref_name || '' }}
 
     - uses: ./.github/actions/supported-python
       id: pythons
@@ -84,4 +93,5 @@ jobs:
         python -m twine check --strict dist/*
 
     - name: Publish package
+      if: github.event_name != 'pull_request'
       uses: pypa/gh-action-pypi-publish@release/v1
