@@ -1,0 +1,63 @@
+---
+name: Supported Python versions
+description: >
+  Read the Python versions this project supports from the `Programming Language :: Python :: X.Y`
+  classifiers in pyproject.toml. Those classifiers also drive the PyPI version badge in README.md,
+  so workflows using this action can never advertise one set of versions and test another.
+
+inputs:
+  path:
+    description: Path to the pyproject.toml to read.
+    required: false
+    default: pyproject.toml
+
+outputs:
+  json:
+    description: All supported versions as a JSON array, oldest first, e.g. `["3.10", "3.11"]`.
+    value: ${{ steps.parse.outputs.json }}
+  oldest:
+    description: The oldest supported version, e.g. `3.10`.
+    value: ${{ steps.parse.outputs.oldest }}
+  newest:
+    description: The newest supported version, e.g. `3.14`.
+    value: ${{ steps.parse.outputs.newest }}
+
+runs:
+  using: composite
+  steps:
+    # Runs on the runner's preinstalled python3 (3.11+ for tomllib), before any
+    # setup-python step, so it costs a second and needs no dependencies.
+    - id: parse
+      shell: bash
+      env:
+        PYPROJECT_PATH: ${{ inputs.path }}
+      run: |
+        python3 <<'PY'
+        import json
+        import os
+        import tomllib
+
+        PREFIX = 'Programming Language :: Python :: '
+
+        path = os.environ['PYPROJECT_PATH']
+        with open(path, 'rb') as f:
+            classifiers = tomllib.load(f)['project']['classifiers']
+
+        versions = sorted(
+            {
+                tuple(int(part) for part in c.removeprefix(PREFIX).split('.'))
+                for c in classifiers
+                # Skips the bare `Programming Language :: Python :: 3` classifier.
+                if c.startswith(PREFIX) and '.' in c.removeprefix(PREFIX)
+            }
+        )
+        if not versions:
+            raise SystemExit(f'::error::No `{PREFIX}X.Y` classifiers found in {path}')
+
+        found = ['.'.join(map(str, version)) for version in versions]
+        outputs = f'json={json.dumps(found)}\noldest={found[0]}\nnewest={found[-1]}\n'
+
+        print(outputs)
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(outputs)
+        PY
