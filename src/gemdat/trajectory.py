@@ -21,7 +21,6 @@ from pymatgen.core.trajectory import Trajectory as PymatgenTrajectory
 from pymatgen.io import vasp
 
 from ._plot_backend import plot_backend
-from .exceptions import NotSupportedError
 
 if TYPE_CHECKING:
     import scipp as sc
@@ -36,30 +35,6 @@ if TYPE_CHECKING:
 
 
 SP_NAME = re.compile(r'([a-zA-Z]+)')
-
-
-def _general_triclinic_msg(filename: str) -> str:
-    """Build the error message for an unsupported general triclinic box.
-
-    Parameters
-    ----------
-    filename : str
-        LAMMPS coords or data file the box was found in
-
-    Returns
-    -------
-    msg : str
-        Error message
-    """
-    return (
-        f'{filename!r} stores a general triclinic box (3 arbitrary edge vectors plus '
-        'an origin, 12 parameters), which gemdat does not support. Write the box in '
-        "LAMMPS' restricted triclinic form (bounds plus the xy/xz/yz tilt factors, 9 "
-        'parameters) instead, which describes the same cell, rotated: drop the '
-        '`triclinic/general` keyword from the `dump_modify` or `write_data` command '
-        'that wrote the file. That is what LAMMPS writes by default, as it is the form '
-        'it uses internally.'
-    )
 
 
 def _is_general_triclinic(filename: str, *, max_lines: int = 100) -> bool:
@@ -361,7 +336,7 @@ class Trajectory(PymatgenTrajectory):
         data_file : Path | str
             LAMMPS data file with the lattice. With `constant_lattice=False`
             the box in this file is ignored, as the cell is taken per frame
-            from the coords file; the file is still read, so it must parse.
+            from the coords file; however this file is still read.
         temperature : float
             Temperature of simulation in K
         time_step : float
@@ -395,7 +370,7 @@ class Trajectory(PymatgenTrajectory):
         ValueError
             If `constant_lattice=False` and the coords file carries no
             per-frame box.
-        NotSupportedError
+        NotImplementedError
             If either file stores a general triclinic box.
         """
         from MDAnalysis import Universe
@@ -423,12 +398,11 @@ class Trajectory(PymatgenTrajectory):
                 print(e)
                 print(f'Error reading from cache, reading {coords_file!r}')
 
-        # Checked up front: a general triclinic data file matches none of the
-        # header patterns pymatgen knows, so it parses without complaint into
-        # the default 1 A cube instead of raising.
         if _is_general_triclinic(data_file):
-            raise NotSupportedError(_general_triclinic_msg(data_file))
-
+            raise NotImplementedError(
+                f'{coords_file!r} stores a general triclinic box'
+                ', which gemdat does not support. Restricted triclinic form is supported.'
+            )
         try:
             lammps_data = LammpsData.from_file(filename=data_file, atom_style=atom_style)
         except pd.errors.ParserError as exc:
@@ -445,7 +419,10 @@ class Trajectory(PymatgenTrajectory):
         except ValueError as exc:
             if not _is_general_triclinic(coords_file):
                 raise
-            raise NotSupportedError(_general_triclinic_msg(coords_file)) from exc
+            raise NotImplementedError(
+                f'{coords_file!r} stores a general triclinic box'
+                ', which gemdat does not support. Restricted triclinic form is supported.'
+            ) from exc
 
         if constant_lattice:
             lattice = lammps_data.structure.lattice
