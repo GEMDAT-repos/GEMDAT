@@ -78,15 +78,342 @@ def test_mean_squared_displacement_variable_lattice(variable_lattice_trajectory)
     assert msd.shape == (2, 3)
 
 
-def test_from_lammps_rejects_variable_lattice():
-    # The reader's explicit NotImplementedError is now the shared decorator, so
-    # it fires before the cache is consulted.
-    with pytest.raises(NotImplementedError, match='variable lattice'):
+LAMMPS_DATA_FILE = """LAMMPS data file for tests
+
+2 atoms
+2 atom types
+
+0.0 10.0 xlo xhi
+0.0 10.0 ylo yhi
+0.0 10.0 zlo zhi
+
+Masses
+
+1 6.941
+2 32.06
+
+Atoms # atomic
+
+1 1 1.0 0.0 0.0
+2 2 5.0 5.0 5.0
+"""
+
+# Cubic box doubling every frame. Atom 1 sits at fractional x = 0.1, 0.2, 0.3,
+# atom 2 stays put at the box centre. Cartesian coordinates, as in a real dump.
+LAMMPS_NPT_DUMP_FILE = """ITEM: TIMESTEP
+0
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS pp pp pp
+0.0 10.0
+0.0 10.0
+0.0 10.0
+ITEM: ATOMS id type x y z
+1 1 1.0 0.0 0.0
+2 2 5.0 5.0 5.0
+ITEM: TIMESTEP
+1
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS pp pp pp
+0.0 20.0
+0.0 20.0
+0.0 20.0
+ITEM: ATOMS id type x y z
+1 1 4.0 0.0 0.0
+2 2 10.0 10.0 10.0
+ITEM: TIMESTEP
+2
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS pp pp pp
+0.0 40.0
+0.0 40.0
+0.0 40.0
+ITEM: ATOMS id type x y z
+1 1 12.0 0.0 0.0
+2 2 20.0 20.0 20.0
+"""
+
+
+# Same idea, but with a box tilted in all three directions (xy, xz, yz = 2, 1,
+# 3 Å, doubling with the cell). Tilting xy alone is not enough to pin the
+# orientation: with alpha = beta = 90 a rebuild from lengths and angles happens
+# to land on the same vectors. Atom 1 sits at fractional (0.1, 0.1, 0.1) then
+# (0.2, 0.1, 0.1), atom 2 at the centre.
+LAMMPS_NPT_TRICLINIC_DUMP_FILE = """ITEM: TIMESTEP
+0
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS xy xz yz pp pp pp
+0.0 13.0 2.0
+0.0 13.0 1.0
+0.0 10.0 3.0
+ITEM: ATOMS id type x y z
+1 1 1.3 1.3 1.0
+2 2 6.5 6.5 5.0
+ITEM: TIMESTEP
+1
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS xy xz yz pp pp pp
+0.0 26.0 4.0
+0.0 26.0 2.0
+0.0 20.0 6.0
+ITEM: ATOMS id type x y z
+1 1 4.6 2.6 2.0
+2 2 13.0 13.0 10.0
+"""
+
+
+# The same two frames as above, but written as a *general* triclinic box
+# (`dump_modify triclinic/general`): 12 parameters, being 3 arbitrary edge
+# vectors A, B, C plus their origin, instead of the 9 of the restricted form.
+# The cell is the restricted one rotated by 30 deg about z then 20 deg about x
+# and shifted to origin (1, 2, 3), and the coordinates are rotated with it, so
+# a reader that undoes the rotation must recover the same fractional positions
+# (0.1, 0.1, 0.1) -> (0.2, 0.1, 0.1) and (0.5, 0.5, 0.5).
+LAMMPS_NPT_GENERAL_TRICLINIC_DUMP_FILE = """ITEM: TIMESTEP
+0
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS abc origin pp pp pp
+8.660254 5.000000 0.000000 1.000000
+-2.966412 9.137977 3.420201 2.000000
+1.166587 -0.020588 10.422987 3.000000
+ITEM: ATOMS id type x y z
+1 1 1.686043 3.411739 4.384319
+2 2 4.430214 9.058694 9.921594
+ITEM: TIMESTEP
+1
+ITEM: NUMBER OF ATOMS
+2
+ITEM: BOX BOUNDS abc origin pp pp pp
+17.320508 10.000000 0.000000 1.000000
+-5.932825 18.275954 6.840403 2.000000
+2.333174 -0.041177 20.845973 3.000000
+ITEM: ATOMS id type x y z
+1 1 4.104137 5.823478 5.768638
+2 2 7.860429 16.117389 16.843188
+"""
+
+
+# A data file carrying the same general triclinic box, as `avec`/`bvec`/`cvec`
+# plus `abc origin`, instead of the `xlo xhi` bounds and `xy xz yz` tilts of
+# the restricted form.
+LAMMPS_GENERAL_TRICLINIC_DATA_FILE = """LAMMPS data file for tests
+
+2 atoms
+2 atom types
+
+8.660254 5.000000 0.000000 avec
+-2.966412 9.137977 3.420201 bvec
+1.166587 -0.020588 10.422987 cvec
+1.000000 2.000000 3.000000 abc origin
+
+Masses
+
+1 6.941
+2 32.06
+
+Atoms # atomic
+
+1 1 1.686043 3.411739 4.384319
+2 2 4.430214 9.058694 9.921594
+"""
+
+
+@pytest.fixture
+def lammps_npt_files(tmp_path):
+    """Write a minimal NPT LAMMPS dump plus its data file to a temp dir."""
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_npt.lammpstrj'
+    data_file.write_text(LAMMPS_DATA_FILE)
+    coords_file.write_text(LAMMPS_NPT_DUMP_FILE)
+    return coords_file, data_file
+
+
+def test_from_lammps_variable_lattice(lammps_npt_files):
+    # issue #417: the per-frame box comes from the dump, not from the data file.
+    coords_file, data_file = lammps_npt_files
+
+    traj = Trajectory.from_lammps(
+        coords_file=coords_file,
+        data_file=data_file,
+        coords_format='LAMMPSDUMP',
+        temperature=300,
+        time_step=1,
+        type_mapping={'1': 'Li', '2': 'S'},
+        constant_lattice=False,
+    )
+
+    assert traj.constant_lattice is False
+    assert traj.species == [Element('Li'), Element('S')]
+    assert traj.positions.shape == (3, 2, 3)
+
+    # The box grows per frame; the static 10 Å box of the data file is ignored.
+    assert_allclose(traj.lattice, [np.eye(3) * 10, np.eye(3) * 20, np.eye(3) * 40], atol=1e-4)
+
+    assert_allclose(
+        traj.positions,
+        [
+            [[0.1, 0.0, 0.0], [0.5, 0.5, 0.5]],
+            [[0.2, 0.0, 0.0], [0.5, 0.5, 0.5]],
+            [[0.3, 0.0, 0.0], [0.5, 0.5, 0.5]],
+        ],
+        atol=1e-6,
+    )
+
+
+def test_from_lammps_variable_lattice_distances_from_base_position(lammps_npt_files):
+    # issue #417: each frame must be measured in its own (growing) cell, so
+    # atom 1 moves 0.1 fractional per frame -> 0.1 * 20 Å and 0.2 * 40 Å.
+    coords_file, data_file = lammps_npt_files
+
+    traj = Trajectory.from_lammps(
+        coords_file=coords_file,
+        data_file=data_file,
+        coords_format='LAMMPSDUMP',
+        temperature=300,
+        time_step=1,
+        type_mapping={'1': 'Li', '2': 'S'},
+        constant_lattice=False,
+    )
+
+    distances = traj.distances_from_base_position()
+
+    assert distances.shape == (2, 3)
+    assert_allclose(distances, [[0.0, 2.0, 8.0], [0.0, 0.0, 0.0]], atol=1e-6)
+
+
+def test_from_lammps_variable_lattice_triclinic(tmp_path):
+    # issue #417: a dump stores the xy/xz/yz tilt factors, so a tilted box is
+    # fully defined. The cell must keep LAMMPS' orientation (a along x, b in
+    # the x/y-plane) -- rebuilding it from lengths and angles rotates it away
+    # from the frame the dump's cartesian coordinates are in, which silently
+    # yields wrong fractional coordinates.
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_npt_triclinic.lammpstrj'
+    data_file.write_text(LAMMPS_DATA_FILE)
+    coords_file.write_text(LAMMPS_NPT_TRICLINIC_DUMP_FILE)
+
+    traj = Trajectory.from_lammps(
+        coords_file=coords_file,
+        data_file=data_file,
+        coords_format='LAMMPSDUMP',
+        temperature=300,
+        time_step=1,
+        type_mapping={'1': 'Li', '2': 'S'},
+        constant_lattice=False,
+    )
+
+    assert_allclose(
+        traj.lattice,
+        [
+            [[10, 0, 0], [2, 10, 0], [1, 3, 10]],
+            [[20, 0, 0], [4, 20, 0], [2, 6, 20]],
+        ],
+        atol=1e-5,
+    )
+
+    assert_allclose(
+        traj.positions,
+        [
+            [[0.1, 0.1, 0.1], [0.5, 0.5, 0.5]],
+            [[0.2, 0.1, 0.1], [0.5, 0.5, 0.5]],
+        ],
+        atol=1e-6,
+    )
+
+    # Atom 1 moves 0.1 along a, measured in the second frame's 20 Å a vector.
+    assert_allclose(traj.distances_from_base_position(), [[0.0, 2.0], [0.0, 0.0]], atol=1e-5)
+
+
+def test_from_lammps_variable_lattice_needs_a_box_in_the_coords_file(tmp_path):
+    # issue #417: xyz carries no box, so there is nothing to build the
+    # per-frame lattice from -- say so instead of silently using a wrong cell.
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_coords.xyz'
+    data_file.write_text(LAMMPS_DATA_FILE)
+    coords_file.write_text('2\nAtoms. Timestep: 0\nLi 1.0 0.0 0.0\nS 5.0 5.0 5.0\n')
+
+    with pytest.raises(ValueError, match='contains no box'):
         Trajectory.from_lammps(
-            coords_file='does_not_exist.xyz',
-            data_file='does_not_exist.data',
+            coords_file=coords_file,
+            data_file=data_file,
             temperature=300,
             time_step=1,
+            constant_lattice=False,
+        )
+
+
+def test_from_lammps_variable_lattice_general_triclinic(tmp_path):
+    # A general triclinic box is the restricted one rotated and shifted, so it
+    # describes a cell gemdat could handle -- but nothing here undoes the
+    # rotation. Until it does, say so: MDAnalysis keys off the token count of
+    # the BOX BOUNDS header, reads `abc origin` as an orthogonal box, and trips
+    # over the 4 columns of its vector lines with `too many values to unpack`.
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_npt_general_triclinic.lammpstrj'
+    data_file.write_text(LAMMPS_DATA_FILE)
+    coords_file.write_text(LAMMPS_NPT_GENERAL_TRICLINIC_DUMP_FILE)
+
+    with pytest.raises(NotImplementedError, match='general triclinic'):
+        Trajectory.from_lammps(
+            coords_file=coords_file,
+            data_file=data_file,
+            coords_format='LAMMPSDUMP',
+            temperature=300,
+            time_step=1,
+            type_mapping={'1': 'Li', '2': 'S'},
+            constant_lattice=False,
+        )
+
+
+def test_from_lammps_general_triclinic_data_file(tmp_path):
+    # The silent one: with constant_lattice=True the cell comes from the data
+    # file, and pymatgen matches neither the `avec`/`bvec`/`cvec` nor the `abc
+    # origin` header, falling back to its default bounds -- a 1 A cube that
+    # every downstream analysis then happily uses. The coords are read from an
+    # xyz file here, so nothing but the data file can raise.
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_coords.xyz'
+    data_file.write_text(LAMMPS_GENERAL_TRICLINIC_DATA_FILE)
+    coords_file.write_text(
+        '2\nAtoms. Timestep: 0\nLi 1.686043 3.411739 4.384319\nS 4.430214 9.058694 9.921594\n'
+    )
+
+    with pytest.raises(NotImplementedError, match='general triclinic'):
+        Trajectory.from_lammps(
+            coords_file=coords_file,
+            data_file=data_file,
+            temperature=300,
+            time_step=1,
+            constant_lattice=True,
+        )
+
+
+def test_from_lammps_keeps_unrelated_value_errors(tmp_path):
+    # The general triclinic check sits behind a broad `except ValueError`, so
+    # make sure a dump that is simply broken keeps its own error rather than
+    # being relabelled as unsupported.
+    data_file = tmp_path / 'lammps_data.txt'
+    coords_file = tmp_path / 'lammps_broken.lammpstrj'
+    data_file.write_text(LAMMPS_DATA_FILE)
+    coords_file.write_text(
+        LAMMPS_NPT_DUMP_FILE.replace(
+            '0.0 10.0\n0.0 10.0\n0.0 10.0', '0.0 oops\n0.0 10.0\n0.0 10.0'
+        )
+    )
+
+    with pytest.raises(ValueError, match='could not convert string to float'):
+        Trajectory.from_lammps(
+            coords_file=coords_file,
+            data_file=data_file,
+            coords_format='LAMMPSDUMP',
+            temperature=300,
+            time_step=1,
+            type_mapping={'1': 'Li', '2': 'S'},
             constant_lattice=False,
         )
 
