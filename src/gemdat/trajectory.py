@@ -400,7 +400,7 @@ class Trajectory(PymatgenTrajectory):
 
         if _is_general_triclinic(data_file):
             raise NotImplementedError(
-                f'{coords_file!r} stores a general triclinic box'
+                f'{data_file!r} stores a general triclinic box'
                 ', which gemdat does not support. Restricted triclinic form is supported.'
             )
         try:

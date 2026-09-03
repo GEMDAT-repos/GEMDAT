@@ -8,7 +8,6 @@ import scipp as sc
 from numpy.testing import assert_allclose
 from pymatgen.core import Element, Lattice, Species
 
-from gemdat.exceptions import NotSupportedError
 from gemdat.trajectory import Trajectory
 
 
@@ -359,7 +358,7 @@ def test_from_lammps_variable_lattice_general_triclinic(tmp_path):
     data_file.write_text(LAMMPS_DATA_FILE)
     coords_file.write_text(LAMMPS_NPT_GENERAL_TRICLINIC_DUMP_FILE)
 
-    with pytest.raises(NotSupportedError, match='general triclinic'):
+    with pytest.raises(NotImplementedError, match='general triclinic'):
         Trajectory.from_lammps(
             coords_file=coords_file,
             data_file=data_file,
@@ -384,7 +383,7 @@ def test_from_lammps_general_triclinic_data_file(tmp_path):
         '2\nAtoms. Timestep: 0\nLi 1.686043 3.411739 4.384319\nS 4.430214 9.058694 9.921594\n'
     )
 
-    with pytest.raises(NotSupportedError, match='general triclinic'):
+    with pytest.raises(NotImplementedError, match='general triclinic'):
         Trajectory.from_lammps(
             coords_file=coords_file,
             data_file=data_file,
