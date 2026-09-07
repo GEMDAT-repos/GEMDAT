@@ -46,10 +46,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  # Upper bound pins the FreeType the mpl image-comparison baselines were
-  # rendered with: matplotlib < 3.11 bundles FreeType 2.6.1, while 3.11 bumped
-  # it to 2.14.3, shifting tight-bbox sizes by ~1px and failing the baselines in
-  # tests/integration/plot_mpl_test.py. Bump only alongside regenerated baselines.
+  # Upper bound pins the FreeType for the mpl image-comparison baselines.
   'matplotlib >= 3.6.0, < 3.11',
   'MDAnalysis',
   'kinisi',
@@ -70,7 +67,8 @@ changelog = "https://github.com/GEMDAT-repos/GEMDAT/releases"
 [project.optional-dependencies]
 develop = [
     "kaleido < 1.0.0",
-    "plotly[kaleido]",
+    # Upper bound keeps the plotly image-comparison working
+    "plotly[kaleido] < 6",
     "bump-my-version",
     "coverage[toml]",
     "mypy",
