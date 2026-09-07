@@ -4,17 +4,15 @@ import pytest
 
 from gemdat.trajectory import Trajectory
 
-from .conftest import VASP_XML
+from .conftest import VASP_NPT_XML
 
 
-@pytest.vaspxml_available  # type: ignore
+@pytest.npt_vaspxml_available  # type: ignore
 def test_constant_lattice_cache_invalidation(tmp_path):
     """Changing `constant_lattice` must not reuse a stale cache (issue
     #393)."""
-    # Symlink avoids copying the large vasprun.xml while keeping the
-    # auto-generated cache files inside tmp_path.
     xml = tmp_path / 'vasprun.xml'
-    xml.symlink_to(VASP_XML)
+    xml.symlink_to(VASP_NPT_XML)
 
     traj_false = Trajectory.from_vasprun(xml, constant_lattice=False)
     assert traj_false.constant_lattice is False
