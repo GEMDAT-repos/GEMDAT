@@ -28,20 +28,29 @@ class CrystallizerResult:
     ----------
     structure : Structure
         Full structure (static framework + density-derived mobile sites), with
-        partial occupancies and occupancies averaged over symmetry-equivalent
-        sites.
+        occupancies averaged over symmetry-equivalent sites. If ``use_density``
+        is True the mobile sites carry their density-derived partial
+        occupancies (the MD time-fraction the site is occupied); if False every
+        mobile site is emitted at full occupancy 1.0 and the structure is the
+        idealised site framework without MD occupancy statistics. Framework
+        sites are always fully occupied.
     spacegroup_symbol : str
         International symbol of the fitted space group.
     spacegroup_number : int
         International number of the fitted space group.
     symprec : float
         Symmetry tolerance (in Ångstrom) that produced the highest-symmetry fit.
+    use_density : bool
+        Whether density-derived partial occupancies were written into
+        ``structure`` (True) or every mobile site was set to full occupancy
+        (False).
     """
 
     structure: Structure
     spacegroup_symbol: str
     spacegroup_number: int
     symprec: float
+    use_density: bool = True
 
 
 class Crystallizer:
@@ -51,6 +60,15 @@ class Crystallizer:
     with partial occupancies, these are combined with the time-averaged static
     host framework, and the highest crystal symmetry consistent with the
     resulting structure is fitted. The result can be written to a cif file.
+
+    Incorporating the density-derived occupancies (``use_density=True``, the
+    default) gives realistic partial site occupancies, but those numbers carry
+    the statistical noise of the finite MD run. Switching it off
+    (``use_density=False``) keeps only the geometry: sites are still *located*
+    from the density peaks (the only way to find them), but every mobile site
+    is emitted at full occupancy 1.0, giving a clean idealised site set without
+    MD occupancy statistics. The fitted symmetry is identical either way -- the
+    symmetry search always runs on the geometry alone.
     """
 
     def __init__(
@@ -115,31 +133,37 @@ class Crystallizer:
         self,
         *,
         background_level: float = 0.1,
+        with_occupancies: bool = True,
         **find_peaks_kwargs,
     ) -> Structure:
-        """Extract the mobile-species sites from the density, with partial
-        occupancies.
+        """Extract the mobile-species sites from the density.
 
         Parameters
         ----------
         background_level : float
             Fraction of the maximum density used as the segmentation floor, see
             [gemdat.volume.Volume.to_structure][].
+        with_occupancies : bool
+            If True (default), each site carries its density-derived partial
+            occupancy (the MD time-fraction the site is occupied). If False,
+            every site is returned at nominal full occupancy -- only the site
+            positions (density-peak centroids) are kept.
         **find_peaks_kwargs : dict
             Passed through to [gemdat.volume.Volume.find_peaks][].
 
         Returns
         -------
         structure : Structure
-            Structure of mobile sites with partial occupancies.
+            Structure of mobile sites. Occupancies are partial floats when
+            ``with_occupancies`` is True and 1.0 otherwise.
         """
         mobile = self.trajectory.filter(self.floating_specie)
         volume = mobile.to_volume(resolution=self.resolution)
         return volume.to_structure(
             specie=self.floating_specie,
             background_level=background_level,
-            return_occupancies=True,
-            n_frames=len(mobile),
+            return_occupancies=with_occupancies,
+            n_frames=len(mobile) if with_occupancies else None,
             **find_peaks_kwargs,
         )
 
@@ -177,6 +201,7 @@ class Crystallizer:
         self,
         *,
         background_level: float = 0.1,
+        use_density: bool = True,
         **find_peaks_kwargs,
     ) -> tuple[Structure, np.ndarray]:
         """Combine framework + mobile sites into a geometry-only structure.
@@ -189,6 +214,12 @@ class Crystallizer:
         separately, aligned to the structure's site order (framework
         sites are 1.0), so they can be averaged over the symmetry-
         equivalent classes afterwards.
+
+        If ``use_density`` is False the mobile occupancies are all set to
+        1.0 afterwards. The sites are still located exactly the same way
+        (from the density peaks), only the occupancy weighting is dropped,
+        so the geometry structure -- and therefore the fitted symmetry --
+        does not depend on this flag.
         """
         framework = self.framework()
         mobile = self.mobile_sites(background_level=background_level, **find_peaks_kwargs)
@@ -197,7 +228,10 @@ class Crystallizer:
         symbols += [next(iter(site.species.as_dict())) for site in mobile]
 
         occupancies = [1.0] * len(framework)
-        occupancies += [site.species.num_atoms for site in mobile]
+        if use_density:
+            occupancies += [site.species.num_atoms for site in mobile]
+        else:
+            occupancies += [1.0] * len(mobile)
 
         # `framework` is empty when every species is the floating specie (e.g.
         # an already Li-filtered trajectory); its `frac_coords` then has no
@@ -218,6 +252,7 @@ class Crystallizer:
         symprec_range: tuple[float, ...] = (0.01, 0.05, 0.1, 0.2, 0.3, 0.5),
         angle_tolerance: float = 5.0,
         background_level: float = 0.1,
+        use_density: bool = True,
         **find_peaks_kwargs,
     ) -> CrystallizerResult:
         """Build the full structure and fit the highest possible space group.
@@ -233,6 +268,14 @@ class Crystallizer:
             [pymatgen.symmetry.analyzer.SpacegroupAnalyzer][].
         background_level : float
             Fraction of the maximum density used as the segmentation floor.
+        use_density : bool
+            Whether to incorporate the density-derived occupancy information.
+            If True (default), the mobile sites carry their partial
+            occupancies, averaged per symmetry orbit -- realistic occupancies,
+            but they carry the MD occupancy noise. If False, the mobile sites
+            are still located from the density peaks but emitted at full
+            occupancy 1.0 -- a clean idealised site set without MD occupancy
+            statistics. The fitted space group is unaffected by this flag.
         **find_peaks_kwargs : dict
             Passed through to [gemdat.volume.Volume.find_peaks][].
 
@@ -242,7 +285,9 @@ class Crystallizer:
             The symmetrized structure and the fitted space group.
         """
         geometry, occupancies = self._geometry_and_occupancies(
-            background_level=background_level, **find_peaks_kwargs
+            background_level=background_level,
+            use_density=use_density,
+            **find_peaks_kwargs,
         )
 
         best_symprec = None
@@ -290,6 +335,7 @@ class Crystallizer:
             spacegroup_symbol=sga.get_space_group_symbol(),
             spacegroup_number=sga.get_space_group_number(),
             symprec=best_symprec,
+            use_density=use_density,
         )
 
     def to_cif(self, filename: Path | str, **kwargs) -> CrystallizerResult:

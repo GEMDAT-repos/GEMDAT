@@ -104,6 +104,66 @@ def test_to_cif(crystal_trajectory, tmp_path):
     assert '_symmetry_space_group_name_H-M' in filename.read_text()
 
 
+def _mobile_occupancies(structure, specie='Li'):
+    """Occupancies of the mobile-species sites in a (crystallized)
+    structure."""
+    return [site.species.num_atoms for site in structure if specie in site.species.as_dict()]
+
+
+def test_crystallize_use_density_false(crystal_trajectory):
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li')
+
+    result = cr.crystallize(use_density=False)
+
+    assert result.use_density is False
+    occupancies = _mobile_occupancies(result.structure)
+    assert len(occupancies) > 0
+    assert all(occ == 1.0 for occ in occupancies)
+
+
+def test_crystallize_use_density_default_unchanged(crystal_trajectory):
+    # Baseline captured from the pre-change code on this fixture (default
+    # resolution 0.2): highest space group is C2/m (12) at symprec 0.1, and
+    # the mobile sites end up with partial occupancy.
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li')
+
+    for result in (cr.crystallize(), cr.crystallize(use_density=True)):
+        assert result.use_density is True
+        assert result.spacegroup_number == 12
+        assert result.symprec == 0.1
+
+        occupancies = _mobile_occupancies(result.structure)
+        assert len(occupancies) > 0
+        assert any(occ < 1.0 for occ in occupancies)
+        assert all(0 < occ <= 1.0 for occ in occupancies)
+
+
+def test_to_cif_use_density_false(crystal_trajectory, tmp_path):
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li')
+
+    filename = tmp_path / 'crystallized_no_density.cif'
+    cr.to_cif(filename, use_density=False)
+
+    assert filename.exists()
+
+    reread = read_cif(filename)
+    occupancies = _mobile_occupancies(reread)
+    assert len(occupancies) > 0
+    assert all(occ == 1.0 for occ in occupancies)
+
+
+def test_mobile_sites_with_occupancies_false(crystal_trajectory):
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.2)
+
+    mobile = cr.mobile_sites(with_occupancies=False)
+
+    assert isinstance(mobile, Structure)
+    assert len(mobile) > 0
+    for site in mobile:
+        assert 'Li' in site.species.as_dict()
+        assert site.species.num_atoms == 1.0
+
+
 def test_framework_rejects_variable_lattice(variable_lattice_trajectory):
     crystallizer = Crystallizer(trajectory=variable_lattice_trajectory, floating_specie='Li')
 
