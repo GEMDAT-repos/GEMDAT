@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .crystallizer import Crystallizer, CrystallizerResult
+from .crystallizer import Crystallizer, CrystallizerResult, SymmetryLevel
 from .io import load_known_material, read_cif, write_cif
 from .jumps import Jumps
 from .metrics import TrajectoryMetrics
@@ -21,6 +21,7 @@ __all__ = [
     'radial_distribution',
     'read_cif',
     'ShapeAnalyzer',
+    'SymmetryLevel',
     'TrajectoryMetrics',
     'Trajectory',
     'trajectory_to_volume',
