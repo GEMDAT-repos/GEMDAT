@@ -17,6 +17,7 @@ DATA_DIR = Path(__file__).parents[1] / 'data'
 VASP_XML = DATA_DIR / 'short_simulation' / 'vasprun.xml'
 VASP_ORI_CACHE = DATA_DIR / 'short_simulation' / 'vasprun_rotations.cache'
 VASP_NPT_XML = DATA_DIR / 'short_simulation_npt' / 'vasprun_npt.xml'
+NA3SBS4_CACHE = DATA_DIR / 'na3sbs4' / 'vasprun.xml.a45e320a.cache'
 
 
 def pytest_configure():
@@ -47,6 +48,14 @@ def pytest_configure():
             '-xjf tests/data/short_simulation_npt/vasprun_npt.xml.bz2`'
         ),
     )
+    pytest.na3sbs4_cache_available = pytest.mark.skipif(
+        not NA3SBS4_CACHE.exists(),
+        reason=(
+            'Na3(Sb/W)S4 plastic-crystal trajectory cache '
+            '(tests/data/na3sbs4/vasprun.xml.a45e320a.cache) is required for '
+            'this test. Run `git submodule update --init`.'
+        ),
+    )
 
 
 @pytest.fixture(scope='module')
@@ -60,6 +69,22 @@ def vasp_traj():
 def vasp_traj_orientations():
     trajectory = Trajectory.from_cache(VASP_ORI_CACHE)
     return trajectory
+
+
+@pytest.fixture(scope='module')
+def na3sbs4_traj():
+    """Na3(Sb/W)S4 plastic crystal: rotor SbS4/WS4 tetrahedra + mobile Na.
+
+    Loaded from a pickled trajectory cache, so it can fail to unpickle on a
+    pymatgen/gemdat version mismatch - skip cleanly rather than error in that
+    case (the ``na3sbs4_cache_available`` mark already covers a missing file).
+    """
+    if not NA3SBS4_CACHE.exists():
+        pytest.skip(f'{NA3SBS4_CACHE} not available')
+    try:
+        return Trajectory.from_cache(NA3SBS4_CACHE)
+    except Exception as exc:  # noqa: BLE001 - pickle/version drift is not a test failure
+        pytest.skip(f'could not load {NA3SBS4_CACHE.name}: {exc!r}')
 
 
 @pytest.fixture(scope='module')
