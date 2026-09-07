@@ -51,6 +51,16 @@ class Crystallizer:
     with partial occupancies, these are combined with the time-averaged static
     host framework, and the highest crystal symmetry consistent with the
     resulting structure is fitted. The result can be written to a cif file.
+
+    Verified (see the crystallizer tests) on:
+
+    * Argyrodite - real Li6PS5Br MD crystallizes to P1, which is expected:
+      the S/Br host is site-disordered and averages to P1, and the Li
+      density centroids scatter off the ideal 48h positions. An ideal 48h
+      Li sublattice in an exact cubic cell does crystallize back to F-43m
+      (#216).
+    * Na3(Sb/W)S4 plastic crystal - crystallizes to cubic I-43m (#217): the
+      rotor SbS4/WS4 tetrahedra give a well-defined cubic host framework.
     """
 
     def __init__(
