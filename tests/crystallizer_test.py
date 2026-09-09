@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 from pymatgen.core import Species, Structure
 
 from gemdat.crystallizer import Crystallizer, CrystallizerResult
 from gemdat.io import read_cif
-from gemdat.symmetry import SymmetryLevel, SymmetryRanking
+from gemdat.symmetry import SymmetryAnalyzer, SymmetryLevel, SymmetryRanking
 from gemdat.trajectory import Trajectory
 
 
@@ -204,9 +206,10 @@ def test_crystallize_explicit_symprec_skips_sweep(crystal_trajectory):
     result = cr.crystallize(symprec=0.3)
 
     assert result.symprec == 0.3
-    # no sweep was run
+    # no sweep was run, and asking for its results says so
     assert result.ranking is None
-    assert result.candidates is None
+    with pytest.raises(ValueError, match='no symmetry ranking'):
+        result.candidates
 
 
 def test_crystallize_target_spacegroup_number(crystal_trajectory):
@@ -243,21 +246,94 @@ def test_crystallize_target_spacegroup_symbol(crystal_trajectory):
 def test_crystallize_target_spacegroup_unreachable(crystal_trajectory):
     cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
 
-    with pytest.raises(ValueError, match='space group 216'):
+    with pytest.raises(ValueError, match='space group 216') as excinfo:
         cr.crystallize(symprec_range=SYMPREC_RANGE, target_spacegroup=216)
 
     # the error lists what was actually found (the ranking table)
-    try:
-        cr.crystallize(symprec_range=SYMPREC_RANGE, target_spacegroup=216)
-    except ValueError as exc:
-        assert 'symprec (Å)' in str(exc)
+    assert 'symprec (Å)' in str(excinfo.value)
 
 
-def test_crystallize_symprec_and_target_are_contradictory(crystal_trajectory):
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {'target_spacegroup': 200},
+        {'symprec_range': SYMPREC_RANGE},
+        {'symprec_min': 0.02},
+        {'symprec_max': 0.4},
+        {'n_samples': 10},
+    ],
+)
+def test_crystallize_symprec_conflicts_are_rejected(crystal_trajectory, kwargs):
+    # an explicit symprec makes every sweep setting meaningless; silently
+    # ignoring them would hide a mistake
     cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
 
-    with pytest.raises(ValueError, match='not both'):
-        cr.crystallize(symprec=0.1, target_spacegroup=200)
+    with pytest.raises(ValueError, match='cannot be combined'):
+        cr.crystallize(symprec=0.1, **kwargs)
+
+
+@pytest.mark.parametrize(
+    'kwargs', [{'symprec_min': 0.02}, {'symprec_max': 0.4}, {'n_samples': 10}]
+)
+def test_symmetry_ranking_range_conflicts_are_rejected(crystal_trajectory, kwargs):
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
+
+    with pytest.raises(ValueError, match='cannot be combined'):
+        cr.symmetry_ranking(symprec_range=SYMPREC_RANGE, **kwargs)
+
+
+def test_crystallize_without_any_symmetry_raises(crystal_trajectory):
+    # 0.0 is not a usable tolerance, so the whole sweep fails
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
+
+    with pytest.raises(ValueError, match='Could not determine symmetry for any'):
+        cr.crystallize(symprec_range=(0.0,))
+
+
+def test_crystallize_angle_tolerance_is_used(crystal_trajectory):
+    # a negative angle tolerance switches spglib to its own algorithm rather
+    # than being an error, so check the value arrives at the analyzer
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
+
+    seen = []
+    original = SymmetryAnalyzer.__init__
+
+    def record(self, structure, *, angle_tolerance=5.0):
+        seen.append(angle_tolerance)
+        original(self, structure, angle_tolerance=angle_tolerance)
+
+    with patch.object(SymmetryAnalyzer, '__init__', record):
+        cr.crystallize(symprec_range=SYMPREC_RANGE, angle_tolerance=1.0)
+        cr.symmetry_ranking(symprec_range=SYMPREC_RANGE, angle_tolerance=2.0)
+
+    assert seen == [1.0, 2.0]
+
+
+def test_geometry_is_computed_once_per_argument_set(crystal_trajectory):
+    # peak extraction dominates the cost, so repeated calls must reuse it
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
+
+    with patch.object(
+        Crystallizer,
+        '_compute_geometry_and_occupancies',
+        autospec=True,
+        side_effect=Crystallizer._compute_geometry_and_occupancies,
+    ) as compute:
+        cr.crystallize(symprec=0.3)
+        cr.crystallize(symprec=0.3)
+        cr.symmetry_ranking(symprec_range=SYMPREC_RANGE)
+        assert compute.call_count == 1
+
+        # different arguments are a different geometry
+        cr.crystallize(symprec=0.3, background_level=0.2)
+        assert compute.call_count == 2
+
+        # unhashable arguments simply bypass the cache (voxel coordinates of
+        # the two Li sites on the 20^3 grid this resolution gives)
+        peaks = np.array([[5, 5, 5], [15, 15, 15]])
+        cr.symmetry_ranking(symprec_range=SYMPREC_RANGE, peaks=peaks)
+        cr.symmetry_ranking(symprec_range=SYMPREC_RANGE, peaks=peaks)
+        assert compute.call_count == 4
 
 
 def test_crystallize_explicit_symprec_failure_raises(crystal_trajectory):

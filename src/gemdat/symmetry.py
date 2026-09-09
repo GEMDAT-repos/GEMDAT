@@ -8,14 +8,19 @@ that turn up by how much tolerance each one actually needs
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Any, Iterator, overload
 
 import numpy as np
 from pymatgen.core import Lattice
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from scipy.optimize import linear_sum_assignment
 
 if TYPE_CHECKING:
     from pymatgen.core import Structure
+
+DEFAULT_SYMPREC_MIN = 0.01
+DEFAULT_SYMPREC_MAX = 0.5
+DEFAULT_N_SAMPLES = 40
 
 
 @dataclass
@@ -53,7 +58,9 @@ class SymmetryLevel:
         the scanned tolerances yielded this space group, as a measure of how
         robustly it holds. `None` when the tolerances were given explicitly.
     error : str | None
-        The exception message if the symmetry search raised, else `None`.
+        The exception message if the symmetry search raised, or if the
+        deviation could not be measured (in which case the space group was
+        still determined), else `None`.
     """
 
     symprec: float
@@ -72,6 +79,19 @@ def _normalize_spacegroup_symbol(symbol: str) -> str:
     """Strip all whitespace and lower-case a Hermann-Mauguin symbol for
     tolerant matching."""
     return ''.join(symbol.split()).lower()
+
+
+def _rank_key(level: SymmetryLevel) -> tuple[bool, float, float]:
+    """Sort key ranking levels by how little the structure has to give up:
+    smallest positional deviation first, ties broken on the angular one.
+
+    Levels whose deviation could not be measured sort last.
+    """
+    return (
+        level.deviation is None,
+        level.deviation if level.deviation is not None else 0.0,
+        level.angle_deviation if level.angle_deviation is not None else 0.0,
+    )
 
 
 class SymmetryRanking:
@@ -102,7 +122,13 @@ class SymmetryRanking:
     def __iter__(self) -> Iterator[SymmetryLevel]:
         return iter(self.levels)
 
-    def __getitem__(self, index):
+    @overload
+    def __getitem__(self, index: int) -> SymmetryLevel: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> list[SymmetryLevel]: ...
+
+    def __getitem__(self, index: int | slice) -> SymmetryLevel | list[SymmetryLevel]:
         return self.levels[index]
 
     def __repr__(self) -> str:
@@ -134,15 +160,15 @@ class SymmetryRanking:
         """
         tightest: dict[int, SymmetryLevel] = {}
         for level in self.found:
-            assert level.spacegroup_number is not None
-            current = tightest.get(level.spacegroup_number)
+            number = level.spacegroup_number
+            assert number is not None  # `found` drops the failures
+            current = tightest.get(number)
             if current is None or level.symprec < current.symprec:
-                tightest[level.spacegroup_number] = level
-        return sorted(
-            tightest.values(),
-            key=lambda level: level.spacegroup_number or 0,
-            reverse=True,
-        )
+                tightest[number] = level
+        return [
+            level
+            for _, level in sorted(tightest.items(), key=lambda item: item[0], reverse=True)
+        ]
 
     def match(self, target: int | str) -> SymmetryLevel | None:
         """Return the level matching `target`, at the tightest tolerance that
@@ -203,9 +229,10 @@ class SymmetryRanking:
         -------
         str
             One row per level, with columns `symprec (Å)`, `deviation (Å)`,
-            `angle dev (°)`, `space group`, `#`, `crystal system`, `# orbits`
-            and `# hits`. A tolerance at which the symmetry search failed shows
-            `failed`/`-`, as does any column that was not computed.
+            `angle dev (°)`, `space group`, `#`, `crystal system`, `# ops`,
+            `# orbits` and `# hits`. A tolerance at which the symmetry search
+            failed shows `failed`/`-`, as does any column that was not
+            computed.
         """
         headers = (
             'symprec (Å)',
@@ -214,32 +241,29 @@ class SymmetryRanking:
             'space group',
             '#',
             'crystal system',
+            '# ops',
             '# orbits',
             '# hits',
         )
-        rows: list[tuple[str, ...]] = []
-        for level in self.levels:
-            hits = str(level.n_observed) if level.n_observed is not None else '-'
-            deviation = f'{level.deviation:.4g}' if level.deviation is not None else '-'
-            angle = f'{level.angle_deviation:.3g}' if level.angle_deviation is not None else '-'
-            if level.spacegroup_number is None:
-                rows.append(
-                    (f'{level.symprec:g}', deviation, angle, 'failed', '-', '-', '-', hits)
-                )
-            else:
-                orbits = str(level.n_site_orbits) if level.n_site_orbits is not None else '-'
-                rows.append(
-                    (
-                        f'{level.symprec:g}',
-                        deviation,
-                        angle,
-                        level.spacegroup_symbol or '-',
-                        str(level.spacegroup_number),
-                        level.crystal_system or '-',
-                        orbits,
-                        hits,
-                    )
-                )
+
+        def cell(value: object, spec: str = '') -> str:
+            """Render one value, or `-` if it was never determined."""
+            return '-' if value is None else format(value, spec)
+
+        rows: list[tuple[str, ...]] = [
+            (
+                f'{level.symprec:g}',
+                cell(level.deviation, '.4g'),
+                cell(level.angle_deviation, '.3g'),
+                cell(level.spacegroup_symbol) if level.spacegroup_number else 'failed',
+                cell(level.spacegroup_number),
+                cell(level.crystal_system),
+                cell(level.n_symmetry_ops),
+                cell(level.n_site_orbits),
+                cell(level.n_observed),
+            )
+            for level in self.levels
+        ]
 
         widths = [
             max([len(headers[i])] + [len(row[i]) for row in rows]) for i in range(len(headers))
@@ -283,17 +307,17 @@ class SymmetryAnalyzer:
         self.structure = structure
         self.angle_tolerance = angle_tolerance
 
-    def _deviation(self, sga: SpacegroupAnalyzer) -> tuple[float | None, float | None]:
-        """Measure how far the structure really is from the symmetry `sga`
-        found.
+    def _deviation(self, dataset: Any) -> tuple[float | None, float | None, str | None]:
+        """Measure how far the structure really is from the symmetry recorded
+        in `dataset`.
 
         The symmetry finder only reports *whether* a group holds within the
         given tolerances, never how much slack it needed. That slack is
         recoverable from the symmetry dataset, which gives the operations in
         the input cell's own frame plus the idealised standard cell:
 
-        - applying each operation and measuring the distance to the nearest
-          site of the same species gives the largest displacement the group
+        - applying each operation and matching its images one-to-one onto the
+          sites of the same species gives the largest displacement the group
           demands;
         - transforming the idealised standard lattice back into the input
           basis and comparing cell angles gives the angular slack.
@@ -301,18 +325,21 @@ class SymmetryAnalyzer:
         Both are properties of the structure rather than of the search, so
         they do not depend on the `symprec` at which the group was found.
 
+        Parameters
+        ----------
+        dataset : SpglibDataset
+            Symmetry dataset of the fit, from
+            [pymatgen.symmetry.analyzer.SpacegroupAnalyzer.get_symmetry_dataset][].
+
         Returns
         -------
-        tuple[float | None, float | None]
-            Maximum displacement (Ångstrom) and maximum angle difference
-            (degrees), or `(None, None)` if they could not be determined.
+        tuple[float | None, float | None, str | None]
+            Maximum displacement (Ångstrom), maximum angle difference
+            (degrees), and `None`; or `(None, None, message)` if they could not
+            be determined.
         """
         structure = self.structure
         try:
-            dataset = sga.get_symmetry_dataset()
-            if dataset is None:
-                return None, None
-
             frac_coords = structure.frac_coords
             symbols = np.array([site.specie.symbol for site in structure])
             # An operation may only map a site onto a site of the same species.
@@ -328,7 +355,12 @@ class SymmetryAnalyzer:
                 mapped = frac_coords @ np.asarray(rotation).T + np.asarray(translation)
                 distances = structure.lattice.get_all_distances(mapped, frac_coords)
                 distances[forbidden] = np.inf
-                deviation = max(deviation, float(distances.min(axis=1).max()))
+                # An operation permutes the sites, so the images must be
+                # matched one-to-one: taking each image's nearest site
+                # independently could send two images to the same site and
+                # understate the deviation.
+                rows, columns = linear_sum_assignment(distances)
+                deviation = max(deviation, float(distances[rows, columns].max(initial=0.0)))
 
             # (a_s b_s c_s) = (a b c) P^-1, up to the rigid rotation R that
             # spglib applies to the standard cell, so undo R and re-apply P.
@@ -337,10 +369,12 @@ class SymmetryAnalyzer:
             angle_deviation = float(
                 np.abs(np.array(structure.lattice.angles) - np.array(idealized.angles)).max()
             )
-        except Exception:  # noqa: BLE001 - the deviation is a diagnostic, not the fit
-            return None, None
+        except Exception as exc:  # noqa: BLE001 - a diagnostic, not the fit
+            # Reported on the level's `error` rather than dropped, so that a
+            # systematic failure does not just look like "not computed".
+            return None, None, f'Could not measure the deviation: {exc}'
 
-        return deviation, angle_deviation
+        return deviation, angle_deviation, None
 
     def level(self, symprec: float, *, with_deviation: bool = False) -> SymmetryLevel:
         """Fit the space group at a single tolerance.
@@ -366,19 +400,26 @@ class SymmetryAnalyzer:
             sga = SpacegroupAnalyzer(
                 self.structure, symprec=symprec, angle_tolerance=self.angle_tolerance
             )
-            symmetrized = sga.get_symmetrized_structure()
-            deviation, angle_deviation = (
-                self._deviation(sga) if with_deviation else (None, None)
+            dataset = sga.get_symmetry_dataset()
+            if dataset is None:
+                raise ValueError('spglib could not determine a symmetry dataset.')
+            deviation, angle_deviation, error = (
+                self._deviation(dataset) if with_deviation else (None, None, None)
             )
             return SymmetryLevel(
                 symprec=symprec,
                 spacegroup_number=sga.get_space_group_number(),
                 spacegroup_symbol=sga.get_space_group_symbol(),
                 crystal_system=sga.get_crystal_system(),
-                n_symmetry_ops=len(sga.get_symmetry_operations()),
-                n_site_orbits=len(symmetrized.equivalent_indices),
+                # Both counts come out of the dataset that is already in hand;
+                # `get_symmetry_operations()` and `get_symmetrized_structure()`
+                # would rebuild the same information for every sampled
+                # tolerance.
+                n_symmetry_ops=len(dataset.rotations),
+                n_site_orbits=len(set(dataset.equivalent_atoms)),
                 deviation=deviation,
                 angle_deviation=angle_deviation,
+                error=error,
             )
         except Exception as exc:  # noqa: BLE001 - record, don't drop, the failure
             return SymmetryLevel(symprec=symprec, error=str(exc))
@@ -403,9 +444,9 @@ class SymmetryAnalyzer:
     def scan(
         self,
         *,
-        symprec_min: float = 0.01,
-        symprec_max: float = 0.5,
-        n_samples: int = 40,
+        symprec_min: float = DEFAULT_SYMPREC_MIN,
+        symprec_max: float = DEFAULT_SYMPREC_MAX,
+        n_samples: int = DEFAULT_N_SAMPLES,
     ) -> SymmetryRanking:
         """Find every space group the structure adopts between `symprec_min`
         and `symprec_max`, and how far the structure is from each one.
@@ -439,9 +480,9 @@ class SymmetryAnalyzer:
         -------
         SymmetryRanking
             One level per distinct space group found, ordered by `deviation`
-            ascending, each carrying the tightest sampled `symprec` that
-            produced it. Empty if no tolerance in the range yielded a
-            symmetry.
+            ascending (ties broken on `angle_deviation`), each carrying the
+            tightest sampled `symprec` that produced it. Empty if no tolerance
+            in the range yielded a symmetry.
 
         Raises
         ------
@@ -479,6 +520,69 @@ class SymmetryAnalyzer:
             for number, index in first_seen.items()
         ]
 
-        return SymmetryRanking(
-            sorted(thresholds, key=lambda level: (level.deviation is None, level.deviation))
+        return SymmetryRanking(sorted(thresholds, key=_rank_key))
+
+    def rank(
+        self,
+        *,
+        symprec_range: tuple[float, ...] | None = None,
+        symprec_min: float | None = None,
+        symprec_max: float | None = None,
+        n_samples: int | None = None,
+    ) -> SymmetryRanking:
+        """Rank the space groups the structure adopts, scanning the tolerance
+        automatically unless a fixed list of tolerances is given.
+
+        This is the entry point callers should use: it dispatches to
+        [scan][gemdat.symmetry.SymmetryAnalyzer.scan] or to
+        [levels][gemdat.symmetry.SymmetryAnalyzer.levels] and rejects
+        combinations of arguments that would silently ignore one of them.
+
+        Parameters
+        ----------
+        symprec_range : tuple[float, ...] | None
+            If given, evaluate exactly these tolerances (Ångstrom) instead of
+            scanning. Mutually exclusive with the scan settings below.
+        symprec_min : float | None
+            Tightest tolerance (Ångstrom) of the scan, default
+            `DEFAULT_SYMPREC_MIN`.
+        symprec_max : float | None
+            Loosest tolerance (Ångstrom) of the scan, default
+            `DEFAULT_SYMPREC_MAX`.
+        n_samples : int | None
+            Number of log-spaced tolerances in the scan, default
+            `DEFAULT_N_SAMPLES`.
+
+        Returns
+        -------
+        SymmetryRanking
+
+        Raises
+        ------
+        ValueError
+            If `symprec_range` is combined with any of the scan settings, or if
+            the scan range or sample count is not usable.
+        """
+        if symprec_range is not None:
+            conflicting = [
+                name
+                for name, value in (
+                    ('symprec_min', symprec_min),
+                    ('symprec_max', symprec_max),
+                    ('n_samples', n_samples),
+                )
+                if value is not None
+            ]
+            if conflicting:
+                listed = ', '.join(f'`{name}`' for name in conflicting)
+                raise ValueError(
+                    f'`symprec_range` lists the tolerances explicitly, so it cannot be '
+                    f'combined with {listed}; those only configure the automatic scan.'
+                )
+            return self.levels(symprec_range)
+
+        return self.scan(
+            symprec_min=DEFAULT_SYMPREC_MIN if symprec_min is None else symprec_min,
+            symprec_max=DEFAULT_SYMPREC_MAX if symprec_max is None else symprec_max,
+            n_samples=DEFAULT_N_SAMPLES if n_samples is None else n_samples,
         )

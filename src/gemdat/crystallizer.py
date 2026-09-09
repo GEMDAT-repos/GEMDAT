@@ -11,6 +11,7 @@ import numpy as np
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
+from .caching import weak_lru_cache
 from .io import write_cif
 from .symmetry import SymmetryAnalyzer, SymmetryLevel, SymmetryRanking
 from .utils import require_constant_lattice
@@ -52,20 +53,34 @@ class CrystallizerResult:
     symprec: float
     ranking: SymmetryRanking | None = None
 
+    def _require_ranking(self) -> SymmetryRanking:
+        """Return the ranking, or explain why there is none."""
+        if self.ranking is None:
+            raise ValueError(
+                'This result has no symmetry ranking because `symprec` was set '
+                'explicitly. Call `Crystallizer.symmetry_ranking()` instead.'
+            )
+        return self.ranking
+
     @property
-    def candidates(self) -> list[SymmetryLevel] | None:
+    def candidates(self) -> list[SymmetryLevel]:
         """The distinct space groups found across the sweep ("Top-X").
 
         Returns
         -------
-        list[SymmetryLevel] | None
+        list[SymmetryLevel]
             One level per space group, ranked by space-group number
             descending, each represented by the tightest symprec that produced
-            it. `None` when no sweep was run.
+            it.
+
+        Raises
+        ------
+        ValueError
+            If this result carries no ranking (i.e. `symprec` was set
+            explicitly, so no sweep was performed). Test `result.ranking is
+            None` to tell the two cases apart.
         """
-        if self.ranking is None:
-            return None
-        return self.ranking.candidates
+        return self._require_ranking().candidates
 
     def format_ranking(self) -> str:
         """Return the symmetry ranking as a readable fixed-width table.
@@ -82,12 +97,7 @@ class CrystallizerResult:
             If this result carries no ranking (i.e. `symprec` was set
             explicitly, so no sweep was performed).
         """
-        if self.ranking is None:
-            raise ValueError(
-                'This result has no symmetry ranking because `symprec` was set '
-                'explicitly. Call `Crystallizer.symmetry_ranking()` instead.'
-            )
-        return self.ranking.format()
+        return self._require_ranking().format()
 
 
 class Crystallizer:
@@ -235,7 +245,41 @@ class Crystallizer:
         separately, aligned to the structure's site order (framework
         sites are 1.0), so they can be averaged over the symmetry-
         equivalent classes afterwards.
+
+        Extracting the density peaks dominates the cost of everything
+        downstream, and the same geometry is reused by repeated
+        `crystallize`/`symmetry_ranking`/`to_cif` calls, so the result
+        is cached per set of arguments. Arguments that cannot be hashed
+        (e.g. an explicit `peaks` array) simply bypass the cache.
         """
+        key = tuple(sorted(find_peaks_kwargs.items()))
+        try:
+            hash(key)
+        except TypeError:
+            return self._compute_geometry_and_occupancies(
+                background_level=background_level, **find_peaks_kwargs
+            )
+        return self._cached_geometry_and_occupancies(background_level, key)
+
+    @weak_lru_cache()
+    def _cached_geometry_and_occupancies(
+        self,
+        background_level: float,
+        find_peaks_items: tuple[tuple[str, object], ...],
+    ) -> tuple[Structure, np.ndarray]:
+        """Cached wrapper around `_compute_geometry_and_occupancies`, taking
+        the keyword arguments in a hashable form."""
+        return self._compute_geometry_and_occupancies(
+            background_level=background_level, **dict(find_peaks_items)
+        )
+
+    def _compute_geometry_and_occupancies(
+        self,
+        *,
+        background_level: float = 0.1,
+        **find_peaks_kwargs,
+    ) -> tuple[Structure, np.ndarray]:
+        """Do the work for `_geometry_and_occupancies`."""
         framework = self.framework()
         mobile = self.mobile_sites(background_level=background_level, **find_peaks_kwargs)
 
@@ -262,9 +306,9 @@ class Crystallizer:
         self,
         *,
         symprec_range: tuple[float, ...] | None = None,
-        symprec_min: float = 0.01,
-        symprec_max: float = 0.5,
-        n_samples: int = 40,
+        symprec_min: float | None = None,
+        symprec_max: float | None = None,
+        n_samples: int | None = None,
         angle_tolerance: float = 5.0,
         background_level: float = 0.1,
         **find_peaks_kwargs,
@@ -290,16 +334,19 @@ class Crystallizer:
         symprec_range : tuple[float, ...] | None
             If given, evaluate exactly these tolerances (Ångstrom) and skip
             the automatic scan; the result then has one level per tolerance,
-            including duplicated space groups.
-        symprec_min : float
-            Tightest tolerance (Ångstrom) of the automatic scan.
-        symprec_max : float
-            Loosest tolerance (Ångstrom) of the automatic scan. Beyond ~0.5 Å
-            the fit says more about the tolerance than about the structure.
-        n_samples : int
-            Number of log-spaced tolerances in the scan. A space group holding
-            over a window narrower than the grid spacing can be missed; raise
-            this to scan more finely.
+            including duplicated space groups. Mutually exclusive with the
+            scan settings below.
+        symprec_min : float | None
+            Tightest tolerance (Ångstrom) of the automatic scan, default
+            0.01 Å.
+        symprec_max : float | None
+            Loosest tolerance (Ångstrom) of the automatic scan, default 0.5 Å.
+            Beyond ~0.5 Å the fit says more about the tolerance than about the
+            structure.
+        n_samples : int | None
+            Number of log-spaced tolerances in the scan, default 40. A space
+            group holding over a window narrower than the grid spacing can be
+            missed; raise this to scan more finely.
         angle_tolerance : float
             Angle tolerance (degrees) passed to
             [pymatgen.symmetry.analyzer.SpacegroupAnalyzer][].
@@ -318,14 +365,18 @@ class Crystallizer:
             `symprec_range`: one per tolerance, ordered by symprec ascending,
             where a tolerance at which the symmetry search raised is kept with
             `None` fields and its `error` set.
+
+        Raises
+        ------
+        ValueError
+            If `symprec_range` is combined with any of the scan settings.
         """
         geometry, _ = self._geometry_and_occupancies(
             background_level=background_level, **find_peaks_kwargs
         )
         analyzer = SymmetryAnalyzer(geometry, angle_tolerance=angle_tolerance)
-        if symprec_range is not None:
-            return analyzer.levels(symprec_range)
-        return analyzer.scan(
+        return analyzer.rank(
+            symprec_range=symprec_range,
             symprec_min=symprec_min,
             symprec_max=symprec_max,
             n_samples=n_samples,
@@ -337,9 +388,9 @@ class Crystallizer:
         symprec: float | None = None,
         target_spacegroup: int | str | None = None,
         symprec_range: tuple[float, ...] | None = None,
-        symprec_min: float = 0.01,
-        symprec_max: float = 0.5,
-        n_samples: int = 40,
+        symprec_min: float | None = None,
+        symprec_max: float | None = None,
+        n_samples: int | None = None,
         angle_tolerance: float = 5.0,
         background_level: float = 0.1,
         **find_peaks_kwargs,
@@ -366,7 +417,8 @@ class Crystallizer:
             If given, fit at exactly this tolerance (Ångstrom) and skip the
             sweep. `result.symprec` equals this value. Raises `ValueError` if
             the symmetry search fails at this tolerance (no silent fallback).
-            Mutually exclusive with `target_spacegroup`.
+            Mutually exclusive with `target_spacegroup` and with every setting
+            that configures the sweep.
         target_spacegroup : int | str | None
             If given, select the tightest (smallest) symprec in the sweep whose
             fit matches this space group. An `int` is matched against the
@@ -378,13 +430,16 @@ class Crystallizer:
             If given, sweep exactly these tolerances (Ångstrom) instead of
             scanning `symprec_min`..`symprec_max` automatically. The tolerance
             giving the highest space group number wins either way; ties are
-            broken towards the tightest (smallest) tolerance.
-        symprec_min : float
-            Tightest tolerance (Ångstrom) of the automatic scan.
-        symprec_max : float
-            Loosest tolerance (Ångstrom) of the automatic scan.
-        n_samples : int
-            Number of log-spaced tolerances in the automatic scan.
+            broken towards the tightest (smallest) tolerance. Mutually
+            exclusive with the scan settings below.
+        symprec_min : float | None
+            Tightest tolerance (Ångstrom) of the automatic scan, default
+            0.01 Å.
+        symprec_max : float | None
+            Loosest tolerance (Ångstrom) of the automatic scan, default 0.5 Å.
+        n_samples : int | None
+            Number of log-spaced tolerances in the automatic scan, default
+            40.
         angle_tolerance : float
             Angle tolerance (degrees) passed to
             [pymatgen.symmetry.analyzer.SpacegroupAnalyzer][].
@@ -404,15 +459,29 @@ class Crystallizer:
         Raises
         ------
         ValueError
-            If `symprec` and `target_spacegroup` are both given; if the fit
-            fails at an explicit `symprec`; if no `target_spacegroup` match is
-            found; or if no symprec in the sweep yields a symmetry.
+            If `symprec` is combined with any argument that configures the
+            sweep; if the fit fails at an explicit `symprec`; if no
+            `target_spacegroup` match is found; or if no symprec in the sweep
+            yields a symmetry.
         """
-        if symprec is not None and target_spacegroup is not None:
-            raise ValueError(
-                'Pass either `symprec` or `target_spacegroup`, not both '
-                '(they are contradictory).'
-            )
+        if symprec is not None:
+            conflicting = [
+                name
+                for name, value in (
+                    ('target_spacegroup', target_spacegroup),
+                    ('symprec_range', symprec_range),
+                    ('symprec_min', symprec_min),
+                    ('symprec_max', symprec_max),
+                    ('n_samples', n_samples),
+                )
+                if value is not None
+            ]
+            if conflicting:
+                listed = ', '.join(f'`{name}`' for name in conflicting)
+                raise ValueError(
+                    f'`symprec` pins the tolerance, so it cannot be combined with '
+                    f'{listed}; those select a tolerance from a sweep.'
+                )
 
         geometry, occupancies = self._geometry_and_occupancies(
             background_level=background_level, **find_peaks_kwargs
@@ -422,21 +491,14 @@ class Crystallizer:
         ranking: SymmetryRanking | None = None
 
         if symprec is not None:
-            level = analyzer.level(symprec)
-            if level.spacegroup_number is None:
-                raise ValueError(
-                    f'Could not determine symmetry at symprec={symprec}: {level.error}'
-                )
             best_symprec = symprec
         else:
-            if symprec_range is not None:
-                ranking = analyzer.levels(symprec_range)
-            else:
-                ranking = analyzer.scan(
-                    symprec_min=symprec_min,
-                    symprec_max=symprec_max,
-                    n_samples=n_samples,
-                )
+            ranking = analyzer.rank(
+                symprec_range=symprec_range,
+                symprec_min=symprec_min,
+                symprec_max=symprec_max,
+                n_samples=n_samples,
+            )
 
             if target_spacegroup is not None:
                 match = ranking.match(target_spacegroup)
@@ -450,10 +512,19 @@ class Crystallizer:
                 # Raises if no tolerance in the sweep yielded a symmetry.
                 best_symprec = ranking.best().symprec
 
-        sga = SpacegroupAnalyzer(
-            geometry, symprec=best_symprec, angle_tolerance=angle_tolerance
-        )
-        symmetrized = sga.get_symmetrized_structure()
+        # The sweep already knows this tolerance works; an explicit `symprec`
+        # is only checked here, so that it is fitted exactly once either way.
+        try:
+            sga = SpacegroupAnalyzer(
+                geometry, symprec=best_symprec, angle_tolerance=angle_tolerance
+            )
+            symmetrized = sga.get_symmetrized_structure()
+            spacegroup_symbol = sga.get_space_group_symbol()
+            spacegroup_number = sga.get_space_group_number()
+        except Exception as exc:
+            raise ValueError(
+                f'Could not determine symmetry at symprec={best_symprec}: {exc}'
+            ) from exc
 
         # Average occupancy within each symmetry-equivalent class so that
         # equivalent sites are truly equivalent before the cif is written.
@@ -474,8 +545,8 @@ class Crystallizer:
 
         return CrystallizerResult(
             structure=structure,
-            spacegroup_symbol=sga.get_space_group_symbol(),
-            spacegroup_number=sga.get_space_group_number(),
+            spacegroup_symbol=spacegroup_symbol,
+            spacegroup_number=spacegroup_number,
             symprec=best_symprec,
             ranking=ranking,
         )
