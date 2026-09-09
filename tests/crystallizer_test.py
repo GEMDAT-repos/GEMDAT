@@ -4,8 +4,9 @@ import numpy as np
 import pytest
 from pymatgen.core import Species, Structure
 
-from gemdat.crystallizer import Crystallizer, CrystallizerResult, SymmetryLevel
+from gemdat.crystallizer import Crystallizer, CrystallizerResult
 from gemdat.io import read_cif
+from gemdat.symmetry import SymmetryLevel, SymmetryRanking
 from gemdat.trajectory import Trajectory
 
 
@@ -72,7 +73,8 @@ def test_crystallize(crystal_trajectory):
     assert isinstance(result.structure, Structure)
     assert len(result.structure) > 0
     assert result.spacegroup_number >= 1
-    assert result.symprec in (0.01, 0.05, 0.1, 0.2, 0.3, 0.5)
+    # the automatic scan reports the tolerance the winning group requires
+    assert 0.01 <= result.symprec <= 0.5
 
 
 def test_crystallize_empty_framework(crystal_trajectory):
@@ -117,14 +119,14 @@ def test_framework_rejects_variable_lattice(variable_lattice_trajectory):
 SYMPREC_RANGE = (0.01, 0.05, 0.1, 0.2, 0.3, 0.5)
 
 
-def test_symmetry_ladder(crystal_trajectory):
+def test_symmetry_ranking_explicit_range(crystal_trajectory):
     cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
 
-    ladder = cr.symmetry_ladder(symprec_range=SYMPREC_RANGE)
+    ranking = cr.symmetry_ranking(symprec_range=SYMPREC_RANGE)
 
-    assert [level.symprec for level in ladder] == sorted(SYMPREC_RANGE)
-    assert all(isinstance(level, SymmetryLevel) for level in ladder)
-    for level in ladder:
+    assert [level.symprec for level in ranking] == sorted(SYMPREC_RANGE)
+    assert all(isinstance(level, SymmetryLevel) for level in ranking)
+    for level in ranking:
         if level.error is None:
             assert isinstance(level.spacegroup_number, int)
             assert isinstance(level.spacegroup_symbol, str)
@@ -136,17 +138,48 @@ def test_symmetry_ladder(crystal_trajectory):
 
     # This toy fixture climbs from P1 (#1) at the tightest tolerance to a
     # higher-symmetry monoclinic cell once symprec is loosened.
-    assert ladder[0].spacegroup_number == 1
-    assert ladder[-1].spacegroup_number > 1
+    assert ranking[0].spacegroup_number == 1
+    assert ranking[-1].spacegroup_number > 1
 
 
-def test_crystallize_ladder_and_candidates(crystal_trajectory):
+def test_symmetry_ranking_scans_by_default(crystal_trajectory):
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
+
+    ranking = cr.symmetry_ranking(n_samples=20)
+
+    # the scan itself is covered in tests/symmetry_test.py; here it only has to
+    # arrive with the reconstructed geometry
+    assert isinstance(ranking, SymmetryRanking)
+    assert len(ranking) >= 1
+    assert all(level.deviation is not None for level in ranking)
+    assert ranking[0].spacegroup_number == 1
+
+
+def test_crystallize_scan_ranking_and_candidates(crystal_trajectory):
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
+
+    result = cr.crystallize(n_samples=20)
+
+    assert result.ranking is not None
+    assert result.candidates is not None
+    # the scan already yields one level per group, so candidates is the same
+    # set, just ranked by space-group number instead of by deviation
+    assert {c.spacegroup_number for c in result.candidates} == {
+        level.spacegroup_number for level in result.ranking
+    }
+    numbers = [c.spacegroup_number for c in result.candidates]
+    assert numbers == sorted(numbers, reverse=True)
+    # the winner is the highest-symmetry candidate
+    assert result.spacegroup_number == numbers[0]
+
+
+def test_crystallize_ranking_and_candidates(crystal_trajectory):
     cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
 
     result = cr.crystallize(symprec_range=SYMPREC_RANGE)
 
-    assert result.ladder is not None
-    assert len(result.ladder) == len(SYMPREC_RANGE)
+    assert result.ranking is not None
+    assert len(result.ranking) == len(SYMPREC_RANGE)
 
     assert result.candidates is not None
     numbers = [c.spacegroup_number for c in result.candidates]
@@ -158,7 +191,7 @@ def test_crystallize_ladder_and_candidates(crystal_trajectory):
     for cand in result.candidates:
         tighter = [
             level
-            for level in result.ladder
+            for level in result.ranking
             if level.symprec < cand.symprec
             and level.spacegroup_number == cand.spacegroup_number
         ]
@@ -172,7 +205,7 @@ def test_crystallize_explicit_symprec_skips_sweep(crystal_trajectory):
 
     assert result.symprec == 0.3
     # no sweep was run
-    assert result.ladder is None
+    assert result.ranking is None
     assert result.candidates is None
 
 
@@ -186,10 +219,10 @@ def test_crystallize_target_spacegroup_number(crystal_trajectory):
 
     assert result.spacegroup_number == target
     # tightest symprec in the range that still yields the target
-    assert result.ladder is not None
+    assert result.ranking is not None
     tighter = [
         level
-        for level in result.ladder
+        for level in result.ranking
         if level.symprec < result.symprec and level.spacegroup_number == target
     ]
     assert not tighter
@@ -213,7 +246,7 @@ def test_crystallize_target_spacegroup_unreachable(crystal_trajectory):
     with pytest.raises(ValueError, match='space group 216'):
         cr.crystallize(symprec_range=SYMPREC_RANGE, target_spacegroup=216)
 
-    # the error lists what was actually found (the ladder table)
+    # the error lists what was actually found (the ranking table)
     try:
         cr.crystallize(symprec_range=SYMPREC_RANGE, target_spacegroup=216)
     except ValueError as exc:
@@ -235,11 +268,11 @@ def test_crystallize_explicit_symprec_failure_raises(crystal_trajectory):
         cr.crystallize(symprec=0.0)
 
 
-def test_format_ladder(crystal_trajectory):
+def test_format_ranking(crystal_trajectory):
     cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
 
     result = cr.crystallize(symprec_range=SYMPREC_RANGE)
-    table = result.format_ladder()
+    table = result.format_ranking()
 
     assert isinstance(table, str)
     lines = table.splitlines()
@@ -252,10 +285,10 @@ def test_format_ladder(crystal_trajectory):
         assert any(line.startswith(f'{symprec:g}') for line in lines[2:])
 
 
-def test_format_ladder_without_ladder_raises(crystal_trajectory):
+def test_format_ranking_without_ranking_raises(crystal_trajectory):
     cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
 
     result = cr.crystallize(symprec=0.3)
 
-    with pytest.raises(ValueError, match='no symmetry ladder'):
-        result.format_ladder()
+    with pytest.raises(ValueError, match='no symmetry ranking'):
+        result.format_ranking()
