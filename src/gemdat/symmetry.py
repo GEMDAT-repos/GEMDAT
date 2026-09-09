@@ -7,8 +7,9 @@ that turn up by how much tolerance each one actually needs
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Iterator, overload
+from typing import TYPE_CHECKING, Any, overload
 
 import numpy as np
 from pymatgen.core import Lattice
@@ -17,10 +18,6 @@ from scipy.optimize import linear_sum_assignment
 
 if TYPE_CHECKING:
     from pymatgen.core import Structure
-
-DEFAULT_SYMPREC_MIN = 0.01
-DEFAULT_SYMPREC_MAX = 0.5
-DEFAULT_N_SAMPLES = 40
 
 
 @dataclass
@@ -54,9 +51,10 @@ class SymmetryLevel:
         those of the idealised cell for this group, i.e. the smallest
         `angle_tolerance` the fit needs. `None` if not computed.
     n_observed : int | None
-        Only set by [scan][gemdat.symmetry.SymmetryAnalyzer.scan]: how many of
-        the scanned tolerances yielded this space group, as a measure of how
-        robustly it holds. `None` when the tolerances were given explicitly.
+        Only set by a scan (see
+        [rank][gemdat.symmetry.SymmetryAnalyzer.rank]): how many of the scanned
+        tolerances yielded this space group, as a measure of how robustly it
+        holds. `None` when the tolerances were given explicitly.
     error : str | None
         The exception message if the symmetry search raised, or if the
         deviation could not be measured (in which case the space group was
@@ -94,33 +92,32 @@ def _rank_key(level: SymmetryLevel) -> tuple[bool, float, float]:
     )
 
 
-class SymmetryRanking:
+class SymmetryRanking(Sequence[SymmetryLevel]):
     """The space groups a structure was found to adopt, in the order they were
     evaluated.
 
-    Wraps a list of [SymmetryLevel][gemdat.symmetry.SymmetryLevel]s and behaves
-    like one (iteration, indexing, `len`), adding the queries that make it a
-    ranking: which groups turn up ([candidates][
+    A read-only sequence of
+    [SymmetryLevel][gemdat.symmetry.SymmetryLevel]s (iteration,
+    indexing, `len`), plus the queries that make it a ranking: which
+    groups turn up ([candidates][
     gemdat.symmetry.SymmetryRanking.candidates]), which one wins
-    ([best][gemdat.symmetry.SymmetryRanking.best]), and whether a given group
-    is reachable at all ([match][gemdat.symmetry.SymmetryRanking.match]).
+    ([best][gemdat.symmetry.SymmetryRanking.best]), and whether a given
+    group is reachable at all
+    ([match][gemdat.symmetry.SymmetryRanking.match]).
     """
 
-    def __init__(self, levels: list[SymmetryLevel]):
+    def __init__(self, levels: Iterable[SymmetryLevel]):
         """Set up the ranking.
 
         Parameters
         ----------
-        levels : list[SymmetryLevel]
+        levels : Iterable[SymmetryLevel]
             Evaluated levels, in the order they should be reported.
         """
-        self.levels = list(levels)
+        self._levels = list(levels)
 
     def __len__(self) -> int:
-        return len(self.levels)
-
-    def __iter__(self) -> Iterator[SymmetryLevel]:
-        return iter(self.levels)
+        return len(self._levels)
 
     @overload
     def __getitem__(self, index: int) -> SymmetryLevel: ...
@@ -129,7 +126,7 @@ class SymmetryRanking:
     def __getitem__(self, index: slice) -> list[SymmetryLevel]: ...
 
     def __getitem__(self, index: int | slice) -> SymmetryLevel | list[SymmetryLevel]:
-        return self.levels[index]
+        return self._levels[index]
 
     def __repr__(self) -> str:
         groups = ', '.join(
@@ -146,7 +143,7 @@ class SymmetryRanking:
         list[SymmetryLevel]
             Levels whose symmetry search succeeded, in ranking order.
         """
-        return [level for level in self.levels if level.spacegroup_number is not None]
+        return [level for level in self if level.spacegroup_number is not None]
 
     @property
     def candidates(self) -> list[SymmetryLevel]:
@@ -262,7 +259,7 @@ class SymmetryRanking:
                 cell(level.n_site_orbits),
                 cell(level.n_observed),
             )
-            for level in self.levels
+            for level in self
         ]
 
         widths = [
@@ -284,11 +281,10 @@ class SymmetryAnalyzer:
     [pymatgen.symmetry.analyzer.SpacegroupAnalyzer][] can only be asked
     "which space group at this tolerance?" — never the inverse, and a
     single very loose tolerance is no shortcut, since it returns one
-    group or fails outright. This class therefore samples tolerances to
-    find out *which* groups a structure can adopt, and then measures
-    *how much* each one costs (see
-    [level][gemdat.symmetry.SymmetryAnalyzer.level]) instead of
-    searching for it.
+    group or fails outright.
+    [rank][gemdat.symmetry.SymmetryAnalyzer.rank] therefore samples
+    tolerances to find out *which* groups a structure can adopt, and
+    then measures *how much* each one costs instead of searching for it.
     """
 
     def __init__(self, structure: Structure, *, angle_tolerance: float = 5.0):
@@ -376,7 +372,7 @@ class SymmetryAnalyzer:
 
         return deviation, angle_deviation, None
 
-    def level(self, symprec: float, *, with_deviation: bool = False) -> SymmetryLevel:
+    def _level(self, symprec: float, *, with_deviation: bool = False) -> SymmetryLevel:
         """Fit the space group at a single tolerance.
 
         Any exception raised by
@@ -424,104 +420,6 @@ class SymmetryAnalyzer:
         except Exception as exc:  # noqa: BLE001 - record, don't drop, the failure
             return SymmetryLevel(symprec=symprec, error=str(exc))
 
-    def levels(self, symprec_range: tuple[float, ...]) -> SymmetryRanking:
-        """Fit the space group at each of a fixed list of tolerances.
-
-        Parameters
-        ----------
-        symprec_range : tuple[float, ...]
-            Symmetry tolerances (Ångstrom) to evaluate.
-
-        Returns
-        -------
-        SymmetryRanking
-            One level per tolerance, ordered by symprec ascending. Deviations
-            are not measured; use [scan][gemdat.symmetry.SymmetryAnalyzer.scan]
-            for those.
-        """
-        return SymmetryRanking([self.level(symprec) for symprec in sorted(symprec_range)])
-
-    def scan(
-        self,
-        *,
-        symprec_min: float = DEFAULT_SYMPREC_MIN,
-        symprec_max: float = DEFAULT_SYMPREC_MAX,
-        n_samples: int = DEFAULT_N_SAMPLES,
-    ) -> SymmetryRanking:
-        """Find every space group the structure adopts between `symprec_min`
-        and `symprec_max`, and how far the structure is from each one.
-
-        The candidate groups are enumerated by sampling a log-spaced grid of
-        tolerances over the whole range. The tolerance each group *requires*
-        is then measured directly rather than searched for: `deviation` and
-        `angle_deviation` record how far the structure actually sits from that
-        symmetry. Those are properties of the structure, so unlike the
-        `symprec` at which a group happens to turn up they are exact and
-        independent of the sampling.
-
-        The group is *not* a monotone function of `symprec`: a structure can
-        flicker between two groups over a range of tolerances before settling
-        on the higher-symmetry one. `n_observed` counts how many of the
-        `n_samples` grid points gave each group, which distinguishes a group
-        that holds over a wide range from one seen in a single narrow window.
-
-        Parameters
-        ----------
-        symprec_min : float
-            Tightest tolerance (Ångstrom) to scan.
-        symprec_max : float
-            Loosest tolerance (Ångstrom) to scan. Beyond ~0.5 Å the fit says
-            more about the tolerance than about the structure.
-        n_samples : int
-            Number of log-spaced tolerances in the scan. A group occupying a
-            window narrower than the grid spacing can be missed.
-
-        Returns
-        -------
-        SymmetryRanking
-            One level per distinct space group found, ordered by `deviation`
-            ascending (ties broken on `angle_deviation`), each carrying the
-            tightest sampled `symprec` that produced it. Empty if no tolerance
-            in the range yielded a symmetry.
-
-        Raises
-        ------
-        ValueError
-            If the scan range or sample count is not usable.
-        """
-        if symprec_min <= 0:
-            raise ValueError('`symprec_min` must be positive.')
-        if symprec_max < symprec_min:
-            raise ValueError('`symprec_max` must not be smaller than `symprec_min`.')
-        if n_samples < 2:
-            raise ValueError('`n_samples` must be at least 2.')
-
-        samples = [
-            float(symprec) for symprec in np.geomspace(symprec_min, symprec_max, n_samples)
-        ]
-        levels = [self.level(symprec) for symprec in samples]
-
-        counts: dict[int, int] = {}
-        first_seen: dict[int, int] = {}
-        for index, level in enumerate(levels):
-            number = level.spacegroup_number
-            if number is None:
-                continue
-            counts[number] = counts.get(number, 0) + 1
-            first_seen.setdefault(number, index)
-
-        # Re-fit each distinct group once at the tightest symprec that
-        # produced it, this time measuring the tolerances it actually needs.
-        thresholds = [
-            replace(
-                self.level(samples[index], with_deviation=True),
-                n_observed=counts[number],
-            )
-            for number, index in first_seen.items()
-        ]
-
-        return SymmetryRanking(sorted(thresholds, key=_rank_key))
-
     def rank(
         self,
         *,
@@ -533,10 +431,23 @@ class SymmetryAnalyzer:
         """Rank the space groups the structure adopts, scanning the tolerance
         automatically unless a fixed list of tolerances is given.
 
-        This is the entry point callers should use: it dispatches to
-        [scan][gemdat.symmetry.SymmetryAnalyzer.scan] or to
-        [levels][gemdat.symmetry.SymmetryAnalyzer.levels] and rejects
-        combinations of arguments that would silently ignore one of them.
+        The scan enumerates the candidate groups by sampling a log-spaced grid
+        of tolerances between `symprec_min` and `symprec_max`. What each group
+        *costs* is then measured directly rather than searched for: `deviation`
+        and `angle_deviation` record how far the structure actually sits from
+        that symmetry. Those are properties of the structure, so unlike the
+        `symprec` at which a group happens to turn up they are exact and
+        independent of the sampling.
+
+        The group is *not* a monotone function of `symprec`: a structure can
+        flicker between two groups over a range of tolerances before settling
+        on the higher-symmetry one. `n_observed` counts how many of the
+        `n_samples` grid points gave each group, which distinguishes a group
+        that holds over a wide range from one seen in a single narrow window.
+
+        Passing `symprec_range` sweeps exactly those tolerances instead, one
+        level each. The deviations are not measured then, since measuring is
+        operations x sites^2 and a sweep repeats the same groups.
 
         Parameters
         ----------
@@ -544,18 +455,24 @@ class SymmetryAnalyzer:
             If given, evaluate exactly these tolerances (Ångstrom) instead of
             scanning. Mutually exclusive with the scan settings below.
         symprec_min : float | None
-            Tightest tolerance (Ångstrom) of the scan, default
-            `DEFAULT_SYMPREC_MIN`.
+            Tightest tolerance (Ångstrom) of the scan, default 0.01 Å.
         symprec_max : float | None
-            Loosest tolerance (Ångstrom) of the scan, default
-            `DEFAULT_SYMPREC_MAX`.
+            Loosest tolerance (Ångstrom) of the scan, default 0.5 Å. Beyond
+            ~0.5 Å the fit says more about the tolerance than about the
+            structure.
         n_samples : int | None
-            Number of log-spaced tolerances in the scan, default
-            `DEFAULT_N_SAMPLES`.
+            Number of log-spaced tolerances in the scan, default 40. A group
+            occupying a window narrower than the grid spacing can be missed.
 
         Returns
         -------
         SymmetryRanking
+            From the scan: one level per distinct space group found, ordered by
+            `deviation` ascending (ties broken on `angle_deviation`), each
+            carrying the tightest sampled `symprec` that produced it. Empty if
+            no tolerance in the range yielded a symmetry. From an explicit
+            `symprec_range`: one level per tolerance, ordered by symprec
+            ascending.
 
         Raises
         ------
@@ -579,10 +496,41 @@ class SymmetryAnalyzer:
                     f'`symprec_range` lists the tolerances explicitly, so it cannot be '
                     f'combined with {listed}; those only configure the automatic scan.'
                 )
-            return self.levels(symprec_range)
+            return SymmetryRanking([self._level(symprec) for symprec in sorted(symprec_range)])
 
-        return self.scan(
-            symprec_min=DEFAULT_SYMPREC_MIN if symprec_min is None else symprec_min,
-            symprec_max=DEFAULT_SYMPREC_MAX if symprec_max is None else symprec_max,
-            n_samples=DEFAULT_N_SAMPLES if n_samples is None else n_samples,
-        )
+        symprec_min = 0.01 if symprec_min is None else symprec_min
+        symprec_max = 0.5 if symprec_max is None else symprec_max
+        n_samples = 40 if n_samples is None else n_samples
+
+        if symprec_min <= 0:
+            raise ValueError('`symprec_min` must be positive.')
+        if symprec_max < symprec_min:
+            raise ValueError('`symprec_max` must not be smaller than `symprec_min`.')
+        if n_samples < 2:
+            raise ValueError('`n_samples` must be at least 2.')
+
+        samples = [
+            float(symprec) for symprec in np.geomspace(symprec_min, symprec_max, n_samples)
+        ]
+        levels = [self._level(symprec) for symprec in samples]
+
+        counts: dict[int, int] = {}
+        first_seen: dict[int, int] = {}
+        for index, level in enumerate(levels):
+            number = level.spacegroup_number
+            if number is None:
+                continue
+            counts[number] = counts.get(number, 0) + 1
+            first_seen.setdefault(number, index)
+
+        # Re-fit each distinct group once at the tightest symprec that
+        # produced it, this time measuring the tolerances it actually needs.
+        thresholds = [
+            replace(
+                self._level(samples[index], with_deviation=True),
+                n_observed=counts[number],
+            )
+            for number, index in first_seen.items()
+        ]
+
+        return SymmetryRanking(sorted(thresholds, key=_rank_key))

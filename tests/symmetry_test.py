@@ -59,7 +59,7 @@ def _level(number, symbol, symprec=0.1, **kwargs):
 
 
 def test_level(ideal_structure):
-    level = SymmetryAnalyzer(ideal_structure).level(0.1)
+    level = SymmetryAnalyzer(ideal_structure)._level(0.1)
 
     assert isinstance(level, SymmetryLevel)
     assert level.symprec == 0.1
@@ -75,7 +75,7 @@ def test_level(ideal_structure):
 
 
 def test_level_records_failure_instead_of_raising(ideal_structure):
-    level = SymmetryAnalyzer(ideal_structure).level(0.0)
+    level = SymmetryAnalyzer(ideal_structure)._level(0.0)
 
     assert level.symprec == 0.0
     assert level.spacegroup_number is None
@@ -83,7 +83,7 @@ def test_level_records_failure_instead_of_raising(ideal_structure):
 
 
 def test_level_with_deviation(ideal_structure):
-    level = SymmetryAnalyzer(ideal_structure).level(0.1, with_deviation=True)
+    level = SymmetryAnalyzer(ideal_structure)._level(0.1, with_deviation=True)
 
     # an undistorted structure satisfies its own symmetry exactly
     assert level.deviation == pytest.approx(0.0, abs=1e-9)
@@ -100,7 +100,7 @@ def test_deviation_is_the_displacement_the_group_demands():
         coords=[[0.0, 0.0, 0.0], [0.52, 0.5, 0.5]],
     )
 
-    level = SymmetryAnalyzer(structure).level(0.5, with_deviation=True)
+    level = SymmetryAnalyzer(structure)._level(0.5, with_deviation=True)
 
     assert level.spacegroup_number == 221
     assert level.deviation == pytest.approx(0.4)
@@ -109,7 +109,7 @@ def test_deviation_is_the_displacement_the_group_demands():
 
 def test_angle_deviation_is_the_angle_the_group_demands(sheared_structure):
     # fitting a gamma = 92 deg cell as cubic idealises gamma back to 90 deg
-    level = SymmetryAnalyzer(sheared_structure).level(0.1, with_deviation=True)
+    level = SymmetryAnalyzer(sheared_structure)._level(0.1, with_deviation=True)
 
     assert level.spacegroup_number == 221
     assert level.angle_deviation == pytest.approx(2.0)
@@ -119,8 +119,8 @@ def test_angle_deviation_is_the_angle_the_group_demands(sheared_structure):
 
 def test_angle_tolerance_is_honoured(sheared_structure):
     # 2 deg of shear is within the default tolerance, but not within 1 deg
-    loose = SymmetryAnalyzer(sheared_structure, angle_tolerance=5.0).level(0.1)
-    tight = SymmetryAnalyzer(sheared_structure, angle_tolerance=1.0).level(0.1)
+    loose = SymmetryAnalyzer(sheared_structure, angle_tolerance=5.0)._level(0.1)
+    tight = SymmetryAnalyzer(sheared_structure, angle_tolerance=1.0)._level(0.1)
 
     assert loose.spacegroup_number == 221
     assert tight.spacegroup_number is not None
@@ -160,7 +160,7 @@ def test_deviation_failure_is_recorded_on_the_level(ideal_structure, monkeypatch
         lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError('boom')),
     )
 
-    level = SymmetryAnalyzer(ideal_structure).level(0.1, with_deviation=True)
+    level = SymmetryAnalyzer(ideal_structure)._level(0.1, with_deviation=True)
 
     assert level.spacegroup_number is not None
     assert level.deviation is None
@@ -169,7 +169,7 @@ def test_deviation_failure_is_recorded_on_the_level(ideal_structure, monkeypatch
 
 
 def test_scan(noisy_structure):
-    ranking = SymmetryAnalyzer(noisy_structure).scan(symprec_min=0.01, symprec_max=0.5)
+    ranking = SymmetryAnalyzer(noisy_structure).rank(symprec_min=0.01, symprec_max=0.5)
 
     assert isinstance(ranking, SymmetryRanking)
 
@@ -199,12 +199,12 @@ def test_scan_deviation_is_independent_of_symprec(noisy_structure):
     """The deviation is a property of the structure, so the tolerance that
     happened to find the group must not change it."""
     analyzer = SymmetryAnalyzer(noisy_structure)
-    winner = analyzer.scan(symprec_min=0.01, symprec_max=0.5).best()
+    winner = analyzer.rank(symprec_min=0.01, symprec_max=0.5).best()
     assert winner.spacegroup_number is not None and winner.spacegroup_number > 1
 
     compared = 0
     for symprec in (winner.symprec, 0.3, 0.5):
-        level = analyzer.level(symprec, with_deviation=True)
+        level = analyzer._level(symprec, with_deviation=True)
         if level.spacegroup_number != winner.spacegroup_number:
             continue
         assert level.deviation == pytest.approx(winner.deviation)
@@ -218,7 +218,7 @@ def test_scan_deviation_is_independent_of_symprec(noisy_structure):
 
 def test_scan_orders_unmeasurable_deviations_last(noisy_structure, monkeypatch):
     analyzer = SymmetryAnalyzer(noisy_structure)
-    real_level = SymmetryAnalyzer.level
+    real_level = SymmetryAnalyzer._level
 
     def flaky(self, symprec, *, with_deviation=False):
         level = real_level(self, symprec, with_deviation=with_deviation)
@@ -227,9 +227,9 @@ def test_scan_orders_unmeasurable_deviations_last(noisy_structure, monkeypatch):
             return replace(level, deviation=None, angle_deviation=None, error='no idea')
         return level
 
-    monkeypatch.setattr(SymmetryAnalyzer, 'level', flaky)
+    monkeypatch.setattr(SymmetryAnalyzer, '_level', flaky)
 
-    ranking = analyzer.scan(symprec_min=0.01, symprec_max=0.5)
+    ranking = analyzer.rank(symprec_min=0.01, symprec_max=0.5)
 
     assert len(ranking) > 1
     assert ranking[-1].spacegroup_number == 1
@@ -257,13 +257,13 @@ def test_scan_rejects_invalid_range(ideal_structure):
     analyzer = SymmetryAnalyzer(ideal_structure)
 
     with pytest.raises(ValueError, match='`symprec_min` must be positive'):
-        analyzer.scan(symprec_min=0.0)
+        analyzer.rank(symprec_min=0.0)
 
     with pytest.raises(ValueError, match='must not be smaller'):
-        analyzer.scan(symprec_min=0.5, symprec_max=0.1)
+        analyzer.rank(symprec_min=0.5, symprec_max=0.1)
 
     with pytest.raises(ValueError, match='`n_samples` must be at least 2'):
-        analyzer.scan(n_samples=1)
+        analyzer.rank(n_samples=1)
 
 
 def test_rank_dispatches_on_symprec_range(noisy_structure):
@@ -290,8 +290,8 @@ def test_rank_rejects_scan_settings_with_an_explicit_range(ideal_structure, kwar
         analyzer.rank(symprec_range=SYMPREC_RANGE, **kwargs)
 
 
-def test_levels_skips_deviation(noisy_structure):
-    ranking = SymmetryAnalyzer(noisy_structure).levels(SYMPREC_RANGE)
+def test_explicit_range_skips_deviation(noisy_structure):
+    ranking = SymmetryAnalyzer(noisy_structure).rank(symprec_range=SYMPREC_RANGE)
 
     assert [level.symprec for level in ranking] == sorted(SYMPREC_RANGE)
     # measuring is operations x sites^2, so a plain sweep does not do it

@@ -399,7 +399,7 @@ class Crystallizer:
 
         By default the symmetry tolerance is swept automatically (see
         [symmetry_ranking][gemdat.crystallizer.Crystallizer.symmetry_ranking]):
-        every space group the geometry adopts between `symprec_min` and
+        every space group the geometry recovered between `symprec_min` and
         `symprec_max` is found, together with the deviation it requires, and
         the highest space group number wins (ties broken towards the tightest
         tolerance). This can be overridden:
@@ -416,7 +416,7 @@ class Crystallizer:
         symprec : float | None
             If given, fit at exactly this tolerance (Ångstrom) and skip the
             sweep. `result.symprec` equals this value. Raises `ValueError` if
-            the symmetry search fails at this tolerance (no silent fallback).
+            the symmetry search fails at this tolerance.
             Mutually exclusive with `target_spacegroup` and with every setting
             that configures the sweep.
         target_spacegroup : int | str | None
