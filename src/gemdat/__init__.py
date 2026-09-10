@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from .crystallizer import Crystallizer, CrystallizerResult
+from .crystallizer import Crystallizer, CrystallizerResult, CrystallizerScan
 from .io import load_known_material, read_cif, write_cif
 from .jumps import Jumps
 from .metrics import TrajectoryMetrics
 from .orientations import Orientations
 from .rdf import radial_distribution
 from .shape import ShapeAnalyzer
+from .symmetry import SymmetryAnalyzer, SymmetryLevel, SymmetryRanking
 from .trajectory import Trajectory
 from .transitions import Transitions
 from .volume import Volume, trajectory_to_volume
@@ -15,12 +16,16 @@ __version__ = '1.8.0'
 __all__ = [
     'Crystallizer',
     'CrystallizerResult',
+    'CrystallizerScan',
     'Jumps',
     'load_known_material',
     'Orientations',
     'radial_distribution',
     'read_cif',
     'ShapeAnalyzer',
+    'SymmetryAnalyzer',
+    'SymmetryLevel',
+    'SymmetryRanking',
     'TrajectoryMetrics',
     'Trajectory',
     'trajectory_to_volume',
