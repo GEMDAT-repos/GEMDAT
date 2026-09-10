@@ -266,35 +266,24 @@ def test_scan_rejects_invalid_range(ideal_structure):
         analyzer.rank(n_samples=1)
 
 
-def test_rank_dispatches_on_symprec_range(noisy_structure):
+def test_rank_at_lists_the_given_tolerances(noisy_structure):
     analyzer = SymmetryAnalyzer(noisy_structure)
 
-    # a fixed list of tolerances is swept as given...
-    listed = analyzer.rank(symprec_range=SYMPREC_RANGE)
+    # a fixed list of tolerances is fitted as given...
+    listed = analyzer.rank_at(SYMPREC_RANGE)
     assert [level.symprec for level in listed] == sorted(SYMPREC_RANGE)
     assert all(level.deviation is None for level in listed)
 
-    # ...otherwise the range is scanned and the deviations measured
+    # ...while the scan finds its own and measures the deviations
     scanned = analyzer.rank(n_samples=10)
     assert all(level.deviation is not None for level in scanned)
 
 
-@pytest.mark.parametrize(
-    'kwargs', [{'symprec_min': 0.02}, {'symprec_max': 0.4}, {'n_samples': 10}]
-)
-def test_rank_rejects_scan_settings_with_an_explicit_range(ideal_structure, kwargs):
-    # silently ignoring the scan settings would hide a mistake
-    analyzer = SymmetryAnalyzer(ideal_structure)
-
-    with pytest.raises(ValueError, match='cannot be combined'):
-        analyzer.rank(symprec_range=SYMPREC_RANGE, **kwargs)
-
-
-def test_explicit_range_skips_deviation(noisy_structure):
-    ranking = SymmetryAnalyzer(noisy_structure).rank(symprec_range=SYMPREC_RANGE)
+def test_rank_at_skips_deviation(noisy_structure):
+    ranking = SymmetryAnalyzer(noisy_structure).rank_at(SYMPREC_RANGE)
 
     assert [level.symprec for level in ranking] == sorted(SYMPREC_RANGE)
-    # measuring is operations x sites^2, so a plain sweep does not do it
+    # measuring is operations x sites^2, so a plain list of tolerances skips it
     assert all(level.deviation is None for level in ranking)
     assert all(level.n_observed is None for level in ranking)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .crystallizer import Crystallizer, CrystallizerResult
+from .crystallizer import Crystallizer, CrystallizerResult, CrystallizerScan
 from .io import load_known_material, read_cif, write_cif
 from .jumps import Jumps
 from .metrics import TrajectoryMetrics
@@ -16,6 +16,7 @@ __version__ = '1.8.0'
 __all__ = [
     'Crystallizer',
     'CrystallizerResult',
+    'CrystallizerScan',
     'Jumps',
     'load_known_material',
     'Orientations',

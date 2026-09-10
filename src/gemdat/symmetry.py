@@ -54,7 +54,8 @@ class SymmetryLevel:
         Only set by a scan (see
         [rank][gemdat.symmetry.SymmetryAnalyzer.rank]): how many of the scanned
         tolerances yielded this space group, as a measure of how robustly it
-        holds. `None` when the tolerances were given explicitly.
+        holds. `None` when the tolerances were given explicitly, i.e. from
+        [rank_at][gemdat.symmetry.SymmetryAnalyzer.rank_at].
     error : str | None
         The exception message if the symmetry search raised, or if the
         deviation could not be measured (in which case the space group was
@@ -285,6 +286,8 @@ class SymmetryAnalyzer:
     [rank][gemdat.symmetry.SymmetryAnalyzer.rank] therefore samples
     tolerances to find out *which* groups a structure can adopt, and
     then measures *how much* each one costs instead of searching for it.
+    [rank_at][gemdat.symmetry.SymmetryAnalyzer.rank_at] evaluates a fixed
+    list of tolerances instead, one level each.
     """
 
     def __init__(self, structure: Structure, *, angle_tolerance: float = 5.0):
@@ -423,13 +426,12 @@ class SymmetryAnalyzer:
     def rank(
         self,
         *,
-        symprec_range: tuple[float, ...] | None = None,
         symprec_min: float | None = None,
         symprec_max: float | None = None,
         n_samples: int | None = None,
     ) -> SymmetryRanking:
         """Rank the space groups the structure adopts, scanning the tolerance
-        automatically unless a fixed list of tolerances is given.
+        automatically.
 
         The scan enumerates the candidate groups by sampling a log-spaced grid
         of tolerances between `symprec_min` and `symprec_max`. What each group
@@ -445,15 +447,11 @@ class SymmetryAnalyzer:
         `n_samples` grid points gave each group, which distinguishes a group
         that holds over a wide range from one seen in a single narrow window.
 
-        Passing `symprec_range` sweeps exactly those tolerances instead, one
-        level each. The deviations are not measured then, since measuring is
-        operations x sites^2 and a sweep repeats the same groups.
+        To evaluate a fixed list of tolerances instead, use
+        [rank_at][gemdat.symmetry.SymmetryAnalyzer.rank_at].
 
         Parameters
         ----------
-        symprec_range : tuple[float, ...] | None
-            If given, evaluate exactly these tolerances (Ångstrom) instead of
-            scanning. Mutually exclusive with the scan settings below.
         symprec_min : float | None
             Tightest tolerance (Ångstrom) of the scan, default 0.01 Å.
         symprec_max : float | None
@@ -467,37 +465,16 @@ class SymmetryAnalyzer:
         Returns
         -------
         SymmetryRanking
-            From the scan: one level per distinct space group found, ordered by
-            `deviation` ascending (ties broken on `angle_deviation`), each
-            carrying the tightest sampled `symprec` that produced it. Empty if
-            no tolerance in the range yielded a symmetry. From an explicit
-            `symprec_range`: one level per tolerance, ordered by symprec
-            ascending.
+            One level per distinct space group found, ordered by `deviation`
+            ascending (ties broken on `angle_deviation`), each carrying the
+            tightest sampled `symprec` that produced it. Empty if no tolerance
+            in the range yielded a symmetry.
 
         Raises
         ------
         ValueError
-            If `symprec_range` is combined with any of the scan settings, or if
-            the scan range or sample count is not usable.
+            If the scan range or sample count is not usable.
         """
-        if symprec_range is not None:
-            conflicting = [
-                name
-                for name, value in (
-                    ('symprec_min', symprec_min),
-                    ('symprec_max', symprec_max),
-                    ('n_samples', n_samples),
-                )
-                if value is not None
-            ]
-            if conflicting:
-                listed = ', '.join(f'`{name}`' for name in conflicting)
-                raise ValueError(
-                    f'`symprec_range` lists the tolerances explicitly, so it cannot be '
-                    f'combined with {listed}; those only configure the automatic scan.'
-                )
-            return SymmetryRanking([self._level(symprec) for symprec in sorted(symprec_range)])
-
         symprec_min = 0.01 if symprec_min is None else symprec_min
         symprec_max = 0.5 if symprec_max is None else symprec_max
         n_samples = 40 if n_samples is None else n_samples
@@ -534,3 +511,26 @@ class SymmetryAnalyzer:
         ]
 
         return SymmetryRanking(sorted(thresholds, key=_rank_key))
+
+    def rank_at(self, symprecs: Iterable[float]) -> SymmetryRanking:
+        """Fit the space group at each of the given tolerances.
+
+        Where [rank][gemdat.symmetry.SymmetryAnalyzer.rank] discovers the
+        tolerances itself and reports one level per space group, this reports
+        one level per tolerance handed to it, including repeated space groups.
+        The deviations are not measured, since measuring is
+        operations x sites^2 and a fixed list repeats the same groups.
+
+        Parameters
+        ----------
+        symprecs : Iterable[float]
+            Tolerances (Ångstrom) to evaluate.
+
+        Returns
+        -------
+        SymmetryRanking
+            One level per tolerance, ordered by symprec ascending. A tolerance
+            at which the symmetry search raised is kept, with `None` fields and
+            its `error` set.
+        """
+        return SymmetryRanking([self._level(symprec) for symprec in sorted(symprecs)])
