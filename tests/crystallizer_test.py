@@ -120,7 +120,7 @@ def test_crystallize_use_density_false(crystal_trajectory):
 
     result = cr.crystallize(use_density=False)
 
-    assert result.use_density is False
+    assert result.has_partial_occupancies is False
     occupancies = _mobile_occupancies(result.structure)
     assert len(occupancies) > 0
     assert all(occ == 1.0 for occ in occupancies)
@@ -134,7 +134,7 @@ def test_crystallize_use_density_default_unchanged(crystal_trajectory):
     cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li')
 
     for result in (cr.crystallize(), cr.crystallize(use_density=True)):
-        assert result.use_density is True
+        assert result.has_partial_occupancies is True
         assert result.spacegroup_number == 12
 
         occupancies = _mobile_occupancies(result.structure)
@@ -165,7 +165,7 @@ def test_scan_use_density_false(crystal_trajectory):
     scan = cr.scan(use_density=False)
 
     for result in (scan.best(), scan.at(0.1)):
-        assert result.use_density is False
+        assert result.has_partial_occupancies is False
         occupancies = _mobile_occupancies(result.structure)
         assert len(occupancies) > 0
         assert all(occ == 1.0 for occ in occupancies)
@@ -176,7 +176,7 @@ def test_crystallize_at_use_density_false(crystal_trajectory):
 
     result = cr.crystallize_at(0.1, use_density=False)
 
-    assert result.use_density is False
+    assert result.has_partial_occupancies is False
     occupancies = _mobile_occupancies(result.structure)
     assert len(occupancies) > 0
     assert all(occ == 1.0 for occ in occupancies)
@@ -336,7 +336,7 @@ def test_result_is_a_plain_value(crystal_trajectory):
         'spacegroup_symbol',
         'spacegroup_number',
         'symprec',
-        'use_density',
+        'has_partial_occupancies',
     }
 
 
