@@ -35,20 +35,24 @@ class CrystallizerResult:
     ----------
     structure : Structure
         Full structure (static framework + density-derived mobile sites), with
-        partial occupancies and occupancies averaged over symmetry-equivalent
-        sites.
+        occupancies averaged over symmetry-equivalent sites.
     spacegroup_symbol : str
         International symbol of the fitted space group.
     spacegroup_number : int
         International number of the fitted space group.
     symprec : float
         Symmetry tolerance (in Ångstrom) that produced the fit.
+    has_partial_occupancies : bool
+        Whether density-derived partial occupancies were written into
+        ``structure`` (True) or every mobile site was set to full occupancy
+        (False).
     """
 
     structure: Structure
     spacegroup_symbol: str
     spacegroup_number: int
     symprec: float
+    has_partial_occupancies: bool = True
 
     def to_cif(self, filename: Path | str) -> None:
         """Write this structure to a cif file, with its symmetry.
@@ -67,6 +71,7 @@ def _fit(
     *,
     symprec: float,
     angle_tolerance: float,
+    has_partial_occupancies: bool = True,
 ) -> CrystallizerResult:
     """Fit `geometry` at one tolerance and assemble the result.
 
@@ -80,6 +85,11 @@ def _fit(
         Symmetry tolerance (Ångstrom).
     angle_tolerance : float
         Angle tolerance (degrees).
+    has_partial_occupancies : bool
+        Whether `occupancies` carries the density-derived occupancies, recorded
+        on the result. It does not change the fit -- the flag is applied when
+        the occupancies are built, see
+        [Crystallizer.crystallize][gemdat.crystallizer.Crystallizer.crystallize].
 
     Returns
     -------
@@ -115,6 +125,7 @@ def _fit(
         spacegroup_symbol=spacegroup_symbol,
         spacegroup_number=spacegroup_number,
         symprec=symprec,
+        has_partial_occupancies=has_partial_occupancies,
     )
 
 
@@ -145,6 +156,7 @@ class CrystallizerScan:
         occupancies: np.ndarray,
         ranking: SymmetryRanking,
         angle_tolerance: float = 5.0,
+        use_density: bool = True,
     ):
         """Set up the scan.
 
@@ -162,11 +174,15 @@ class CrystallizerScan:
         angle_tolerance : float
             Angle tolerance (degrees) the ranking was produced with, reused by
             every fit taken off this scan.
+        use_density : bool
+            Whether `occupancies` carries the density-derived occupancies,
+            recorded on every result taken off this scan.
         """
         self.geometry = geometry
         self.occupancies = occupancies
         self.ranking = ranking
         self.angle_tolerance = angle_tolerance
+        self.use_density = use_density
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}({len(self.geometry)} sites, {self.ranking!r})'
@@ -236,6 +252,7 @@ class CrystallizerScan:
             self.occupancies,
             symprec=symprec,
             angle_tolerance=self.angle_tolerance,
+            has_partial_occupancies=self.use_density,
         )
 
     def at_level(self, level: SymmetryLevel) -> CrystallizerResult:
@@ -326,6 +343,10 @@ class Crystallizer:
       every space group the geometry reaches and crystallizes any of them;
     - [crystallize_at][gemdat.crystallizer.Crystallizer.crystallize_at] fits a
       tolerance you already know, without scanning.
+
+    Incorporating the density-derived occupancies (``use_density=True``)
+    gives realistic partial site occupancies. The resulting structure is exactly
+    the same except for the densities.
     """
 
     def __init__(
@@ -390,31 +411,35 @@ class Crystallizer:
         self,
         *,
         background_level: float = 0.1,
+        with_occupancies: bool = True,
         **find_peaks_kwargs,
     ) -> Structure:
-        """Extract the mobile-species sites from the density, with partial
-        occupancies.
+        """Extract the mobile-species sites from the density.
 
         Parameters
         ----------
         background_level : float
             Fraction of the maximum density used as the segmentation floor, see
             [gemdat.volume.Volume.to_structure][].
+        with_occupancies : bool
+            If True (default), each site carries its density-derived partial
+            occupancy.
         **find_peaks_kwargs : dict
             Passed through to [gemdat.volume.Volume.find_peaks][].
 
         Returns
         -------
         structure : Structure
-            Structure of mobile sites with partial occupancies.
+            Structure of mobile sites. Occupancies are partial floats when
+            ``with_occupancies`` is True and 1.0 otherwise.
         """
         mobile = self.trajectory.filter(self.floating_specie)
         volume = mobile.to_volume(resolution=self.resolution)
         return volume.to_structure(
             specie=self.floating_specie,
             background_level=background_level,
-            return_occupancies=True,
-            n_frames=len(mobile),
+            return_occupancies=with_occupancies,
+            n_frames=len(mobile) if with_occupancies else None,
             **find_peaks_kwargs,
         )
 
@@ -452,18 +477,10 @@ class Crystallizer:
         self,
         *,
         background_level: float = 0.1,
+        use_density: bool = True,
         **find_peaks_kwargs,
     ) -> tuple[Structure, np.ndarray]:
         """Combine framework + mobile sites into a geometry-only structure.
-
-        The returned structure has every site at full occupancy (element
-        symbols only). Symmetry must be searched on this structure: the
-        per-site occupancies are continuous floats, and feeding them to
-        the symmetry finder would make every mobile site distinct and
-        collapse the result to P1. The occupancies are returned
-        separately, aligned to the structure's site order (framework
-        sites are 1.0), so they can be averaged over the symmetry-
-        equivalent classes afterwards.
 
         Extracting the density peaks dominates the cost of everything
         downstream, and the same geometry is reused by repeated
@@ -475,10 +492,16 @@ class Crystallizer:
         try:
             hash(key)
         except TypeError:
-            return self._compute_geometry_and_occupancies(
+            geometry, occupancies = self._compute_geometry_and_occupancies(
                 background_level=background_level, **find_peaks_kwargs
             )
-        return self._cached_geometry_and_occupancies(background_level, key)
+        else:
+            geometry, occupancies = self._cached_geometry_and_occupancies(background_level, key)
+
+        if not use_density:
+            occupancies = np.ones_like(occupancies)
+
+        return geometry, occupancies
 
     @weak_lru_cache()
     def _cached_geometry_and_occupancies(
@@ -529,6 +552,7 @@ class Crystallizer:
         n_samples: int | None = None,
         angle_tolerance: float = 5.0,
         background_level: float = 0.1,
+        use_density: bool = True,
         **find_peaks_kwargs,
     ) -> CrystallizerScan:
         """Reconstruct the geometry and rank the space groups it can adopt.
@@ -573,6 +597,10 @@ class Crystallizer:
             [pymatgen.symmetry.analyzer.SpacegroupAnalyzer][].
         background_level : float
             Fraction of the maximum density used as the segmentation floor.
+        use_density : bool
+            Whether to incorporate the density-derived occupancy information.
+            If True (default), the mobile sites retain their partial
+            occupancies.
         **find_peaks_kwargs : dict
             Passed through to [gemdat.volume.Volume.find_peaks][].
 
@@ -587,6 +615,7 @@ class Crystallizer:
         geometry, occupancies, analyzer = self._geometry_and_analyzer(
             angle_tolerance=angle_tolerance,
             background_level=background_level,
+            use_density=use_density,
             **find_peaks_kwargs,
         )
         ranking = analyzer.rank(
@@ -599,6 +628,7 @@ class Crystallizer:
             occupancies=occupancies,
             ranking=ranking,
             angle_tolerance=angle_tolerance,
+            use_density=use_density,
         )
 
     def scan_at(
@@ -607,6 +637,7 @@ class Crystallizer:
         *,
         angle_tolerance: float = 5.0,
         background_level: float = 0.1,
+        use_density: bool = True,
         **find_peaks_kwargs,
     ) -> CrystallizerScan:
         """Reconstruct the geometry and fit it at each of the given tolerances.
@@ -625,6 +656,10 @@ class Crystallizer:
             [pymatgen.symmetry.analyzer.SpacegroupAnalyzer][].
         background_level : float
             Fraction of the maximum density used as the segmentation floor.
+        use_density : bool
+            Whether to incorporate the density-derived occupancy information.
+            If True (default), the mobile sites retain their partial
+            occupancies.
         **find_peaks_kwargs : dict
             Passed through to [gemdat.volume.Volume.find_peaks][].
 
@@ -640,6 +675,7 @@ class Crystallizer:
         geometry, occupancies, analyzer = self._geometry_and_analyzer(
             angle_tolerance=angle_tolerance,
             background_level=background_level,
+            use_density=use_density,
             **find_peaks_kwargs,
         )
         return CrystallizerScan(
@@ -647,6 +683,7 @@ class Crystallizer:
             occupancies=occupancies,
             ranking=analyzer.rank_at(symprecs),
             angle_tolerance=angle_tolerance,
+            use_density=use_density,
         )
 
     def crystallize(self, **kwargs) -> CrystallizerResult:
@@ -667,8 +704,8 @@ class Crystallizer:
         **kwargs : dict
             Passed through to [scan][gemdat.crystallizer.Crystallizer.scan],
             e.g. `symprec_min=`, `symprec_max=`, `n_samples=`,
-            `angle_tolerance=`, `background_level=` and the peak-finding
-            arguments.
+            `angle_tolerance=`, `background_level=`, `use_density=` and the
+            peak-finding arguments.
 
         Returns
         -------
@@ -688,6 +725,7 @@ class Crystallizer:
         *,
         angle_tolerance: float = 5.0,
         background_level: float = 0.1,
+        use_density: bool = True,
         **find_peaks_kwargs,
     ) -> CrystallizerResult:
         """Build the full structure and fit it at exactly this tolerance.
@@ -704,6 +742,10 @@ class Crystallizer:
             [pymatgen.symmetry.analyzer.SpacegroupAnalyzer][].
         background_level : float
             Fraction of the maximum density used as the segmentation floor.
+        use_density : bool
+            Whether to incorporate the density-derived occupancy information.
+            If True (default), the mobile sites retain their partial
+            occupancies.
         **find_peaks_kwargs : dict
             Passed through to [gemdat.volume.Volume.find_peaks][].
 
@@ -718,21 +760,32 @@ class Crystallizer:
             If the symmetry search fails at this tolerance.
         """
         geometry, occupancies = self._geometry_and_occupancies(
-            background_level=background_level, **find_peaks_kwargs
+            background_level=background_level,
+            use_density=use_density,
+            **find_peaks_kwargs,
         )
-        return _fit(geometry, occupancies, symprec=symprec, angle_tolerance=angle_tolerance)
+        return _fit(
+            geometry,
+            occupancies,
+            symprec=symprec,
+            angle_tolerance=angle_tolerance,
+            has_partial_occupancies=use_density,
+        )
 
     def _geometry_and_analyzer(
         self,
         *,
         angle_tolerance: float,
         background_level: float,
+        use_density: bool = True,
         **find_peaks_kwargs,
     ) -> tuple[Structure, np.ndarray, SymmetryAnalyzer]:
         """Reconstruct the geometry and wrap it in a
         [SymmetryAnalyzer][gemdat.symmetry.SymmetryAnalyzer]."""
         geometry, occupancies = self._geometry_and_occupancies(
-            background_level=background_level, **find_peaks_kwargs
+            background_level=background_level,
+            use_density=use_density,
+            **find_peaks_kwargs,
         )
         analyzer = SymmetryAnalyzer(geometry, angle_tolerance=angle_tolerance)
         return geometry, occupancies, analyzer
