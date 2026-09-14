@@ -347,16 +347,6 @@ class Crystallizer:
     Incorporating the density-derived occupancies (``use_density=True``)
     gives realistic partial site occupancies. The resulting structure is exactly
     the same except for the densities.
-
-    Verified (see the crystallizer tests) on:
-
-    * Argyrodite - real Li6PS5Br MD crystallizes to P1, which is expected:
-      the S/Br host is site-disordered and averages to P1, and the Li
-      density centroids scatter off the ideal 48h positions. An ideal 48h
-      Li sublattice in an exact cubic cell does crystallize back to F-43m
-      (#216).
-    * Na3(Sb/W)S4 plastic crystal - crystallizes to cubic I-43m (#217): the
-      rotor SbS4/WS4 tetrahedra give a well-defined cubic host framework.
     """
 
     def __init__(
