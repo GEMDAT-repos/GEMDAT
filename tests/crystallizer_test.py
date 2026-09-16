@@ -6,6 +6,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 from pymatgen.core import Species, Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from gemdat.crystallizer import Crystallizer, CrystallizerResult, CrystallizerScan
 from gemdat.io import load_known_material, read_cif
@@ -166,6 +167,18 @@ def test_to_cif(crystal_trajectory, tmp_path):
     assert len(reread) > 0
     # symmetry was written (more than just P1 with the asymmetric unit)
     assert '_symmetry_space_group_name_H-M' in filename.read_text()
+
+
+def test_to_cif_idealised(crystal_trajectory, tmp_path):
+    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.5)
+
+    filename = tmp_path / 'idealised.cif'
+    result = cr.to_cif(filename, idealised=True)
+
+    reread = read_cif(filename)
+    # the idealised sites hold the fitted group exactly
+    analyzer = SpacegroupAnalyzer(reread, symprec=1e-3)
+    assert analyzer.get_space_group_number() == result.spacegroup_number
 
 
 def _mobile_occupancies(structure, specie='Li'):

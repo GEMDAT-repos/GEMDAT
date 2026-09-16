@@ -54,15 +54,19 @@ class CrystallizerResult:
     symprec: float
     has_partial_occupancies: bool = True
 
-    def to_cif(self, filename: Path | str) -> None:
+    def to_cif(self, filename: Path | str, *, idealised: bool = False) -> None:
         """Write this structure to a cif file, with its symmetry.
 
         Parameters
         ----------
         filename : Path | str
             Output filename (a `.cif` suffix is enforced).
+        idealised : bool
+            Write the least-squares idealised positions and lattice for the
+            space group instead, see
+            [write_cif][gemdat.io.write_cif].
         """
-        write_cif(self.structure, filename, symprec=self.symprec)
+        write_cif(self.structure, filename, symprec=self.symprec, idealised=idealised)
 
 
 def _fit(
@@ -563,9 +567,11 @@ class Crystallizer:
         drops accordingly.
 
         The tolerances are found automatically: the range is scanned for the
-        space groups the geometry can adopt, and for each one the tolerance it
-        actually requires is measured (`deviation`, in Ångstrom, and
-        `angle_deviation`, in degrees) rather than read off the sampling grid.
+        space groups the geometry can adopt, and for each one how far the
+        geometry is from it is measured rather than read off the sampling grid
+        (`deviation`: the largest distance, in Ångstrom, a site moves to reach
+        the closest structure with that symmetry, and `angle_deviation`, in
+        degrees).
         The ranking therefore has one row per space group. Pass a fixed list of
         tolerances to [scan_at][gemdat.crystallizer.Crystallizer.scan_at]
         instead to get one row per tolerance.
@@ -790,7 +796,9 @@ class Crystallizer:
         analyzer = SymmetryAnalyzer(geometry, angle_tolerance=angle_tolerance)
         return geometry, occupancies, analyzer
 
-    def to_cif(self, filename: Path | str, **kwargs) -> CrystallizerResult:
+    def to_cif(
+        self, filename: Path | str, *, idealised: bool = False, **kwargs
+    ) -> CrystallizerResult:
         """Crystallize and write the result to a cif file (with symmetry).
 
         This is [crystallize][gemdat.crystallizer.Crystallizer.crystallize]
@@ -810,6 +818,10 @@ class Crystallizer:
         ----------
         filename : Path | str
             Output filename (a `.cif` suffix is enforced).
+        idealised : bool
+            Write the least-squares idealised positions and lattice for the
+            space group, see
+            [CrystallizerResult.to_cif][gemdat.crystallizer.CrystallizerResult.to_cif].
         **kwargs : dict
             Passed through to
             [crystallize][gemdat.crystallizer.Crystallizer.crystallize].
@@ -820,5 +832,5 @@ class Crystallizer:
             The same result that was written to file.
         """
         result = self.crystallize(**kwargs)
-        result.to_cif(filename)
+        result.to_cif(filename, idealised=idealised)
         return result

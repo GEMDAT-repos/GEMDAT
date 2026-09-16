@@ -9,15 +9,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, overload
+from typing import Any, overload
 
 import numpy as np
-from pymatgen.core import Lattice
+from pymatgen.core import Lattice, Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from scipy.optimize import linear_sum_assignment
-
-if TYPE_CHECKING:
-    from pymatgen.core import Structure
 
 
 @dataclass
@@ -28,7 +25,22 @@ class SymmetryLevel:
     Parameters
     ----------
     symprec : float
-        Symmetry tolerance (in Ångstrom) at which this level was evaluated.
+        Symmetry tolerance (in Ångstrom) at which this level was evaluated,
+        as passed to spglib. It is a cutoff on a *maximum*, not on an average:
+        spglib accepts a candidate operation only if the image of *every*
+        atom lies within `symprec` (Cartesian distance, periodic boundaries)
+        of its own atom of the same species, matched one-to-one; a single
+        atom further off rejects the operation however well the rest fit.
+        Lattice vector lengths must likewise agree within `symprec` (angles
+        use `angle_tolerance`). The one place positions are averaged is the
+        primitive-cell search: atoms that coincide within `symprec` after a
+        lattice translation are merged into their mean position, and the
+        rotations are then tested on that averaged cell. If the operations
+        found do not form a space group, spglib retries at a slightly smaller
+        tolerance, so the effective tolerance is never larger than `symprec`.
+        In a scan it is the tightest *sampled* value that gave the group, so
+        the smallest tolerance reaching the group can be up to one grid step
+        lower.
     spacegroup_number : int | None
         International number of the space group, or `None` if the symmetry
         search failed at this tolerance.
@@ -42,10 +54,21 @@ class SymmetryLevel:
         Number of symmetry-distinct site groups (orbits), or `None` on failure.
     deviation : float | None
         How far the structure actually is from this symmetry: the largest
-        distance (Ångstrom) an atom must move for the group's operations to
-        hold exactly. This is a property of the structure, not of the search,
-        so it does not depend on the `symprec` that found the group. `None`
-        if it was not computed or could not be determined.
+        distance (Ångstrom) any site has to move to reach the closest
+        structure with exactly this space group. It is the *worst* site, not
+        an average or RMS. The closest structure is the least-squares one
+        (see [idealise][gemdat.symmetry.SymmetryAnalyzer.idealise]): every
+        site moves to the mean of its images under the group's operations,
+        with the origin refined too, so the value does not depend on where
+        the structure sits in its cell. Least squares keeps the total
+        movement small rather than the largest single move, so it can be
+        slightly above the smallest possible maximum. This is a property of
+        the structure, not of the search, so it does not depend on the
+        `symprec` that found the group. Nor is it the `symprec` the group
+        needs: spglib compares a site's *image* with another site, and both
+        can be displaced, so a group typically only turns up at a `symprec`
+        above its deviation, up to about twice it. `None` if it was not
+        computed or could not be determined.
     angle_deviation : float | None
         The largest difference (degrees) between the input cell angles and
         those of the idealised cell for this group, i.e. the smallest
@@ -275,6 +298,97 @@ class SymmetryRanking(Sequence[SymmetryLevel]):
         return '\n'.join(lines)
 
 
+def _site_types(structure: Structure) -> np.ndarray:
+    """Integer type per site: two sites share a type only if their species,
+    occupancies included, are identical, as for the symmetry finder."""
+    unique: list = []
+    types = []
+    for site in structure:
+        if site.species not in unique:
+            unique.append(site.species)
+        types.append(unique.index(site.species))
+    return np.array(types)
+
+
+def _idealising_shift(structure: Structure, dataset: Any) -> np.ndarray:
+    """Fractional shift per site onto the closest structure with exactly the
+    symmetry in `dataset`.
+
+    Every operation is applied to all sites and its images are matched
+    one-to-one onto the sites of the same type. The ideal position of a site
+    is then the mean of the images that landed on it, one per operation:
+    the least-squares closest positions that the operations map onto each
+    other exactly. The operations fix the origin, which spglib chose from the
+    data, so the origin is refined as well (in closed form, since shifting it
+    by `s` moves every ideal position by `(I - mean(W)) s`). Neither step
+    can depend on where the structure sits in its cell or on the `symprec`
+    that found the group.
+
+    Parameters
+    ----------
+    structure : Structure
+        Structure to idealise.
+    dataset : SpglibDataset
+        Symmetry dataset of the fit, from
+        [pymatgen.symmetry.analyzer.SpacegroupAnalyzer.get_symmetry_dataset][].
+
+    Returns
+    -------
+    np.ndarray
+        `(n_sites, 3)` fractional shifts, ideal minus actual position. These
+        are small displacements, not wrapped into the unit cell.
+    """
+    frac_coords = structure.frac_coords
+    types = _site_types(structure)
+    # An operation may only map a site onto a site of the same type.
+    forbidden = types[:, None] != types[None, :]
+
+    # One operation at a time: the distances are measured with the lattice
+    # metric under periodic boundaries, and batching operations only makes the
+    # intermediates bigger without going faster. Cost grows as
+    # operations x sites^2, which is why this is not done for every tolerance
+    # in a scan.
+    rotations = [np.asarray(rotation) for rotation in dataset.rotations]
+    offsets = np.zeros_like(frac_coords)
+    for rotation, translation in zip(rotations, dataset.translations):
+        images = frac_coords @ rotation.T + np.asarray(translation)
+        distances = structure.lattice.get_all_distances(images, frac_coords)
+        distances[forbidden] = np.inf
+        # An operation permutes the sites, so the images must be matched
+        # one-to-one: taking each image's nearest site independently could
+        # send two images to the same site and leave another without one.
+        rows, columns = linear_sum_assignment(distances)
+        offset = images[rows] - frac_coords[columns]
+        offsets[columns] += offset - np.round(offset)
+    shift = offsets / len(rotations)
+
+    # Refine the origin: minimise sum_i |C^T (shift_i + M s)|^2 over s.
+    to_cartesian = structure.lattice.matrix.T
+    origin_response = np.eye(3) - np.mean(rotations, axis=0)
+    origin, *_ = np.linalg.lstsq(
+        to_cartesian @ origin_response, -to_cartesian @ shift.mean(axis=0), rcond=None
+    )
+    return shift + origin_response @ origin
+
+
+def _idealised_lattice(dataset: Any) -> Lattice:
+    """The idealised lattice of the fit, expressed in the input cell's basis.
+
+    Parameters
+    ----------
+    dataset : SpglibDataset
+        Symmetry dataset of the fit.
+
+    Returns
+    -------
+    Lattice
+    """
+    # (a_s b_s c_s) = (a b c) P^-1, up to the rigid rotation R that spglib
+    # applies to the standard cell, so undo R and re-apply P.
+    unrotated = dataset.std_lattice @ np.linalg.inv(dataset.std_rotation_matrix).T
+    return Lattice((unrotated.T @ dataset.transformation_matrix).T)
+
+
 class SymmetryAnalyzer:
     """Fit the space group of a structure as a function of the symmetry
     tolerance.
@@ -315,9 +429,9 @@ class SymmetryAnalyzer:
         recoverable from the symmetry dataset, which gives the operations in
         the input cell's own frame plus the idealised standard cell:
 
-        - applying each operation and matching its images one-to-one onto the
-          sites of the same species gives the largest displacement the group
-          demands;
+        - the positional slack is the largest distance from a site to its
+          position in the least-squares idealised structure (see
+          [idealise][gemdat.symmetry.SymmetryAnalyzer.idealise]);
         - transforming the idealised standard lattice back into the input
           basis and comparing cell angles gives the angular slack.
 
@@ -333,40 +447,21 @@ class SymmetryAnalyzer:
         Returns
         -------
         tuple[float | None, float | None, str | None]
-            Maximum displacement (Ångstrom), maximum angle difference
-            (degrees), and `None`; or `(None, None, message)` if they could not
-            be determined.
+            Maximum distance to the ideal position (Ångstrom), maximum angle
+            difference (degrees), and `None`; or `(None, None, message)` if
+            they could not be determined.
         """
         structure = self.structure
         try:
-            frac_coords = structure.frac_coords
-            symbols = np.array([site.specie.symbol for site in structure])
-            # An operation may only map a site onto a site of the same species.
-            forbidden = symbols[:, None] != symbols[None, :]
+            shift = _idealising_shift(structure, dataset)
+            distances = np.linalg.norm(shift @ structure.lattice.matrix, axis=1)
+            deviation = float(distances.max(initial=0.0))
 
-            # One operation at a time: the distances are measured with the
-            # lattice metric under periodic boundaries, and batching
-            # operations only makes the intermediates bigger without going
-            # faster. Cost grows as operations x sites^2, which is why this is
-            # not done for every tolerance in a scan.
-            deviation = 0.0
-            for rotation, translation in zip(dataset.rotations, dataset.translations):
-                mapped = frac_coords @ np.asarray(rotation).T + np.asarray(translation)
-                distances = structure.lattice.get_all_distances(mapped, frac_coords)
-                distances[forbidden] = np.inf
-                # An operation permutes the sites, so the images must be
-                # matched one-to-one: taking each image's nearest site
-                # independently could send two images to the same site and
-                # understate the deviation.
-                rows, columns = linear_sum_assignment(distances)
-                deviation = max(deviation, float(distances[rows, columns].max(initial=0.0)))
-
-            # (a_s b_s c_s) = (a b c) P^-1, up to the rigid rotation R that
-            # spglib applies to the standard cell, so undo R and re-apply P.
-            unrotated = dataset.std_lattice @ np.linalg.inv(dataset.std_rotation_matrix).T
-            idealized = Lattice((unrotated.T @ dataset.transformation_matrix).T)
             angle_deviation = float(
-                np.abs(np.array(structure.lattice.angles) - np.array(idealized.angles)).max()
+                np.abs(
+                    np.array(structure.lattice.angles)
+                    - np.array(_idealised_lattice(dataset).angles)
+                ).max()
             )
         except Exception as exc:  # noqa: BLE001 - a diagnostic, not the fit
             # Reported on the level's `error` rather than dropped, so that a
@@ -374,6 +469,64 @@ class SymmetryAnalyzer:
             return None, None, f'Could not measure the deviation: {exc}'
 
         return deviation, angle_deviation, None
+
+    def idealise(self, symprec: float) -> Structure:
+        """Return the closest structure with exactly the space group found at
+        `symprec`.
+
+        Each site moves to the mean of its images under the group's
+        operations, which is the least-squares closest arrangement the
+        operations map onto itself exactly (with the origin refined too), and
+        the lattice is replaced by spglib's idealised one, in the same basis.
+        The largest distance a site moves is the
+        [deviation][gemdat.symmetry.SymmetryLevel] of the group.
+
+        This differs from spglib's own refinement (used by
+        [pymatgen.io.cif.CifWriter][] when it is given a `symprec`), which
+        places one representative site of every orbit on its ideal position
+        and generates the rest of the orbit from it, so that the error of
+        that one site is carried over to all of them.
+
+        Species, occupancies, labels and site properties are kept. Sites that
+        are symmetry-equivalent must have identical species and occupancies,
+        or the symmetry finder does not treat them as equivalent.
+
+        Parameters
+        ----------
+        symprec : float
+            Symmetry tolerance (Ångstrom) at which to determine the space group.
+
+        Returns
+        -------
+        Structure
+            The idealised structure, with the same sites in the same order and
+            the same cell (basis) as the input.
+
+        Raises
+        ------
+        ValueError
+            If no symmetry could be determined at `symprec`.
+        """
+        structure = self.structure
+        try:
+            dataset = SpacegroupAnalyzer(
+                structure, symprec=symprec, angle_tolerance=self.angle_tolerance
+            ).get_symmetry_dataset()
+            if dataset is None:
+                raise ValueError('spglib could not determine a symmetry dataset.')
+        except Exception as exc:
+            raise ValueError(
+                f'Could not determine symmetry at symprec={symprec}: {exc}'
+            ) from exc
+
+        coords = (structure.frac_coords + _idealising_shift(structure, dataset)) % 1.0
+        return Structure(
+            lattice=_idealised_lattice(dataset),
+            species=[site.species for site in structure],
+            coords=coords,
+            site_properties=structure.site_properties,
+            labels=structure.labels,
+        )
 
     def _level(self, symprec: float, *, with_deviation: bool = False) -> SymmetryLevel:
         """Fit the space group at a single tolerance.

@@ -10,6 +10,8 @@ from pathlib import Path
 from pymatgen.core import Structure
 from pymatgen.io.cif import CifWriter
 
+from .symmetry import SymmetryAnalyzer
+
 DATA = Path(files('gemdat') / 'data')  # type: ignore
 
 SUPERCELL = {
@@ -23,7 +25,7 @@ SUPERCELL = {
 }
 
 
-def write_cif(structure: Structure, filename: Path | str, **kwargs):
+def write_cif(structure: Structure, filename: Path | str, *, idealised: bool = False, **kwargs):
     """Write structure to cif file using [pymatgen.io.cif.CifWriter][].
 
     Parameters
@@ -32,11 +34,32 @@ def write_cif(structure: Structure, filename: Path | str, **kwargs):
         Structure to save
     filename : Path | str
         Filename to write to
+    idealised : bool
+        If True, first move every site to its least-squares ideal position for
+        the space group found at `symprec`, and idealise the lattice, see
+        [SymmetryAnalyzer.idealise][gemdat.symmetry.SymmetryAnalyzer.idealise].
+        Requires `symprec`. If False (default), the structure is passed on
+        as is; note that [pymatgen.io.cif.CifWriter][] given a `symprec`
+        still refines it with spglib, which places one representative site
+        of every orbit and generates the rest of the orbit from it.
     **kwargs : dict
         Additional keyword arguments passed to
         [pymatgen.io.cif.CifWriter][]. In particular, pass `symprec` to detect
         and write the space group symmetry (otherwise the cif is written in P1).
+
+    Raises
+    ------
+    ValueError
+        If `idealised` is set without a `symprec`, or no symmetry is found.
     """
+    if idealised:
+        symprec = kwargs.get('symprec')
+        if symprec is None:
+            raise ValueError('`idealised=True` needs a `symprec` to find the space group.')
+        structure = SymmetryAnalyzer(
+            structure, angle_tolerance=kwargs.get('angle_tolerance', 5.0)
+        ).idealise(symprec)
+
     filename = str(Path(filename).with_suffix('.cif'))
     CifWriter(structure, **kwargs).write_file(filename)
 
