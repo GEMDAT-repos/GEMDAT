@@ -28,6 +28,7 @@ nav:
     - GOAC integration: notebooks/goac_integration_demo.ipynb
     - Crystallizer mobile sites: notebooks/crystallizer.ipynb
     - Crystallizer immobile sites: notebooks/crystallizer_framework.ipynb
+    - Crystallizer symmetry rankings (argyrodite): notebooks/crystallizer_argyrodite.ipynb
     - GOAC replication randomized_distribution.py: notebooks/goac_reproduce.ipynb
 
   - Python API:
@@ -40,6 +41,7 @@ nav:
     - gemdat.rdf: api/gemdat_rdf.md
     - gemdat.metrics: api/gemdat_simulation_metrics.md
     - gemdat.shape: api/gemdat_shape.md
+    - gemdat.symmetry: api/gemdat_symmetry.md
     - gemdat.trajectory: api/gemdat_trajectory.md
     - gemdat.transitions: api/gemdat_transitions.md
     - gemdat.jumps: api/gemdat_jumps.md

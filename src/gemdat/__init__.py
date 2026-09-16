@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .crystallizer import Crystallizer, CrystallizerResult
+from .crystallizer import Crystallizer, CrystallizerResult, CrystallizerScan
 from .density_crystallography import (
     DensityFitResult,
     SiteFit,
@@ -19,6 +19,7 @@ from .metrics import TrajectoryMetrics
 from .orientations import Orientations
 from .rdf import radial_distribution
 from .shape import ShapeAnalyzer
+from .symmetry import SymmetryAnalyzer, SymmetryLevel, SymmetryRanking
 from .trajectory import Trajectory
 from .transitions import Transitions
 from .volume import Volume, trajectory_to_volume
@@ -27,6 +28,7 @@ __version__ = '1.8.0'
 __all__ = [
     'Crystallizer',
     'CrystallizerResult',
+    'CrystallizerScan',
     'crystallographic_density_metrics',
     'DensityFitResult',
     'fit_density_model',
@@ -41,6 +43,9 @@ __all__ = [
     'ShapeAnalyzer',
     'SiteFit',
     'symmetrize_density',
+    'SymmetryAnalyzer',
+    'SymmetryLevel',
+    'SymmetryRanking',
     'TrajectoryMetrics',
     'Trajectory',
     'trajectory_to_symmetrized_density',
