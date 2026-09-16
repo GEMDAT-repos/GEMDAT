@@ -29,18 +29,7 @@ class SymmetryLevel:
         as passed to spglib. It is a cutoff on a *maximum*, not on an average:
         spglib accepts a candidate operation only if the image of *every*
         atom lies within `symprec` (Cartesian distance, periodic boundaries)
-        of its own atom of the same species, matched one-to-one; a single
-        atom further off rejects the operation however well the rest fit.
-        Lattice vector lengths must likewise agree within `symprec` (angles
-        use `angle_tolerance`). The one place positions are averaged is the
-        primitive-cell search: atoms that coincide within `symprec` after a
-        lattice translation are merged into their mean position, and the
-        rotations are then tested on that averaged cell. If the operations
-        found do not form a space group, spglib retries at a slightly smaller
-        tolerance, so the effective tolerance is never larger than `symprec`.
-        In a scan it is the tightest *sampled* value that gave the group, so
-        the smallest tolerance reaching the group can be up to one grid step
-        lower.
+        of its own atom of the same species, matched one-to-one.
     spacegroup_number : int | None
         International number of the space group, or `None` if the symmetry
         search failed at this tolerance.
@@ -53,22 +42,10 @@ class SymmetryLevel:
     n_site_orbits : int | None
         Number of symmetry-distinct site groups (orbits), or `None` on failure.
     deviation : float | None
-        How far the structure actually is from this symmetry: the largest
-        distance (Ångstrom) any site has to move to reach the closest
-        structure with exactly this space group. It is the *worst* site, not
-        an average or RMS. The closest structure is the least-squares one
-        (see [idealise][gemdat.symmetry.SymmetryAnalyzer.idealise]): every
-        site moves to the mean of its images under the group's operations,
-        with the origin refined too, so the value does not depend on where
-        the structure sits in its cell. Least squares keeps the total
-        movement small rather than the largest single move, so it can be
-        slightly above the smallest possible maximum. This is a property of
-        the structure, not of the search, so it does not depend on the
-        `symprec` that found the group. Nor is it the `symprec` the group
-        needs: spglib compares a site's *image* with another site, and both
-        can be displaced, so a group typically only turns up at a `symprec`
-        above its deviation, up to about twice it. `None` if it was not
-        computed or could not be determined.
+        How far the structure is from its ideal symmetry: the largest
+        distance (Ångstrom) any atom has to move from the ideal position.
+        The "ideal" structure is the least-squares averaged one
+        (see [idealise][gemdat.symmetry.SymmetryAnalyzer.idealise]):
     angle_deviation : float | None
         The largest difference (degrees) between the input cell angles and
         those of the idealised cell for this group, i.e. the smallest
@@ -315,14 +292,8 @@ def _idealising_shift(structure: Structure, dataset: Any) -> np.ndarray:
     symmetry in `dataset`.
 
     Every operation is applied to all sites and its images are matched
-    one-to-one onto the sites of the same type. The ideal position of a site
-    is then the mean of the images that landed on it, one per operation:
-    the least-squares closest positions that the operations map onto each
-    other exactly. The operations fix the origin, which spglib chose from the
-    data, so the origin is refined as well (in closed form, since shifting it
-    by `s` moves every ideal position by `(I - mean(W)) s`). Neither step
-    can depend on where the structure sits in its cell or on the `symprec`
-    that found the group.
+    onto the sites of the same type. The ideal position of a site
+    is then the mean of the images that landed on it.
 
     Parameters
     ----------
@@ -354,9 +325,6 @@ def _idealising_shift(structure: Structure, dataset: Any) -> np.ndarray:
         images = frac_coords @ rotation.T + np.asarray(translation)
         distances = structure.lattice.get_all_distances(images, frac_coords)
         distances[forbidden] = np.inf
-        # An operation permutes the sites, so the images must be matched
-        # one-to-one: taking each image's nearest site independently could
-        # send two images to the same site and leave another without one.
         rows, columns = linear_sum_assignment(distances)
         offset = images[rows] - frac_coords[columns]
         offsets[columns] += offset - np.round(offset)
