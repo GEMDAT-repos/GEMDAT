@@ -28,6 +28,7 @@ nav:
     - GOAC integration: notebooks/goac_integration_demo.ipynb
     - Crystallizer mobile sites: notebooks/crystallizer.ipynb
     - Crystallizer immobile sites: notebooks/crystallizer_framework.ipynb
+    - Crystallizer symmetry rankings (argyrodite): notebooks/crystallizer_argyrodite.ipynb
     - GOAC replication randomized_distribution.py: notebooks/goac_reproduce.ipynb
 
   - Python API:

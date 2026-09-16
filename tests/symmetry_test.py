@@ -91,9 +91,10 @@ def test_level_with_deviation(ideal_structure):
 
 
 def test_deviation_is_the_displacement_the_group_demands():
-    # Cl sits 0.2 A off the body centre along x. The cubic group contains
-    # x -> -x about the origin, which maps it onto its mirror image 0.4 A
-    # away, so that is exactly what the fit costs.
+    # Cl sits 0.2 A off the body centre along x. The closest cubic structure
+    # splits that between the two atoms: shifting the origin by 0.1 A moves
+    # Li and Cl 0.1 A each, rather than Cl by the full 0.2 A (and certainly
+    # not the 0.4 A between Cl and its mirror image under x -> -x).
     structure = Structure(
         lattice=Lattice.cubic(10.0),
         species=['Li', 'Cl'],
@@ -103,8 +104,39 @@ def test_deviation_is_the_displacement_the_group_demands():
     level = SymmetryAnalyzer(structure)._level(0.5, with_deviation=True)
 
     assert level.spacegroup_number == 221
-    assert level.deviation == pytest.approx(0.4)
+    assert level.deviation == pytest.approx(0.1)
     assert level.angle_deviation == pytest.approx(0.0, abs=1e-9)
+
+
+def _simple_cubic(displacement: float = 0.0) -> Structure:
+    """27-atom simple cubic Li, with the central atom moved along x."""
+    grid = [(i / 3, j / 3, k / 3) for i in range(3) for j in range(3) for k in range(3)]
+    structure = Structure(Lattice.cubic(12.0), ['Li'] * len(grid), grid)
+    structure.translate_sites([13], [displacement, 0.0, 0.0], frac_coords=False)
+    return structure
+
+
+def test_deviation_is_a_maximum_not_an_average():
+    # the lattice translations spread the moved atom's displacement over all
+    # 27 sites, so the ideal structure is shifted by d/27 and the moved atom
+    # is left d - d/27 from its ideal site; the average is far smaller
+    d = 0.2
+    level = SymmetryAnalyzer(_simple_cubic(d))._level(0.3, with_deviation=True)
+
+    assert level.spacegroup_number == 221
+    assert level.deviation == pytest.approx(d * 26 / 27)
+
+
+def test_deviation_does_not_depend_on_the_origin(noisy_structure):
+    shifted = noisy_structure.copy()
+    shifted.translate_sites(range(len(shifted)), [0.123, 0.31, 0.07])
+
+    for symprec in (0.1, 0.3):
+        level = SymmetryAnalyzer(noisy_structure)._level(symprec, with_deviation=True)
+        moved = SymmetryAnalyzer(shifted)._level(symprec, with_deviation=True)
+
+        assert moved.spacegroup_number == level.spacegroup_number
+        assert moved.deviation == pytest.approx(level.deviation)
 
 
 def test_angle_deviation_is_the_angle_the_group_demands(sheared_structure):
@@ -128,10 +160,11 @@ def test_angle_tolerance_is_honoured(sheared_structure):
 
 
 def test_deviation_matches_sites_one_to_one():
-    # A degenerate operation that collapses both sites onto one point: taking
-    # each image's nearest site would report 0.2 A (both images land next to
-    # Li), but an operation permutes the sites, and no permutation does better
-    # than the 2.8 A of moving one image onto the second site.
+    # A degenerate operation that collapses both sites onto one point. Taking
+    # each image's nearest site would send both images to the Li at the
+    # origin, leave the second site without one, and report 0.2 A. An
+    # operation permutes the sites, so each site gets one image: 0.2 A and
+    # 2.8 A off, split evenly by the origin shift into 1.5 A each.
     structure = Structure(
         lattice=Lattice.cubic(10.0),
         species=['Li', 'Li'],
@@ -148,8 +181,48 @@ def test_deviation_matches_sites_one_to_one():
     deviation, angle_deviation, error = SymmetryAnalyzer(structure)._deviation(dataset)
 
     assert error is None
-    assert deviation == pytest.approx(2.8)
+    assert deviation == pytest.approx(1.5)
     assert angle_deviation == pytest.approx(0.0, abs=1e-9)
+
+
+def test_idealise(noisy_structure):
+    analyzer = SymmetryAnalyzer(noisy_structure)
+    level = analyzer._level(0.3, with_deviation=True)
+    assert level.spacegroup_number is not None and level.spacegroup_number > 1
+
+    idealised = analyzer.idealise(0.3)
+
+    # same sites, in the same order and the same cell basis
+    assert [site.species for site in idealised] == [site.species for site in noisy_structure]
+    assert idealised.labels == noisy_structure.labels
+
+    # the group now holds exactly
+    exact = SymmetryAnalyzer(idealised)._level(1e-4, with_deviation=True)
+    assert exact.spacegroup_number == level.spacegroup_number
+    assert exact.deviation == pytest.approx(0.0, abs=1e-9)
+
+    # and no site moved further than the deviation
+    shift = idealised.frac_coords - noisy_structure.frac_coords
+    shift -= np.round(shift)
+    moved = np.linalg.norm(shift @ noisy_structure.lattice.matrix, axis=1)
+    assert moved.max() == pytest.approx(level.deviation)
+
+
+def test_idealise_idealises_the_lattice(sheared_structure):
+    idealised = SymmetryAnalyzer(sheared_structure).idealise(0.1)
+
+    assert idealised.lattice.angles == pytest.approx((90.0, 90.0, 90.0))
+
+
+def test_idealise_leaves_an_ideal_structure_alone(ideal_structure):
+    idealised = SymmetryAnalyzer(ideal_structure).idealise(0.1)
+
+    assert np.allclose(idealised.frac_coords, ideal_structure.frac_coords % 1.0, atol=1e-9)
+
+
+def test_idealise_raises_without_symmetry(ideal_structure):
+    with pytest.raises(ValueError, match='Could not determine symmetry'):
+        SymmetryAnalyzer(ideal_structure).idealise(0.0)
 
 
 def test_deviation_failure_is_recorded_on_the_level(ideal_structure, monkeypatch):
