@@ -43,7 +43,7 @@ import numpy as np
 from pymatgen.symmetry.groups import SpaceGroup
 from scipy.linalg import null_space
 from scipy.ndimage import map_coordinates
-from scipy.optimize import differential_evolution
+from scipy.optimize import differential_evolution, minimize
 
 if TYPE_CHECKING:
     from .trajectory import Trajectory
@@ -337,21 +337,15 @@ def periodic_gaussian_density(
     np.ndarray
         Unnormalised density with shape ``grid_size``.
     """
-    shape = _as_shape(grid_size)
-    grid_x, grid_y, grid_z = np.meshgrid(*_voxel_axes(shape), indexing='ij')
-
     pts = np.atleast_2d(np.asarray(positions, dtype=float))
     two_sigma_sq = 2.0 * float(sigma) ** 2
-    density = np.zeros(shape, dtype=float)
-    for px, py, pz in pts:
-        dx = grid_x - px
-        dx -= np.round(dx)
-        dy = grid_y - py
-        dy -= np.round(dy)
-        dz = grid_z - pz
-        dz -= np.round(dz)
-        density += np.exp(-(dx * dx + dy * dy + dz * dz) / two_sigma_sq)
-    return density
+    # An isotropic Gaussian is separable: (points, n) 1D Gaussians per axis.
+    g: list[np.ndarray] = []
+    for axis, p in zip(_voxel_axes(_as_shape(grid_size)), pts.T):
+        d = axis - p[:, None]
+        d -= np.round(d)
+        g.append(np.exp(-d * d / two_sigma_sq))
+    return np.einsum('mi,mj,mk->ijk', *g)
 
 
 def crystallographic_density_metrics(
@@ -619,7 +613,10 @@ class _MixtureModel:
         grid = self.density(params)
         if grid is None:
             return np.inf
-        return float(np.mean((grid - self.observed) ** 2))
+        # Both grids sum to 1, so the plain MSE is ~1/size**2: so small that
+        # L-BFGS-B (the polish) sees a gradient below its tolerance and never
+        # moves. Rescaling keeps the minimum and makes the polish work.
+        return float(np.mean((grid - self.observed) ** 2) * grid.size**2)
 
 
 def fit_density_model(
@@ -638,6 +635,7 @@ def fit_density_model(
     seed: int | None = None,
     polish: bool = True,
     workers: int = 1,
+    coarsen: int = 1,
 ) -> DensityFitResult:
     """Fit a symmetry-constrained isotropic Gaussian-mixture average structure.
 
@@ -685,6 +683,11 @@ def fit_density_model(
         Passed to :func:`scipy.optimize.differential_evolution`. With
         ``workers != 1`` the population is evaluated in parallel
         (``updating='deferred'``).
+    coarsen : int, optional
+        If > 1, run the global search on the density summed over
+        ``coarsen``-cubed voxel blocks (``coarsen**3`` times fewer voxels per
+        evaluation), then, if ``polish``, refine with L-BFGS-B on the full
+        grid. The grid dimensions must be divisible by ``coarsen``.
 
     Returns
     -------
@@ -711,24 +714,32 @@ def fit_density_model(
     if len(specs) == 0:
         raise ValueError('sites must contain at least one site spec')
 
+    if coarsen < 1 or any(n % coarsen for n in obs.shape):
+        raise ValueError(f'grid shape {obs.shape} is not divisible by coarsen={coarsen}')
+
     model = _MixtureModel(sg, specs, obs)
+    nx, ny, nz = (n // coarsen for n in obs.shape)
+    coarse = obs.reshape(nx, coarsen, ny, coarsen, nz, coarsen).sum(axis=(1, 3, 5))
 
     result = differential_evolution(
-        model,
+        _MixtureModel(sg, specs, coarse),
         model.bounds(),
         maxiter=maxiter,
         popsize=popsize,
         tol=tol,
         seed=seed,
-        polish=polish,
+        polish=False,
         workers=workers,
         updating='deferred' if workers != 1 else 'immediate',
     )
+    x = result.x
+    if polish:
+        x = minimize(model, x, bounds=model.bounds(), method='L-BFGS-B').x
 
-    sigmas, positions, alphas = model.unpack(result.x)
-    model_density = model.density(result.x)
+    sigmas, positions, alphas = model.unpack(x)
+    model_density = model.density(x)
     assert model_density is not None
-    metrics = crystallographic_density_metrics(obs, model_density, n_params=len(result.x))
+    metrics = crystallographic_density_metrics(obs, model_density, n_params=len(x))
 
     site_fits: list[SiteFit] = []
     for idx, (spec, sigma, pos, alpha) in enumerate(zip(specs, sigmas, positions, alphas)):
@@ -758,7 +769,7 @@ def fit_density_model(
         model_density=model_density,
         metrics=metrics,
         success=bool(result.success),
-        params=np.asarray(result.x, dtype=float),
+        params=np.asarray(x, dtype=float),
     )
 
 

@@ -244,6 +244,22 @@ def test_fit_density_model_free_position_keeps_wyckoff_position():
     assert abs(site.position[0] % 0.5 - 0.25) == pytest.approx(0.03, abs=0.005)
 
 
+def test_fit_density_model_coarsen(density):
+    sites = [
+        {'specie': 'Li', 'position': POS_A},
+        {'specie': 'Li', 'position': POS_B},
+    ]
+    result = fit_density_model(density, 225, sites, maxiter=30, popsize=10, seed=0, coarsen=2)
+
+    assert result.model_density.shape == density.shape
+    assert result.metrics['r1_like'] < 0.05
+    assert result.sites[0].sigma == pytest.approx(SIGMA_A, rel=0.05)
+    assert result.sites[0].occupancy == pytest.approx(OCC_A, abs=0.03)
+
+    with pytest.raises(ValueError, match='not divisible'):
+        fit_density_model(density, 225, sites, maxiter=1, coarsen=3)
+
+
 def test_fit_density_model_free_position_on_fixed_site_raises(density):
     sites = [{'specie': 'Li', 'position': POS_A, 'free_position': True}]
     with pytest.raises(ValueError, match='no free coordinates'):
