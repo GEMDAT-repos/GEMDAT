@@ -21,11 +21,12 @@ The pipeline is:
    (:func:`fit_density_model`), refining the Gaussian width (``sigma`` ->
    ``U_iso``), the occupancy fractions and, optionally, free positional
    parameters (the displacement scale at which a higher-symmetry site splits).
-5. Compare candidate space groups on the fit residual (:func:`rank_spacegroups`).
+5. Compare candidate space groups on a parameter-penalised fit residual
+   (:func:`rank_spacegroups`).
 
-This addresses GitHub issue #421 points 1 (assume / rank the space group),
-4 (incorporate density -- fit the density directly) and 5 (Wyckoff subsymmetry
-and the length scale in Angstrom at which sites split).
+Grids follow the :class:`gemdat.volume.Volume` convention: voxel ``i`` of an axis
+with ``n`` voxels is centred on fractional coordinate ``(i + 1/2) / n``, so the
+data of ``Trajectory.to_volume`` can be used directly.
 
 Deferred follow-ups (not in this module yet): the anisotropic-ADP O-style fit,
 the per-species ordered S -> Li -> O workflow with origin-shift propagation, and
@@ -54,6 +55,7 @@ __all__ = [
     'periodic_anisotropic_gaussian_density',
     'periodic_gaussian_density',
     'rank_spacegroups',
+    'site_free_directions',
     'symmetrize_density',
     'trajectory_to_symmetrized_density',
     'wyckoff_orbit',
@@ -101,12 +103,16 @@ def _as_shape(grid_size: int | tuple[int, int, int]) -> Shape:
     return (int(a), int(b), int(c))
 
 
+def _voxel_axes(shape: Shape) -> list[np.ndarray]:
+    """Fractional coordinates of the voxel centres along each axis; voxel ``i``
+    of ``n`` sits at ``(i + 1/2) / n``, as in :class:`gemdat.volume.Volume`."""
+    return [(np.arange(n, dtype=float) + 0.5) / n for n in shape]
+
+
 def _fractional_grid(shape: Shape) -> np.ndarray:
     """Return the ``(N, 3)`` array of fractional coordinates of every voxel
-    centre of a grid with the given ``shape`` (voxel ``i`` sits at ``i /
-    n``)."""
-    axes = [np.arange(n, dtype=float) / n for n in shape]
-    grids = np.meshgrid(*axes, indexing='ij')
+    centre of a grid with the given ``shape``."""
+    grids = np.meshgrid(*_voxel_axes(shape), indexing='ij')
     return np.stack([g.ravel() for g in grids], axis=-1)
 
 
@@ -177,7 +183,7 @@ def symmetrize_density(
     ----------
     grid : np.ndarray
         3D density on a (not necessarily cubic) grid, indexed so that voxel
-        ``i`` corresponds to fractional coordinate ``i / n``.
+        ``i`` is centred on fractional coordinate ``(i + 1/2) / n``.
     spacegroup : str | int | SpaceGroup
         International symbol (``'Fm-3m'``), international number (``225``) or a
         :class:`pymatgen.symmetry.groups.SpaceGroup`.
@@ -202,7 +208,7 @@ def symmetrize_density(
     acc = np.zeros(grid.size, dtype=np.float64)
     for rot, trans in zip(rotations, translations):
         transformed = (coords @ rot.T + trans) % 1.0
-        sample = (transformed * n).T
+        sample = (transformed * n - 0.5).T
         acc += map_coordinates(grid, sample, order=order, mode='grid-wrap')
 
     return (acc / len(rotations)).reshape(shape)
@@ -238,8 +244,18 @@ def wyckoff_orbit(
         Array of shape ``(multiplicity, 3)`` with the unique orbit positions in
         ``[0, 1)``.
     """
-    sg = _as_spacegroup(spacegroup)
-    rotations, translations = _op_arrays(sg)
+    rotations, translations = _op_arrays(_as_spacegroup(spacegroup))
+    return _orbit(rotations, translations, position, tol=tol)
+
+
+def _orbit(
+    rotations: np.ndarray,
+    translations: np.ndarray,
+    position: np.ndarray,
+    *,
+    tol: float = 1e-8,
+) -> np.ndarray:
+    """:func:`wyckoff_orbit` on raw ``(rotations, translations)`` stacks."""
     pos = np.asarray(position, dtype=float) % 1.0
 
     images = np.mod(np.einsum('kij,j->ki', rotations, pos) + translations, 1.0)
@@ -251,6 +267,74 @@ def wyckoff_orbit(
     keyed = np.mod(np.round(images, decimals), 1.0)
     _, keep = np.unique(keyed, axis=0, return_index=True)
     return images[np.sort(keep)]
+
+
+def _reduced_row_echelon(matrix: np.ndarray, *, tol: float = 1e-8) -> np.ndarray:
+    """Reduced row echelon form of ``matrix`` with the zero rows dropped."""
+    rref = np.array(matrix, dtype=float)
+    row = 0
+    for col in range(rref.shape[1]):
+        if row == len(rref):
+            break
+        pivot = row + int(np.argmax(np.abs(rref[row:, col])))
+        if abs(rref[pivot, col]) < tol:
+            continue
+        rref[[row, pivot]] = rref[[pivot, row]]
+        rref[row] /= rref[row, col]
+        for other in range(len(rref)):
+            if other != row:
+                rref[other] -= rref[other, col] * rref[row]
+        row += 1
+    rref[np.abs(rref) < tol] = 0.0
+    return rref[:row]
+
+
+def site_free_directions(
+    spacegroup: str | int | SpaceGroup,
+    position: np.ndarray,
+    *,
+    tol: float = 1e-4,
+) -> np.ndarray:
+    """Displacement directions allowed by the site symmetry of a position.
+
+    A site can move along ``v`` without changing its Wyckoff position when
+    every operation of its site-symmetry group (the operations that map
+    ``position`` onto itself modulo a lattice translation) leaves ``v``
+    unchanged. These are the free coordinates of the Wyckoff position: ``x``
+    for ``(x, x, x)``, ``x`` and ``z`` for ``(x, x, z)``, all three for the
+    general position, none for a point such as Fm-3m 8c ``(1/4, 1/4, 1/4)``.
+
+    Parameters
+    ----------
+    spacegroup : str | int | SpaceGroup
+        Space group (symbol, number or object).
+    position : np.ndarray
+        Fractional coordinate, shape ``(3,)``.
+    tol : float, optional
+        Fractional distance below which an operation counts as mapping
+        ``position`` onto itself.
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape ``(k, 3)``, ``0 <= k <= 3``, one fractional direction per
+        free coordinate, in row echelon form (e.g. ``[[1, 1, 1]]`` for
+        ``(x, x, x)``) and scaled so the largest component of each is 1.
+    """
+    rotations, translations = _op_arrays(_as_spacegroup(spacegroup))
+    pos = np.asarray(position, dtype=float) % 1.0
+
+    delta = np.einsum('kij,j->ki', rotations, pos) + translations - pos
+    delta -= np.round(delta)
+    stabilizer = rotations[np.all(np.abs(delta) < tol, axis=1)]
+
+    constraints = (stabilizer - np.eye(3)).reshape(-1, 3)
+    _, singular, vt = np.linalg.svd(constraints)
+    rank = int(np.sum(singular > 1e-8))
+    directions = _reduced_row_echelon(vt[rank:])
+    if len(directions):
+        directions /= np.abs(directions).max(axis=1, keepdims=True)
+    return np.round(directions, 12) + 0.0
 
 
 def periodic_gaussian_density(
@@ -278,8 +362,7 @@ def periodic_gaussian_density(
         Unnormalised density with shape ``grid_size``.
     """
     shape = _as_shape(grid_size)
-    axes = [np.linspace(0.0, 1.0, n, endpoint=False) for n in shape]
-    grid_x, grid_y, grid_z = np.meshgrid(*axes, indexing='ij')
+    grid_x, grid_y, grid_z = np.meshgrid(*_voxel_axes(shape), indexing='ij')
 
     pts = np.atleast_2d(np.asarray(positions, dtype=float))
     two_sigma_sq = 2.0 * float(sigma) ** 2
@@ -323,8 +406,7 @@ def periodic_anisotropic_gaussian_density(
         Unnormalised density with shape ``grid_size``.
     """
     shape = _as_shape(grid_size)
-    axes = [np.linspace(0.0, 1.0, n, endpoint=False) for n in shape]
-    grid_x, grid_y, grid_z = np.meshgrid(*axes, indexing='ij')
+    grid_x, grid_y, grid_z = np.meshgrid(*_voxel_axes(shape), indexing='ij')
     flat = np.stack([grid_x, grid_y, grid_z], axis=-1).reshape(-1, 3)
 
     pts = np.atleast_2d(np.asarray(positions, dtype=float))
@@ -367,15 +449,25 @@ def crystallographic_density_metrics(
         Pointwise standard deviations for a weighted residual (weights
         ``w = 1 / sigma**2``). Must match the full grid shape.
     n_params : int, optional
-        Number of fitted parameters, used only for the goodness-of-fit ``gof``.
+        Number of fitted parameters, used for the goodness-of-fit ``gof`` and
+        the information criteria ``aic`` / ``bic``.
     eps : float, optional
         Small stabiliser to avoid division by zero.
 
     Returns
     -------
     dict[str, float]
-        Keys: ``r1_like``, ``wr_like``, ``gof``, ``mse``, ``mae``, ``rmse``,
-        ``pearson_r``, ``jensen_shannon``, ``n_voxels``.
+        Keys: ``r1_like``, ``wr_like``, ``gof``, ``aic``, ``bic``, ``mse``,
+        ``mae``, ``rmse``, ``pearson_r``, ``jensen_shannon``, ``n_voxels``.
+
+    Notes
+    -----
+    ``aic`` and ``bic`` are the Gaussian-likelihood information criteria
+    ``n ln(chi2 / n) + 2 k`` and ``n ln(chi2 / n) + k ln n``, with ``n`` the
+    number of voxels, ``k = n_params`` and ``chi2`` the (weighted) sum of
+    squared residuals. Only differences between models fit to the *same*
+    observed grid are meaningful. Neighbouring voxels are correlated, so ``n``
+    overstates the independent data and the penalty is a lower bound.
     """
     obs = np.asarray(observed, dtype=float)
     calc = np.asarray(calculated, dtype=float)
@@ -410,8 +502,13 @@ def crystallographic_density_metrics(
 
     r1_like = float(np.sum(np.abs(residual)) / (np.sum(np.abs(obs_m)) + eps))
     wr_like = float(np.sqrt(np.sum(weights * residual**2) / (np.sum(weights * obs_m**2) + eps)))
-    dof = max(obs_m.size - int(n_params), 1)
-    gof = float(np.sqrt(np.sum(weights * residual**2) / dof))
+    chi2 = float(np.sum(weights * residual**2))
+    n_obs = obs_m.size
+    dof = max(n_obs - int(n_params), 1)
+    gof = float(np.sqrt(chi2 / dof))
+    log_likelihood_term = n_obs * np.log(max(chi2 / n_obs, np.finfo(float).tiny))
+    aic = float(log_likelihood_term + 2 * int(n_params))
+    bic = float(log_likelihood_term + int(n_params) * np.log(n_obs))
 
     mse = float(np.mean(residual**2))
     mae = float(np.mean(np.abs(residual)))
@@ -429,6 +526,8 @@ def crystallographic_density_metrics(
         'r1_like': r1_like,
         'wr_like': wr_like,
         'gof': gof,
+        'aic': aic,
+        'bic': bic,
         'mse': mse,
         'mae': mae,
         'rmse': rmse,
@@ -500,6 +599,10 @@ class DensityFitResult:
         Optimiser success flag.
     params : np.ndarray
         Raw refined parameter vector.
+    ranking_metrics : dict[str, float] | None
+        Set by :func:`rank_spacegroups`: metrics of the model against the
+        observed density *before* symmetrisation, which is the same grid for
+        every candidate, so these (unlike ``metrics``) compare across groups.
     """
 
     spacegroup_symbol: str
@@ -511,6 +614,7 @@ class DensityFitResult:
     loss: float
     success: bool
     params: np.ndarray = field(repr=False)
+    ranking_metrics: dict[str, float] | None = None
 
 
 def _stick_breaking(raw: list[float]) -> np.ndarray:
@@ -529,7 +633,7 @@ def _stick_breaking(raw: list[float]) -> np.ndarray:
 
 def _prepare_observed(
     observed_density: np.ndarray,
-    sg: SpaceGroup,
+    sg: SpaceGroup | None,
     *,
     symmetrize: bool,
     supercell: tuple[int, int, int] | None,
@@ -539,8 +643,113 @@ def _prepare_observed(
     if supercell is not None and _as_shape(supercell) != (1, 1, 1):
         obs = fold_supercell(obs, supercell)
     if symmetrize:
+        assert sg is not None
         obs = symmetrize_density(obs, sg)
     return obs
+
+
+def _free_directions(sg: SpaceGroup, position: np.ndarray, free_position: Any) -> np.ndarray:
+    """Resolve a site spec's ``free_position`` to a ``(k, 3)`` array of
+    displacement directions."""
+    if free_position is None or isinstance(free_position, (bool, np.bool_)):
+        if not free_position:
+            return np.zeros((0, 3))
+        directions = site_free_directions(sg, position)
+        if len(directions) == 0:
+            raise ValueError(
+                f'position {np.round(position, 6).tolist()} has no free coordinates in '
+                f'{sg.symbol}; to model a split site, pass the displacement '
+                "direction(s) as free_position, e.g. 'free_position': (1, 1, 1)"
+            )
+        return directions
+
+    directions = np.atleast_2d(np.asarray(free_position, dtype=float))
+    if directions.ndim != 2 or directions.shape[1] != 3 or len(directions) > 3:
+        raise ValueError('free_position directions must have shape (3,) or (k, 3), k <= 3')
+    if np.linalg.matrix_rank(directions) != len(directions):
+        raise ValueError('free_position directions must be linearly independent')
+    return directions / np.abs(directions).max(axis=1, keepdims=True)
+
+
+class _MixtureModel:
+    """Symmetry-constrained Gaussian-mixture model and its least-squares
+    objective.
+
+    Defined at module level (rather than as closures inside
+    :func:`fit_density_model`) so that it can be pickled and sent to
+    worker processes when ``workers != 1``.
+    """
+
+    def __init__(
+        self,
+        sg: SpaceGroup,
+        specs: list[dict[str, Any]],
+        observed: np.ndarray,
+    ):
+        self.rotations, self.translations = _op_arrays(sg)
+        self.specs = specs
+        self.shape: Shape = (observed.shape[0], observed.shape[1], observed.shape[2])
+        self.observed = observed / (np.sum(observed) + _EPS)
+        # Orbits of fixed-position sites never change, so compute them once.
+        self.fixed_orbits = {
+            idx: self.orbit(spec['position'])
+            for idx, spec in enumerate(specs)
+            if len(spec['directions']) == 0
+        }
+
+    @property
+    def n_sites(self) -> int:
+        return len(self.specs)
+
+    def orbit(self, position: np.ndarray) -> np.ndarray:
+        return _orbit(self.rotations, self.translations, position)
+
+    def site_orbit(self, idx: int, position: np.ndarray) -> np.ndarray:
+        orbit = self.fixed_orbits.get(idx)
+        return self.orbit(position) if orbit is None else orbit
+
+    def bounds(self) -> list[tuple[float, float]]:
+        bounds: list[tuple[float, float]] = [spec['sigma_bounds'] for spec in self.specs]
+        for spec in self.specs:
+            md = spec['max_displacement']
+            bounds.extend((-md, md) for _ in spec['directions'])
+        bounds.extend((1e-3, 1.0 - 1e-3) for _ in range(self.n_sites - 1))
+        return bounds
+
+    def unpack(self, params: np.ndarray) -> tuple[list[float], list[np.ndarray], np.ndarray]:
+        cursor = 0
+        sigmas = [float(v) for v in params[cursor : cursor + self.n_sites]]
+        cursor += self.n_sites
+        positions: list[np.ndarray] = []
+        for spec in self.specs:
+            n_free = len(spec['directions'])
+            shift = np.asarray(params[cursor : cursor + n_free], dtype=float)
+            positions.append(spec['position'] + shift @ spec['directions'])
+            cursor += n_free
+        raw_fracs = [float(v) for v in params[cursor : cursor + (self.n_sites - 1)]]
+        return sigmas, positions, _stick_breaking(raw_fracs)
+
+    def density(self, params: np.ndarray) -> np.ndarray | None:
+        sigmas, positions, alphas = self.unpack(params)
+        total = np.zeros(self.shape, dtype=float)
+        for idx, (sigma, pos, alpha) in enumerate(zip(sigmas, positions, alphas)):
+            if sigma <= 0:
+                return None
+            single = periodic_gaussian_density(self.shape, self.site_orbit(idx, pos), sigma)
+            norm = single.sum()
+            if norm <= 0:
+                return None
+            total += alpha * (single / norm)
+        grand = total.sum()
+        if grand <= 0:
+            return None
+        return total / grand
+
+    def __call__(self, params: np.ndarray) -> float:
+        grid = self.density(params)
+        if grid is None:
+            return np.inf
+        return float(np.mean((grid - self.observed) ** 2))
 
 
 def fit_density_model(
@@ -565,8 +774,9 @@ def fit_density_model(
     Each entry of ``sites`` contributes one isotropic Gaussian *per symmetry
     orbit* of a representative fractional coordinate; the orbits are mixed by
     refined occupancy fractions. Refined parameters are, per site, the Gaussian
-    width ``sigma`` (and, optionally, the three fractional coordinates of the
-    representative), plus ``n_sites - 1`` inter-site occupancy fractions.
+    width ``sigma`` (and, optionally, one shift per free displacement
+    direction of the representative), plus ``n_sites - 1`` inter-site
+    occupancy fractions.
 
     Parameters
     ----------
@@ -580,6 +790,17 @@ def fit_density_model(
         ``{'specie': 'Li', 'position': (0.25, 0.25, 0.25), 'kind': 'isotropic',
         'free_position': False}``. Optional per-site keys: ``sigma_bounds``,
         ``max_displacement``. Only ``kind='isotropic'`` is currently supported.
+
+        ``free_position`` selects which way the representative may move:
+        ``True`` frees the coordinates allowed by its site symmetry (see
+        :func:`site_free_directions`; e.g. only ``x`` for ``(x, x, x)``), so
+        the site keeps its Wyckoff position, and raises if there are none.
+        To model a site *splitting* off a special position, pass the
+        displacement direction(s) instead, shape ``(3,)`` or ``(k, 3)``: e.g.
+        ``(1, 1, 1)`` splits Fm-3m 8c ``(1/4, 1/4, 1/4)`` into 32f
+        ``(x, x, x)``, and ``np.eye(3)`` frees all three coordinates. Each
+        direction is scaled so its largest component is 1 and gets one
+        parameter bounded by ``+/- max_displacement``.
     symmetrize : bool, optional
         Symmetrise ``observed_density`` with ``spacegroup`` before fitting.
     supercell : tuple[int, int, int] | None, optional
@@ -590,9 +811,11 @@ def fit_density_model(
     sigma_bounds : tuple[float, float], optional
         Global bounds for every ``sigma`` (fractional units).
     max_displacement : float, optional
-        Global +/- bound (fractional units) for free positional parameters.
+        Global +/- bound (fractional units) for each free positional parameter.
     maxiter, popsize, tol, seed, polish, workers
-        Passed to :func:`scipy.optimize.differential_evolution`.
+        Passed to :func:`scipy.optimize.differential_evolution`. With
+        ``workers != 1`` the population is evaluated in parallel
+        (``updating='deferred'``).
 
     Returns
     -------
@@ -602,8 +825,6 @@ def fit_density_model(
     obs = _prepare_observed(observed_density, sg, symmetrize=symmetrize, supercell=supercell)
     if obs.ndim != 3:
         raise ValueError('observed_density must be a 3D array')
-    shape: Shape = (obs.shape[0], obs.shape[1], obs.shape[2])
-    obs_norm = obs / (np.sum(obs) + _EPS)
 
     specs: list[dict[str, Any]] = []
     for raw in sites:
@@ -613,77 +834,25 @@ def fit_density_model(
                 "only kind='isotropic' is supported; anisotropic-ADP fitting is a "
                 'planned follow-up'
             )
+        position = np.asarray(raw['position'], dtype=float) % 1.0
         specs.append(
             {
                 'specie': str(raw['specie']),
-                'position': np.asarray(raw['position'], dtype=float) % 1.0,
-                'free_position': bool(raw.get('free_position', False)),
+                'position': position,
+                'directions': _free_directions(sg, position, raw.get('free_position')),
                 'sigma_bounds': tuple(raw.get('sigma_bounds', sigma_bounds)),
                 'max_displacement': float(raw.get('max_displacement', max_displacement)),
             }
         )
 
-    n_sites = len(specs)
-    if n_sites == 0:
+    if len(specs) == 0:
         raise ValueError('sites must contain at least one site spec')
 
-    # Precompute orbits for fixed-position sites (cheap, but avoids recomputing
-    # the deduplicated orbit on every objective evaluation).
-    orbit_cache: dict[int, np.ndarray] = {}
-    for idx, spec in enumerate(specs):
-        if not spec['free_position']:
-            orbit_cache[idx] = wyckoff_orbit(sg, spec['position'])
-
-    bounds: list[tuple[float, float]] = [spec['sigma_bounds'] for spec in specs]
-    for spec in specs:
-        if spec['free_position']:
-            p0 = spec['position']
-            md = spec['max_displacement']
-            bounds.extend((float(p0[c] - md), float(p0[c] + md)) for c in range(3))
-    bounds.extend((1e-3, 1.0 - 1e-3) for _ in range(n_sites - 1))
-
-    def unpack(params: np.ndarray) -> tuple[list[float], list[np.ndarray], np.ndarray]:
-        cursor = 0
-        sigmas = [float(v) for v in params[cursor : cursor + n_sites]]
-        cursor += n_sites
-        positions: list[np.ndarray] = []
-        for spec in specs:
-            if spec['free_position']:
-                positions.append(np.asarray(params[cursor : cursor + 3], dtype=float))
-                cursor += 3
-            else:
-                positions.append(spec['position'])
-        raw_fracs = [float(v) for v in params[cursor : cursor + (n_sites - 1)]]
-        return sigmas, positions, _stick_breaking(raw_fracs)
-
-    def model(params: np.ndarray) -> np.ndarray | None:
-        sigmas, positions, alphas = unpack(params)
-        total = np.zeros(shape, dtype=float)
-        for idx, (sigma, pos, alpha) in enumerate(zip(sigmas, positions, alphas)):
-            if sigma <= 0:
-                return None
-            orbit = orbit_cache.get(idx)
-            if orbit is None:
-                orbit = wyckoff_orbit(sg, pos)
-            single = periodic_gaussian_density(shape, orbit, sigma)
-            norm = single.sum()
-            if norm <= 0:
-                return None
-            total += alpha * (single / norm)
-        grand = total.sum()
-        if grand <= 0:
-            return None
-        return total / grand
-
-    def loss(params: np.ndarray) -> float:
-        grid = model(params)
-        if grid is None:
-            return np.inf
-        return float(np.mean((grid - obs_norm) ** 2))
+    model = _MixtureModel(sg, specs, obs)
 
     result = differential_evolution(
-        loss,
-        bounds,
+        model,
+        model.bounds(),
         maxiter=maxiter,
         popsize=popsize,
         tol=tol,
@@ -693,29 +862,25 @@ def fit_density_model(
         updating='deferred' if workers != 1 else 'immediate',
     )
 
-    sigmas, positions, alphas = unpack(result.x)
-    model_density = model(result.x)
+    sigmas, positions, alphas = model.unpack(result.x)
+    model_density = model.density(result.x)
     assert model_density is not None
     metrics = crystallographic_density_metrics(obs, model_density, n_params=len(result.x))
 
     site_fits: list[SiteFit] = []
     for idx, (spec, sigma, pos, alpha) in enumerate(zip(specs, sigmas, positions, alphas)):
-        orbit = orbit_cache.get(idx)
-        if orbit is None:
-            orbit = wyckoff_orbit(sg, pos)
         u_iso: float | None = None
         displacement: float | None = None
         if cell_length is not None:
             u_iso = float((sigma * cell_length) ** 2)
-            delta = np.asarray(pos, dtype=float) - spec['position']
-            delta -= np.round(delta)
-            displacement = float(np.linalg.norm(delta) * cell_length)
+            if len(spec['directions']):
+                displacement = float(np.linalg.norm(pos - spec['position']) * cell_length)
         site_fits.append(
             SiteFit(
                 specie=spec['specie'],
                 position=np.asarray(pos, dtype=float) % 1.0,
                 initial_position=np.asarray(spec['position'], dtype=float),
-                multiplicity=len(orbit),
+                multiplicity=len(model.site_orbit(idx, pos)),
                 sigma=float(sigma),
                 occupancy=float(alpha),
                 u_iso=u_iso,
@@ -736,11 +901,15 @@ def fit_density_model(
     )
 
 
+_RANKING_CRITERIA = ('bic', 'aic', 'gof', 'r1_like', 'wr_like')
+
+
 def rank_spacegroups(
     observed_density: np.ndarray,
     candidates: list[str | int | SpaceGroup],
     sites_per_candidate: list[dict[str, Any]] | list[list[dict[str, Any]]],
     *,
+    criterion: str = 'bic',
     symmetrize: bool = True,
     supercell: tuple[int, int, int] | None = None,
     cell_length: float | None = None,
@@ -754,8 +923,15 @@ def rank_spacegroups(
 
     This is the density-fit analogue of "assume / rank the space group"
     (issue #421 point 1): for each candidate, symmetrise the observed density
-    with that group and run a (deliberately cheap) :func:`fit_density_model`,
-    then sort the results by ``r1_like`` (best first).
+    with that group and run a (deliberately cheap) :func:`fit_density_model`.
+
+    Every candidate is then scored against the same grid, the observed density
+    folded but *not* symmetrised (stored in ``ranking_metrics``), because each
+    fit's own target is symmetrised with a different group. A lower-symmetry
+    group with more parameters can always fit that grid at least as well, so
+    the default criterion, ``bic``, penalises the parameter count: a group
+    that only adds parameters (e.g. P-43m splitting I-43m 6b into two
+    independent 3c + 3d orbits) ranks below the simpler group it reproduces.
 
     Parameters
     ----------
@@ -766,6 +942,11 @@ def rank_spacegroups(
     sites_per_candidate : list
         Either a single list of site specs (used for every candidate) or a list
         of such lists, one per candidate.
+    criterion : str, optional
+        Key of ``ranking_metrics`` to sort by, lowest first: ``'bic'``
+        (default), ``'aic'`` (weaker penalty), ``'gof'`` (reduced chi,
+        negligible penalty on large grids), or the unpenalised ``'r1_like'`` /
+        ``'wr_like'``.
     symmetrize, supercell, cell_length
         Forwarded to :func:`fit_density_model`.
     maxiter, popsize, seed
@@ -776,8 +957,12 @@ def rank_spacegroups(
     Returns
     -------
     list[DensityFitResult]
-        One result per candidate, sorted by ``metrics['r1_like']`` ascending.
+        One result per candidate, sorted by ``ranking_metrics[criterion]``
+        ascending.
     """
+    if criterion not in _RANKING_CRITERIA:
+        raise ValueError(f'criterion must be one of {_RANKING_CRITERIA}, got {criterion!r}')
+
     cands = list(candidates)
     if len(sites_per_candidate) > 0 and isinstance(sites_per_candidate[0], dict):
         per_candidate: list[list[dict[str, Any]]] = [
@@ -788,24 +973,28 @@ def rank_spacegroups(
         if len(per_candidate) != len(cands):
             raise ValueError('sites_per_candidate must match the number of candidates')
 
+    common = _prepare_observed(observed_density, None, symmetrize=False, supercell=supercell)
+
     results: list[DensityFitResult] = []
     for spacegroup, site_specs in zip(cands, per_candidate):
-        results.append(
-            fit_density_model(
-                observed_density,
-                spacegroup,
-                site_specs,
-                symmetrize=symmetrize,
-                supercell=supercell,
-                cell_length=cell_length,
-                maxiter=maxiter,
-                popsize=popsize,
-                seed=seed,
-                **fit_kwargs,
-            )
+        result = fit_density_model(
+            observed_density,
+            spacegroup,
+            site_specs,
+            symmetrize=symmetrize,
+            supercell=supercell,
+            cell_length=cell_length,
+            maxiter=maxiter,
+            popsize=popsize,
+            seed=seed,
+            **fit_kwargs,
         )
+        result.ranking_metrics = crystallographic_density_metrics(
+            common, result.model_density, n_params=len(result.params)
+        )
+        results.append(result)
 
-    results.sort(key=lambda res: res.metrics['r1_like'])
+    results.sort(key=lambda res: res.ranking_metrics[criterion])  # type: ignore[index]
     return results
 
 
@@ -830,6 +1019,12 @@ def trajectory_to_symmetrized_density(
 
     Notes
     -----
+    ``Trajectory.to_volume`` centres voxel ``i`` on ``(i + 1/2) / n``, the
+    convention used throughout this module, so no half-voxel correction is
+    needed. The fitted ``sigma`` still includes the histogram bin width:
+    roughly ``sqrt(sigma_md**2 + h**2 / 12)`` for a voxel of fractional size
+    ``h``.
+
     gemdat already provides ``Trajectory.apply_drift_correction`` -- prefer it
     (via ``drift_correction=True``) over re-deriving an origin shift from an
     isotropic S-type fit. The explicit ``origin_shift`` argument is kept only to
