@@ -36,10 +36,12 @@ plotting.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from pymatgen.symmetry.groups import SpaceGroup
+from scipy.linalg import null_space
 from scipy.ndimage import map_coordinates
 from scipy.optimize import differential_evolution
 
@@ -52,7 +54,6 @@ __all__ = [
     'crystallographic_density_metrics',
     'fit_density_model',
     'fold_supercell',
-    'periodic_anisotropic_gaussian_density',
     'periodic_gaussian_density',
     'rank_spacegroups',
     'site_free_directions',
@@ -76,23 +77,15 @@ def _as_spacegroup(spacegroup: str | int | SpaceGroup) -> SpaceGroup:
     return SpaceGroup(str(spacegroup))
 
 
-_OP_ARRAY_CACHE: dict[int, tuple[np.ndarray, np.ndarray]] = {}
-
-
-def _op_arrays(sg: SpaceGroup) -> tuple[np.ndarray, np.ndarray]:
-    """Return ``(rotations, translations)`` stacks for every symmetry operation
-    of ``sg`` -- ``rotations`` is ``(K, 3, 3)`` and ``translations`` is ``(K,
-    3)`` -- cached per international number so the pymatgen operation set is
-    only iterated once per space group."""
-    key = int(sg.int_number)
-    cached = _OP_ARRAY_CACHE.get(key)
-    if cached is None:
-        ops = list(sg.symmetry_ops)
-        rotations = np.array([np.asarray(op.rotation_matrix, dtype=float) for op in ops])
-        translations = np.array([np.asarray(op.translation_vector, dtype=float) for op in ops])
-        cached = (rotations, translations)
-        _OP_ARRAY_CACHE[key] = cached
-    return cached
+@lru_cache
+def _op_arrays(number: int) -> tuple[np.ndarray, np.ndarray]:
+    """Return ``(rotations, translations)`` stacks, ``(K, 3, 3)`` and ``(K,
+    3)``, for every symmetry operation of space group ``number``."""
+    ops = SpaceGroup.from_int_number(number).symmetry_ops
+    return (
+        np.array([op.rotation_matrix for op in ops], dtype=float),
+        np.array([op.translation_vector for op in ops], dtype=float),
+    )
 
 
 def _as_shape(grid_size: int | tuple[int, int, int]) -> Shape:
@@ -116,7 +109,7 @@ def _fractional_grid(shape: Shape) -> np.ndarray:
     return np.stack([g.ravel() for g in grids], axis=-1)
 
 
-def fold_supercell(grid: np.ndarray, supercell: tuple[int, int, int]) -> np.ndarray:
+def fold_supercell(grid: np.ndarray, supercell: int | tuple[int, int, int]) -> np.ndarray:
     """Fold a supercell density onto a single cell by summing the blocks.
 
     Generalises the reference ``fold_pdf`` (which only handled a 2x2x2 cubic
@@ -127,8 +120,8 @@ def fold_supercell(grid: np.ndarray, supercell: tuple[int, int, int]) -> np.ndar
     grid : np.ndarray
         3D density on a grid whose dimensions are integer multiples of
         ``supercell``.
-    supercell : tuple[int, int, int]
-        Number of cells along each axis.
+    supercell : int | tuple[int, int, int]
+        Number of cells along each axis (a scalar means the same for all).
 
     Returns
     -------
@@ -204,7 +197,7 @@ def symmetrize_density(
     coords = _fractional_grid(shape)
     n = np.array(shape, dtype=float)
 
-    rotations, translations = _op_arrays(sg)
+    rotations, translations = _op_arrays(sg.int_number)
     acc = np.zeros(grid.size, dtype=np.float64)
     for rot, trans in zip(rotations, translations):
         transformed = (coords @ rot.T + trans) % 1.0
@@ -244,7 +237,7 @@ def wyckoff_orbit(
         Array of shape ``(multiplicity, 3)`` with the unique orbit positions in
         ``[0, 1)``.
     """
-    rotations, translations = _op_arrays(_as_spacegroup(spacegroup))
+    rotations, translations = _op_arrays(_as_spacegroup(spacegroup).int_number)
     return _orbit(rotations, translations, position, tol=tol)
 
 
@@ -267,26 +260,6 @@ def _orbit(
     keyed = np.mod(np.round(images, decimals), 1.0)
     _, keep = np.unique(keyed, axis=0, return_index=True)
     return images[np.sort(keep)]
-
-
-def _reduced_row_echelon(matrix: np.ndarray, *, tol: float = 1e-8) -> np.ndarray:
-    """Reduced row echelon form of ``matrix`` with the zero rows dropped."""
-    rref = np.array(matrix, dtype=float)
-    row = 0
-    for col in range(rref.shape[1]):
-        if row == len(rref):
-            break
-        pivot = row + int(np.argmax(np.abs(rref[row:, col])))
-        if abs(rref[pivot, col]) < tol:
-            continue
-        rref[[row, pivot]] = rref[[pivot, row]]
-        rref[row] /= rref[row, col]
-        for other in range(len(rref)):
-            if other != row:
-                rref[other] -= rref[other, col] * rref[row]
-        row += 1
-    rref[np.abs(rref) < tol] = 0.0
-    return rref[:row]
 
 
 def site_free_directions(
@@ -321,7 +294,9 @@ def site_free_directions(
         free coordinate, in row echelon form (e.g. ``[[1, 1, 1]]`` for
         ``(x, x, x)``) and scaled so the largest component of each is 1.
     """
-    rotations, translations = _op_arrays(_as_spacegroup(spacegroup))
+    import sympy
+
+    rotations, translations = _op_arrays(_as_spacegroup(spacegroup).int_number)
     pos = np.asarray(position, dtype=float) % 1.0
 
     delta = np.einsum('kij,j->ki', rotations, pos) + translations - pos
@@ -329,11 +304,12 @@ def site_free_directions(
     stabilizer = rotations[np.all(np.abs(delta) < tol, axis=1)]
 
     constraints = (stabilizer - np.eye(3)).reshape(-1, 3)
-    _, singular, vt = np.linalg.svd(constraints)
-    rank = int(np.sum(singular > 1e-8))
-    directions = _reduced_row_echelon(vt[rank:])
-    if len(directions):
-        directions /= np.abs(directions).max(axis=1, keepdims=True)
+    basis = null_space(constraints).T
+    if len(basis) == 0:
+        return np.zeros((0, 3))
+    rref, _ = sympy.Matrix(basis).rref(iszerofunc=lambda x: abs(x) < 1e-8)
+    directions = np.array(rref, dtype=float)
+    directions /= np.abs(directions).max(axis=1, keepdims=True)
     return np.round(directions, 12) + 0.0
 
 
@@ -378,59 +354,11 @@ def periodic_gaussian_density(
     return density
 
 
-def periodic_anisotropic_gaussian_density(
-    grid_size: int | tuple[int, int, int],
-    positions: np.ndarray,
-    cov_matrices: np.ndarray,
-) -> np.ndarray:
-    """Periodic anisotropic Gaussian density summed over a set of positions.
-
-    Experimental / lightly tested port of the reference
-    ``_single_anisotropic_gaussian_grid`` summed over an orbit. Intended as a
-    building block for a future anisotropic-ADP fit; :func:`fit_density_model`
-    does not use it yet.
-
-    Parameters
-    ----------
-    grid_size : int | tuple[int, int, int]
-        Grid shape.
-    positions : np.ndarray
-        Fractional coordinates, shape ``(M, 3)``.
-    cov_matrices : np.ndarray
-        Either one ``(3, 3)`` fractional covariance (ADP) tensor applied to
-        every position, or a per-position stack of shape ``(M, 3, 3)``.
-
-    Returns
-    -------
-    np.ndarray
-        Unnormalised density with shape ``grid_size``.
-    """
-    shape = _as_shape(grid_size)
-    grid_x, grid_y, grid_z = np.meshgrid(*_voxel_axes(shape), indexing='ij')
-    flat = np.stack([grid_x, grid_y, grid_z], axis=-1).reshape(-1, 3)
-
-    pts = np.atleast_2d(np.asarray(positions, dtype=float))
-    cov = np.asarray(cov_matrices, dtype=float)
-    if cov.ndim == 2:
-        cov = np.broadcast_to(cov, (len(pts), 3, 3))
-
-    density = np.zeros(len(flat), dtype=float)
-    for pos, cmat in zip(pts, cov):
-        delta = (flat - pos + 0.5) % 1.0 - 0.5
-        cinv = np.linalg.inv(cmat)
-        mahalanobis = np.einsum('ni,ij,nj->n', delta, cinv, delta)
-        density += np.exp(-0.5 * mahalanobis)
-    return density.reshape(shape)
-
-
 def crystallographic_density_metrics(
     observed: np.ndarray,
     calculated: np.ndarray,
     *,
-    mask: np.ndarray | None = None,
-    sigma: np.ndarray | None = None,
     n_params: int = 0,
-    eps: float = _EPS,
 ) -> dict[str, float]:
     """Crystallography-flavoured goodness-of-fit metrics for two 3D densities.
 
@@ -443,16 +371,9 @@ def crystallographic_density_metrics(
     ----------
     observed, calculated : np.ndarray
         Same-shaped 3D arrays.
-    mask : np.ndarray | None, optional
-        Boolean array selecting voxels to include (e.g. to exclude background).
-    sigma : np.ndarray | None, optional
-        Pointwise standard deviations for a weighted residual (weights
-        ``w = 1 / sigma**2``). Must match the full grid shape.
     n_params : int, optional
         Number of fitted parameters, used for the goodness-of-fit ``gof`` and
         the information criteria ``aic`` / ``bic``.
-    eps : float, optional
-        Small stabiliser to avoid division by zero.
 
     Returns
     -------
@@ -464,7 +385,7 @@ def crystallographic_density_metrics(
     -----
     ``aic`` and ``bic`` are the Gaussian-likelihood information criteria
     ``n ln(chi2 / n) + 2 k`` and ``n ln(chi2 / n) + k ln n``, with ``n`` the
-    number of voxels, ``k = n_params`` and ``chi2`` the (weighted) sum of
+    number of voxels, ``k = n_params`` and ``chi2`` the sum of
     squared residuals. Only differences between models fit to the *same*
     observed grid are meaningful. Neighbouring voxels are correlated, so ``n``
     overstates the independent data and the penalty is a lower bound.
@@ -474,36 +395,14 @@ def crystallographic_density_metrics(
     if obs.shape != calc.shape:
         raise ValueError('observed and calculated must have the same shape')
 
-    obs = obs / (np.sum(obs) + eps)
-    calc = calc / (np.sum(calc) + eps)
+    obs = obs.ravel() / (np.sum(obs) + _EPS)
+    calc = calc.ravel() / (np.sum(calc) + _EPS)
+    residual = obs - calc
 
-    if mask is None:
-        sel = np.ones(obs.shape, dtype=bool)
-    else:
-        sel = np.asarray(mask, dtype=bool)
-        if sel.shape != obs.shape:
-            raise ValueError('mask must have the same shape as the densities')
-
-    if sigma is None:
-        weights_full = np.ones(obs.shape, dtype=float)
-    else:
-        sig = np.asarray(sigma, dtype=float)
-        if sig.shape != obs.shape:
-            raise ValueError('sigma must have the same shape as the densities')
-        weights_full = 1.0 / (sig**2 + eps)
-
-    obs_m = obs[sel]
-    calc_m = calc[sel]
-    weights = weights_full[sel]
-    if obs_m.size == 0:
-        raise ValueError('mask selected no voxels')
-
-    residual = obs_m - calc_m
-
-    r1_like = float(np.sum(np.abs(residual)) / (np.sum(np.abs(obs_m)) + eps))
-    wr_like = float(np.sqrt(np.sum(weights * residual**2) / (np.sum(weights * obs_m**2) + eps)))
-    chi2 = float(np.sum(weights * residual**2))
-    n_obs = obs_m.size
+    r1_like = float(np.sum(np.abs(residual)) / (np.sum(np.abs(obs)) + _EPS))
+    chi2 = float(np.sum(residual**2))
+    wr_like = float(np.sqrt(chi2 / (np.sum(obs**2) + _EPS)))
+    n_obs = obs.size
     dof = max(n_obs - int(n_params), 1)
     gof = float(np.sqrt(chi2 / dof))
     log_likelihood_term = n_obs * np.log(max(chi2 / n_obs, np.finfo(float).tiny))
@@ -513,10 +412,10 @@ def crystallographic_density_metrics(
     mse = float(np.mean(residual**2))
     mae = float(np.mean(np.abs(residual)))
     rmse = float(np.sqrt(mse))
-    pearson_r = float(np.corrcoef(obs_m, calc_m)[0, 1]) if obs_m.size > 1 else float('nan')
+    pearson_r = float(np.corrcoef(obs, calc)[0, 1]) if n_obs > 1 else float('nan')
 
-    p = obs_m.ravel() + eps
-    q = calc_m.ravel() + eps
+    p = obs + _EPS
+    q = calc + _EPS
     p = p / p.sum()
     q = q / q.sum()
     m = 0.5 * (p + q)
@@ -533,7 +432,7 @@ def crystallographic_density_metrics(
         'rmse': rmse,
         'pearson_r': pearson_r,
         'jensen_shannon': jensen_shannon,
-        'n_voxels': float(obs_m.size),
+        'n_voxels': float(n_obs),
     }
 
 
@@ -547,8 +446,6 @@ class SiteFit:
         Chemical species label.
     position : np.ndarray
         Refined representative fractional coordinate.
-    initial_position : np.ndarray
-        Representative fractional coordinate the fit started from.
     multiplicity : int
         Number of symmetry-equivalent sites in the orbit.
     sigma : float
@@ -559,7 +456,7 @@ class SiteFit:
         Isotropic displacement parameter ``(sigma * a)**2`` in Angstrom^2, or
         ``None`` when no cell edge was supplied. Assumes a (near-)cubic cell.
     displacement : float | None
-        ``|position - initial_position|`` in Angstrom -- the length scale at
+        Distance from the starting position in Angstrom -- the length scale at
         which the site is displaced from its higher-symmetry ideal position
         (issue #421 point 5). ``None`` for a fixed-position site or when no
         cell edge was supplied.
@@ -567,7 +464,6 @@ class SiteFit:
 
     specie: str
     position: np.ndarray
-    initial_position: np.ndarray
     multiplicity: int
     sigma: float
     occupancy: float
@@ -593,8 +489,6 @@ class DensityFitResult:
         The best-fit model density (normalised to sum to 1).
     metrics : dict[str, float]
         Output of :func:`crystallographic_density_metrics` for the fit.
-    loss : float
-        Final optimiser objective (mean squared error of the normalised grids).
     success : bool
         Optimiser success flag.
     params : np.ndarray
@@ -611,7 +505,6 @@ class DensityFitResult:
     observed_density: np.ndarray
     model_density: np.ndarray
     metrics: dict[str, float]
-    loss: float
     success: bool
     params: np.ndarray = field(repr=False)
     ranking_metrics: dict[str, float] | None = None
@@ -621,31 +514,9 @@ def _stick_breaking(raw: list[float]) -> np.ndarray:
     """Map ``n - 1`` numbers in ``(0, 1)`` to ``n`` non-negative fractions that
     sum to 1 (stick-breaking). For ``n == 2`` this reduces to
     ``[r, 1 - r]``, matching the reference's single ``alpha`` parameter."""
-    fractions: list[float] = []
-    remaining = 1.0
-    for value in raw:
-        take = remaining * float(value)
-        fractions.append(take)
-        remaining -= take
-    fractions.append(remaining)
-    return np.asarray(fractions, dtype=float)
-
-
-def _prepare_observed(
-    observed_density: np.ndarray,
-    sg: SpaceGroup | None,
-    *,
-    symmetrize: bool,
-    supercell: tuple[int, int, int] | None,
-) -> np.ndarray:
-    """Fold + symmetrise the observed density as requested."""
-    obs = np.asarray(observed_density, dtype=float)
-    if supercell is not None and _as_shape(supercell) != (1, 1, 1):
-        obs = fold_supercell(obs, supercell)
-    if symmetrize:
-        assert sg is not None
-        obs = symmetrize_density(obs, sg)
-    return obs
+    fracs = np.asarray(raw, dtype=float)
+    remaining = np.concatenate([[1.0], np.cumprod(1.0 - fracs)])
+    return np.append(remaining[:-1] * fracs, remaining[-1])
 
 
 def _free_directions(sg: SpaceGroup, position: np.ndarray, free_position: Any) -> np.ndarray:
@@ -664,7 +535,7 @@ def _free_directions(sg: SpaceGroup, position: np.ndarray, free_position: Any) -
         return directions
 
     directions = np.atleast_2d(np.asarray(free_position, dtype=float))
-    if directions.ndim != 2 or directions.shape[1] != 3 or len(directions) > 3:
+    if directions.ndim != 2 or directions.shape[1] != 3:
         raise ValueError('free_position directions must have shape (3,) or (k, 3), k <= 3')
     if np.linalg.matrix_rank(directions) != len(directions):
         raise ValueError('free_position directions must be linearly independent')
@@ -686,7 +557,9 @@ class _MixtureModel:
         specs: list[dict[str, Any]],
         observed: np.ndarray,
     ):
-        self.rotations, self.translations = _op_arrays(sg)
+        # Raw op arrays rather than the SpaceGroup: scipy pickles the model per
+        # task with workers != 1, and unpickling a SpaceGroup rebuilds its ops.
+        self.rotations, self.translations = _op_arrays(sg.int_number)
         self.specs = specs
         self.shape: Shape = (observed.shape[0], observed.shape[1], observed.shape[2])
         self.observed = observed / (np.sum(observed) + _EPS)
@@ -740,10 +613,7 @@ class _MixtureModel:
             if norm <= 0:
                 return None
             total += alpha * (single / norm)
-        grand = total.sum()
-        if grand <= 0:
-            return None
-        return total / grand
+        return total
 
     def __call__(self, params: np.ndarray) -> float:
         grid = self.density(params)
@@ -787,9 +657,8 @@ def fit_density_model(
         Candidate space group.
     sites : list[dict]
         One spec per crystallographic site, e.g.
-        ``{'specie': 'Li', 'position': (0.25, 0.25, 0.25), 'kind': 'isotropic',
-        'free_position': False}``. Optional per-site keys: ``sigma_bounds``,
-        ``max_displacement``. Only ``kind='isotropic'`` is currently supported.
+        ``{'specie': 'Li', 'position': (0.25, 0.25, 0.25), 'free_position': False}``.
+        Optional per-site keys: ``sigma_bounds``, ``max_displacement``.
 
         ``free_position`` selects which way the representative may move:
         ``True`` frees the coordinates allowed by its site symmetry (see
@@ -822,18 +691,12 @@ def fit_density_model(
     DensityFitResult
     """
     sg = _as_spacegroup(spacegroup)
-    obs = _prepare_observed(observed_density, sg, symmetrize=symmetrize, supercell=supercell)
-    if obs.ndim != 3:
-        raise ValueError('observed_density must be a 3D array')
+    obs = fold_supercell(observed_density, supercell or 1)
+    if symmetrize:
+        obs = symmetrize_density(obs, sg)
 
     specs: list[dict[str, Any]] = []
     for raw in sites:
-        kind = str(raw.get('kind', 'isotropic'))
-        if kind != 'isotropic':
-            raise NotImplementedError(
-                "only kind='isotropic' is supported; anisotropic-ADP fitting is a "
-                'planned follow-up'
-            )
         position = np.asarray(raw['position'], dtype=float) % 1.0
         specs.append(
             {
@@ -879,7 +742,6 @@ def fit_density_model(
             SiteFit(
                 specie=spec['specie'],
                 position=np.asarray(pos, dtype=float) % 1.0,
-                initial_position=np.asarray(spec['position'], dtype=float),
                 multiplicity=len(model.site_orbit(idx, pos)),
                 sigma=float(sigma),
                 occupancy=float(alpha),
@@ -895,7 +757,6 @@ def fit_density_model(
         observed_density=obs,
         model_density=model_density,
         metrics=metrics,
-        loss=float(result.fun),
         success=bool(result.success),
         params=np.asarray(result.x, dtype=float),
     )
@@ -910,9 +771,7 @@ def rank_spacegroups(
     sites_per_candidate: list[dict[str, Any]] | list[list[dict[str, Any]]],
     *,
     criterion: str = 'bic',
-    symmetrize: bool = True,
     supercell: tuple[int, int, int] | None = None,
-    cell_length: float | None = None,
     maxiter: int = 25,
     popsize: int = 10,
     seed: int | None = 0,
@@ -947,12 +806,13 @@ def rank_spacegroups(
         (default), ``'aic'`` (weaker penalty), ``'gof'`` (reduced chi,
         negligible penalty on large grids), or the unpenalised ``'r1_like'`` /
         ``'wr_like'``.
-    symmetrize, supercell, cell_length
-        Forwarded to :func:`fit_density_model`.
+    supercell : tuple[int, int, int] | None, optional
+        Forwarded to :func:`fit_density_model`, and folds the scoring grid.
     maxiter, popsize, seed
         Cheap-fit optimiser controls forwarded to :func:`fit_density_model`.
     **fit_kwargs
-        Further keyword arguments forwarded to :func:`fit_density_model`.
+        Further keyword arguments forwarded to :func:`fit_density_model`
+        (e.g. ``symmetrize``, ``cell_length``).
 
     Returns
     -------
@@ -973,7 +833,7 @@ def rank_spacegroups(
         if len(per_candidate) != len(cands):
             raise ValueError('sites_per_candidate must match the number of candidates')
 
-    common = _prepare_observed(observed_density, None, symmetrize=False, supercell=supercell)
+    common = fold_supercell(observed_density, supercell or 1)
 
     results: list[DensityFitResult] = []
     for spacegroup, site_specs in zip(cands, per_candidate):
@@ -981,9 +841,7 @@ def rank_spacegroups(
             observed_density,
             spacegroup,
             site_specs,
-            symmetrize=symmetrize,
             supercell=supercell,
-            cell_length=cell_length,
             maxiter=maxiter,
             popsize=popsize,
             seed=seed,
@@ -1002,20 +860,16 @@ def trajectory_to_symmetrized_density(
     trajectory: Trajectory,
     spacegroup: str | int | SpaceGroup,
     *,
-    floating_specie: str | None = None,
-    species: str | list[str] | None = None,
+    floating_specie: str | list[str],
     resolution: float = 0.2,
     supercell: tuple[int, int, int] = (1, 1, 1),
-    equilibration_cutoff: int = 0,
-    drift_correction: bool = False,
-    fixed_species: str | list[str] | None = None,
     origin_shift: np.ndarray | None = None,
 ) -> np.ndarray:
     """Build a fitting-ready symmetrised species density from a trajectory.
 
-    Convenience wrapper: filter to the species of interest, drop
-    pre-equilibration frames, bin to a grid, fold the supercell and symmetrise
-    with ``spacegroup``.
+    Convenience wrapper: filter to the species of interest, bin to a grid, fold
+    the supercell and symmetrise with ``spacegroup``. Drop equilibration frames
+    (``trajectory[n:]``) and apply ``Trajectory.apply_drift_correction`` first.
 
     Notes
     -----
@@ -1025,11 +879,10 @@ def trajectory_to_symmetrized_density(
     roughly ``sqrt(sigma_md**2 + h**2 / 12)`` for a voxel of fractional size
     ``h``.
 
-    gemdat already provides ``Trajectory.apply_drift_correction`` -- prefer it
-    (via ``drift_correction=True``) over re-deriving an origin shift from an
-    isotropic S-type fit. The explicit ``origin_shift`` argument is kept only to
-    mirror the reference workflow, where the sulfur fit yields a small
-    correction vector that is subtracted from the Li and O trajectory
+    Prefer ``Trajectory.apply_drift_correction`` over re-deriving an origin
+    shift from an isotropic S-type fit. The explicit ``origin_shift`` argument
+    is kept only to mirror the reference workflow, where the sulfur fit yields a
+    small correction vector that is subtracted from the Li and O trajectory
     coordinates before their densities are built.
 
     Parameters
@@ -1038,22 +891,13 @@ def trajectory_to_symmetrized_density(
         Input trajectory.
     spacegroup : str | int | SpaceGroup
         Space group to symmetrise with.
-    floating_specie : str | None, optional
-        Diffusing species to build the density for (e.g. ``'Li'``). Alias:
-        ``species`` (which also accepts a list).
-    species : str | list[str] | None, optional
-        Species selection, forwarded to ``Trajectory.filter``.
+    floating_specie : str | list[str]
+        Species to build the density for (e.g. ``'Li'``), forwarded to
+        ``Trajectory.filter``.
     resolution : float, optional
         Grid resolution in Angstrom for ``Trajectory.to_volume``.
     supercell : tuple[int, int, int], optional
         Supercell factor to fold out before symmetrising.
-    equilibration_cutoff : int, optional
-        Discard frames before this index.
-    drift_correction : bool, optional
-        Apply ``Trajectory.apply_drift_correction(fixed_species=fixed_species)``
-        first.
-    fixed_species : str | list[str] | None, optional
-        Framework species for the drift correction.
     origin_shift : np.ndarray | None, optional
         Fractional vector subtracted from the (filtered) coordinates before
         binning -- mirrors the reference S-fit correction vector.
@@ -1064,26 +908,10 @@ def trajectory_to_symmetrized_density(
         Symmetrised observed density, ready for :func:`fit_density_model` with
         ``symmetrize=False``.
     """
-    selection = floating_specie if floating_specie is not None else species
-    if selection is None:
-        raise ValueError('provide either floating_specie or species')
-
-    traj = trajectory
-    if drift_correction:
-        traj = traj.apply_drift_correction(fixed_species=fixed_species)
-
-    sub = traj.filter(selection)
-    if equilibration_cutoff:
-        sub = sub[equilibration_cutoff:]
-
+    sub = trajectory.filter(floating_specie)
     if origin_shift is not None:
         shift = np.asarray(origin_shift, dtype=float)
         sub.coords = np.mod(np.array(sub.positions, dtype=float) - shift, 1.0)
 
-    grid = np.asarray(sub.to_volume(resolution=resolution).data, dtype=float)
-
-    sc = _as_shape(supercell)
-    if sc != (1, 1, 1):
-        grid = fold_supercell(grid, sc)
-
-    return symmetrize_density(grid, spacegroup)
+    grid = sub.to_volume(resolution=resolution).data
+    return symmetrize_density(fold_supercell(grid, supercell), spacegroup)
