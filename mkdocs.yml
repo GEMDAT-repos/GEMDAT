@@ -25,16 +25,20 @@ nav:
     - Percolation: notebooks/percolation.ipynb
     - Multiple paths: notebooks/multiple_paths.ipynb
     - Orientation tracking: notebooks/orientations.ipynb
-    - GOAC integration: notebooks/goac_integration_demo.ipynb
-    - Crystallizer mobile sites: notebooks/crystallizer.ipynb
-    - Crystallizer immobile sites: notebooks/crystallizer_framework.ipynb
-    - Crystallizer symmetry rankings (argyrodite): notebooks/crystallizer_argyrodite.ipynb
-    - GOAC replication randomized_distribution.py: notebooks/goac_reproduce.ipynb
+    - GOAC:
+      - Integration: notebooks/goac_integration_demo.ipynb
+      - Replication randomized_distribution.py: notebooks/goac_reproduce.ipynb
+    - Crystallizer:
+      - Mobile sites: notebooks/crystallizer.ipynb
+      - Symmetry rankings (argyrodite): notebooks/crystallizer_argyrodite.ipynb
+      - Density crystallography: notebooks/density_crystallography.ipynb
+      - Crystallizer + density fit in a loop: notebooks/crystallizer_density_loop.ipynb
 
   - Python API:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md
     - gemdat.crystallizer: api/gemdat_crystallizer.md
+    - gemdat.density_crystallography: api/gemdat_density_crystallography.md
     - gemdat.io: api/gemdat_io.md
     - gemdat.path: api/gemdat_path.md
     - gemdat.plots: api/gemdat_plots.md
