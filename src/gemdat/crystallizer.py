@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from .trajectory import Trajectory
+    from .volume import Volume
 
 
 @dataclass
@@ -359,6 +360,7 @@ class Crystallizer:
         trajectory: Trajectory,
         floating_specie: str,
         resolution: float = 0.2,
+        density: Volume | None = None,
     ):
         """Set up the crystallizer.
 
@@ -372,10 +374,18 @@ class Crystallizer:
         resolution : float
             Minimum resolution for the density voxels in Ångstrom, passed to
             [gemdat.trajectory.Trajectory.to_volume][].
+        density : Volume | None
+            Mobile-species density to take the sites from. Defaults to the
+            density of `floating_specie` in `trajectory`. Pass one to
+            crystallize a density that is not simply that histogram, e.g. the
+            residual left by
+            [gemdat.density_crystallography.crystallize_density_loop][].
+            The framework still comes from `trajectory`.
         """
         self.trajectory = trajectory
         self.floating_specie = floating_specie
         self.resolution = resolution
+        self.density = density
 
     @classmethod
     def from_trajectory(
@@ -438,7 +448,7 @@ class Crystallizer:
             ``with_occupancies`` is True and 1.0 otherwise.
         """
         mobile = self.trajectory.filter(self.floating_specie)
-        volume = mobile.to_volume(resolution=self.resolution)
+        volume = self.density or mobile.to_volume(resolution=self.resolution)
         return volume.to_structure(
             specie=self.floating_specie,
             background_level=background_level,

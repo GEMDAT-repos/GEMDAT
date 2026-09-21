@@ -30,6 +30,8 @@ nav:
     - Crystallizer immobile sites: notebooks/crystallizer_framework.ipynb
     - Crystallizer symmetry rankings (argyrodite): notebooks/crystallizer_argyrodite.ipynb
     - Density crystallography: notebooks/density_crystallography.ipynb
+    - Crystallizer + density crystallography: notebooks/crystallizer_density.ipynb
+    - Crystallizer + density fit in a loop: notebooks/crystallizer_density_loop.ipynb
     - GOAC replication randomized_distribution.py: notebooks/goac_reproduce.ipynb
 
   - Python API:

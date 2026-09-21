@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from pymatgen.core import Species
+from pymatgen.core import Lattice, Species, Structure
 
+from gemdat.crystallizer import CrystallizerResult
 from gemdat.density_crystallography import (
+    crystallize_density_loop,
     crystallographic_density_metrics,
     fit_density_model,
     fold_supercell,
+    from_crystallizer,
     periodic_gaussian_density,
     rank_spacegroups,
     site_free_directions,
@@ -344,3 +347,119 @@ def test_trajectory_to_symmetrized_density_roundtrips():
     # plus the histogram bin width, not doubled by a half-voxel offset
     h = 1.0 / dens.shape[0]
     assert result.sites[0].sigma == pytest.approx(np.sqrt(0.035**2 + h**2 / 12), rel=0.1)
+
+
+def _antifluorite_supercell(shift=(0.0, 0.0, 0.0), noise=0.0, drop=None):
+    """2x2x2 supercell of Fm-3m S 4a + Li 8c, as a crystallizer result."""
+    structure = Structure.from_spacegroup(
+        225, Lattice.cubic(7.0), ['S', 'Li'], [[0, 0, 0], [0.25, 0.25, 0.25]]
+    )
+    structure.make_supercell(2)
+    if drop is not None:
+        structure.remove_sites([drop])
+    rng = np.random.default_rng(0)
+    cart = structure.cart_coords + rng.normal(scale=noise, size=(len(structure), 3))
+    structure = Structure(structure.lattice, structure.species, cart, coords_are_cartesian=True)
+    structure.translate_sites(range(len(structure)), shift)
+    return CrystallizerResult(structure, 'Fm-3m', 225, symprec=0.3)
+
+
+def test_from_crystallizer_folds_noisy_shifted_supercell():
+    shift = np.array([0.013, 0.021, -0.007])  # in supercell fractions
+    ops, sites = from_crystallizer(_antifluorite_supercell(shift, noise=0.05), supercell=2)
+
+    assert len(ops) == 192
+    assert [site['specie'] for site in sites] == ['S', 'Li']
+    # positions sit exactly on their site symmetry, so the orbits close
+    assert [len(wyckoff_orbit(ops, site['position'])) for site in sites] == [4, 8]
+    # operations fitted to MD data are exact only to ~1e-5, and orbits of
+    # positions typed by hand at that precision must still close
+    assert len(wyckoff_orbit(ops, sites[0]['position'] + 0.5 + 1e-6)) == 4
+    # the folded origin follows the structure, without a standard setting
+    offset = sites[0]['position'] - 2 * shift
+    assert np.allclose(offset - np.round(offset), 0, atol=0.01)
+
+
+def test_from_crystallizer_ops_match_standard_setting(density):
+    ops, sites = from_crystallizer(_antifluorite_supercell(), supercell=2)
+
+    assert np.allclose(symmetrize_density(density, ops), symmetrize_density(density, 225))
+    result = fit_density_model(
+        density, ops, [s for s in sites if s['specie'] == 'Li'], maxiter=5, popsize=5, seed=0
+    )
+    assert result.spacegroup_symbol == 'Fm-3m'
+    assert result.sites[0].multiplicity == 8
+
+
+def test_from_crystallizer_without_supercell_repeat_raises():
+    result = _antifluorite_supercell(drop=0)  # one S vacancy breaks the repeat
+    result.spacegroup_symbol, result.spacegroup_number = 'Pm-3m', 221
+
+    with pytest.raises(ValueError, match='cannot be folded'):
+        from_crystallizer(result, supercell=2)
+    ops, _ = from_crystallizer(result)
+    assert len(ops) == 48
+
+
+def test_crystallize_density_loop_finds_the_site_hidden_under_the_peaks():
+    """A sharp 8c orbit plus a broad, weak 4b orbit: the peak finder sees only
+    8c, so the loop has to recover 4b from what the first fit leaves."""
+    rng = np.random.default_rng(0)
+    tetrahedral = wyckoff_orbit(225, POS_A)
+    octahedral = wyckoff_orbit(225, POS_B)
+    framework = wyckoff_orbit(225, (0.0, 0.0, 0.0))
+    n_frames = 600
+    n_li = len(tetrahedral) + len(octahedral)
+
+    coords = np.empty((n_frames, n_li + len(framework), 3))
+    for frame in range(n_frames):
+        coords[frame, : len(tetrahedral)] = tetrahedral + rng.normal(
+            0, 0.035, tetrahedral.shape
+        )
+        coords[frame, len(tetrahedral) : n_li] = octahedral + rng.normal(
+            0, 0.07, octahedral.shape
+        )
+        coords[frame, n_li:] = framework + rng.normal(0, 0.008, framework.shape)
+    coords %= 1.0
+
+    traj = Trajectory(
+        species=[Species('Li')] * n_li + [Species('S')] * len(framework),
+        coords=coords,
+        lattice=np.eye(3) * 8.0,
+        time_step=1,
+        metadata={'temperature': 300},
+    )
+
+    rounds = crystallize_density_loop(
+        traj,
+        'Li',
+        framework_species=['S'],
+        resolution=0.3,
+        background_level=0.3,
+        max_rounds=3,
+        cell_length=8.0,
+        maxiter=30,
+        popsize=8,
+        seed=0,
+    )['Li']
+
+    assert len(rounds) >= 2
+    first, second = rounds[0], rounds[1]
+
+    # Round 0 sees the 8 tetrahedral peaks and nothing else.
+    assert first.fit.spacegroup_symbol == 'Fm-3m'
+    assert [site.multiplicity for site in first.fit.sites] == [8]
+    assert 0.3 < first.explained < 0.9  # the octahedral density is left over
+
+    # Round 1 recovers the octahedral orbit from that leftover, with the width
+    # it was planted at, and the density is then used up.
+    octahedral_fit = next(site for site in second.fit.sites if site.multiplicity == 4)
+    half_integer = octahedral_fit.position * 2
+    assert np.allclose(half_integer - np.round(half_integer), 0, atol=0.02)
+    assert octahedral_fit.sigma == pytest.approx(0.07, abs=0.02)
+    assert first.explained + second.explained > 0.95
+    assert second.fit.metrics['r1_like'] < first.fit.metrics['r1_like']
+
+    # Densities never go negative, and every round shrinks what is left.
+    assert all((round_.residual >= 0).all() for round_ in rounds)
+    assert second.residual.sum() < first.residual.sum()

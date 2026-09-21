@@ -40,20 +40,28 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+from pymatgen.core import Structure
+from pymatgen.core.operations import SymmOp
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer, SpacegroupOperations
 from pymatgen.symmetry.groups import SpaceGroup
 from scipy.linalg import null_space
-from scipy.ndimage import map_coordinates
+from scipy.ndimage import gaussian_filter, label, map_coordinates, maximum_filter
 from scipy.optimize import differential_evolution, minimize
 
 if TYPE_CHECKING:
+    from .crystallizer import CrystallizerResult
     from .trajectory import Trajectory
+    from .volume import Volume
 
 __all__ = [
     'DensityFitResult',
+    'DensityRound',
     'SiteFit',
+    'crystallize_density_loop',
     'crystallographic_density_metrics',
     'fit_density_model',
     'fold_supercell',
+    'from_crystallizer',
     'periodic_gaussian_density',
     'rank_spacegroups',
     'site_free_directions',
@@ -67,14 +75,32 @@ _EPS = 1e-12
 Shape = tuple[int, int, int]
 
 
-def _as_spacegroup(spacegroup: str | int | SpaceGroup) -> SpaceGroup:
-    """Coerce a space-group symbol, international number or object to a
-    :class:`pymatgen.symmetry.groups.SpaceGroup`."""
+SpaceGroupLike = str | int | SpaceGroup | SpacegroupOperations
+
+
+def _ops(spacegroup: SpaceGroupLike) -> tuple[str, int, np.ndarray, np.ndarray]:
+    """Return ``(symbol, number, rotations, translations)`` of a space group.
+
+    A symbol, number or :class:`pymatgen.symmetry.groups.SpaceGroup` gives the
+    operations of the standard setting. A
+    :class:`pymatgen.symmetry.analyzer.SpacegroupOperations` (e.g. from
+    :func:`from_crystallizer`) is used as-is: its fractional operations are
+    taken to be in the basis of the grid.
+    """
+    if isinstance(spacegroup, SpacegroupOperations):
+        return (
+            spacegroup.int_symbol,
+            spacegroup.int_number,
+            np.array([op.rotation_matrix for op in spacegroup], dtype=float),
+            np.array([op.translation_vector for op in spacegroup], dtype=float),
+        )
     if isinstance(spacegroup, SpaceGroup):
-        return spacegroup
-    if isinstance(spacegroup, (int, np.integer)):
-        return SpaceGroup.from_int_number(int(spacegroup))
-    return SpaceGroup(str(spacegroup))
+        sg = spacegroup
+    elif isinstance(spacegroup, (int, np.integer)):
+        sg = SpaceGroup.from_int_number(int(spacegroup))
+    else:
+        sg = SpaceGroup(str(spacegroup))
+    return (sg.symbol, sg.int_number, *_op_arrays(sg.int_number))
 
 
 @lru_cache
@@ -158,7 +184,7 @@ def fold_supercell(grid: np.ndarray, supercell: int | tuple[int, int, int]) -> n
 
 def symmetrize_density(
     grid: np.ndarray,
-    spacegroup: str | int | SpaceGroup,
+    spacegroup: SpaceGroupLike,
     *,
     order: int = 1,
 ) -> np.ndarray:
@@ -177,7 +203,7 @@ def symmetrize_density(
     grid : np.ndarray
         3D density on a (not necessarily cubic) grid, indexed so that voxel
         ``i`` is centred on fractional coordinate ``(i + 1/2) / n``.
-    spacegroup : str | int | SpaceGroup
+    spacegroup : str | int | SpaceGroup | SpacegroupOperations
         International symbol (``'Fm-3m'``), international number (``225``) or a
         :class:`pymatgen.symmetry.groups.SpaceGroup`.
     order : int, optional
@@ -192,12 +218,11 @@ def symmetrize_density(
     if grid.ndim != 3:
         raise ValueError('grid must be a 3D array')
 
-    sg = _as_spacegroup(spacegroup)
     shape: Shape = (grid.shape[0], grid.shape[1], grid.shape[2])
     coords = _fractional_grid(shape)
     n = np.array(shape, dtype=float)
 
-    rotations, translations = _op_arrays(sg.int_number)
+    *_, rotations, translations = _ops(spacegroup)
     acc = np.zeros(grid.size, dtype=np.float64)
     for rot, trans in zip(rotations, translations):
         transformed = (coords @ rot.T + trans) % 1.0
@@ -208,10 +233,10 @@ def symmetrize_density(
 
 
 def wyckoff_orbit(
-    spacegroup: str | int | SpaceGroup,
+    spacegroup: SpaceGroupLike,
     position: np.ndarray,
     *,
-    tol: float = 1e-8,
+    tol: float = 1e-4,
 ) -> np.ndarray:
     """Full symmetry orbit of a representative fractional coordinate.
 
@@ -223,13 +248,13 @@ def wyckoff_orbit(
 
     Parameters
     ----------
-    spacegroup : str | int | SpaceGroup
+    spacegroup : str | int | SpaceGroup | SpacegroupOperations
         Space group (symbol, number or object).
     position : np.ndarray
         Representative fractional coordinate, shape ``(3,)``.
     tol : float, optional
-        Distance below which two images (under the minimum-image convention)
-        are considered identical.
+        Fractional distance, per axis and under the minimum-image convention,
+        below which two images count as the same point.
 
     Returns
     -------
@@ -237,7 +262,7 @@ def wyckoff_orbit(
         Array of shape ``(multiplicity, 3)`` with the unique orbit positions in
         ``[0, 1)``.
     """
-    rotations, translations = _op_arrays(_as_spacegroup(spacegroup).int_number)
+    *_, rotations, translations = _ops(spacegroup)
     return _orbit(rotations, translations, position, tol=tol)
 
 
@@ -246,24 +271,24 @@ def _orbit(
     translations: np.ndarray,
     position: np.ndarray,
     *,
-    tol: float = 1e-8,
+    tol: float = 1e-4,
 ) -> np.ndarray:
     """:func:`wyckoff_orbit` on raw ``(rotations, translations)`` stacks."""
     pos = np.asarray(position, dtype=float) % 1.0
 
     images = np.mod(np.einsum('kij,j->ki', rotations, pos) + translations, 1.0)
 
-    # Deduplicate under periodic boundaries. Distinct orbit points are always
-    # well separated, so rounding to the tolerance's decimal place (after
-    # wrapping ~1.0 back to 0.0) is a safe, vectorised key.
-    decimals = max(1, int(round(-np.log10(tol))))
-    keyed = np.mod(np.round(images, decimals), 1.0)
-    _, keep = np.unique(keyed, axis=0, return_index=True)
-    return images[np.sort(keep)]
+    # Deduplicate under periodic boundaries: drop an image when an earlier one
+    # lies within tol. A distance rather than rounded keys, since operations
+    # fitted to MD data (from_crystallizer) are exact only to ~1e-5.
+    delta = images[:, None, :] - images[None, :, :]
+    delta -= np.round(delta)
+    same = np.all(np.abs(delta) < tol, axis=-1)
+    return images[~np.tril(same, -1).any(axis=1)]
 
 
 def site_free_directions(
-    spacegroup: str | int | SpaceGroup,
+    spacegroup: SpaceGroupLike,
     position: np.ndarray,
     *,
     tol: float = 1e-4,
@@ -279,7 +304,7 @@ def site_free_directions(
 
     Parameters
     ----------
-    spacegroup : str | int | SpaceGroup
+    spacegroup : str | int | SpaceGroup | SpacegroupOperations
         Space group (symbol, number or object).
     position : np.ndarray
         Fractional coordinate, shape ``(3,)``.
@@ -296,7 +321,7 @@ def site_free_directions(
     """
     import sympy
 
-    rotations, translations = _op_arrays(_as_spacegroup(spacegroup).int_number)
+    *_, rotations, translations = _ops(spacegroup)
     pos = np.asarray(position, dtype=float) % 1.0
 
     delta = np.einsum('kij,j->ki', rotations, pos) + translations - pos
@@ -513,17 +538,19 @@ def _stick_breaking(raw: list[float]) -> np.ndarray:
     return np.append(remaining[:-1] * fracs, remaining[-1])
 
 
-def _free_directions(sg: SpaceGroup, position: np.ndarray, free_position: Any) -> np.ndarray:
+def _free_directions(
+    spacegroup: SpaceGroupLike, position: np.ndarray, free_position: Any
+) -> np.ndarray:
     """Resolve a site spec's ``free_position`` to a ``(k, 3)`` array of
     displacement directions."""
     if free_position is None or isinstance(free_position, (bool, np.bool_)):
         if not free_position:
             return np.zeros((0, 3))
-        directions = site_free_directions(sg, position)
+        directions = site_free_directions(spacegroup, position)
         if len(directions) == 0:
             raise ValueError(
                 f'position {np.round(position, 6).tolist()} has no free coordinates in '
-                f'{sg.symbol}; to model a split site, pass the displacement '
+                f'{_ops(spacegroup)[0]}; to model a split site, pass the displacement '
                 "direction(s) as free_position, e.g. 'free_position': (1, 1, 1)"
             )
         return directions
@@ -547,13 +574,13 @@ class _MixtureModel:
 
     def __init__(
         self,
-        sg: SpaceGroup,
+        spacegroup: SpaceGroupLike,
         specs: list[dict[str, Any]],
         observed: np.ndarray,
     ):
         # Raw op arrays rather than the SpaceGroup: scipy pickles the model per
         # task with workers != 1, and unpickling a SpaceGroup rebuilds its ops.
-        self.rotations, self.translations = _op_arrays(sg.int_number)
+        *_, self.rotations, self.translations = _ops(spacegroup)
         self.specs = specs
         self.shape: Shape = (observed.shape[0], observed.shape[1], observed.shape[2])
         self.observed = observed / (np.sum(observed) + _EPS)
@@ -621,7 +648,7 @@ class _MixtureModel:
 
 def fit_density_model(
     observed_density: np.ndarray,
-    spacegroup: str | int | SpaceGroup,
+    spacegroup: SpaceGroupLike,
     sites: list[dict[str, Any]],
     *,
     symmetrize: bool = True,
@@ -651,7 +678,7 @@ def fit_density_model(
     observed_density : np.ndarray
         3D density, e.g. ``Trajectory.filter('Li').to_volume(...).data`` or the
         output of :func:`trajectory_to_symmetrized_density`.
-    spacegroup : str | int | SpaceGroup
+    spacegroup : str | int | SpaceGroup | SpacegroupOperations
         Candidate space group.
     sites : list[dict]
         One spec per crystallographic site, e.g.
@@ -693,10 +720,10 @@ def fit_density_model(
     -------
     DensityFitResult
     """
-    sg = _as_spacegroup(spacegroup)
+    symbol, number, *_ = _ops(spacegroup)
     obs = fold_supercell(observed_density, supercell or 1)
     if symmetrize:
-        obs = symmetrize_density(obs, sg)
+        obs = symmetrize_density(obs, spacegroup)
 
     specs: list[dict[str, Any]] = []
     for raw in sites:
@@ -705,7 +732,7 @@ def fit_density_model(
             {
                 'specie': str(raw['specie']),
                 'position': position,
-                'directions': _free_directions(sg, position, raw.get('free_position')),
+                'directions': _free_directions(spacegroup, position, raw.get('free_position')),
                 'sigma_bounds': tuple(raw.get('sigma_bounds', sigma_bounds)),
                 'max_displacement': float(raw.get('max_displacement', max_displacement)),
             }
@@ -717,12 +744,12 @@ def fit_density_model(
     if coarsen < 1 or any(n % coarsen for n in obs.shape):
         raise ValueError(f'grid shape {obs.shape} is not divisible by coarsen={coarsen}')
 
-    model = _MixtureModel(sg, specs, obs)
+    model = _MixtureModel(spacegroup, specs, obs)
     nx, ny, nz = (n // coarsen for n in obs.shape)
     coarse = obs.reshape(nx, coarsen, ny, coarsen, nz, coarsen).sum(axis=(1, 3, 5))
 
     result = differential_evolution(
-        _MixtureModel(sg, specs, coarse),
+        _MixtureModel(spacegroup, specs, coarse),
         model.bounds(),
         maxiter=maxiter,
         popsize=popsize,
@@ -762,8 +789,8 @@ def fit_density_model(
         )
 
     return DensityFitResult(
-        spacegroup_symbol=sg.symbol,
-        spacegroup_number=sg.int_number,
+        spacegroup_symbol=symbol,
+        spacegroup_number=number,
         sites=site_fits,
         observed_density=obs,
         model_density=model_density,
@@ -778,7 +805,7 @@ _RANKING_CRITERIA = ('bic', 'aic', 'gof', 'r1_like', 'wr_like')
 
 def rank_spacegroups(
     observed_density: np.ndarray,
-    candidates: list[str | int | SpaceGroup],
+    candidates: list[SpaceGroupLike],
     sites_per_candidate: list[dict[str, Any]] | list[list[dict[str, Any]]],
     *,
     criterion: str = 'bic',
@@ -869,7 +896,7 @@ def rank_spacegroups(
 
 def trajectory_to_symmetrized_density(
     trajectory: Trajectory,
-    spacegroup: str | int | SpaceGroup,
+    spacegroup: SpaceGroupLike,
     *,
     floating_specie: str | list[str],
     resolution: float = 0.2,
@@ -900,7 +927,7 @@ def trajectory_to_symmetrized_density(
     ----------
     trajectory : Trajectory
         Input trajectory.
-    spacegroup : str | int | SpaceGroup
+    spacegroup : str | int | SpaceGroup | SpacegroupOperations
         Space group to symmetrise with.
     floating_specie : str | list[str]
         Species to build the density for (e.g. ``'Li'``), forwarded to
@@ -926,3 +953,322 @@ def trajectory_to_symmetrized_density(
 
     grid = sub.to_volume(resolution=resolution).data
     return symmetrize_density(fold_supercell(grid, supercell), spacegroup)
+
+
+def from_crystallizer(
+    result: CrystallizerResult,
+    *,
+    supercell: int | tuple[int, int, int] = 1,
+    angle_tolerance: float = 5.0,
+) -> tuple[SpacegroupOperations, list[dict[str, Any]]]:
+    """Turn a [Crystallizer][gemdat.crystallizer.Crystallizer] fit into a
+    density model.
+
+    The crystallizer proposes space groups from the density peaks and the
+    time-averaged framework; this hands one of them to :func:`fit_density_model`,
+    :func:`rank_spacegroups` or :func:`symmetrize_density`, which then test it
+    against the density itself. The operations are those spglib found for the
+    crystallized structure, in *its* basis and origin, so nothing has to be
+    transformed to a standard setting: they apply directly to a density grid
+    of the same cell, e.g. ``trajectory.filter(specie).to_volume().data``.
+
+    Parameters
+    ----------
+    result : CrystallizerResult
+        A crystallized structure, e.g. ``scan.at_level(level)``.
+    supercell : int | tuple[int, int, int], optional
+        Express the model in the cell folded by this factor, to go with
+        :func:`fold_supercell` (or ``supercell=`` of the fitting functions).
+    angle_tolerance : float, optional
+        Angle tolerance (degrees) the result was crystallized with.
+
+    Returns
+    -------
+    ops : SpacegroupOperations
+        The group's fractional operations in the basis of the (folded) cell;
+        pass it wherever a space group is expected.
+    sites : list[dict]
+        One site spec per orbit (``specie`` and ``position``), with the
+        position moved onto its exact site symmetry. Filter by ``specie``
+        before fitting a single species' density.
+
+    Raises
+    ------
+    ValueError
+        If the group lacks the translations of the folded cell, so the
+        structure does not repeat within the supercell and cannot be folded.
+    """
+    structure = result.structure
+    geometry = Structure(
+        structure.lattice,
+        [site.species.elements[0] for site in structure],
+        structure.frac_coords,
+    )
+    sga = SpacegroupAnalyzer(geometry, symprec=result.symprec, angle_tolerance=angle_tolerance)
+    dataset = sga.get_symmetry_dataset()
+    rotations = np.array(dataset.rotations, dtype=float)
+    translations = np.array(dataset.translations, dtype=float)
+
+    # Fold: x_folded = n x, so R -> n R n^-1 and t -> n t (mod 1).
+    n = np.array(_as_shape(supercell), dtype=float)
+    pure = translations[np.all(np.abs(rotations - np.eye(3)) < 1e-9, axis=(1, 2))]
+    for axis, step in enumerate(np.eye(3) / n[:, None]):
+        offsets = pure - step
+        if not np.any(np.all(np.abs(offsets - np.round(offsets)) < 1e-6, axis=1)):
+            raise ValueError(
+                f'{result.spacegroup_symbol} at symprec={result.symprec:g} does not repeat '
+                f'along {"abc"[axis]} within the supercell, so it cannot be folded; fit it '
+                'on the supercell grid instead (supercell=1)'
+            )
+    rotations = n[None, :, None] * rotations / n[None, None, :]
+    translations = np.mod(translations * n, 1.0)
+    keys = np.concatenate([rotations.reshape(-1, 9), np.mod(np.round(translations, 6), 1.0)], 1)
+    _, keep = np.unique(np.round(keys, 6), axis=0, return_index=True)
+    keep = np.sort(keep)
+    rotations, translations = rotations[keep], translations[keep]
+
+    # One site per orbit, projected onto the fixed space of its site symmetry
+    # (the images within symprec), so its orbit is exact.
+    to_cartesian = structure.lattice.matrix / n[:, None]
+    sites: list[dict[str, Any]] = []
+    for group in sga.get_symmetrized_structure().equivalent_indices:
+        position = np.mod(geometry[group[0]].frac_coords * n, 1.0)
+        delta = position @ rotations.transpose(0, 2, 1) + translations - position
+        delta -= np.round(delta)
+        stabilizer = np.linalg.norm(delta @ to_cartesian, axis=1) < result.symprec
+        sites.append(
+            {
+                'specie': geometry[group[0]].specie.symbol,
+                'position': np.mod(
+                    np.round(position + delta[stabilizer].mean(axis=0), 12), 1.0
+                ),
+            }
+        )
+
+    ops = SpacegroupOperations(
+        result.spacegroup_symbol,
+        result.spacegroup_number,
+        [SymmOp.from_rotation_and_translation(r, t) for r, t in zip(rotations, translations)],
+    )
+    return ops, sites
+
+
+@dataclass
+class DensityRound:
+    """One pass of :func:`crystallize_density_loop`.
+
+    Parameters
+    ----------
+    specie : str
+        Species whose density this round fitted.
+    round : int
+        0-based round number.
+    n_peaks : int
+        Number of density peaks the crystallizer found in the round's input
+        density.
+    spacegroup : SpacegroupOperations
+        Operations of the space group the crystallizer fitted to those peaks
+        (plus the framework), in the basis of ``fit``'s grid. Its symbol and
+        number are ``fit.spacegroup_symbol`` / ``fit.spacegroup_number``.
+    symprec : float
+        Symmetry tolerance (Angstrom) it was fitted at.
+    supercell : tuple[int, int, int]
+        Factor the density was folded by for this round's fit, ``(1, 1, 1)``
+        when the group did not allow folding.
+    fit : DensityFitResult
+        The density fit of this round's sites, on the (folded) grid.
+    explained : float
+        Fraction of the species' whole density the fitted Gaussians removed
+        in this round; the rounds of a species add up to the total explained.
+    residual : np.ndarray
+        Density left after subtracting them, folded like ``fit``.
+    """
+
+    specie: str
+    round: int
+    n_peaks: int
+    spacegroup: SpacegroupOperations = field(repr=False)
+    symprec: float
+    supercell: Shape
+    fit: DensityFitResult
+    explained: float
+    residual: np.ndarray = field(repr=False)
+
+
+def _density_peaks(volume: Volume, background_level: float) -> np.ndarray:
+    """Voxel coordinates of the density peaks above ``background_level``
+    times the maximum: the local maxima after smoothing over one voxel.
+
+    The crystallizer's own finder (``blob_dog``) drops broad sites on the cell
+    faces and splits sites that sit between voxels, which a symmetrised
+    density turns into near-exact ties; it even splits and drops sites of a
+    sharp raw density. The one-voxel smoothing takes out the histogram noise
+    without merging neighbouring sites. A plateau of tied voxels counts once,
+    also when the cell boundary cuts it.
+    """
+    grid = gaussian_filter(volume.data, 1.0, mode='wrap')
+    peak = (grid == maximum_filter(grid, size=3, mode='wrap')) & (
+        grid > background_level * grid.max()
+    )
+    labels, _ = label(peak, structure=np.ones((3, 3, 3)))
+    _, first = np.unique(labels[peak], return_index=True)
+    return volume._dedup_pbc_peaks(np.argwhere(peak)[first])
+
+
+def crystallize_density_loop(
+    trajectory: Trajectory,
+    species: str | list[str],
+    *,
+    framework_species: list[str] | None = None,
+    resolution: float = 0.2,
+    supercell: int | tuple[int, int, int] = 1,
+    max_rounds: int = 3,
+    max_orbits: int = 12,
+    background_level: float = 0.1,
+    min_explained: float = 0.05,
+    **fit_kwargs: Any,
+) -> dict[str, list[DensityRound]]:
+    """Alternate the [Crystallizer][gemdat.crystallizer.Crystallizer] and the
+    density fit until the density is used up, one species at a time.
+
+    Each round takes the density that is still unexplained, hands it to the
+    crystallizer (peaks + time-averaged framework -> space group), fits a
+    Gaussian mixture on the sites of that group and subtracts the fitted
+    Gaussians. What remains goes into the next round, where the crystallizer
+    sees only the peaks it had not accounted for -- the sites hiding under a
+    broad site, or under the tails of the ones already fitted, which the peak
+    finder cannot separate in one pass.
+
+    Rounds stop when the crystallizer finds no more sites of the species, when
+    a round explains less than ``min_explained`` of the species' density, or after
+    ``max_rounds``.
+
+    Parameters
+    ----------
+    trajectory : Trajectory
+        Input trajectory, equilibration dropped and drift corrected.
+    species : str | list[str]
+        Species to work through, each on its own density.
+    framework_species : list[str] | None
+        Species to use as the static framework in the crystallizer step.
+        Defaults to every other species in ``trajectory``. Leave out a species
+        whose time average is meaningless, e.g. the oxygens of a tumbling
+        molecular ion.
+    resolution : float
+        Density grid resolution in Angstrom.
+    supercell : int | tuple[int, int, int]
+        Fold the density by this factor for the fit, when the fitted group
+        contains the supercell translations (it is tested per round, see
+        :func:`from_crystallizer`); the crystallizer always works on the full
+        cell. Folding is what makes the fit affordable for a supercell run.
+    max_rounds : int
+        Maximum number of rounds per species.
+    max_orbits : int
+        Stop a species when the fitted group gives it more orbits than this.
+        A species with no real peaks crystallizes as P1, one orbit per peak,
+        which is an unaffordable fit that says nothing.
+    background_level : float
+        Segmentation floor for the peak finder, see
+        [gemdat.volume.Volume.to_structure][].
+    min_explained : float
+        Stop after a round that removes less than this fraction of the
+        species' density.
+    **fit_kwargs
+        Passed to :func:`fit_density_model`, e.g. ``cell_length``, ``coarsen``,
+        ``maxiter``, ``seed``, ``workers``.
+
+    Returns
+    -------
+    dict[str, list[DensityRound]]
+        The rounds run for each species, in order.
+    """
+    from .crystallizer import Crystallizer
+    from .volume import Volume
+
+    names = [species] if isinstance(species, str) else list(species)
+    sc = _as_shape(supercell)
+    lattice = trajectory.get_lattice()
+
+    history: dict[str, list[DensityRound]] = {}
+    for specie in names:
+        sub = (
+            trajectory
+            if framework_species is None
+            else trajectory.filter(
+                [*(name for name in framework_species if name != specie), specie]
+            )
+        )
+        residual = sub.filter(specie).to_volume(resolution=resolution).data
+        total = residual.sum()
+
+        rounds: list[DensityRound] = []
+        for index in range(max_rounds):
+            volume = Volume(data=residual, lattice=lattice)
+            crystallizer = Crystallizer(
+                trajectory=sub,
+                floating_specie=specie,
+                resolution=resolution,
+                density=volume,
+            )
+            try:
+                scan = crystallizer.scan(
+                    background_level=background_level,
+                    peaks=_density_peaks(volume, background_level),
+                )
+                result = scan.best()
+            except ValueError:
+                break
+
+            # Fold when the group repeats within the supercell, else fit the
+            # supercell as a whole.
+            try:
+                spacegroup, sites = from_crystallizer(result, supercell=sc)
+                fold = sc
+            except ValueError:
+                spacegroup, sites = from_crystallizer(result)
+                fold = (1, 1, 1)
+
+            specs = [site for site in sites if site['specie'] == specie]
+            if not specs or len(specs) > max_orbits:
+                # No sites, or a group so low that every peak is its own orbit
+                # (P1 on a supercell): there is nothing to learn from fitting
+                # a Gaussian per peak, and it would take forever.
+                break
+
+            fit = fit_density_model(
+                fold_supercell(residual, fold), spacegroup, specs, **fit_kwargs
+            )
+
+            # Subtract the fitted Gaussians from the density the fit saw --
+            # symmetrised, so that the leftover is what the *model* misses
+            # rather than how far one site of an orbit fluctuated from
+            # another, which would otherwise dominate the next peak search.
+            # A density cannot be negative, so where the model overshoots the
+            # leftover is zero, and what remains is density that stands above
+            # the model: the next round's input, tiled back out of the folded
+            # cell for the crystallizer.
+            observed = fit.observed_density
+            left = np.clip(observed - observed.sum() * fit.model_density, 0.0, None)
+            # Of the whole density, so a late round that fits a sliver of
+            # noise counts as the sliver it is.
+            explained = float((observed.sum() - left.sum()) / (total + _EPS))
+            residual = np.tile(left, fold) / np.prod(fold)
+
+            rounds.append(
+                DensityRound(
+                    specie=specie,
+                    round=index,
+                    n_peaks=sum(site.specie.symbol == specie for site in scan.geometry),
+                    spacegroup=spacegroup,
+                    symprec=result.symprec,
+                    supercell=fold,
+                    fit=fit,
+                    explained=explained,
+                    residual=left,
+                )
+            )
+            if explained < min_explained:
+                break
+
+        history[specie] = rounds
+    return history
