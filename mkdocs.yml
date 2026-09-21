@@ -38,6 +38,7 @@ nav:
     - gemdat: api/gemdat.md
     - gemdat.collective: api/gemdat_collective.md
     - gemdat.crystallizer: api/gemdat_crystallizer.md
+    - gemdat.density_crystallography: api/gemdat_density_crystallography.md
     - gemdat.io: api/gemdat_io.md
     - gemdat.path: api/gemdat_path.md
     - gemdat.plots: api/gemdat_plots.md
