@@ -49,7 +49,7 @@ from scipy.ndimage import gaussian_filter, label, map_coordinates, maximum_filte
 from scipy.optimize import differential_evolution, minimize
 
 if TYPE_CHECKING:
-    from .crystallizer import CrystallizerResult
+    from .crystallizer import Crystallizer, CrystallizerResult
     from .trajectory import Trajectory
     from .volume import Volume
 
@@ -1033,14 +1033,11 @@ def from_crystallizer(
     sites: list[dict[str, Any]] = []
     for group in sga.get_symmetrized_structure().equivalent_indices:
         position = np.mod(geometry[group[0]].frac_coords * n, 1.0)
-        delta = position @ rotations.transpose(0, 2, 1) + translations - position
-        delta -= np.round(delta)
-        stabilizer = np.linalg.norm(delta @ to_cartesian, axis=1) < result.symprec
         sites.append(
             {
                 'specie': geometry[group[0]].specie.symbol,
-                'position': np.mod(
-                    np.round(position + delta[stabilizer].mean(axis=0), 12), 1.0
+                'position': _onto_site_symmetry(
+                    position, rotations, translations, to_cartesian, result.symprec
                 ),
             }
         )
@@ -1051,6 +1048,22 @@ def from_crystallizer(
         [SymmOp.from_rotation_and_translation(r, t) for r, t in zip(rotations, translations)],
     )
     return ops, sites
+
+
+def _onto_site_symmetry(
+    position: np.ndarray,
+    rotations: np.ndarray,
+    translations: np.ndarray,
+    to_cartesian: np.ndarray,
+    tol: float,
+) -> np.ndarray:
+    """Move ``position`` onto the fixed space of its site symmetry: the mean of
+    its images under the operations that map it within ``tol`` (Angstrom) of
+    itself, so that its orbit is exact."""
+    delta = position @ rotations.transpose(0, 2, 1) + translations - position
+    delta -= np.round(delta)
+    stabilizer = np.linalg.norm(delta @ to_cartesian, axis=1) < tol
+    return np.mod(np.round(position + delta[stabilizer].mean(axis=0), 12), 1.0)
 
 
 @dataclass
@@ -1082,6 +1095,11 @@ class DensityRound:
         in this round; the rounds of a species add up to the total explained.
     residual : np.ndarray
         Density left after subtracting them, folded like ``fit``.
+    source : str
+        Where the group came from: ``'peaks'`` when the crystallizer fitted it
+        to the species' own peaks, ``'framework'`` when those gave no usable
+        group and the framework's group was used with one site on the
+        density maximum instead.
     """
 
     specie: str
@@ -1093,6 +1111,7 @@ class DensityRound:
     fit: DensityFitResult
     explained: float
     residual: np.ndarray = field(repr=False)
+    source: str = 'peaks'
 
 
 def _density_peaks(volume: Volume, background_level: float) -> np.ndarray:
@@ -1113,6 +1132,57 @@ def _density_peaks(volume: Volume, background_level: float) -> np.ndarray:
     labels, _ = label(peak, structure=np.ones((3, 3, 3)))
     _, first = np.unique(labels[peak], return_index=True)
     return volume._dedup_pbc_peaks(np.argwhere(peak)[first])
+
+
+def _framework_seed(
+    crystallizer: Crystallizer,
+    residual: np.ndarray,
+    specie: str,
+    supercell: Shape,
+) -> tuple[SpacegroupOperations, list[dict[str, Any]], Shape, float] | None:
+    """Group and starting site for a species whose own peaks give no usable
+    group, e.g. a continuous shell with only shallow maxima.
+
+    The group is the time-averaged framework's alone, so it depends on
+    nothing but the framework species -- not on which species ran
+    before. The site is the maximum of the species' density symmetrised
+    with that group, moved onto its site symmetry and left free along
+    the directions that symmetry allows. Returns None when there is no
+    framework to take a group from.
+    """
+    from .crystallizer import _fit
+    from .symmetry import SymmetryAnalyzer
+
+    framework = crystallizer.framework()
+    if len(framework) == 0:
+        return None
+    try:
+        symprec = SymmetryAnalyzer(framework).rank().best().symprec
+        result = _fit(
+            framework,
+            np.ones(len(framework)),
+            symprec=symprec,
+            angle_tolerance=5.0,
+            has_partial_occupancies=False,
+        )
+    except ValueError:
+        return None
+
+    try:
+        spacegroup, _ = from_crystallizer(result, supercell=supercell)
+        fold = supercell
+    except ValueError:
+        spacegroup, _ = from_crystallizer(result)
+        fold = (1, 1, 1)
+
+    grid = symmetrize_density(fold_supercell(residual, fold), spacegroup)
+    seed = (np.array(np.unravel_index(grid.argmax(), grid.shape)) + 0.5) / grid.shape
+    _, _, rotations, translations = _ops(spacegroup)
+    to_cartesian = framework.lattice.matrix / np.array(fold)[:, None]
+    position = _onto_site_symmetry(seed, rotations, translations, to_cartesian, symprec)
+    free = len(site_free_directions(spacegroup, position)) > 0
+    site = {'specie': specie, 'position': position, 'free_position': free}
+    return spacegroup, [site], fold, symprec
 
 
 def crystallize_density_loop(
@@ -1143,6 +1213,14 @@ def crystallize_density_loop(
     a round explains less than ``min_explained`` of the species' density, or after
     ``max_rounds``.
 
+    A species whose density has no separable peaks at all (a continuous shell,
+    such as the O of a tumbling sulfate) gets no usable group in its first
+    round. It then falls back on the group of the time-averaged framework
+    alone, with one site on the maximum of its symmetrised density (free where
+    the site symmetry allows), and the round is marked ``source='framework'``.
+    That group depends only on ``framework_species``, so the order of
+    ``species`` does not matter; without a framework the species is skipped.
+
     Parameters
     ----------
     trajectory : Trajectory
@@ -1166,7 +1244,8 @@ def crystallize_density_loop(
     max_orbits : int
         Stop a species when the fitted group gives it more orbits than this.
         A species with no real peaks crystallizes as P1, one orbit per peak,
-        which is an unaffordable fit that says nothing.
+        which is an unaffordable fit that says nothing: in the first round the
+        framework's group is used instead, in a later one the species stops.
     background_level : float
         Segmentation floor for the peak finder, see
         [gemdat.volume.Volume.to_structure][].
@@ -1210,30 +1289,42 @@ def crystallize_density_loop(
                 resolution=resolution,
                 density=volume,
             )
+            peaks = _density_peaks(volume, background_level)
+            specs = []
             try:
-                scan = crystallizer.scan(
-                    background_level=background_level,
-                    peaks=_density_peaks(volume, background_level),
-                )
+                scan = crystallizer.scan(background_level=background_level, peaks=peaks)
                 result = scan.best()
             except ValueError:
-                break
+                pass
+            else:
+                # Fold when the group repeats within the supercell, else fit
+                # the supercell as a whole.
+                try:
+                    spacegroup, sites = from_crystallizer(result, supercell=sc)
+                    fold = sc
+                except ValueError:
+                    spacegroup, sites = from_crystallizer(result)
+                    fold = (1, 1, 1)
+                specs = [site for site in sites if site['specie'] == specie]
+                symprec = result.symprec
+                n_peaks = sum(site.specie.symbol == specie for site in scan.geometry)
+                source = 'peaks'
 
-            # Fold when the group repeats within the supercell, else fit the
-            # supercell as a whole.
-            try:
-                spacegroup, sites = from_crystallizer(result, supercell=sc)
-                fold = sc
-            except ValueError:
-                spacegroup, sites = from_crystallizer(result)
-                fold = (1, 1, 1)
-
-            specs = [site for site in sites if site['specie'] == specie]
             if not specs or len(specs) > max_orbits:
                 # No sites, or a group so low that every peak is its own orbit
                 # (P1 on a supercell): there is nothing to learn from fitting
-                # a Gaussian per peak, and it would take forever.
-                break
+                # a Gaussian per peak, and it would take forever. In a later
+                # round that means the leftover is noise, so stop. In the
+                # first the species has no separable peaks at all (a
+                # continuous shell), so fall back on the framework's group.
+                seed = (
+                    _framework_seed(crystallizer, residual, specie, sc) if index == 0 else None
+                )
+                if seed is None:
+                    break
+                spacegroup, specs, fold, symprec = seed
+                n_peaks = len(peaks)
+                source = 'framework'
 
             fit = fit_density_model(
                 fold_supercell(residual, fold), spacegroup, specs, **fit_kwargs
@@ -1258,13 +1349,14 @@ def crystallize_density_loop(
                 DensityRound(
                     specie=specie,
                     round=index,
-                    n_peaks=sum(site.specie.symbol == specie for site in scan.geometry),
+                    n_peaks=n_peaks,
                     spacegroup=spacegroup,
-                    symprec=result.symprec,
+                    symprec=symprec,
                     supercell=fold,
                     fit=fit,
                     explained=explained,
                     residual=left,
+                    source=source,
                 )
             )
             if explained < min_explained:
