@@ -92,8 +92,8 @@ from pymatgen.core.lattice import Lattice
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from tqdm import tqdm
 
-# GOAC is imported where it is used, so this module (and `screen_orderings.py`) imports
-# without it.
+# GOAC is imported where it is used, so this module (and
+# `calculate_coarse_potentials.py`) imports without it.
 GOAC_MISSING = (
     'GOAC is required for this. Install it with:\n'
     '  pip install GOAC --find-links '

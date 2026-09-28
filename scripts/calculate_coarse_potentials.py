@@ -9,13 +9,13 @@ Two methods, each a script of its own that this one wraps:
 
 From the command line, everything after the method goes to that method's options:
 
-    python scripts/screen_orderings.py goac my.cif --specie Na --supercell 2 2 2
-    python scripts/screen_orderings.py distance my.cif --specie Na --workdir out/
-    python scripts/screen_orderings.py goac --help
+    python scripts/calculate_coarse_potentials.py goac my.cif --specie Na --supercell 2 2 2
+    python scripts/calculate_coarse_potentials.py distance my.cif --specie Na --workdir out/
+    python scripts/calculate_coarse_potentials.py goac --help
 
 From Python, `screen` takes the same options as keyword arguments:
 
-    from screen_orderings import screen
+    from calculate_coarse_potentials import screen
 
     result = screen('goac', 'my.cif', specie='Na', supercell=[2, 2, 2])
     keepers = screen('distance', 'my.cif', specie='Na', n_min=4, n_max=4)
