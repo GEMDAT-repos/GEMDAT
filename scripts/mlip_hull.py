@@ -6,7 +6,7 @@ This is the cheap stand-in for the DFT step behind Fig. 2a of
     Beneficial redox activity of halide solid electrolytes empowering high-performance
     anodes in all-solid-state batteries, https://doi.org/10.26434/chemrxiv-2024-x2rld
 
-`goac_li3ycl3br3.py` (or `randomized_distribution.py`) generates low-energy Li orderings
+`goac_sweep.py` (or `randomized_distribution.py`) generates low-energy Li orderings
 per composition; the paper relaxes those with DFT and takes the convex hull. A universal
 machine-learning interatomic potential (MACE-MP, CHGNet, ...) relaxes the same candidates
 in seconds instead of core-hours, so you can see whether the hull even has the right
@@ -16,7 +16,7 @@ Y3+ -> Y reduction that compensates lithiation here.
 
 Two caveats specific to this system:
 
-  Halide identity. `goac_li3ycl3br3.py` collapses Cl/Br onto one species (a point-charge
+  Halide identity. `goac_sweep.py` collapses Cl/Br onto one species (a point-charge
   model cannot tell them apart), so its output CIFs are all-Cl -- the wrong compound for a
   real energy. Unlike point charges, an MLIP *can* distinguish the halogens, so this script
   restores a 3:3 Cl:Br split. It is only the *Li* ordering that GOAC optimized; the halide
@@ -66,7 +66,7 @@ MACE is the default and needs `pip install mace-torch`; CHGNet needs `pip instal
 Examples
 --------
     # relax everything a sweep wrote, build the hull
-    python scripts/goac_li3ycl3br3.py sweep --n-best 8 --workdir out/
+    python scripts/goac_sweep.py src/gemdat/data/Li3YCl3Br3-c2m.cif --n-best 8 --output out/
     python scripts/mlip_hull.py --workdir out/
 
     # or point straight at structure files, try 4 halide arrangements each, relax cells
@@ -82,7 +82,7 @@ what neither of those records. That is a fresh temp directory unless one is name
 
     python scripts/mlip_hull.py --workdir out/ --output relaxed/
 
-Programmatic use mirrors the CLI, split in two, the same way `goac_li3ycl3br3.py` is: a
+Programmatic use mirrors the CLI, split in two, the same way `goac_sweep.py` is: a
 `HullBuilder` holds the settings and does the relaxing, and hands back a `HullResult`
 holding what it relaxed, which does the reporting on it. The builder's constructor takes the
 same options as the argument parser (`HullBuilder(**vars(args))` is exactly what `main`
@@ -202,9 +202,8 @@ class Table(str):
     match, so the table comes out laid out from a notebook cell, from
     the plain REPL and from `print` alike.
 
-    Deliberately duplicated from `goac_li3ycl3br3.py` rather than
-    shared: importing that module raises SystemExit when GOAC is not
-    installed, which is no reason for this script to stop working.
+    Deliberately duplicated from `goac_sweep.py` rather than shared, so
+    that neither script needs the other on its path.
     """
 
     def __repr__(self) -> str:

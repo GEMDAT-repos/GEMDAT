@@ -1,42 +1,49 @@
-"""Test GOAC on the refined Li3YCl3Br3 (C2/m) structure (GEMDAT issue #415).
+"""Screen orderings of a mobile species with GOAC's Coulomb (Ewald) sum.
 
-This reproduces the Coulomb pre-screening step of
+Works on any partially-occupied CIF. The positions that hold the mobile species
+(`--specie`, Li by default) become one group that GOAC permutes the species over, and the
+script sweeps the composition x, the number of mobile ions per formula unit of the rest of
+the structure (so x in Li_x YCl3Br3, or Na_x SbS4). At each x it samples orderings and plots
+the lowest Coulomb energy per formula unit over the cloud of sampled orderings, with a
+dotted tie line between the end members so the deviation in between can be read off. The
+lowest-energy orderings are written as CIFs, ready to be relaxed with DFT or an MLIP
+(`mlip_hull.py`).
+
+This is the Coulomb pre-screening step of
 
     Beneficial redox activity of halide solid electrolytes empowering high-performance
     anodes in all-solid-state batteries, https://doi.org/10.26434/chemrxiv-2024-x2rld
 
-In that paper (Methods, and Fig. 2a) the Li sublattice of Li_x YCl3Br3 is screened by
-"minimization of Coulombic interactions [...] for 100,000 permutations of Li distribution
-in interstitial positions at each Li concentration", after which the lowest-energy
-configurations are relaxed with DFT to build the convex hull. GOAC does the Coulomb part.
+where the Li sublattice of Li_x YCl3Br3 was screened with "100,000 permutations of Li
+distribution in interstitial positions at each Li concentration"; that material, gemdat's
+bundled `Li3YCl3Br3-c2m.cif`, is the worked example below.
 
-The script sweeps a range of x, sampling Li orderings at each composition, and plots the
-lowest Coulomb energy per formula unit against x, over the cloud of sampled orderings it
-was picked from, with a dotted straight line between the two end members so the deviation
-in between can be read off directly.
+How the sites of the CIF are treated:
 
-A caveat on reading it: this is a *Coulomb* energy, not the DFT formation enthalpy of
-Fig. 2a, and it does not reproduce its shape. Away from x=3 the cell carries a net charge,
-and the reduction of Y that really compensates lithiation has no counterpart in a
-point-charge model with fixed formal charges, so the energy simply falls with x, with no
-minimum at the nominal x=3. (Letting q(Y) fall as 6-x to keep the cell neutral does not
-help either: it drives q(Y) negative above x=6.) The sweep is a candidate-generation step,
-as it is in the paper, not a stability prediction — the convex hull of Fig. 2a comes from
-relaxing these candidates with DFT. Running `mlip_hull.py` on the CIFs this sweep writes
-gives the hull with relaxed MLIP energies instead, which is the point of the comparison.
-What GOAC does settle here is the ordering problem at each *fixed* composition.
+* *Mobile* positions: every site holding `--specie`. Other elements sharing those
+  positions (Y on Li2/Y9 in Li3YCl3Br3) are the *partners*.
+* *Partner* positions: sites holding only partner elements (Y1). Without
+  `--disorder-partners` they are filled with their majority element and only the mobile
+  species is permuted; with it the partners join the mobile group and are permuted too.
+* *Framework*: everything else, kept as it is. A framework site shared by elements of
+  equal charge (Cl/Br) is collapsed onto the lightest one, since to a point-charge model
+  they are indistinguishable and the ordering cannot change the energy -- settle it with
+  DFT instead. A framework site with mixed charges or vacancies stays partially occupied,
+  so GOAC permutes it as a group of its own.
 
-How far the sweep can go in x is set by the site model, not by the sampling. The refined
-C2/m cell resolves 16 Li-bearing positions (Li1 x4, Li8 x8, and the Li2/Y9 position x4)
-for 2 formula units, so plain runs stop at x=8 — `--x-max` is clamped to that, and with
-`--disorder-y` the Y ions take two of those positions away, leaving the same 8. Fig. 2a
-reaches x=9, which needs interstitial positions the refinement does not list.
-`--extra-interstitials` searches the halide packing for the remaining voids and adds them
-(complete Wyckoff orbits, thresholds from `--void-radius`/`--void-separation`); with the
-defaults this finds one octahedral (CN 6) and two tetrahedral (CN 4) orbits, 10 positions
-per cell, lifting the ceiling to x=13. Note that x=6 already exhausts Y3+ -> Y0, so the
-whole range above it is deep overlithiation, where a fixed-q(Y) point-charge model is on
-its weakest ground -- all the more reason to treat these as DFT candidates only.
+Charges default to pymatgen's oxidation-state guess for the CIF's composition; set them
+with `--charges Li=1 Y=3 Cl=-1 Br=-1`. The formula unit defaults to the reduced formula
+of everything but the mobile species; override with `--formula-units`.
+
+Note that this is a *Coulomb* energy with fixed formal charges. Away from charge
+neutrality the cell carries a net charge and the redox that compensates it has no
+counterpart in the model, so the curve is a candidate-generation step, not a stability
+prediction. What GOAC does settle is the ordering problem at each *fixed* composition.
+
+How far x can go is set by the mobile positions the CIF lists; `--x-max` is clamped to
+that. `--extra-interstitials` searches the anion packing for the remaining voids and adds
+them as mobile positions (complete Wyckoff orbits, thresholds from
+`--void-radius`/`--void-separation`).
 
 GOAC is an optional dependency:
 
@@ -44,40 +51,30 @@ GOAC is an optional dependency:
 
 Examples
 --------
-    python scripts/goac_li3ycl3br3.py --supercell 2 1 2 --samples 100000
-    python scripts/goac_li3ycl3br3.py --extra-interstitials --x-max 9
-
-The lowest-energy orderings found are written as CIFs into `--output`, next to the figure
-itself (`sweep.png`), ready to hand to DFT the way the paper does; `--n-best N` writes the
-N best per composition:
-
-    python scripts/goac_li3ycl3br3.py --n-best 10 --output out/
+    python scripts/goac_sweep.py my_structure.cif --specie Na --supercell 2 2 2
+    python scripts/goac_sweep.py src/gemdat/data/Li3YCl3Br3-c2m.cif \
+        --supercell 2 1 2 --extra-interstitials --x-max 9 --n-best 10 --output out/
 
 Programmatic use mirrors the CLI, split in two: a `GOACSweep` holds the settings and does
 the sampling, and hands back a `GOACResult` holding what it sampled, which does the
 reporting on it. The sweep's constructor takes the same options as the argument parser
 (`GOACSweep(**vars(args))` is exactly what `main` does), so
 
-    GOACSweep(extra_interstitials=True, x_max=9).run()
-
-is the in-process equivalent of the second example above. `run` reports as it goes unless
-`quiet=True` (`--quiet`), and `progress=True` (`--progress`) puts a bar over the
-compositions on stderr; the two combine, for a bar and nothing else. The result keeps the
-energies, so it can be tabulated
-(`summary`) and plotted (`plot`, `save_figure`) again without re-running GOAC:
-
-    result = GOACSweep(x_max=4).run()
+    result = GOACSweep(cif=DATA / 'Li3YCl3Br3-c2m.cif', x_max=4).run()
     result.scatter_max = 200
     result.save_figure(Path('sparser.png'))
 
-The individual setup steps (`build_input_structure`, `sample_energies`,
-`add_void_interstitials`, ...) are methods on the sweep, reading their configuration
-off it.
+`run` reports as it goes unless `quiet=True` (`--quiet`), and `progress=True`
+(`--progress`) puts a bar over the compositions on stderr. The individual setup steps
+(`build_input_structure`, `sample_energies`, `add_void_interstitials`, ...) are methods
+on the sweep, reading their configuration off it.
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import math
 import os
 import sys
 import tempfile
@@ -90,39 +87,18 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
-from pymatgen.core import Structure
+from pymatgen.core import Composition, Element, Structure
 from pymatgen.core.lattice import Lattice
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from tqdm import tqdm
 
-from gemdat.utils import DATA
-
-try:
-    import GOAC
-    from GOAC.IterationProblem import Iteration_Problem
-    from GOAC.RandomSolver import Random_Solver
-except ImportError as exc:  # pragma: no cover - optional dependency
-    raise SystemExit(
-        'GOAC is required for this script. Install it with:\n'
-        '  pip install GOAC --find-links '
-        'https://github.com/GEMDAT-repos/GOAC/releases/expanded_assets/0.1.1'
-    ) from exc
-
-DEFAULT_CIF = Path(str(DATA / 'Li3YCl3Br3-c2m.cif'))
-
-# Formal charges. Cl- and Br- are given the same charge on purpose: to a point-charge
-# model they are indistinguishable, so halogen ordering cannot change the energy (the
-# paper settles it with DFT instead). The halide sublattice is therefore collapsed onto a
-# single fully-occupied species below, keeping the combinatorial problem to the Li (and
-# optionally Y) sublattice.
-#
-# The keys must be <element><wildcard>: GOAC rebuilds each label from the site's element
-# symbol plus the trailing number of the CIF label, so a key that does not start with a
-# real element symbol silently matches nothing and leaves those ions with charge 0.
-CHARGES = {'Li*': (1.0, 0.1), 'Y*': (3.0, 0.1), 'Cl*': (-1.0, 0.1), 'Br*': (-1.0, 0.1)}
-
-# The refined CIF contains Li6 Y2 Cl6 Br6.
-FORMULA_UNITS_PER_CELL = 2
+# GOAC is imported where it is used, so this module (and `screen_orderings.py`) imports
+# without it.
+GOAC_MISSING = (
+    'GOAC is required for this. Install it with:\n'
+    '  pip install GOAC --find-links '
+    'https://github.com/GEMDAT-repos/GOAC/releases/expanded_assets/0.1.1'
+)
 
 # Energy window, in eV, within which two orderings count as the same solution when
 # collecting the n best. Symmetry-equivalent arrangements have *identical* Coulomb
@@ -182,6 +158,8 @@ class GOACResult:
     #: Most sampled configurations to scatter per composition: 100k points per composition
     #: make for a huge, unreadable figure.
     scatter_max: int = 2000
+    #: What x counts, for the axis label.
+    x_label: str = 'x'
 
     @property
     def xs(self) -> np.ndarray:
@@ -233,7 +211,7 @@ class GOACResult:
             label='end-member tie line',
         )
         ax.plot(xs, e_min, 'o-', color='crimson', zorder=3, label='lowest energy')
-        ax.set_xlabel('x in Li$_x$YCl$_3$Br$_3$')
+        ax.set_xlabel(self.x_label)
         ax.set_ylabel('Coulomb energy (eV/f.u.)')
         ax.set_title('Lowest Coulomb energy versus composition')
         ax.legend()
@@ -250,7 +228,8 @@ class GOACResult:
 
 
 class GOACSweep:
-    """A GOAC Coulomb pre-screening sweep over Li_x YCl3Br3.
+    """A GOAC Coulomb pre-screening sweep over x in `specie`_x (rest of the
+    CIF).
 
     This is the setup half: it holds the settings, builds the partially-occupied cells and
     runs GOAC over them, handing the sampled energies to a `GOACResult` to report on. The
@@ -263,13 +242,16 @@ class GOACSweep:
     def __init__(
         self,
         *,
-        cif: Path = DEFAULT_CIF,
+        cif: Path,
+        specie: str = 'Li',
+        charges: dict[str, float] | list[tuple[str, float]] | None = None,
+        formula_units: int | None = None,
         supercell: list[int] | None = None,
         samples: int = 100000,
         solver: str = 'sa',
         steps: int = 200000,
         starts: int = 20,
-        disorder_y: bool = False,
+        disorder_partners: bool = False,
         extra_interstitials: bool = False,
         void_radius: float = 2.3,
         void_separation: float = 2.2,
@@ -277,20 +259,25 @@ class GOACSweep:
         tol: float = DEFAULT_TOL,
         output: Path | None = None,
         x_min: float = 0.0,
-        x_max: float = 8.0,
+        x_max: float | None = None,
         x_step: float = 0.5,
         scatter_max: int = 2000,
         quiet: bool = False,
         progress: bool = False,
     ) -> None:
-        self.cif = cif
-        # The paper uses 2 1 2; a fresh list avoids the mutable-default trap.
-        self.supercell = list(supercell) if supercell is not None else [2, 1, 2]
+        self.cif = Path(cif)
+        self.specie = specie
+        # Both are guessed from the CIF by `resolve` when not given.
+        # A dict, or the (element, charge) pairs the command line parses.
+        self.charges = dict(charges) if charges else None
+        self.formula_units = formula_units
+        # A fresh list avoids the mutable-default trap.
+        self.supercell = list(supercell) if supercell is not None else [1, 1, 1]
         self.samples = samples
         self.solver = solver
         self.steps = steps
         self.starts = starts
-        self.disorder_y = disorder_y
+        self.disorder_partners = disorder_partners
         self.extra_interstitials = extra_interstitials
         self.void_radius = void_radius
         self.void_separation = void_separation
@@ -303,6 +290,60 @@ class GOACSweep:
         self.scatter_max = scatter_max
         self.quiet = quiet
         self.progress = progress
+
+    def resolve(self, base: Structure) -> None:
+        """Fill in `charges` and `formula_units` from `base`, where not given.
+
+        Charges are pymatgen's most likely oxidation states for the
+        composition, which needs it to be integer and charge-balanced.
+        The formula unit is the reduced formula of everything but the
+        mobile species, so that x counts mobile ions per formula unit of
+        the host. When that composition is fractional (Sb1.7 W0.3 S8),
+        the positions are counted instead, per distinct site
+        composition.
+        """
+        if self.charges is None:
+            try:
+                guesses = base.composition.oxi_state_guesses(max_sites=-1)
+            except ValueError:
+                guesses = ()
+            if not guesses:
+                raise ValueError(
+                    f'cannot guess oxidation states for {base.composition.formula}; '
+                    'pass the charges explicitly (--charges EL=Q ...)'
+                )
+            self.charges = dict(guesses[0])
+        if self.formula_units is None:
+            amounts = [a for el, a in base.composition.items() if el.symbol != self.specie]
+            if all(abs(a - round(a)) < 1e-3 for a in amounts):
+                counts = [round(a) for a in amounts]
+            else:
+                partner_only, _, framework = self.split_sites(base)
+                sites = [str(site.species) for site in partner_only + framework]
+                counts = [sites.count(key) for key in set(sites)]
+            self.formula_units = math.gcd(*counts) or 1
+
+    def host_formula(self, base: Structure) -> str:
+        """Formula of one formula unit of everything but the mobile species."""
+        assert self.formula_units is not None
+        host = {
+            element: amount / self.formula_units
+            for element, amount in base.composition.items()
+            if element.symbol != self.specie
+        }
+        return Composition(host).formula.replace(' ', '')
+
+    def goac_charges(self) -> dict[str, tuple[float, float]]:
+        """`charges` as GOAC wants them.
+
+        The keys must be <element><wildcard>: GOAC rebuilds each label
+        from the site's element symbol plus the trailing number of the
+        CIF label, so a key that does not start with a real element
+        symbol silently matches nothing and leaves those ions with
+        charge 0.
+        """
+        assert self.charges is not None
+        return {f'{element}*': (float(q), 0.1) for element, q in self.charges.items()}
 
     def log(self, message: str = '') -> None:
         """Report progress, unless the sweep was asked to keep quiet."""
@@ -362,47 +403,63 @@ class GOACSweep:
                     sink.seek(0)
                     sys.stderr.write(sink.read())
 
-    @staticmethod
-    def split_sites(structure: Structure) -> tuple[Coords, Coords, Coords]:
-        """Fractional coords of the Y-only, Li-bearing and halide positions.
+    def split_sites(self, structure: Structure) -> tuple[list, list, list]:
+        """Partner-only, mobile and framework sites of `structure`.
 
-        The refinement puts Y on both the 2a (Y1) and 4h (Y9) Wyckoff
-        positions, and the 4h position is shared with the Li2 site —
-        pymatgen merges those two into one partially occupied Li/Y site,
-        which counts as Li-bearing here.
+        Mobile sites hold `specie`; partners are the other elements
+        sharing those sites (in Li3YCl3Br3 the refinement puts Y on both
+        2a and on 4h, and pymatgen merges the 4h one with Li2 into one
+        partially occupied Li/Y site), and partner-only sites hold
+        nothing but partners. Everything else is framework.
         """
-        y_only: Coords = []
-        li_bearing: Coords = []
-        halide: Coords = []
+        mobile = [site for site in structure if self.specie in site.species.get_el_amt_dict()]
+        partners = {el for site in mobile for el in site.species.get_el_amt_dict()}
+        partners.discard(self.specie)
+
+        partner_only: list = []
+        framework: list = []
         for site in structure:
             elements = set(site.species.get_el_amt_dict())
-            if elements == {'Y'}:
-                y_only.append(site.frac_coords)
-            elif elements <= {'Li', 'Y'}:
-                li_bearing.append(site.frac_coords)
+            if self.specie in elements:
+                continue
+            if partners and elements <= partners:
+                partner_only.append(site)
             else:
-                halide.append(site.frac_coords)
-        return y_only, li_bearing, halide
+                framework.append(site)
+        return partner_only, mobile, framework
 
-    @staticmethod
-    def count_y(structure: Structure) -> int:
-        """Number of Y ions in the cell, rounded from the refined
+    def partner_counts(self, structure: Structure) -> dict[str, int]:
+        """Number of each partner ion in the cell, rounded from the refined
         occupancies."""
-        total = sum(site.species.get_el_amt_dict().get('Y', 0.0) for site in structure)
-        return int(round(total))
+        partner_only, mobile, _ = self.split_sites(structure)
+        totals: dict[str, float] = {}
+        for site in partner_only + mobile:
+            for element, amount in site.species.get_el_amt_dict().items():
+                if element != self.specie:
+                    totals[element] = totals.get(element, 0.0) + amount
+        return {element: int(round(amount)) for element, amount in totals.items()}
 
-    def li_positions_per_cell(self, structure: Structure) -> int:
-        """How many positions per cell Li can be spread over.
+    def mobile_positions_per_cell(self, structure: Structure) -> int:
+        """How many positions per cell the mobile species can be spread over.
 
-        With `disorder_y` that is every cation position minus the ones
-        the Y ions occupy, which share the group; without it Y sits
-        apart on the 2a positions and only the Li-bearing positions are
-        free.
+        With `disorder_partners` that is every mobile and partner
+        position minus the ones the partner ions occupy, which share the
+        group; without it the partners sit apart on their own positions
+        and only the mobile positions are free.
         """
-        y_only, li_bearing, _ = self.split_sites(structure)
-        if self.disorder_y:
-            return len(y_only) + len(li_bearing) - self.count_y(structure)
-        return len(li_bearing)
+        partner_only, mobile, _ = self.split_sites(structure)
+        if self.disorder_partners:
+            taken = sum(self.partner_counts(structure).values())
+            return len(partner_only) + len(mobile) - taken
+        return len(mobile)
+
+    def mean_charge(self, site) -> float:
+        """Occupancy-weighted formal charge of `site`."""
+        assert self.charges is not None
+        return sum(
+            self.charges[element] * amount
+            for element, amount in site.species.get_el_amt_dict().items()
+        )
 
     @staticmethod
     def _orbit(point: np.ndarray, ops: list, lattice: Lattice, tol: float) -> np.ndarray:
@@ -433,27 +490,31 @@ class GOACSweep:
     def find_void_interstitials(
         self, base: Structure, *, grid_spacing: float = 0.2
     ) -> np.ndarray:
-        """Empty interstitial voids of the halide sublattice, as fractional
+        """Empty interstitial voids of the anion sublattice, as fractional
         coords.
 
-        The refined CIF only lists the Li positions the refinement could resolve, which
-        caps how much Li can be inserted (see `--x-max`). This finds the remaining holes in
-        the anion packing so that higher x becomes reachable: every point of a grid over
-        the cell that is at least `void_radius` from any halide and `void_separation` from
-        any site already in the structure is a candidate, and the deepest ones are picked
-        greedily, each expanded to its full symmetry orbit so that the added positions form
-        complete Wyckoff sets rather than an arbitrary symmetry-broken subset. An orbit is
-        dropped if it collides with itself or with what has already been accepted.
+        The CIF only lists the mobile positions the refinement could resolve, which caps
+        how much of the mobile species can be inserted (see `--x-max`). This finds the
+        remaining holes in the anion packing so that higher x becomes reachable: every
+        point of a grid over the cell that is at least `void_radius` from any anion and
+        `void_separation` from any site already in the structure is a candidate, and the
+        deepest ones are picked greedily, each expanded to its full symmetry orbit so that
+        the added positions form complete Wyckoff sets rather than an arbitrary
+        symmetry-broken subset. An orbit is dropped if it collides with itself or with what
+        has already been accepted.
 
         Reasonable thresholds come from the sites the refinement *did* resolve: in
         Li3YCl3Br3 those sit 2.30-2.75 A from the nearest halide, and no two cation
         positions are closer than 2.22 A.
         """
-        min_halide_dist = self.void_radius
+        self.resolve(base)
+        min_anion_dist = self.void_radius
         min_separation = self.void_separation
 
-        y_only, li_bearing, halide = self.split_sites(base)
-        cations = np.array(y_only + li_bearing)
+        anions = np.array([site.frac_coords for site in base if self.mean_charge(site) < 0])
+        cations = np.array([site.frac_coords for site in base if self.mean_charge(site) >= 0])
+        if not len(anions):
+            raise ValueError('no anions to find voids between: check the charges')
         occupied = np.array([site.frac_coords for site in base])
         lattice = base.lattice
 
@@ -462,10 +523,10 @@ class GOACSweep:
             np.meshgrid(*[np.arange(n) / n for n in divisions], indexing='ij'), axis=-1
         ).reshape(-1, 3)
 
-        # Halides first: that thins the grid by orders of magnitude, so the second pass
+        # Anions first: that thins the grid by orders of magnitude, so the second pass
         # runs over a handful of points instead of the whole cell.
-        clearance = lattice.get_all_distances(grid, halide).min(axis=1)
-        keep = clearance >= max(min_halide_dist, min_separation)
+        clearance = lattice.get_all_distances(grid, anions).min(axis=1)
+        keep = clearance >= max(min_anion_dist, min_separation)
         grid, clearance = grid[keep], clearance[keep]
         if len(cations):
             keep = lattice.get_all_distances(grid, cations).min(axis=1) >= min_separation
@@ -503,83 +564,94 @@ class GOACSweep:
         return np.vstack(orbits) if orbits else np.zeros((0, 3))
 
     def add_void_interstitials(self, base: Structure) -> tuple[Structure, int]:
-        """`base` with the voids found by `find_void_interstitials` added as Li
-        sites.
+        """`base` with the voids found by `find_void_interstitials` added as
+        mobile sites.
 
         Only the *positions* of the added sites matter:
-        `build_input_structure` assigns every Li-bearing position a
-        fresh occupancy from the requested x, and reads the Y count off
+        `build_input_structure` assigns every mobile position a fresh
+        occupancy from the requested x, and reads the partner counts off
         the sites the refinement provided, none of which are touched
         here.
         """
         voids = self.find_void_interstitials(base)
         structure = base.copy()
         for frac in voids:
-            structure.insert(len(structure), 'Li', frac, label='Li_void')
+            structure.insert(len(structure), self.specie, frac, label=f'{self.specie}_void')
         return structure, len(voids)
 
     def build_input_structure(self, base: Structure, *, x: float) -> Structure:
         """Build the partially-occupied unit cell GOAC iterates over.
 
-        Li is spread over the interstitial positions as a single uniform partial occupancy,
-        so that GOAC groups them into one iterative site and permutes Li freely across all
-        of them — matching the paper's "Li distribution in interstitial positions".
+        The mobile species is spread over its positions as a single uniform partial
+        occupancy, so that GOAC groups them into one iterative site and permutes the ions
+        freely across all of them -- the paper's "Li distribution in interstitial
+        positions".
 
         Occupancies are per unit cell on purpose: GOAC builds the supercell itself after
         reading the CIF, and derives the ion count per site group from occupancy times the
         number of positions in that supercell. Passing absolute counts here would make the
         composition depend on the supercell.
 
-        With `disorder_y` the Y ions join the same group and are permuted along with Li.
-        This is the part of the problem the paper did *not* randomize; GOAC can, because it
-        optimizes the whole cation arrangement at once. Without it, Y is placed on the 2a
-        positions in the ideal ordered arrangement and only Li is permuted.
+        With `disorder_partners` the partner ions join the same group and are permuted
+        along with the mobile species. Without it, each partner-only position is filled
+        with its majority element and only the mobile species is permuted.
+
+        Framework sites shared by elements of one charge are collapsed onto the lightest
+        of them: GOAC treats them as constants, and the point-charge energy cannot tell
+        the difference. Framework sites with mixed charges or vacancies stay partially
+        occupied, one GOAC group per distinct composition.
         """
-        y_only, li_bearing, halide = self.split_sites(base)
+        self.resolve(base)
+        assert self.charges is not None and self.formula_units is not None
+        partner_only, mobile, framework = self.split_sites(base)
 
         species: list[dict[str, float]] = []
         coords: Coords = []
         labels: list[str] = []
 
-        n_li = x * FORMULA_UNITS_PER_CELL
-
-        if self.disorder_y:
-            # One group over every cation position, holding both Li and Y.
-            positions = y_only + li_bearing
-            n_y = self.count_y(base)
-            occ_li = n_li / len(positions)
-            occ_y = n_y / len(positions)
-            if occ_li + occ_y > 1.0:
-                raise ValueError(
-                    f'x={x:g} needs {n_li:g} Li next to {n_y} Y, but there are only '
-                    f'{len(positions)} cation positions per cell'
-                )
-            for frac in positions:
-                species.append({'Li': occ_li, 'Y': occ_y})
-                coords.append(frac)
-                labels.append('Li1')
-        else:
-            occ_li = n_li / len(li_bearing)
-            if occ_li > 1.0:
-                raise ValueError(
-                    f'x={x:g} needs {n_li:g} Li, but there are only {len(li_bearing)} '
-                    f'interstitial positions per cell'
-                )
-            for frac in li_bearing:
-                species.append({'Li': occ_li})
-                coords.append(frac)
-                labels.append('Li1')
-            for i, frac in enumerate(y_only):
-                species.append({'Y': 1.0})
-                coords.append(frac)
-                labels.append(f'Y{i + 2}')
-
-        # Collapse Cl/Br onto one fully-occupied halide species (see CHARGES), using Cl as
-        # the stand-in element. These sites are ordered, so GOAC treats them as constants.
-        for i, frac in enumerate(halide):
-            species.append({'Cl': 1.0})
+        def add(amounts: dict[str, float], frac: np.ndarray, label: str) -> None:
+            species.append(amounts)
             coords.append(frac)
-            labels.append(f'Cl{i + 1}')
+            labels.append(label)
+
+        group = {self.specie: x * self.formula_units}
+        positions = mobile
+        if self.disorder_partners:
+            positions = partner_only + mobile
+            group.update(self.partner_counts(base))
+        if sum(group.values()) > len(positions) + 1e-9:
+            wanted = ', '.join(f'{n:g} {element}' for element, n in group.items())
+            raise ValueError(
+                f'x={x:g} needs {wanted}, but there are only {len(positions)} positions '
+                'per cell'
+            )
+        occupancies = {element: n / len(positions) for element, n in group.items()}
+        for site in positions:
+            add(occupancies, site.frac_coords, f'{self.specie}1')
+
+        # Labels only need to be unique, apart from the ones shared on purpose by a group.
+        number = 2
+        if not self.disorder_partners:
+            for site in partner_only:
+                amounts = site.species.get_el_amt_dict()
+                element = max(amounts, key=amounts.get)
+                add({element: 1.0}, site.frac_coords, f'{element}{number}')
+                number += 1
+
+        groups: dict[tuple, str] = {}
+        for site in framework:
+            amounts = site.species.get_el_amt_dict()
+            one_charge = len({self.charges[element] for element in amounts}) == 1
+            if one_charge and sum(amounts.values()) > 0.999:
+                element = min(amounts, key=lambda el: Element(el).Z)
+                add({element: 1.0}, site.frac_coords, f'{element}{number}')
+                number += 1
+                continue
+            key = tuple(sorted(amounts.items()))
+            if key not in groups:
+                groups[key] = f'{key[0][0]}{number}'
+                number += 1
+            add(amounts, site.frac_coords, groups[key])
 
         return Structure(base.lattice, species, coords, labels=labels)
 
@@ -593,11 +665,15 @@ class GOACSweep:
         wrote, as (path, energy) pairs ordered best-first. Structures within `tol` eV of one
         already kept are dropped (see DEFAULT_TOL), so fewer than `n_best` may come back.
 
-        The two differ once the cell gets big: in a 2x1x2 supercell there are ~1e18 ways to
-        place the Li ions, so 100,000 random draws land well above the true minimum. The
-        paper stopped at random permutations and handed the best ones to DFT; the annealing
-        and genetic solvers below dig considerably deeper for the same cost.
+        The two differ once the cell gets big: in a 2x1x2 supercell of Li3YCl3Br3 there are
+        ~1e18 ways to place the Li ions, so 100,000 random draws land well above the true
+        minimum. The paper stopped at random permutations and handed the best ones to DFT;
+        the annealing and genetic solvers below dig considerably deeper for the same cost.
         """
+        import GOAC
+        from GOAC.IterationProblem import Iteration_Problem
+        from GOAC.RandomSolver import Random_Solver
+
         solver_name = SOLVERS[self.solver]
 
         # GOAC reports on every problem and every solver run of its own accord; `silence`
@@ -612,7 +688,7 @@ class GOACSweep:
                 problem = Iteration_Problem(
                     cif_file=str(cif_path),
                     fixed_sites=[],
-                    charges=CHARGES,
+                    charges=self.goac_charges(),
                     supercell=self.supercell,
                 )
             problem.calc_coulomb_matrices()
@@ -696,10 +772,14 @@ class GOACSweep:
     def run_sweep(self, base: Structure, workdir: Path) -> GOACResult:
         """Sample every composition in the range, reporting progress as it
         goes."""
+        self.resolve(base)
+        assert self.formula_units is not None
         cells = int(np.prod(self.supercell))
-        n_fu = FORMULA_UNITS_PER_CELL * cells
-        per_cell = self.li_positions_per_cell(base)
-        x_max = min(self.x_max, per_cell / FORMULA_UNITS_PER_CELL)
+        n_fu = self.formula_units * cells
+        per_cell = self.mobile_positions_per_cell(base)
+        x_max = per_cell / self.formula_units
+        if self.x_max is not None:
+            x_max = min(self.x_max, x_max)
 
         xs = np.arange(self.x_min, x_max + 1e-9, self.x_step)
         if not len(xs):
@@ -707,7 +787,10 @@ class GOACSweep:
 
         self.log(f'Sweeping x = {xs[0]:g} .. {xs[-1]:g} in steps of {self.x_step:g}')
         self.log(f'Supercell {self.supercell}, {self.samples} random configurations per point')
-        self.log(f'{per_cell * cells} Li interstitial positions for {n_fu} formula units\n')
+        self.log(
+            f'{per_cell * cells} {self.specie} positions for {n_fu} formula units '
+            f'of {self.host_formula(base)}\n'
+        )
 
         points = []
         bar = tqdm(
@@ -739,9 +822,12 @@ class GOACSweep:
             if self.quiet:
                 continue
 
-            n_li = int(round(x * n_fu))
+            n_mobile = int(round(x * n_fu))
             cif = f'  {best[0][0].name}' if best else ''
-            self.log(f'  x={x:5.2f}  n_Li={n_li:3d}  E_min={best_energy:10.3f} eV{cif}')
+            self.log(
+                f'  x={x:5.2f}  n_{self.specie}={n_mobile:3d}  '
+                f'E_min={best_energy:10.3f} eV{cif}'
+            )
             for rank, (cif_path, energy) in enumerate(best):
                 candidate = Structure.from_file(cif_path)
                 self.log(
@@ -754,25 +840,33 @@ class GOACSweep:
             n_formula_units=n_fu,
             workdir=workdir,
             scatter_max=self.scatter_max,
+            x_label=f'x in {self.specie}$_x${self.host_formula(base)}',
         )
 
     def run(self) -> GOACResult:
         """Load the CIF, add interstitials if asked, and run the whole
         sweep."""
+        if importlib.util.find_spec('GOAC') is None:
+            raise SystemExit(GOAC_MISSING)
+
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             base = Structure.from_file(self.cif)
         self.log(f'Loaded {self.cif}: {base.composition.formula}, {len(base)} sites')
+        # Before any voids are added, which would throw the oxidation-state guess off.
+        self.resolve(base)
+        self.log(f'Charges {self.charges}, {self.formula_units} formula units per cell')
 
+        assert self.formula_units is not None
         if self.extra_interstitials:
             base, n_added = self.add_void_interstitials(base)
-            available = self.li_positions_per_cell(base)
+            available = self.mobile_positions_per_cell(base)
             self.log(
                 f'Added {n_added} void interstitial positions: {available} positions per '
-                f'cell available to Li, so x <= {available / FORMULA_UNITS_PER_CELL:g}'
+                f'cell available to {self.specie}, so x <= {available / self.formula_units:g}'
             )
 
-        workdir = self.output or Path(tempfile.mkdtemp(prefix='goac_lycb_'))
+        workdir = self.output or Path(tempfile.mkdtemp(prefix='goac_sweep_'))
         workdir.mkdir(parents=True, exist_ok=True)
         self.log(f'Writing structures and sweep.png to {workdir}')
 
@@ -855,21 +949,43 @@ class DefaultsFormatter(argparse.HelpFormatter):
         return [head.ljust(pad) + lines[0], *(' ' * pad + line for line in lines[1:])]
 
 
+def parse_charges(text: str) -> tuple[str, float]:
+    """Parse one `--charges` entry, `EL=Q`."""
+    element, sep, charge = text.partition('=')
+    if not sep:
+        raise argparse.ArgumentTypeError(f'expected EL=Q, got {text!r}')
+    return element, float(charge)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__.splitlines()[0], formatter_class=DefaultsFormatter
     )
-    parser.add_argument('--cif', type=Path, default=DEFAULT_CIF, help='input CIF')
+    parser.add_argument('cif', type=Path, help='input CIF, may be partially occupied')
+    parser.add_argument('--specie', default='Li', help='mobile species to order')
+    parser.add_argument(
+        '--charges',
+        type=parse_charges,
+        nargs='+',
+        metavar='EL=Q',
+        help='formal charges, e.g. Li=1 Y=3 Cl=-1 Br=-1 (default: guessed from the CIF)',
+    )
+    parser.add_argument(
+        '--formula-units',
+        type=int,
+        help='formula units per cell that x is counted per (default: from the reduced '
+        'formula of everything but --specie)',
+    )
     parser.add_argument(
         '--supercell',
         type=int,
         nargs=3,
-        default=[2, 1, 2],
+        default=[1, 1, 1],
         metavar=('NA', 'NB', 'NC'),
-        help='supercell used for the Coulomb sum (paper uses 2 1 2)',
+        help='supercell used for the Coulomb sum (the Li3YCl3Br3 paper uses 2 1 2)',
     )
     parser.add_argument(
-        '--samples', type=int, default=100000, help='random Li orderings per composition'
+        '--samples', type=int, default=100000, help='random orderings per composition'
     )
     parser.add_argument(
         '--solver',
@@ -890,21 +1006,22 @@ def build_parser() -> argparse.ArgumentParser:
         help='random starting points for the optimizing solvers',
     )
     parser.add_argument(
-        '--disorder-y',
+        '--disorder-partners',
         action='store_true',
-        help='also permute Y over the cation positions (GOAC can, the paper did not)',
+        help='also permute the elements sharing sites with --specie (Y in Li3YCl3Br3) '
+        'over those positions',
     )
     parser.add_argument(
         '--extra-interstitials',
         action='store_true',
-        help='add the empty voids of the halide sublattice to the Li positions, so that x '
-        'can go beyond the cap set by the Li sites the refinement resolved',
+        help='add the empty voids of the anion sublattice to the mobile positions, so that '
+        'x can go beyond the cap set by the sites the CIF lists',
     )
     parser.add_argument(
         '--void-radius',
         type=float,
         default=2.3,
-        help='minimum distance in Å from a halide for a void to count as an interstitial '
+        help='minimum distance in Å from an anion for a void to count as an interstitial '
         'site (only with --extra-interstitials)',
     )
     parser.add_argument(
@@ -940,9 +1057,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '--x-max',
         type=float,
-        default=8.0,
-        help='clamped to the number of positions available to Li in the cell (8 for the '
-        'refined CIF, more with --extra-interstitials)',
+        help='highest x to sample (default: every mobile position filled, more with '
+        '--extra-interstitials)',
     )
     parser.add_argument('--x-step', type=float, default=0.5, help='spacing in x')
     parser.add_argument(
