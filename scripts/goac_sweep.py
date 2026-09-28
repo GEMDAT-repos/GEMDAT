@@ -119,6 +119,23 @@ SOLVERS = {
 Coords = list[np.ndarray]
 
 
+def count_formula_units(base: Structure, specie: str) -> int:
+    """Formula units per cell of `base`, the host that x is counted per.
+
+    The formula unit is the reduced formula of everything but `specie`,
+    so that x counts mobile ions per formula unit of the host. When that
+    composition is fractional (Sb1.7 W0.3 S8), the positions are counted
+    instead, per distinct site composition.
+    """
+    amounts = [a for el, a in base.composition.items() if el.symbol != specie]
+    if all(abs(a - round(a)) < 1e-3 for a in amounts):
+        counts = [round(a) for a in amounts]
+    else:
+        sites = [str(s.species) for s in base if specie not in s.species.get_el_amt_dict()]
+        counts = [sites.count(key) for key in set(sites)]
+    return math.gcd(*counts) or 1
+
+
 class Table(str):
     def __repr__(self) -> str:
         return str(self)
@@ -260,7 +277,7 @@ class GOACSweep:
         output: Path | None = None,
         x_min: float = 0.0,
         x_max: float | None = None,
-        x_step: float = 0.5,
+        x_step: float | None = None,
         scatter_max: int = 2000,
         quiet: bool = False,
         progress: bool = False,
@@ -296,11 +313,7 @@ class GOACSweep:
 
         Charges are pymatgen's most likely oxidation states for the
         composition, which needs it to be integer and charge-balanced.
-        The formula unit is the reduced formula of everything but the
-        mobile species, so that x counts mobile ions per formula unit of
-        the host. When that composition is fractional (Sb1.7 W0.3 S8),
-        the positions are counted instead, per distinct site
-        composition.
+        Formula units come from `count_formula_units`.
         """
         if self.charges is None:
             try:
@@ -314,14 +327,7 @@ class GOACSweep:
                 )
             self.charges = dict(guesses[0])
         if self.formula_units is None:
-            amounts = [a for el, a in base.composition.items() if el.symbol != self.specie]
-            if all(abs(a - round(a)) < 1e-3 for a in amounts):
-                counts = [round(a) for a in amounts]
-            else:
-                partner_only, _, framework = self.split_sites(base)
-                sites = [str(site.species) for site in partner_only + framework]
-                counts = [sites.count(key) for key in set(sites)]
-            self.formula_units = math.gcd(*counts) or 1
+            self.formula_units = count_formula_units(base, self.specie)
 
     def host_formula(self, base: Structure) -> str:
         """Formula of one formula unit of everything but the mobile species."""
@@ -781,11 +787,13 @@ class GOACSweep:
         if self.x_max is not None:
             x_max = min(self.x_max, x_max)
 
-        xs = np.arange(self.x_min, x_max + 1e-9, self.x_step)
+        # By default one mobile ion per unit cell.
+        x_step = self.x_step or 1 / self.formula_units
+        xs = np.arange(self.x_min, x_max + 1e-9, x_step)
         if not len(xs):
             raise SystemExit(f'--x-min {self.x_min:g} is above the reachable x <= {x_max:g}')
 
-        self.log(f'Sweeping x = {xs[0]:g} .. {xs[-1]:g} in steps of {self.x_step:g}')
+        self.log(f'Sweeping x = {xs[0]:g} .. {xs[-1]:g} in steps of {x_step:g}')
         self.log(f'Supercell {self.supercell}, {self.samples} random configurations per point')
         self.log(
             f'{per_cell * cells} {self.specie} positions for {n_fu} formula units '
@@ -1060,7 +1068,9 @@ def build_parser() -> argparse.ArgumentParser:
         help='highest x to sample (default: every mobile position filled, more with '
         '--extra-interstitials)',
     )
-    parser.add_argument('--x-step', type=float, default=0.5, help='spacing in x')
+    parser.add_argument(
+        '--x-step', type=float, help='spacing in x (default: one mobile ion per unit cell)'
+    )
     parser.add_argument(
         '--scatter-max',
         type=int,

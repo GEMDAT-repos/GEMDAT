@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import random
+import tempfile
 import warnings
 from pathlib import Path
 
@@ -167,6 +168,7 @@ def optimize(
     n_high: int,
     n_low: int,
     n_mid: int,
+    progress: bool = False,
 ) -> dict[str, Keeper]:
     """Draw `tries` random configurations of `n_keep` atoms and keep the
     extremes."""
@@ -181,7 +183,13 @@ def optimize(
         # Only one configuration exists; drawing more of them is pointless.
         tries = 1
 
-    for _ in tqdm(range(tries), desc=f'{n_keep:>3d} {symbol}', unit=' tries', leave=False):
+    for _ in tqdm(
+        range(tries),
+        desc=f'{n_keep:>3d} {symbol}',
+        unit=' tries',
+        leave=False,
+        disable=not progress,
+    ):
         while True:
             candidate = remove_specie(structure, n_keep, symbol)
             try:
@@ -237,8 +245,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '--n-max',
         type=int,
-        help='highest number of atoms in the output cell (default: every position)',
+        help='highest number of atoms in the output cell, clamped to the number of '
+        'positions (default: every position)',
     )
+    parser.add_argument('--n-step', type=int, default=1, help='spacing in the number of atoms')
     parser.add_argument(
         '--tries', type=int, default=1000, help='random draws per concentration'
     )
@@ -257,8 +267,10 @@ def build_parser() -> argparse.ArgumentParser:
         help='input is already ordered with every position taken',
     )
     parser.add_argument('--seed', type=int, default=0, help='random seed')
+    parser.add_argument('--workdir', type=Path, help='output directory (default: a temp dir)')
+    parser.add_argument('--quiet', action='store_true', help="don't report progress")
     parser.add_argument(
-        '--workdir', type=Path, default=Path('randomized_distribution'), help='output directory'
+        '--progress', action='store_true', help='draw a progress bar over the draws on stderr'
     )
     return parser
 
@@ -270,6 +282,7 @@ def run(
     supercell: list[int] | None = None,
     n_min: int = 0,
     n_max: int | None = None,
+    n_step: int = 1,
     tries: int = 1000,
     n_high: int = 8,
     n_low: int = 4,
@@ -277,12 +290,16 @@ def run(
     cutoff: float | None = None,
     fill: bool = True,
     seed: int = 0,
-    workdir: Path = Path('randomized_distribution'),
+    workdir: Path | None = None,
+    quiet: bool = False,
+    progress: bool = False,
 ) -> dict[int, dict[str, Keeper]]:
-    """Screen every `specie` count from `n_min` to `n_max` and write the kept
-    configurations under `workdir`, returning them per count."""
+    """Screen every `n_step`-th `specie` count from `n_min` to `n_max` and
+    write the kept configurations under `workdir` (a fresh temp directory if
+    not given), returning them per count."""
+    log = (lambda *_: None) if quiet else print
     random.seed(seed)
-    workdir = Path(workdir)
+    workdir = Path(workdir or tempfile.mkdtemp(prefix='randomized_distribution_'))
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')  # partial occupancies are expected here
@@ -296,20 +313,18 @@ def run(
         )
 
     n_sites = len(structure.indices_from_symbol(specie))
-    if n_max is None:
-        n_max = n_sites
-    if not 0 <= n_min <= n_max <= n_sites:
+    n_max = n_sites if n_max is None else min(n_max, n_sites)
+    if not 0 <= n_min <= n_max:
         raise SystemExit(
-            f'--n-min/--n-max must satisfy 0 <= n-min <= n-max <= {n_sites} '
-            f'({specie} positions in this cell)'
+            f'--n-min {n_min} is outside 0..{n_sites} ({specie} positions in this cell)'
         )
 
-    print(f'{structure.composition.reduced_formula}, {len(structure)} sites')
-    print(f'{n_sites} {specie} positions, screening {n_min}..{n_max}')
-    print(f'{tries} random draws per concentration\n')
+    log(f'{structure.composition.reduced_formula}, {len(structure)} sites')
+    log(f'{n_sites} {specie} positions, screening {n_min}..{n_max}')
+    log(f'{tries} random draws per concentration\n')
 
     results = {}
-    for n_keep in range(n_min, n_max + 1):
+    for n_keep in range(n_min, n_max + 1, n_step):
         keepers = optimize(
             structure,
             n_keep=n_keep,
@@ -319,6 +334,7 @@ def run(
             n_high=n_high,
             n_low=n_low,
             n_mid=n_mid,
+            progress=progress,
         )
         write_results(keepers, workdir, n_keep, specie)
         results[n_keep] = keepers
@@ -327,9 +343,9 @@ def run(
         low = keepers['Low'].sorted_pairs()
         best = high[0][0] if high else 0.0
         worst = low[0][0] if low else 0.0
-        print(f'{n_keep:>3d} {specie}: max total distance {best:10.3f}, min {worst:10.3f}')
+        log(f'{n_keep:>3d} {specie}: max total distance {best:10.3f}, min {worst:10.3f}')
 
-    print(f'\nWrote configurations to {workdir}')
+    log(f'\nWrote configurations to {workdir}')
     return results
 
 
