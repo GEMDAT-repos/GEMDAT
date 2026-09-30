@@ -1,0 +1,357 @@
+"""Screen orderings of a species by maximizing its interatomic distance.
+
+Adapted from a script by A. Klavrinenko (after T. Schwietert and N. de Klerk) so that it
+runs from the command line on any platform and reads partially-occupied CIFs directly.
+The algorithm is unchanged:
+
+    1. Fill every position of the chosen specie (`--specie`, Li by default).
+    2. Draw a random subset of `n` of those positions and delete the rest.
+    3. Score the draw by the sum of all pairwise `specie`-`specie` distances
+       (minimum-image, from pymatgen's `distance_matrix`).
+    4. Keep the configurations with the highest, middle and lowest score.
+
+Configurations with the largest total distance tend to have the lowest electrostatic
+energy, considering only interactions within the specie of interest, so this is a cheap
+stand-in for the Coulomb pre-screening in `goac_sweep.py` (which scores the same kind of
+random draws with a real Ewald sum over *all* ions). Use this one when you want
+candidates without installing GOAC, or to sanity-check its output; prefer GOAC when the
+counter-ion sublattice matters.
+
+The input CIF may be partially occupied: `--fill` (the default) rebuilds it into the
+ordered "every position taken" cell the algorithm expects. For gemdat's bundled
+Li3YCl3Br3-c2m.cif that means 16 Li positions, Y on the two 2a positions, and 12 halide
+positions.
+
+    NOTE on other disordered sites: sites that do not hold `specie` but are shared by
+    several elements (Cl/Br at 50/50 in Li3YCl3Br3, Sb/W in Na3SbS4) have to be
+    committed to one arrangement in an ordered cell. `--fill` picks a random one in
+    proportion to the occupancies (governed by `--seed`) and keeps it fixed for the whole
+    run. This script does not optimize it -- only the `specie` sublattice is screened.
+    Settle that ordering separately, e.g. with DFT.
+
+Examples
+--------
+    # sweep every Li count from 0 to 16 in the unit cell
+    python scripts/randomized_distribution.py src/gemdat/data/Li3YCl3Br3-c2m.cif \
+        --workdir out/
+
+    # a single Na count, more draws, in a 2x2x2 supercell
+    python scripts/randomized_distribution.py tests/data/na3sbs4/structure_1.cif \
+        --specie Na --n-min 40 --n-max 40 --supercell 2 2 2 --tries 100000 --workdir out/
+
+From Python, `run(cif, ...)` takes the same options as the command line and returns the
+kept configurations per count.
+"""
+
+from __future__ import annotations
+
+import argparse
+import random
+import tempfile
+import warnings
+from pathlib import Path
+
+import numpy as np
+from pymatgen.core import Structure
+from pymatgen.io.vasp.inputs import Poscar
+from tqdm import tqdm
+
+
+def fill_sites(base: Structure, symbol: str, rng: random.Random) -> Structure:
+    """Rebuild a partially-occupied cell with every `symbol` position taken.
+
+    Sites that hold `symbol` (alone or shared with another element, as
+    Li2/Y9 are here) become fully-occupied `symbol` sites. Any other
+    disordered site is committed to a random arrangement in proportion
+    to its refined occupancies, which keeps the overall stoichiometry
+    while making the cell writable as a POSCAR.
+    """
+    species: list[str] = []
+    coords: list = []
+
+    shared: dict[tuple, list[int]] = {}
+    for site in base:
+        amounts = site.species.get_el_amt_dict()
+        if symbol in amounts:
+            species.append(symbol)
+            coords.append(site.frac_coords)
+        elif len(amounts) == 1:
+            species.append(next(iter(amounts)))
+            coords.append(site.frac_coords)
+        else:
+            # Disordered non-`symbol` site (e.g. Cl/Br): defer, so that all
+            # positions sharing the same composition are split as one group.
+            key = tuple(sorted((el, round(amt, 4)) for el, amt in amounts.items()))
+            shared.setdefault(key, []).append(len(species))
+            species.append('')  # placeholder, filled in below
+            coords.append(site.frac_coords)
+
+    for key, indices in shared.items():
+        elements = [el for el, _ in key]
+        occupancies = np.array([amt for _, amt in key], dtype=float)
+        counts = np.round(occupancies / occupancies.sum() * len(indices)).astype(int)
+        counts[-1] = len(indices) - counts[:-1].sum()
+        assignment = [el for el, count in zip(elements, counts) for _ in range(count)]
+        rng.shuffle(assignment)
+        for index, element in zip(indices, assignment):
+            species[index] = element
+
+    return Structure(base.lattice, species, coords)
+
+
+def remove_specie(structure: Structure, n_keep: int, symbol: str) -> Structure:
+    """Return a copy of `structure` with all but `n_keep` random `symbol` sites
+    deleted."""
+    indices = structure.indices_from_symbol(symbol)
+    drop = random.sample(list(indices), len(indices) - n_keep)
+    new_structure = structure.copy()
+    new_structure.remove_sites(drop)
+    return new_structure
+
+
+def total_distance(structure: Structure, symbol: str, cutoff: float | None) -> float:
+    """Sum of all pairwise `symbol`-`symbol` distances.
+
+    Raises `ValueError` when any pair sits closer than `cutoff`, which
+    the caller uses to reject the draw and try again.
+    """
+    indices = list(structure.indices_from_symbol(symbol))
+    distances = structure.distance_matrix[indices, :][:, indices]
+    pairs = distances[np.triu_indices_from(distances, k=1)]
+    if cutoff is not None and np.any(pairs <= cutoff):
+        raise ValueError('distances below cutoff found')
+    return float(pairs.sum())
+
+
+class Keeper:
+    """Keeps the `size` configurations whose score is most extreme in one
+    direction."""
+
+    def __init__(self, size: int, *, best: str):
+        self.size = size
+        self.best = best  # 'high', 'low' or 'mid'
+        self.scores: list[float] = []
+        self.structures: list[Structure] = []
+
+    def _key(self, score: float, target: float) -> float:
+        if self.best == 'high':
+            return -score
+        if self.best == 'low':
+            return score
+        return abs(score - target)
+
+    def offer(self, score: float, structure: Structure, target: float = 0.0) -> None:
+        keys = [self._key(s, target) for s in self.scores]
+        if len(self.scores) < self.size:
+            self.scores.append(score)
+            self.structures.append(structure.copy())
+        elif self._key(score, target) < max(keys):
+            worst = int(np.argmax(keys))
+            self.scores[worst] = score
+            self.structures[worst] = structure.copy()
+
+    def sorted_pairs(self) -> list[tuple[float, Structure]]:
+        """Configurations, best first."""
+        order = np.argsort(self.scores)
+        if self.best == 'high':
+            order = order[::-1]
+        return [(self.scores[i], self.structures[i]) for i in order]
+
+
+def optimize(
+    structure: Structure,
+    *,
+    n_keep: int,
+    tries: int,
+    symbol: str,
+    cutoff: float | None,
+    n_high: int,
+    n_low: int,
+    n_mid: int,
+    progress: bool = False,
+) -> dict[str, Keeper]:
+    """Draw `tries` random configurations of `n_keep` atoms and keep the
+    extremes."""
+    keepers = {
+        'High': Keeper(n_high, best='high'),
+        'Low': Keeper(n_low, best='low'),
+        'Mid': Keeper(n_mid, best='mid'),
+    }
+
+    n_sites = len(structure.indices_from_symbol(symbol))
+    if n_keep in (0, n_sites):
+        # Only one configuration exists; drawing more of them is pointless.
+        tries = 1
+
+    for _ in tqdm(
+        range(tries),
+        desc=f'{n_keep:>3d} {symbol}',
+        unit=' tries',
+        leave=False,
+        disable=not progress,
+    ):
+        while True:
+            candidate = remove_specie(structure, n_keep, symbol)
+            try:
+                score = total_distance(candidate, symbol, cutoff)
+            except ValueError:
+                continue  # below cutoff: redraw
+            break
+
+        keepers['High'].offer(score, candidate)
+        keepers['Low'].offer(score, candidate)
+
+        # The middle is defined against the extremes found so far, so early draws are
+        # judged against a moving target. This mirrors the original script.
+        if keepers['High'].scores and keepers['Low'].scores:
+            target = (max(keepers['High'].scores) + min(keepers['Low'].scores)) / 2
+            keepers['Mid'].offer(score, candidate, target)
+
+    return keepers
+
+
+def write_results(keepers: dict[str, Keeper], workdir: Path, n_keep: int, symbol: str) -> None:
+    """Write each kept configuration as a POSCAR under
+    `workdir/<n>_<symbol>/<label>/`."""
+    root = workdir / f'{n_keep}_{symbol}'
+    for label, keeper in keepers.items():
+        directory = root / label
+        directory.mkdir(parents=True, exist_ok=True)
+        for i, (score, structure) in enumerate(keeper.sorted_pairs(), start=1):
+            path = directory / f'POSCAR_{i}'
+            # Sorted, so that each element gets a single block in the POSCAR header
+            # instead of one per site group.
+            Poscar(structure=structure.get_sorted_structure()).write_file(str(path))
+            (directory / f'POSCAR_{i}.distance').write_text(f'{score:.6f}\n')
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument('cif', type=Path, help='input structure, may be partially occupied')
+    parser.add_argument('--specie', default='Li', help='specie to distribute')
+    parser.add_argument(
+        '--supercell',
+        type=int,
+        nargs=3,
+        metavar=('A', 'B', 'C'),
+        default=[1, 1, 1],
+        help='supercell to build before screening',
+    )
+    parser.add_argument(
+        '--n-min', type=int, default=0, help='lowest number of atoms in the output cell'
+    )
+    parser.add_argument(
+        '--n-max',
+        type=int,
+        help='highest number of atoms in the output cell, clamped to the number of '
+        'positions (default: every position)',
+    )
+    parser.add_argument('--n-step', type=int, default=1, help='spacing in the number of atoms')
+    parser.add_argument(
+        '--tries', type=int, default=1000, help='random draws per concentration'
+    )
+    parser.add_argument('--n-high', type=int, default=8, help='configurations to keep, highest')
+    parser.add_argument('--n-low', type=int, default=4, help='configurations to keep, lowest')
+    parser.add_argument('--n-mid', type=int, default=4, help='configurations to keep, middle')
+    parser.add_argument(
+        '--cutoff',
+        type=float,
+        help='reject draws with any pair closer than this, in angstrom',
+    )
+    parser.add_argument(
+        '--no-fill',
+        dest='fill',
+        action='store_false',
+        help='input is already ordered with every position taken',
+    )
+    parser.add_argument('--seed', type=int, default=0, help='random seed')
+    parser.add_argument('--workdir', type=Path, help='output directory (default: a temp dir)')
+    parser.add_argument('--quiet', action='store_true', help="don't report progress")
+    parser.add_argument(
+        '--progress', action='store_true', help='draw a progress bar over the draws on stderr'
+    )
+    return parser
+
+
+def run(
+    cif: Path,
+    *,
+    specie: str = 'Li',
+    supercell: list[int] | None = None,
+    n_min: int = 0,
+    n_max: int | None = None,
+    n_step: int = 1,
+    tries: int = 1000,
+    n_high: int = 8,
+    n_low: int = 4,
+    n_mid: int = 4,
+    cutoff: float | None = None,
+    fill: bool = True,
+    seed: int = 0,
+    workdir: Path | None = None,
+    quiet: bool = False,
+    progress: bool = False,
+) -> dict[int, dict[str, Keeper]]:
+    """Screen every `n_step`-th `specie` count from `n_min` to `n_max` and
+    write the kept configurations under `workdir` (a fresh temp directory if
+    not given), returning them per count."""
+    log = (lambda *_: None) if quiet else print
+    random.seed(seed)
+    workdir = Path(workdir or tempfile.mkdtemp(prefix='randomized_distribution_'))
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')  # partial occupancies are expected here
+        base = Structure.from_file(cif)
+
+    structure = fill_sites(base, specie, random.Random(seed)) if fill else base
+    structure.make_supercell(supercell or [1, 1, 1])
+    if not structure.is_valid():
+        raise SystemExit(
+            'structure is not valid: it contains atoms that are too close together'
+        )
+
+    n_sites = len(structure.indices_from_symbol(specie))
+    n_max = n_sites if n_max is None else min(n_max, n_sites)
+    if not 0 <= n_min <= n_max:
+        raise SystemExit(
+            f'--n-min {n_min} is outside 0..{n_sites} ({specie} positions in this cell)'
+        )
+
+    log(f'{structure.composition.reduced_formula}, {len(structure)} sites')
+    log(f'{n_sites} {specie} positions, screening {n_min}..{n_max}')
+    log(f'{tries} random draws per concentration\n')
+
+    results = {}
+    for n_keep in range(n_min, n_max + 1, n_step):
+        keepers = optimize(
+            structure,
+            n_keep=n_keep,
+            tries=tries,
+            symbol=specie,
+            cutoff=cutoff,
+            n_high=n_high,
+            n_low=n_low,
+            n_mid=n_mid,
+            progress=progress,
+        )
+        write_results(keepers, workdir, n_keep, specie)
+        results[n_keep] = keepers
+
+        high = keepers['High'].sorted_pairs()
+        low = keepers['Low'].sorted_pairs()
+        best = high[0][0] if high else 0.0
+        worst = low[0][0] if low else 0.0
+        log(f'{n_keep:>3d} {specie}: max total distance {best:10.3f}, min {worst:10.3f}')
+
+    log(f'\nWrote configurations to {workdir}')
+    return results
+
+
+def main() -> None:
+    run(**vars(build_parser().parse_args()))
+
+
+if __name__ == '__main__':
+    main()
