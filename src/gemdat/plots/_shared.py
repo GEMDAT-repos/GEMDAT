@@ -7,14 +7,19 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap, to_rgb
-from pymatgen.core import Element, Species
+from pymatgen.core import Element, Species, Structure
+from scipy.ndimage import map_coordinates
 from scipy.optimize import curve_fit
 from scipy.stats import skewnorm
 
+from gemdat.symmetry import SymmetryAnalyzer, _site_images
+
 if TYPE_CHECKING:
+    from gemdat.crystallizer import CrystallizerScan
     from gemdat.jumps import Jumps
     from gemdat.orientations import Orientations
     from gemdat.trajectory import Trajectory
+    from gemdat.volume import Volume
 
 
 def _mean_displacements_per_element(
@@ -131,6 +136,20 @@ def density_matching_cmap_mpl():
     return custom_cmap
 
 
+def density_matching_colorscale_plotly() -> list[tuple[float, str]]:
+    """Plotly colorscale equal to `density_matching_cmap_mpl`."""
+    cmap = density_matching_cmap_mpl()
+    return [
+        (
+            float(pos),
+            'rgba({:.0f},{:.0f},{:.0f},{:.3f})'.format(
+                *np.multiply(cmap(pos), 255)[:3], cmap(pos)[3]
+            ),
+        )
+        for pos in np.linspace(0, 1, 32)
+    ]
+
+
 @dataclass
 class VibrationalAmplitudeHist:
     amplitudes: np.ndarray
@@ -226,3 +245,94 @@ def _jumps_vs_distance(jumps: Jumps, *, resolution: float, n_parts: int) -> pd.D
     df = mean.merge(std, how='inner')
 
     return df
+
+
+def _specie_sites(scan: CrystallizerScan, specie: str | None) -> tuple[str, list[int]]:
+    """The species (default: the mobile one) and the indices of its sites."""
+    if scan.crystallizer is None:
+        raise ValueError('This scan carries no density; make it with `Crystallizer.scan()`.')
+    specie = specie or scan.crystallizer.floating_specie
+    indices = [i for i, site in enumerate(scan.geometry) if site.specie.symbol == specie]
+    if not indices:
+        raise ValueError(f'The scan has no {specie} sites.')
+    return specie, indices
+
+
+def _crystallizer_fit(scan: CrystallizerScan, symprec: float | None):
+    """Symmetry analyzer, tolerance and spglib dataset of the fit to plot."""
+    symprec = scan.ranking.best().symprec if symprec is None else symprec
+    analyzer = SymmetryAnalyzer(scan.geometry, angle_tolerance=scan.angle_tolerance)
+    return analyzer, symprec, analyzer._dataset(symprec)
+
+
+def _crystallizer_sites(
+    scan: CrystallizerScan, symprec: float | None, specie: str | None
+) -> tuple[str, Structure, Volume]:
+    """Data for `crystallizer_sites`.
+
+    Returns the title, the idealised sites of `specie` (default: the
+    mobile species) with their occupancies and labelled by orbit
+    (Wyckoff letter and multiplicity), and the density of `specie`.
+    """
+    specie, indices = _specie_sites(scan, specie)
+    density = scan.density(specie)
+    analyzer, symprec, dataset = _crystallizer_fit(scan, symprec)
+    ideal = analyzer.idealise(symprec).frac_coords % 1.0
+    orbits = np.array(dataset.equivalent_atoms)
+
+    labels = []
+    for i in indices:
+        multiplicity = (orbits == orbits[i]).sum()
+        labels.append(f'{specie} {dataset.wyckoffs[orbits[i]]} ({multiplicity})')
+    sites = Structure(
+        lattice=scan.geometry.lattice,
+        species=[{specie: scan.occupancies[i]} for i in indices],
+        coords=ideal[indices],
+        labels=labels,
+    )
+
+    title = f'{dataset.international} (#{dataset.number}) at symprec={symprec:.3g} Å'
+    return title, sites, density
+
+
+def _crystallizer_site_images(
+    scan: CrystallizerScan,
+    symprec: float | None,
+    specie: str | None,
+    site: int | None,
+    width: float,
+    resolution: float,
+) -> tuple[str, np.ndarray, np.ndarray, np.ndarray]:
+    """Data for `crystallizer_site_images`.
+
+    Returns the title, the box axis ticks (Å), the density of the site's
+    species sampled on a Cartesian box around the ideal site, and the
+    images in Cartesian coordinates (Å) relative to the ideal site.
+    """
+    if site is None:
+        site = _specie_sites(scan, specie)[1][0]
+    density = scan.density(scan.geometry[site].specie.symbol)
+    analyzer, symprec, dataset = _crystallizer_fit(scan, symprec)
+    lattice = scan.geometry.lattice
+
+    actual = scan.geometry.frac_coords[site]
+    ideal = analyzer.idealise(symprec).frac_coords[site]
+    ideal = ideal - np.round(ideal - actual)
+    center = lattice.get_cartesian_coords(ideal)
+    images = _site_images(scan.geometry, dataset)[:, site]
+    images = lattice.get_cartesian_coords(images) - center
+
+    # Sample the density on a Cartesian box around the site, interpolating
+    # linearly between voxel centres ((i + 1/2) / n) under periodic boundaries.
+    ticks = np.arange(-width, width + resolution / 2, resolution)
+    grid = np.stack(np.meshgrid(ticks, ticks, ticks, indexing='ij'), axis=-1)
+    frac = lattice.get_fractional_coords(grid.reshape(-1, 3) + center) % 1.0
+    voxels = frac * density.dims - 0.5
+    box = map_coordinates(density.data, voxels.T, order=1, mode='grid-wrap')
+    box = box.reshape(grid.shape[:3])
+
+    title = (
+        f'Site {site} ({scan.geometry[site].specie} {dataset.wyckoffs[site]}) in '
+        f'{dataset.international} (#{dataset.number}) at symprec={symprec:.3g} Å'
+    )
+    return title, ticks, box, images

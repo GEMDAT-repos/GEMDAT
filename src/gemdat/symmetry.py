@@ -287,13 +287,54 @@ def _site_types(structure: Structure) -> np.ndarray:
     return np.array(types)
 
 
+def _site_images(structure: Structure, dataset: Any) -> np.ndarray:
+    """The images that each symmetry operation maps onto each site.
+
+    Every operation is applied to all sites and its images are matched
+    one-to-one onto the sites of the same type.
+
+    Parameters
+    ----------
+    structure : Structure
+        Structure the operations act on.
+    dataset : SpglibDataset
+        Symmetry dataset of the fit, from
+        [pymatgen.symmetry.analyzer.SpacegroupAnalyzer.get_symmetry_dataset][].
+
+    Returns
+    -------
+    np.ndarray
+        `(n_operations, n_sites, 3)` fractional coordinates: entry `[k, i]` is
+        the image under operation `k` that landed on site `i`, unwrapped to
+        the periodic copy closest to that site.
+    """
+    frac_coords = structure.frac_coords
+    types = _site_types(structure)
+    # An operation may only map a site onto a site of the same type.
+    forbidden = types[:, None] != types[None, :]
+
+    # One operation at a time: the distances are measured with the lattice
+    # metric under periodic boundaries, and batching operations only makes the
+    # intermediates bigger without going faster. Cost grows as
+    # operations x sites^2, which is why this is not done for every tolerance
+    # in a scan.
+    images = np.empty((len(dataset.rotations), *frac_coords.shape))
+    for k, (rotation, translation) in enumerate(zip(dataset.rotations, dataset.translations)):
+        image = frac_coords @ np.asarray(rotation).T + np.asarray(translation)
+        distances = structure.lattice.get_all_distances(image, frac_coords)
+        distances[forbidden] = np.inf
+        rows, columns = linear_sum_assignment(distances)
+        offset = image[rows] - frac_coords[columns]
+        images[k, columns] = frac_coords[columns] + offset - np.round(offset)
+    return images
+
+
 def _idealising_shift(structure: Structure, dataset: Any) -> np.ndarray:
     """Fractional shift per site onto the closest structure with exactly the
     symmetry in `dataset`.
 
-    Every operation is applied to all sites and its images are matched
-    onto the sites of the same type. The ideal position of a site
-    is then the mean of the images that landed on it.
+    The ideal position of a site is the mean of the images that landed on it
+    (see `_site_images`), with the origin refined.
 
     Parameters
     ----------
@@ -309,26 +350,8 @@ def _idealising_shift(structure: Structure, dataset: Any) -> np.ndarray:
         `(n_sites, 3)` fractional shifts, ideal minus actual position. These
         are small displacements, not wrapped into the unit cell.
     """
-    frac_coords = structure.frac_coords
-    types = _site_types(structure)
-    # An operation may only map a site onto a site of the same type.
-    forbidden = types[:, None] != types[None, :]
-
-    # One operation at a time: the distances are measured with the lattice
-    # metric under periodic boundaries, and batching operations only makes the
-    # intermediates bigger without going faster. Cost grows as
-    # operations x sites^2, which is why this is not done for every tolerance
-    # in a scan.
+    shift = _site_images(structure, dataset).mean(axis=0) - structure.frac_coords
     rotations = [np.asarray(rotation) for rotation in dataset.rotations]
-    offsets = np.zeros_like(frac_coords)
-    for rotation, translation in zip(rotations, dataset.translations):
-        images = frac_coords @ rotation.T + np.asarray(translation)
-        distances = structure.lattice.get_all_distances(images, frac_coords)
-        distances[forbidden] = np.inf
-        rows, columns = linear_sum_assignment(distances)
-        offset = images[rows] - frac_coords[columns]
-        offsets[columns] += offset - np.round(offset)
-    shift = offsets / len(rotations)
 
     # Refine the origin: minimise sum_i |C^T (shift_i + M s)|^2 over s.
     to_cartesian = structure.lattice.matrix.T
@@ -438,6 +461,21 @@ class SymmetryAnalyzer:
 
         return deviation, angle_deviation, None
 
+    def _dataset(self, symprec: float) -> Any:
+        """The spglib symmetry dataset at `symprec`, raising if there is
+        none."""
+        try:
+            dataset = SpacegroupAnalyzer(
+                self.structure, symprec=symprec, angle_tolerance=self.angle_tolerance
+            ).get_symmetry_dataset()
+            if dataset is None:
+                raise ValueError('spglib could not determine a symmetry dataset.')
+        except Exception as exc:
+            raise ValueError(
+                f'Could not determine symmetry at symprec={symprec}: {exc}'
+            ) from exc
+        return dataset
+
     def idealise(self, symprec: float) -> Structure:
         """Return the closest structure with exactly the space group found at
         `symprec`.
@@ -476,17 +514,7 @@ class SymmetryAnalyzer:
             If no symmetry could be determined at `symprec`.
         """
         structure = self.structure
-        try:
-            dataset = SpacegroupAnalyzer(
-                structure, symprec=symprec, angle_tolerance=self.angle_tolerance
-            ).get_symmetry_dataset()
-            if dataset is None:
-                raise ValueError('spglib could not determine a symmetry dataset.')
-        except Exception as exc:
-            raise ValueError(
-                f'Could not determine symmetry at symprec={symprec}: {exc}'
-            ) from exc
-
+        dataset = self._dataset(symprec)
         coords = (structure.frac_coords + _idealising_shift(structure, dataset)) % 1.0
         return Structure(
             lattice=_idealised_lattice(dataset),

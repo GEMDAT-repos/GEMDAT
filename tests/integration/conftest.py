@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from gemdat.crystallizer import Crystallizer
 from gemdat.io import load_known_material
 from gemdat.jumps import Jumps
 from gemdat.metrics import ArrheniusFit
@@ -85,6 +86,12 @@ def na3sbs4_traj():
         return Trajectory.from_cache(NA3SBS4_CACHE)
     except Exception as exc:  # noqa: BLE001 - pickle/version drift is not a test failure
         pytest.skip(f'could not load {NA3SBS4_CACHE.name}: {exc!r}')
+
+
+@pytest.fixture(scope='module')
+def na3sbs4_scan(na3sbs4_traj):
+    cr = Crystallizer.from_trajectory(na3sbs4_traj, floating_specie='Na', resolution=0.3)
+    return cr.scan(background_level=0.25)
 
 
 @pytest.fixture(scope='module')

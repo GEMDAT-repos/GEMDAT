@@ -147,3 +147,15 @@ def test_autocorrelation(vasp_orientations):
     fig = vasp_orientations.plot_autocorrelation(backend=BACKEND)
 
     assert_figures_similar(fig, name='autocorrelation', rms=0.5)
+
+
+def test_crystallizer_sites(na3sbs4_scan):
+    fig = na3sbs4_scan.plot_sites(backend=BACKEND)
+
+    assert_figures_similar(fig, name='crystallizer_sites', rms=0.5)
+
+
+def test_crystallizer_site_images(na3sbs4_scan):
+    fig = na3sbs4_scan.plot_site_images(backend=BACKEND)
+
+    assert_figures_similar(fig, name='crystallizer_site_images', rms=0.5)
