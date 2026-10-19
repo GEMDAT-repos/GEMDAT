@@ -358,9 +358,7 @@ class Volume:
         atom in every frame.
 
         Note: this reads the *raw* counts from `self.data`, not the normalized
-        `intensity_image` stored on the regionprops. It must be called before
-        [gemdat.Volume._props_to_frac_coords_centroid][], which mutates
-        `prop.coords` in place.
+        `intensity_image` stored on the regionprops.
 
         Parameters
         ----------
@@ -377,6 +375,16 @@ class Volume:
         counts = [self.data[tuple(prop.coords.T)].sum() for prop in props]
         return np.array(counts) / n_frames
 
+    def _unwrapped_voxels(self, prop: RegionProperties) -> np.ndarray:
+        """Voxel coordinates of a region, made contiguous across the periodic
+        boundary (a region spanning a whole axis is shifted by one period)."""
+        coords = prop.coords.astype(float)
+        for axis in (0, 1, 2):
+            dim = self.dims[axis]
+            if prop.image.shape[axis] == dim:
+                coords[coords[:, axis] < dim / 2, axis] += dim
+        return coords
+
     def _props_to_frac_coords_centroid(
         self,
         *,
@@ -384,20 +392,7 @@ class Volume:
         **kwargs,
     ) -> np.ndarray:
         """Generate fractional coords using centroid method."""
-        centroids = []
-
-        for prop in props:
-            coords = prop.coords
-
-            for axis in (0, 1, 2):
-                dim = self.dims[axis]
-                if prop.image.shape[axis] == dim:
-                    sel = coords[:, axis] < dim / 2
-                    coords[sel, axis] += dim
-
-            centroids.append(coords.mean(axis=0))
-
-        centroids = np.array(centroids)
+        centroids = np.array([self._unwrapped_voxels(prop).mean(axis=0) for prop in props])
 
         # Move coords to voxel center by shifting 0.5
         frac_coords = (centroids + 0.5) / np.array(self.dims)
@@ -466,8 +461,6 @@ class Volume:
         if return_occupancies:
             if n_frames is None:
                 raise ValueError('`n_frames` is required when `return_occupancies` is True.')
-            # Must run before `_props_to_frac_coords_centroid`, which mutates
-            # `prop.coords` in place.
             occupancies = self._props_to_occupancies(props=props, n_frames=n_frames)
             species: list = [{specie: occ} for occ in occupancies]
             merge_mode: Literal['sum', 'average'] = 'sum'

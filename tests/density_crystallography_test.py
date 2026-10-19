@@ -6,6 +6,8 @@ from pymatgen.core import Lattice, Species, Structure
 
 from gemdat.crystallizer import CrystallizerResult
 from gemdat.density_crystallography import (
+    DensityFitResult,
+    SiteFit,
     crystallize_density_loop,
     crystallographic_density_metrics,
     fit_density_model,
@@ -194,6 +196,36 @@ def test_fit_density_model_recovers_planted_parameters(density):
     assert tet.occupancy == pytest.approx(OCC_A, abs=0.03)
     assert tet.occupancy + oct_.occupancy == pytest.approx(1.0)
     assert tet.u_iso == pytest.approx((SIGMA_A * 10.0) ** 2, rel=0.1)
+
+
+def test_density_fit_result_to_cif(tmp_path):
+    result = DensityFitResult(
+        spacegroup_symbol='Fm-3m',
+        spacegroup_number=225,
+        sites=[
+            SiteFit('Li', np.array(POS_A), 8, SIGMA_A, OCC_A),
+            SiteFit('Li', np.array(POS_B), 4, SIGMA_B, 1 - OCC_A),
+        ],
+        observed_density=np.empty(0),
+        model_density=np.empty(0),
+        metrics={},
+        success=True,
+        params=np.empty(0),
+        spacegroup=225,
+    )
+
+    structure = result.to_structure(Lattice.cubic(10.0), {'Li': 8})
+
+    assert len(structure) == 12
+    assert structure.composition['Li'] == pytest.approx(8)
+    assert structure[0].species['Li'] == pytest.approx(OCC_A)
+    assert structure[-1].species['Li'] == pytest.approx(8 * (1 - OCC_A) / 4)
+    assert structure[-1].properties['u_iso'] == pytest.approx((SIGMA_B * 10.0) ** 2)
+
+    result.to_cif(tmp_path / 'fit.cif', Lattice.cubic(10.0), {'Li': 8})
+    text = (tmp_path / 'fit.cif').read_text()
+    assert 'Fm-3m' in text
+    assert f'{(SIGMA_A * 10.0) ** 2:.5f}' in text
 
 
 @pytest.mark.parametrize('planted', [0.0, 0.03])
