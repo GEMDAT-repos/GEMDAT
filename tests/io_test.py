@@ -84,27 +84,17 @@ def _u_iso_column(filename):
 
 def test_write_cif_u_iso(noisy_structure, tmp_path):
     symprec = 0.3
-    noisy_structure.add_site_property('u_iso', [0.01, 0.02, 0.04, 0.06])
+    noisy_structure.add_site_property('u_iso', [0.01, 0.02, 0.05, 0.05])
     plain = noisy_structure.copy()
     plain.remove_site_property('u_iso')
 
     write_cif(noisy_structure, tmp_path / 'u.cif', symprec=symprec)
     write_cif(plain, tmp_path / 'plain.cif', symprec=symprec)
 
-    # one row per orbit, the two equivalent Li averaged
+    # one row per orbit
     assert _u_iso_column(tmp_path / 'u.cif') == pytest.approx(
         {'P1': 0.01, 'S1': 0.02, 'Li1': 0.05}
     )
     # the U column does not change the refined structure
     matcher = StructureMatcher(ltol=1e-6, stol=1e-6, angle_tol=1e-4, scale=False)
     assert matcher.fit(read_cif(tmp_path / 'u.cif'), read_cif(tmp_path / 'plain.cif'))
-
-
-def test_write_cif_u_iso_without_symmetry(noisy_structure, tmp_path):
-    noisy_structure.add_site_property('u_iso', [0.01, 0.02, 0.04, None])
-
-    write_cif(noisy_structure, tmp_path / 'p1.cif')
-
-    text = (tmp_path / 'p1.cif').read_text()
-    assert text.count('?') == 1
-    assert '0.04000' in text

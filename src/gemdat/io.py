@@ -52,10 +52,9 @@ def write_cif(structure: Structure, filename: Path | str, *, idealised: bool = F
 
     Notes
     -----
-    A `u_iso` site property (isotropic displacement parameter, Å²) is written
-    as `_atom_site_U_iso_or_equiv` (B = 8π²U), averaged over each written
-    orbit; `None` is written as unknown (`?`). The sites are then labelled
-    by orbit (`Li1`, `Li2`, ...).
+    A `u_iso` site property (isotropic displacement parameter, Å², the same
+    on every site of an orbit) is written as `_atom_site_U_iso_or_equiv`,
+    with the sites labelled by orbit (`Li1`, `Li2`, ...).
 
     Raises
     ------
@@ -95,19 +94,16 @@ def _cif_writer_with_u_iso(structure: Structure, **kwargs) -> CifWriter:
         ).get_symmetry_dataset()
         orbits = dataset.equivalent_atoms
 
-    u_iso = np.array([np.nan if u is None else u for u in structure.site_properties['u_iso']])
     structure = structure.copy()
     count: Counter[str] = Counter()
     u_by_label: dict[str, float] = {}
     for orbit in dict.fromkeys(orbits.tolist()):
-        members = orbits == orbit
         symbol = structure[orbit].species.elements[0].symbol
         count[symbol] += 1
         label = f'{symbol}{count[symbol]}'
-        for i in np.flatnonzero(members).tolist():
+        for i in np.flatnonzero(orbits == orbit).tolist():
             structure[i].label = label
-        known = u_iso[members][~np.isnan(u_iso[members])]
-        u_by_label[label] = known.mean() if known.size else np.nan
+        u_by_label[label] = structure[orbit].properties['u_iso']
 
     if symprec is not None and kwargs.get('refine_struct', True):
         # What `CifWriter` refines to (spglib's standardised cell), keeping
@@ -127,10 +123,7 @@ def _cif_writer_with_u_iso(structure: Structure, **kwargs) -> CifWriter:
     writer = CifWriter(structure, **kwargs)
     block = next(iter(writer.cif_file.data.values()))
     key = '_atom_site_U_iso_or_equiv'
-    block.data[key] = [
-        '?' if np.isnan(u) else f'{u:.5f}'
-        for u in (u_by_label[label] for label in block.data['_atom_site_label'])
-    ]
+    block.data[key] = [f'{u_by_label[label]:.5f}' for label in block.data['_atom_site_label']]
     next(loop for loop in block.loops if '_atom_site_label' in loop).append(key)
     return writer
 
