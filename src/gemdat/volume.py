@@ -358,9 +358,7 @@ class Volume:
         atom in every frame.
 
         Note: this reads the *raw* counts from `self.data`, not the normalized
-        `intensity_image` stored on the regionprops. It must be called before
-        [gemdat.Volume._props_to_frac_coords_centroid][], which mutates
-        `prop.coords` in place.
+        `intensity_image` stored on the regionprops.
 
         Parameters
         ----------
@@ -377,6 +375,35 @@ class Volume:
         counts = [self.data[tuple(prop.coords.T)].sum() for prop in props]
         return np.array(counts) / n_frames
 
+    def _unwrapped_voxels(self, prop: RegionProperties) -> np.ndarray:
+        """Voxel coordinates of a region, made contiguous across the periodic
+        boundary (a region spanning a whole axis is shifted by one period)."""
+        coords = prop.coords.astype(float)
+        for axis in (0, 1, 2):
+            dim = self.dims[axis]
+            if prop.image.shape[axis] == dim:
+                coords[coords[:, axis] < dim / 2, axis] += dim
+        return coords
+
+    def _props_to_u_iso(self, *, props: list[RegionProperties]) -> np.ndarray:
+        """Isotropic displacement parameter (Å²) of each region.
+
+        One third of the density-weighted mean-square distance of the
+        voxels from the region's weighted mean, less the variance the
+        voxel binning adds (Sheppard's correction). The region stops at
+        the segmentation floor and at the neighbouring basins, so the
+        tails of a broad site are cut off and its U is underestimated.
+        """
+        u_iso = []
+        for prop in props:
+            weights = self.data[tuple(prop.coords.T)]
+            coords = self._unwrapped_voxels(prop)
+            mean = np.average(coords, axis=0, weights=weights)
+            cart = ((coords - mean) / self.dims) @ self.lattice.matrix
+            msd = np.average((cart**2).sum(axis=1), weights=weights)
+            u_iso.append(max(msd / 3 - (self.voxel_size**2).mean() / 12, 0.0))
+        return np.array(u_iso)
+
     def _props_to_frac_coords_centroid(
         self,
         *,
@@ -384,20 +411,7 @@ class Volume:
         **kwargs,
     ) -> np.ndarray:
         """Generate fractional coords using centroid method."""
-        centroids = []
-
-        for prop in props:
-            coords = prop.coords
-
-            for axis in (0, 1, 2):
-                dim = self.dims[axis]
-                if prop.image.shape[axis] == dim:
-                    sel = coords[:, axis] < dim / 2
-                    coords[sel, axis] += dim
-
-            centroids.append(coords.mean(axis=0))
-
-        centroids = np.array(centroids)
+        centroids = np.array([self._unwrapped_voxels(prop).mean(axis=0) for prop in props])
 
         # Move coords to voxel center by shifting 0.5
         frac_coords = (centroids + 0.5) / np.array(self.dims)
@@ -413,6 +427,7 @@ class Volume:
         return_occupancies: bool = False,
         n_frames: int | None = None,
         snap_to_lower: bool = False,
+        return_u_iso: bool = False,
         **kwargs,
     ) -> Structure:
         """Converts a volume back to a structure using peak detection. Uses the
@@ -446,6 +461,11 @@ class Volume:
             sub-voxel loss of precision for that consistency, so it is off by
             default; enable it when you specifically want boundary sites
             reported at the lower end of the axis.
+        return_u_iso : bool
+            If True, give each site a `u_iso` site property: the isotropic
+            displacement parameter (Å²) from the spread of the density in its
+            region. It is `None` for sites merged during deduplication whose
+            values differ.
         **kwargs : dict
             These keywords parameters are passed to [gemdat.volume.Volume.find_peaks][].
             Only applies if `peaks == None`.
@@ -466,8 +486,6 @@ class Volume:
         if return_occupancies:
             if n_frames is None:
                 raise ValueError('`n_frames` is required when `return_occupancies` is True.')
-            # Must run before `_props_to_frac_coords_centroid`, which mutates
-            # `prop.coords` in place.
             occupancies = self._props_to_occupancies(props=props, n_frames=n_frames)
             species: list = [{specie: occ} for occ in occupancies]
             merge_mode: Literal['sum', 'average'] = 'sum'
@@ -489,6 +507,9 @@ class Volume:
             lattice=self.lattice,
             coords=frac_coords,
             species=species,
+            site_properties={'u_iso': self._props_to_u_iso(props=props).tolist()}
+            if return_u_iso
+            else None,
         )
 
         structure.merge_sites(tol=0.1, mode=merge_mode)

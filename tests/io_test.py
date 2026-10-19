@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from pymatgen.analysis.structure_matcher import StructureMatcher
 from pymatgen.core import Lattice, Structure
+from pymatgen.io.cif import CifParser
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from gemdat.io import get_list_of_known_materials, load_known_material, read_cif, write_cif
@@ -73,3 +74,37 @@ def test_write_cif_idealised(noisy_structure, tmp_path):
 def test_write_cif_idealised_needs_symprec(noisy_structure, tmp_path):
     with pytest.raises(ValueError, match='needs a `symprec`'):
         write_cif(noisy_structure, tmp_path / 'idealised.cif', idealised=True)
+
+
+def _u_iso_column(filename):
+    """`{label: U}` of the atom-site loop of a cif written by `write_cif`."""
+    block = next(iter(CifParser(filename).as_dict().values()))
+    return dict(zip(block['_atom_site_label'], map(float, block['_atom_site_U_iso_or_equiv'])))
+
+
+def test_write_cif_u_iso(noisy_structure, tmp_path):
+    symprec = 0.3
+    noisy_structure.add_site_property('u_iso', [0.01, 0.02, 0.04, 0.06])
+    plain = noisy_structure.copy()
+    plain.remove_site_property('u_iso')
+
+    write_cif(noisy_structure, tmp_path / 'u.cif', symprec=symprec)
+    write_cif(plain, tmp_path / 'plain.cif', symprec=symprec)
+
+    # one row per orbit, the two equivalent Li averaged
+    assert _u_iso_column(tmp_path / 'u.cif') == pytest.approx(
+        {'P1': 0.01, 'S1': 0.02, 'Li1': 0.05}
+    )
+    # the U column does not change the refined structure
+    matcher = StructureMatcher(ltol=1e-6, stol=1e-6, angle_tol=1e-4, scale=False)
+    assert matcher.fit(read_cif(tmp_path / 'u.cif'), read_cif(tmp_path / 'plain.cif'))
+
+
+def test_write_cif_u_iso_without_symmetry(noisy_structure, tmp_path):
+    noisy_structure.add_site_property('u_iso', [0.01, 0.02, 0.04, None])
+
+    write_cif(noisy_structure, tmp_path / 'p1.cif')
+
+    text = (tmp_path / 'p1.cif').read_text()
+    assert text.count('?') == 1
+    assert '0.04000' in text

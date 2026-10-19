@@ -36,7 +36,10 @@ class CrystallizerResult:
     ----------
     structure : Structure
         Full structure (static framework + density-derived mobile sites), with
-        occupancies averaged over symmetry-equivalent sites.
+        occupancies averaged over symmetry-equivalent sites. Its `u_iso` site
+        property holds the isotropic displacement parameter (Å²) of each site,
+        also averaged over symmetry-equivalent sites, and is written to the cif
+        as `_atom_site_U_iso_or_equiv`.
     spacegroup_symbol : str
         International symbol of the fitted space group.
     spacegroup_number : int
@@ -108,21 +111,28 @@ def _fit(
     except Exception as exc:
         raise ValueError(f'Could not determine symmetry at symprec={symprec}: {exc}') from exc
 
-    # Average occupancy within each symmetry-equivalent class so that
+    # Average occupancy and U within each symmetry-equivalent class so that
     # equivalent sites are truly equivalent before the cif is written.
     # `equivalent_indices` indexes into `geometry`'s site order, which is how
     # `occupancies` is aligned.
+    u_iso = np.array(
+        [np.nan if u is None else u for u in geometry.site_properties['u_iso']], dtype=float
+    )
     new_species: list[dict] = [{} for _ in range(len(symmetrized))]
+    new_u_iso: list[float | None] = [None] * len(symmetrized)
     for group in symmetrized.equivalent_indices:
         symbol = symmetrized[group[0]].specie.symbol
         avg_occupancy = float(np.mean([occupancies[i] for i in group]))
+        known = u_iso[group][~np.isnan(u_iso[group])]
         for i in group:
             new_species[i] = {symbol: avg_occupancy}
+            new_u_iso[i] = float(known.mean()) if known.size else None
 
     structure = Structure(
         lattice=symmetrized.lattice,
         species=new_species,
         coords=[site.frac_coords for site in symmetrized],
+        site_properties={'u_iso': new_u_iso},
     )
 
     return CrystallizerResult(
@@ -445,7 +455,10 @@ class Crystallizer:
         -------
         structure : Structure
             Structure of mobile sites. Occupancies are partial floats when
-            ``with_occupancies`` is True and 1.0 otherwise.
+            ``with_occupancies`` is True and 1.0 otherwise. The `u_iso` site
+            property is the isotropic displacement parameter (Å²) from the
+            spread of the density around each site, see
+            [gemdat.volume.Volume.to_structure][].
         """
         mobile = self.trajectory.filter(self.floating_specie)
         volume = self.density or mobile.to_volume(resolution=self.resolution)
@@ -454,6 +467,7 @@ class Crystallizer:
             background_level=background_level,
             return_occupancies=with_occupancies,
             n_frames=len(mobile) if with_occupancies else None,
+            return_u_iso=True,
             **find_peaks_kwargs,
         )
 
@@ -469,12 +483,20 @@ class Crystallizer:
         -------
         structure : Structure
             Time-averaged framework structure (one site per framework atom).
+            The `u_iso` site property is each atom's isotropic displacement
+            parameter (Å²): a third of its mean-square displacement from the
+            averaged position.
         """
         framework_species = self._framework_species()
         lattice = self.trajectory.get_lattice()
 
         if not framework_species:
-            return Structure(lattice=lattice, species=[], coords=np.empty((0, 3)))
+            return Structure(
+                lattice=lattice,
+                species=[],
+                coords=np.empty((0, 3)),
+                site_properties={'u_iso': []},
+            )
 
         framework = self.trajectory.filter(framework_species)
         positions = framework.positions  # (n_frames, n_atoms, 3), fractional
@@ -483,9 +505,18 @@ class Crystallizer:
         angles = np.angle(np.exp(2j * np.pi * positions).mean(axis=0))
         frac_coords = (angles / (2 * np.pi)) % 1
 
+        delta = positions - frac_coords
+        delta -= np.round(delta)
+        u_iso = ((delta @ lattice.matrix) ** 2).sum(axis=-1).mean(axis=0) / 3
+
         species = [specie.symbol for specie in framework.species]  # type: ignore[union-attr]
 
-        return Structure(lattice=lattice, species=species, coords=frac_coords)
+        return Structure(
+            lattice=lattice,
+            species=species,
+            coords=frac_coords,
+            site_properties={'u_iso': u_iso.tolist()},
+        )
 
     def _geometry_and_occupancies(
         self,
@@ -555,6 +586,9 @@ class Crystallizer:
             lattice=framework.lattice,
             species=symbols,
             coords=coords,
+            site_properties={
+                'u_iso': [site.properties['u_iso'] for site in (*framework, *mobile)]
+            },
         )
         return geometry, np.array(occupancies)
 
