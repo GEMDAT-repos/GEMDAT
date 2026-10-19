@@ -133,3 +133,26 @@ def test_crystallize_na3sbs4_plastic_crystal(na3sbs4_traj):
     angles = result.structure.lattice.angles
     assert max(abc) - min(abc) < 0.15  # near-cubic: observed spread ~0.04 A
     assert all(abs(angle - 90.0) < 1.0 for angle in angles)  # observed ~90, ~90.24
+
+
+@pytest.na3sbs4_cache_available  # type: ignore
+def test_scan_framework_density_and_plots(na3sbs4_scan):
+    """The scan keeps a density per species, so framework sites plot over their
+    own density."""
+    na, s = na3sbs4_scan.density(), na3sbs4_scan.density('S')
+    assert na is na3sbs4_scan.density('Na')  # cached, not recomputed
+    assert na.data.sum() != s.data.sum()
+
+    for backend in ('plotly', 'matplotlib'):
+        na3sbs4_scan.plot_sites(specie='S', backend=backend)
+        na3sbs4_scan.plot_site_images(specie='S', backend=backend)
+
+    # The site is labelled by its orbit, as in the sites plot, not by its index.
+    sites = na3sbs4_scan.plot_sites(specie='S')
+    title = na3sbs4_scan.plot_site_images(specie='S').layout.title.text
+    label, fit = title.split(' in ')
+    assert any(trace.name and trace.name.startswith(label) for trace in sites.data)
+    assert fit == sites.layout.title.text
+
+    with pytest.raises(ValueError, match='no Li sites'):
+        na3sbs4_scan.plot_sites(specie='Li')

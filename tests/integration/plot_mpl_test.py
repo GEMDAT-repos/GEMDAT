@@ -145,3 +145,13 @@ def test_autocorrelation(vasp_orientations):
 @image_comparison2(baseline_images=['polar'])
 def test_polar(vasp_orientations):
     vasp_orientations.plot_polar(backend=BACKEND)
+
+
+@image_comparison2(baseline_images=['crystallizer_sites'])
+def test_crystallizer_sites(na3sbs4_scan):
+    na3sbs4_scan.plot_sites(backend=BACKEND)
+
+
+@image_comparison2(baseline_images=['crystallizer_site_images'])
+def test_crystallizer_site_images(na3sbs4_scan):
+    na3sbs4_scan.plot_site_images(backend=BACKEND)
