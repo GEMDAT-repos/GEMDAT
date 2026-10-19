@@ -181,21 +181,6 @@ def test_to_cif_idealised(crystal_trajectory, tmp_path):
     assert analyzer.get_space_group_number() == result.spacegroup_number
 
 
-def test_u_iso(crystal_trajectory, tmp_path):
-    cr = Crystallizer.from_trajectory(crystal_trajectory, floating_specie='Li', resolution=0.2)
-
-    # framework: 0.005 fractional noise per axis in a 10 Å cell
-    assert cr.framework().site_properties['u_iso'] == pytest.approx([0.05**2] * 2, rel=0.05)
-    # mobile: 0.1 Å per axis, less the tails below the segmentation floor
-    for u_iso in cr.mobile_sites().site_properties['u_iso']:
-        assert 0.5 * 0.1**2 < u_iso < 0.1**2
-
-    result = cr.to_cif(tmp_path / 'u.cif')
-    li = [site.properties['u_iso'] for site in result.structure if 'Li' in site.species]
-    assert li[0] == li[1]  # averaged over the equivalent sites
-    assert '_atom_site_U_iso_or_equiv' in (tmp_path / 'u.cif').read_text()
-
-
 def _mobile_occupancies(structure, specie='Li'):
     """Occupancies of the mobile-species sites in a (crystallized)
     structure."""

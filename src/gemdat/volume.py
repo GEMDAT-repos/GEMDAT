@@ -385,25 +385,6 @@ class Volume:
                 coords[coords[:, axis] < dim / 2, axis] += dim
         return coords
 
-    def _props_to_u_iso(self, *, props: list[RegionProperties]) -> np.ndarray:
-        """Isotropic displacement parameter (Å²) of each region.
-
-        One third of the density-weighted mean-square distance of the
-        voxels from the region's weighted mean, less the variance the
-        voxel binning adds (Sheppard's correction). The region stops at
-        the segmentation floor and at the neighbouring basins, so the
-        tails of a broad site are cut off and its U is underestimated.
-        """
-        u_iso = []
-        for prop in props:
-            weights = self.data[tuple(prop.coords.T)]
-            coords = self._unwrapped_voxels(prop)
-            mean = np.average(coords, axis=0, weights=weights)
-            cart = ((coords - mean) / self.dims) @ self.lattice.matrix
-            msd = np.average((cart**2).sum(axis=1), weights=weights)
-            u_iso.append(max(msd / 3 - (self.voxel_size**2).mean() / 12, 0.0))
-        return np.array(u_iso)
-
     def _props_to_frac_coords_centroid(
         self,
         *,
@@ -427,7 +408,6 @@ class Volume:
         return_occupancies: bool = False,
         n_frames: int | None = None,
         snap_to_lower: bool = False,
-        return_u_iso: bool = False,
         **kwargs,
     ) -> Structure:
         """Converts a volume back to a structure using peak detection. Uses the
@@ -461,11 +441,6 @@ class Volume:
             sub-voxel loss of precision for that consistency, so it is off by
             default; enable it when you specifically want boundary sites
             reported at the lower end of the axis.
-        return_u_iso : bool
-            If True, give each site a `u_iso` site property: the isotropic
-            displacement parameter (Å²) from the spread of the density in its
-            region. It is `None` for sites merged during deduplication whose
-            values differ.
         **kwargs : dict
             These keywords parameters are passed to [gemdat.volume.Volume.find_peaks][].
             Only applies if `peaks == None`.
@@ -507,9 +482,6 @@ class Volume:
             lattice=self.lattice,
             coords=frac_coords,
             species=species,
-            site_properties={'u_iso': self._props_to_u_iso(props=props).tolist()}
-            if return_u_iso
-            else None,
         )
 
         structure.merge_sites(tol=0.1, mode=merge_mode)
