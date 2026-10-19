@@ -331,8 +331,11 @@ def _crystallizer_site_images(
     box = map_coordinates(density.data, voxels.T, order=1, mode='grid-wrap')
     box = box.reshape(grid.shape[:3])
 
+    # Label the site by its orbit, as `crystallizer_sites` does.
+    orbits = np.array(dataset.equivalent_atoms)
+    multiplicity = (orbits == orbits[site]).sum()
     title = (
-        f'Site {site} ({scan.geometry[site].specie} {dataset.wyckoffs[site]}) in '
+        f'{scan.geometry[site].specie} {dataset.wyckoffs[orbits[site]]} ({multiplicity}) in '
         f'{dataset.international} (#{dataset.number}) at symprec={symprec:.3g} Å'
     )
     return title, ticks, box, images

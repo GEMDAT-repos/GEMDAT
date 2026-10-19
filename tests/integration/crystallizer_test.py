@@ -147,5 +147,12 @@ def test_scan_framework_density_and_plots(na3sbs4_scan):
         na3sbs4_scan.plot_sites(specie='S', backend=backend)
         na3sbs4_scan.plot_site_images(specie='S', backend=backend)
 
+    # The site is labelled by its orbit, as in the sites plot, not by its index.
+    sites = na3sbs4_scan.plot_sites(specie='S')
+    title = na3sbs4_scan.plot_site_images(specie='S').layout.title.text
+    label, fit = title.split(' in ')
+    assert any(trace.name and trace.name.startswith(label) for trace in sites.data)
+    assert fit == sites.layout.title.text
+
     with pytest.raises(ValueError, match='no Li sites'):
         na3sbs4_scan.plot_sites(specie='Li')
