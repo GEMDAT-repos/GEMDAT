@@ -40,7 +40,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from pymatgen.core import Structure
+from pymatgen.core import Lattice, Structure
 from pymatgen.core.operations import SymmOp
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer, SpacegroupOperations
 from pymatgen.symmetry.groups import SpaceGroup
@@ -48,7 +48,11 @@ from scipy.linalg import null_space
 from scipy.ndimage import gaussian_filter, label, map_coordinates, maximum_filter
 from scipy.optimize import differential_evolution, minimize
 
+from .io import write_cif
+
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from .crystallizer import Crystallizer, CrystallizerResult
     from .trajectory import Trajectory
     from .volume import Volume
@@ -512,6 +516,9 @@ class DensityFitResult:
         Optimiser success flag.
     params : np.ndarray
         Raw refined parameter vector.
+    spacegroup : str | int | SpaceGroup | SpacegroupOperations
+        The space group as passed to :func:`fit_density_model`, used by
+        :meth:`to_structure` to expand the orbits.
     ranking_metrics : dict[str, float] | None
         Set by :func:`rank_spacegroups`: metrics of the model against the
         observed density *before* symmetrisation, which is the same grid for
@@ -526,7 +533,71 @@ class DensityFitResult:
     metrics: dict[str, float]
     success: bool
     params: np.ndarray = field(repr=False)
+    spacegroup: SpaceGroupLike = field(repr=False)
     ranking_metrics: dict[str, float] | None = None
+
+    def to_structure(self, lattice: Lattice, atoms_per_cell: dict[str, float]) -> Structure:
+        """Expand the fitted sites into a structure of the fitted cell.
+
+        Every orbit becomes its sites, with occupancy
+        ``atoms_per_cell[specie] * fraction / multiplicity``, where the
+        fraction is the orbit's share of its species' fitted density. So the
+        fit must account for the whole density of each species: refit the
+        rounds of :func:`crystallize_density_loop` jointly first. The `u_iso`
+        site property is the equivalent isotropic displacement parameter (Å²)
+        of each Gaussian, ``sigma**2 (a**2 + b**2 + c**2) / 3``, exact for a
+        cubic cell.
+
+        Parameters
+        ----------
+        lattice : Lattice
+            Lattice of the grid that was fitted (after folding).
+        atoms_per_cell : dict[str, float]
+            Number of atoms of each species in that cell.
+
+        Returns
+        -------
+        Structure
+        """
+        total: dict[str, float] = {}
+        for site in self.sites:
+            total[site.specie] = total.get(site.specie, 0.0) + site.occupancy
+        mean_sq_edge = float(np.mean(np.square(lattice.abc)))
+
+        species, coords, u_iso = [], [], []
+        for site in self.sites:
+            orbit = wyckoff_orbit(self.spacegroup, site.position)
+            occupancy = atoms_per_cell[site.specie] * site.occupancy / total[site.specie]
+            species += [{site.specie: occupancy / len(orbit)}] * len(orbit)
+            coords += list(orbit)
+            u_iso += [site.sigma**2 * mean_sq_edge] * len(orbit)
+        return Structure(lattice, species, coords, site_properties={'u_iso': u_iso})
+
+    def to_cif(
+        self,
+        filename: Path | str,
+        lattice: Lattice,
+        atoms_per_cell: dict[str, float],
+        *,
+        symprec: float | None = None,
+    ) -> None:
+        """Write :meth:`to_structure` to a cif file, with
+        ``_atom_site_U_iso_or_equiv``.
+
+        Parameters
+        ----------
+        filename : Path | str
+            Output filename (a `.cif` suffix is enforced).
+        lattice : Lattice
+            Lattice of the grid that was fitted (after folding).
+        atoms_per_cell : dict[str, float]
+            Number of atoms of each species in that cell.
+        symprec : float | None
+            Tolerance to detect and write the space group with, one row per
+            orbit. If None (default), the cif is written in P1.
+        """
+        structure = self.to_structure(lattice, atoms_per_cell)
+        write_cif(structure, filename, symprec=symprec, write_u_iso=True)
 
 
 def _stick_breaking(raw: list[float]) -> np.ndarray:
@@ -797,6 +868,7 @@ def fit_density_model(
         metrics=metrics,
         success=bool(result.success),
         params=np.asarray(x, dtype=float),
+        spacegroup=spacegroup,
     )
 
 

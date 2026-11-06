@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import re
 import warnings
+from collections import Counter
 from importlib.resources import files
 from pathlib import Path
 
+import numpy as np
 from pymatgen.core import Structure
 from pymatgen.io.cif import CifWriter
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from .symmetry import SymmetryAnalyzer
 
@@ -25,7 +28,14 @@ SUPERCELL = {
 }
 
 
-def write_cif(structure: Structure, filename: Path | str, *, idealised: bool = False, **kwargs):
+def write_cif(
+    structure: Structure,
+    filename: Path | str,
+    *,
+    idealised: bool = False,
+    write_u_iso: bool = False,
+    **kwargs,
+):
     """Write structure to cif file using [pymatgen.io.cif.CifWriter][].
 
     Parameters
@@ -42,26 +52,90 @@ def write_cif(structure: Structure, filename: Path | str, *, idealised: bool = F
         as is; note that [pymatgen.io.cif.CifWriter][] given a `symprec`
         still refines it with spglib, which places one representative site
         of every orbit and generates the rest of the orbit from it.
+    write_u_iso : bool
+        If True, write the `u_iso` site property of a structure that has one,
+        see Notes.
     **kwargs : dict
         Additional keyword arguments passed to
         [pymatgen.io.cif.CifWriter][]. In particular, pass `symprec` to detect
         and write the space group symmetry (otherwise the cif is written in P1).
+
+    Notes
+    -----
+    A `u_iso` site property (isotropic displacement parameter, Å²) is written
+    as `_atom_site_U_iso_or_equiv`. Without a `symprec` that is one row per
+    site, in P1. With a `symprec` it is one row per orbit, labelled `Li1`,
+    `Li2`, ..., so `u_iso` must be the same on every site of an orbit.
 
     Raises
     ------
     ValueError
         If `idealised` is set without a `symprec`, or no symmetry is found.
     """
+    write_u_iso = write_u_iso and 'u_iso' in structure.site_properties
+    symprec = kwargs.get('symprec')
+    angle_tolerance = kwargs.get('angle_tolerance', 5.0)
+
     if idealised:
-        symprec = kwargs.get('symprec')
         if symprec is None:
             raise ValueError('`idealised=True` needs a `symprec` to find the space group.')
-        structure = SymmetryAnalyzer(
-            structure, angle_tolerance=kwargs.get('angle_tolerance', 5.0)
-        ).idealise(symprec)
+        structure = SymmetryAnalyzer(structure, angle_tolerance=angle_tolerance).idealise(
+            symprec
+        )
 
-    filename = str(Path(filename).with_suffix('.cif'))
-    CifWriter(structure, **kwargs).write_file(filename)
+    u_by_label: dict[str, float] = {}
+    if write_u_iso and symprec is not None:
+        # `CifWriter` only writes site properties without symmetry, and its
+        # refinement drops them, so label every orbit and look up the U of
+        # each written row by its label.
+        dataset = SpacegroupAnalyzer(
+            structure, symprec=symprec, angle_tolerance=angle_tolerance
+        ).get_symmetry_dataset()
+        orbits = dataset.equivalent_atoms
+
+        structure = structure.copy()
+        count: Counter[str] = Counter()
+        for orbit in dict.fromkeys(orbits.tolist()):
+            symbol = structure[orbit].species.elements[0].symbol
+            count[symbol] += 1
+            label = f'{symbol}{count[symbol]}'
+            for i in np.flatnonzero(orbits == orbit).tolist():
+                structure[i].label = label
+            u_by_label[label] = structure[orbit].properties['u_iso']
+
+        # What `CifWriter` refines to (spglib's standardised cell), keeping
+        # the labels: each standardised site is a translate of an input one.
+        # Not `get_refined_structure(keep_site_properties=True)`: that gives
+        # all sites of a species the property of its first site.
+        source = [
+            np.flatnonzero(dataset.mapping_to_primitive == p)[0]
+            for p in dataset.std_mapping_to_primitive
+        ]
+        structure = Structure(
+            dataset.std_lattice,
+            [structure[i].species for i in source],
+            dataset.std_positions,
+            labels=[structure[i].label for i in source],
+        )
+        kwargs = {**kwargs, 'refine_struct': False}
+    elif write_u_iso:
+        # `CifWriter` writes every site property as `_atom_site_{name}`
+        structure = Structure(
+            structure.lattice,
+            structure.species_and_occu,
+            structure.frac_coords,
+            labels=structure.labels,
+            site_properties={'U_iso_or_equiv': structure.site_properties['u_iso']},
+        )
+        kwargs['write_site_properties'] = True
+
+    writer = CifWriter(structure, **kwargs)
+    if u_by_label:
+        block = next(iter(writer.cif_file.data.values()))
+        key = '_atom_site_U_iso_or_equiv'
+        block.data[key] = [f'{u_by_label[lbl]:.5f}' for lbl in block.data['_atom_site_label']]
+        next(loop for loop in block.loops if '_atom_site_label' in loop).append(key)
+    writer.write_file(str(Path(filename).with_suffix('.cif')))
 
 
 def _strip_label_suffixes(structure: Structure) -> None:
