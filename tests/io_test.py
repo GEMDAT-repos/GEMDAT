@@ -76,12 +76,6 @@ def test_write_cif_idealised_needs_symprec(noisy_structure, tmp_path):
         write_cif(noisy_structure, tmp_path / 'idealised.cif', idealised=True)
 
 
-def _u_iso_column(filename):
-    """`{label: U}` of the atom-site loop of a cif written by `write_cif`."""
-    block = next(iter(CifParser(filename).as_dict().values()))
-    return dict(zip(block['_atom_site_label'], map(float, block['_atom_site_U_iso_or_equiv'])))
-
-
 def test_write_cif_u_iso(noisy_structure, tmp_path):
     symprec = 0.3
     noisy_structure.add_site_property('u_iso', [0.01, 0.02, 0.05, 0.05])
@@ -92,9 +86,24 @@ def test_write_cif_u_iso(noisy_structure, tmp_path):
     write_cif(plain, tmp_path / 'plain.cif', symprec=symprec)
 
     # one row per orbit
-    assert _u_iso_column(tmp_path / 'u.cif') == pytest.approx(
+    block = next(iter(CifParser(tmp_path / 'u.cif').as_dict().values()))
+    u_iso = map(float, block['_atom_site_U_iso_or_equiv'])
+    assert dict(zip(block['_atom_site_label'], u_iso)) == pytest.approx(
         {'P1': 0.01, 'S1': 0.02, 'Li1': 0.05}
     )
     # the U column does not change the refined structure
     matcher = StructureMatcher(ltol=1e-6, stol=1e-6, angle_tol=1e-4, scale=False)
     assert matcher.fit(read_cif(tmp_path / 'u.cif'), read_cif(tmp_path / 'plain.cif'))
+
+
+def test_write_cif_u_iso_flag(tmp_path):
+    structure = Structure.from_spacegroup('Pm-3m', Lattice.cubic(10.0), ['Li'], [[0.0] * 3])
+    structure.add_site_property('u_iso', [0.02] * len(structure))
+
+    write_cif(structure, tmp_path / 'u.cif')
+    text = (tmp_path / 'u.cif').read_text()
+    assert 'Pm-3m' in text
+    assert '0.02000' in text
+
+    write_cif(structure, tmp_path / 'no_u.cif', write_u_iso=False)
+    assert '_atom_site_U_iso_or_equiv' not in (tmp_path / 'no_u.cif').read_text()

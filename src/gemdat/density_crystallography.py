@@ -516,13 +516,13 @@ class DensityFitResult:
         Optimiser success flag.
     params : np.ndarray
         Raw refined parameter vector.
+    spacegroup : str | int | SpaceGroup | SpacegroupOperations
+        The space group as passed to :func:`fit_density_model`, used by
+        :meth:`to_structure` to expand the orbits.
     ranking_metrics : dict[str, float] | None
         Set by :func:`rank_spacegroups`: metrics of the model against the
         observed density *before* symmetrisation, which is the same grid for
         every candidate, so these (unlike ``metrics``) compare across groups.
-    spacegroup : str | int | SpaceGroup | SpacegroupOperations | None
-        The space group as passed to :func:`fit_density_model`, used by
-        :meth:`to_structure` to expand the orbits.
     """
 
     spacegroup_symbol: str
@@ -533,8 +533,8 @@ class DensityFitResult:
     metrics: dict[str, float]
     success: bool
     params: np.ndarray = field(repr=False)
+    spacegroup: SpaceGroupLike = field(repr=False)
     ranking_metrics: dict[str, float] | None = None
-    spacegroup: SpaceGroupLike | None = field(default=None, repr=False)
 
     def to_structure(self, lattice: Lattice, atoms_per_cell: dict[str, float]) -> Structure:
         """Expand the fitted sites into a structure of the fitted cell.
@@ -559,8 +559,6 @@ class DensityFitResult:
         -------
         Structure
         """
-        if self.spacegroup is None:
-            raise ValueError('This result does not record its space group.')
         total: dict[str, float] = {}
         for site in self.sites:
             total[site.specie] = total.get(site.specie, 0.0) + site.occupancy
@@ -576,12 +574,7 @@ class DensityFitResult:
         return Structure(lattice, species, coords, site_properties={'u_iso': u_iso})
 
     def to_cif(
-        self,
-        filename: Path | str,
-        lattice: Lattice,
-        atoms_per_cell: dict[str, float],
-        *,
-        symprec: float = 0.01,
+        self, filename: Path | str, lattice: Lattice, atoms_per_cell: dict[str, float]
     ) -> None:
         """Write :meth:`to_structure` to a cif file, with symmetry and
         ``_atom_site_U_iso_or_equiv``.
@@ -594,11 +587,8 @@ class DensityFitResult:
             Lattice of the grid that was fitted (after folding).
         atoms_per_cell : dict[str, float]
             Number of atoms of each species in that cell.
-        symprec : float
-            Tolerance (Angstrom) to detect the symmetry of the expanded
-            structure with, see [gemdat.io.write_cif][].
         """
-        write_cif(self.to_structure(lattice, atoms_per_cell), filename, symprec=symprec)
+        write_cif(self.to_structure(lattice, atoms_per_cell), filename)
 
 
 def _stick_breaking(raw: list[float]) -> np.ndarray:
