@@ -574,9 +574,14 @@ class DensityFitResult:
         return Structure(lattice, species, coords, site_properties={'u_iso': u_iso})
 
     def to_cif(
-        self, filename: Path | str, lattice: Lattice, atoms_per_cell: dict[str, float]
+        self,
+        filename: Path | str,
+        lattice: Lattice,
+        atoms_per_cell: dict[str, float],
+        *,
+        symprec: float | None = None,
     ) -> None:
-        """Write :meth:`to_structure` to a cif file, with symmetry and
+        """Write :meth:`to_structure` to a cif file, with
         ``_atom_site_U_iso_or_equiv``.
 
         Parameters
@@ -587,8 +592,12 @@ class DensityFitResult:
             Lattice of the grid that was fitted (after folding).
         atoms_per_cell : dict[str, float]
             Number of atoms of each species in that cell.
+        symprec : float | None
+            Tolerance to detect and write the space group with, one row per
+            orbit. If None (default), the cif is written in P1.
         """
-        write_cif(self.to_structure(lattice, atoms_per_cell), filename)
+        structure = self.to_structure(lattice, atoms_per_cell)
+        write_cif(structure, filename, symprec=symprec, write_u_iso=True)
 
 
 def _stick_breaking(raw: list[float]) -> np.ndarray:

@@ -33,7 +33,7 @@ def write_cif(
     filename: Path | str,
     *,
     idealised: bool = False,
-    write_u_iso: bool = True,
+    write_u_iso: bool = False,
     **kwargs,
 ):
     """Write structure to cif file using [pymatgen.io.cif.CifWriter][].
@@ -53,8 +53,8 @@ def write_cif(
         still refines it with spglib, which places one representative site
         of every orbit and generates the rest of the orbit from it.
     write_u_iso : bool
-        If True (default), write the `u_iso` site property of a structure
-        that has one, see Notes. Set to False to leave it out.
+        If True, write the `u_iso` site property of a structure that has one,
+        see Notes.
     **kwargs : dict
         Additional keyword arguments passed to
         [pymatgen.io.cif.CifWriter][]. In particular, pass `symprec` to detect
@@ -62,10 +62,10 @@ def write_cif(
 
     Notes
     -----
-    A `u_iso` site property (isotropic displacement parameter, Å², the same
-    on every site of an orbit) is written as `_atom_site_U_iso_or_equiv`,
-    with the sites labelled by orbit (`Li1`, `Li2`, ...). Orbits need a
-    symmetry, so `symprec` then defaults to 0.01.
+    A `u_iso` site property (isotropic displacement parameter, Å²) is written
+    as `_atom_site_U_iso_or_equiv`. Without a `symprec` that is one row per
+    site, in P1. With a `symprec` it is one row per orbit, labelled `Li1`,
+    `Li2`, ..., so `u_iso` must be the same on every site of an orbit.
 
     Raises
     ------
@@ -73,8 +73,6 @@ def write_cif(
         If `idealised` is set without a `symprec`, or no symmetry is found.
     """
     write_u_iso = write_u_iso and 'u_iso' in structure.site_properties
-    if write_u_iso:
-        kwargs.setdefault('symprec', 0.01)
     symprec = kwargs.get('symprec')
     angle_tolerance = kwargs.get('angle_tolerance', 5.0)
 
@@ -86,12 +84,12 @@ def write_cif(
         )
 
     u_by_label: dict[str, float] = {}
-    if write_u_iso:
+    if write_u_iso and symprec is not None:
         # `CifWriter` only writes site properties without symmetry, and its
         # refinement drops them, so label every orbit and look up the U of
         # each written row by its label.
         dataset = SpacegroupAnalyzer(
-            structure, symprec=kwargs['symprec'], angle_tolerance=angle_tolerance
+            structure, symprec=symprec, angle_tolerance=angle_tolerance
         ).get_symmetry_dataset()
         orbits = dataset.equivalent_atoms
 
@@ -120,9 +118,19 @@ def write_cif(
             labels=[structure[i].label for i in source],
         )
         kwargs = {**kwargs, 'refine_struct': False}
+    elif write_u_iso:
+        # `CifWriter` writes every site property as `_atom_site_{name}`
+        structure = Structure(
+            structure.lattice,
+            structure.species_and_occu,
+            structure.frac_coords,
+            labels=structure.labels,
+            site_properties={'U_iso_or_equiv': structure.site_properties['u_iso']},
+        )
+        kwargs['write_site_properties'] = True
 
     writer = CifWriter(structure, **kwargs)
-    if write_u_iso:
+    if u_by_label:
         block = next(iter(writer.cif_file.data.values()))
         key = '_atom_site_U_iso_or_equiv'
         block.data[key] = [f'{u_by_label[lbl]:.5f}' for lbl in block.data['_atom_site_label']]

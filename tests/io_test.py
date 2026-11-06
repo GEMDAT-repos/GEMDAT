@@ -77,13 +77,39 @@ def test_write_cif_idealised_needs_symprec(noisy_structure, tmp_path):
 
 
 def test_write_cif_u_iso(noisy_structure, tmp_path):
+    u_iso = [0.01, 0.02, 0.05, 0.05]
+    noisy_structure.add_site_property('u_iso', u_iso)
+
+    write_cif(noisy_structure, tmp_path / 'u.cif', write_u_iso=True)
+
+    # one row per site, in P1
+    block = next(iter(CifParser(tmp_path / 'u.cif').as_dict().values()))
+    assert block['_symmetry_space_group_name_H-M'] == 'P 1'
+    assert list(map(float, block['_atom_site_U_iso_or_equiv'])) == pytest.approx(u_iso)
+    matcher = StructureMatcher(ltol=1e-6, stol=1e-6, angle_tol=1e-4, scale=False)
+    assert matcher.fit(read_cif(tmp_path / 'u.cif'), noisy_structure)
+
+
+def test_write_cif_u_iso_off_by_default(noisy_structure, tmp_path):
+    noisy_structure.add_site_property('u_iso', [0.02] * len(noisy_structure))
+
+    write_cif(noisy_structure, tmp_path / 'p1.cif')
+    write_cif(noisy_structure, tmp_path / 'symmetry.cif', symprec=0.3)
+
+    assert '_atom_site_U_iso_or_equiv' not in (tmp_path / 'p1.cif').read_text()
+    assert '_atom_site_U_iso_or_equiv' not in (tmp_path / 'symmetry.cif').read_text()
+
+
+@pytest.mark.parametrize('idealised', [False, True])
+def test_write_cif_u_iso_with_symmetry(noisy_structure, tmp_path, idealised):
     symprec = 0.3
     noisy_structure.add_site_property('u_iso', [0.01, 0.02, 0.05, 0.05])
     plain = noisy_structure.copy()
     plain.remove_site_property('u_iso')
 
-    write_cif(noisy_structure, tmp_path / 'u.cif', symprec=symprec)
-    write_cif(plain, tmp_path / 'plain.cif', symprec=symprec)
+    kwargs = {'symprec': symprec, 'idealised': idealised}
+    write_cif(noisy_structure, tmp_path / 'u.cif', write_u_iso=True, **kwargs)
+    write_cif(plain, tmp_path / 'plain.cif', **kwargs)
 
     # one row per orbit
     block = next(iter(CifParser(tmp_path / 'u.cif').as_dict().values()))
@@ -96,14 +122,7 @@ def test_write_cif_u_iso(noisy_structure, tmp_path):
     assert matcher.fit(read_cif(tmp_path / 'u.cif'), read_cif(tmp_path / 'plain.cif'))
 
 
-def test_write_cif_u_iso_flag(tmp_path):
-    structure = Structure.from_spacegroup('Pm-3m', Lattice.cubic(10.0), ['Li'], [[0.0] * 3])
-    structure.add_site_property('u_iso', [0.02] * len(structure))
+def test_write_cif_u_iso_absent(noisy_structure, tmp_path):
+    write_cif(noisy_structure, tmp_path / 'u.cif', symprec=0.3, write_u_iso=True)
 
-    write_cif(structure, tmp_path / 'u.cif')
-    text = (tmp_path / 'u.cif').read_text()
-    assert 'Pm-3m' in text
-    assert '0.02000' in text
-
-    write_cif(structure, tmp_path / 'no_u.cif', write_u_iso=False)
-    assert '_atom_site_U_iso_or_equiv' not in (tmp_path / 'no_u.cif').read_text()
+    assert '_atom_site_U_iso_or_equiv' not in (tmp_path / 'u.cif').read_text()
