@@ -6,6 +6,7 @@ from ._arrhenius import arrhenius
 from ._autocorrelation import autocorrelation
 from ._bond_length_distribution import bond_length_distribution
 from ._collective_jumps import collective_jumps
+from ._crystallizer import crystallizer_site_images, crystallizer_sites
 from ._density import density
 from ._displacement_histogram import displacement_histogram
 from ._displacement_per_atom import displacement_per_atom
@@ -29,6 +30,8 @@ __all__ = [
     'autocorrelation',
     'bond_length_distribution',
     'collective_jumps',
+    'crystallizer_site_images',
+    'crystallizer_sites',
     'density',
     'displacement_histogram',
     'displacement_per_atom',
