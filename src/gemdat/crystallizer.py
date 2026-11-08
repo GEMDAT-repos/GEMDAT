@@ -11,6 +11,7 @@ import numpy as np
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
+from ._plot_backend import plot_backend
 from .caching import weak_lru_cache
 from .io import write_cif
 from .symmetry import SymmetryAnalyzer, SymmetryLevel, SymmetryRanking
@@ -162,6 +163,7 @@ class CrystallizerScan:
         ranking: SymmetryRanking,
         angle_tolerance: float = 5.0,
         use_density: bool = True,
+        crystallizer: Crystallizer | None = None,
     ):
         """Set up the scan.
 
@@ -182,15 +184,47 @@ class CrystallizerScan:
         use_density : bool
             Whether `occupancies` carries the density-derived occupancies,
             recorded on every result taken off this scan.
+        crystallizer : Crystallizer | None
+            The crystallizer that made the scan, which provides the densities
+            for [density][gemdat.crystallizer.CrystallizerScan.density].
         """
         self.geometry = geometry
         self.occupancies = occupancies
         self.ranking = ranking
         self.angle_tolerance = angle_tolerance
         self.use_density = use_density
+        self.crystallizer = crystallizer
 
     def __repr__(self) -> str:
         return f'{type(self).__name__}({len(self.geometry)} sites, {self.ranking!r})'
+
+    def density(self, specie: str | None = None) -> Volume:
+        """Return the occupancy density of a species, as drawn by the plots.
+
+        For the mobile species this is the density its sites were taken from;
+        a framework species' sites are time-averaged atom positions instead,
+        so its density shows how well a single position describes each atom.
+
+        Parameters
+        ----------
+        specie : str | None
+            Species symbol, defaults to the mobile species.
+
+        Returns
+        -------
+        Volume
+
+        Raises
+        ------
+        ValueError
+            If the scan was not made by a
+            [Crystallizer][gemdat.crystallizer.Crystallizer].
+        """
+        if self.crystallizer is None:
+            raise ValueError(
+                'This scan carries no density; make it with `Crystallizer.scan()`.'
+            )
+        return self.crystallizer._density(specie or self.crystallizer.floating_specie)
 
     @property
     def candidates(self) -> list[SymmetryLevel]:
@@ -327,6 +361,16 @@ class CrystallizerScan:
             )
         return self.at(match.symprec)
 
+    @plot_backend
+    def plot_sites(self, *, module, **kwargs):
+        """See [gemdat.plots.crystallizer_sites][] for more info."""
+        return module.crystallizer_sites(scan=self, **kwargs)
+
+    @plot_backend
+    def plot_site_images(self, *, module, **kwargs):
+        """See [gemdat.plots.crystallizer_site_images][] for more info."""
+        return module.crystallizer_site_images(scan=self, **kwargs)
+
 
 class Crystallizer:
     """Reconstruct a crystal structure from a trajectory's occupancy density.
@@ -448,14 +492,21 @@ class Crystallizer:
             ``with_occupancies`` is True and 1.0 otherwise.
         """
         mobile = self.trajectory.filter(self.floating_specie)
-        volume = self.density or mobile.to_volume(resolution=self.resolution)
-        return volume.to_structure(
+        return self._density(self.floating_specie).to_structure(
             specie=self.floating_specie,
             background_level=background_level,
             return_occupancies=with_occupancies,
             n_frames=len(mobile) if with_occupancies else None,
             **find_peaks_kwargs,
         )
+
+    @weak_lru_cache()
+    def _density(self, specie: str) -> Volume:
+        """The occupancy density of `specie`; for the mobile species, the one
+        its sites are taken from."""
+        if specie == self.floating_specie and self.density is not None:
+            return self.density
+        return self.trajectory.filter(specie).to_volume(resolution=self.resolution)
 
     @require_constant_lattice
     def framework(self) -> Structure:
@@ -645,6 +696,7 @@ class Crystallizer:
             ranking=ranking,
             angle_tolerance=angle_tolerance,
             use_density=use_density,
+            crystallizer=self,
         )
 
     def scan_at(
@@ -700,6 +752,7 @@ class Crystallizer:
             ranking=analyzer.rank_at(symprecs),
             angle_tolerance=angle_tolerance,
             use_density=use_density,
+            crystallizer=self,
         )
 
     def crystallize(self, **kwargs) -> CrystallizerResult:
