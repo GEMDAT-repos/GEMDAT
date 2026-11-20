@@ -38,6 +38,7 @@ backend : str
 Returns
 -------
 fig : plotly.graph_objects.Figure or matplotlib.figure.Figure depending on backend.
-    Output figure
+    Output figure. Most matplotlib plots also take `ax=` to draw into an existing
+    axes, in which case that axes is returned instead.
 """
     return wrap

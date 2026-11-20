@@ -2,28 +2,33 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
+from ._axes import get_axes
 
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat import Jumps
 
 
-def collective_jumps(*, jumps: Jumps) -> matplotlib.figure.Figure:
+def collective_jumps(
+    *, jumps: Jumps, ax: matplotlib.axes.Axes | None = None
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot collective jumps per jump-type combination.
 
     Parameters
     ----------
     jumps : Jumps
         Input data
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
-    fig, ax = plt.subplots()
+    fig, ax = get_axes(ax)
 
     collective = jumps.collective()
 
@@ -37,8 +42,8 @@ def collective_jumps(*, jumps: Jumps) -> matplotlib.figure.Figure:
     ax.set_xticks(ticks, labels=labels, rotation=90)
     ax.set_yticks(ticks, labels=labels)
 
-    fig.colorbar(im, ax=ax)
+    ax.figure.colorbar(im, ax=ax)
 
     ax.set(title='Cooperative jumps per jump-type combination')
 
-    return fig
+    return ax if fig is None else fig

@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
 import numpy as np
 from pymatgen.core import Element, Species
 
+from ._axes import get_axes
+
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat.trajectory import Trajectory
@@ -17,7 +19,8 @@ def msd_per_element(
     trajectory: Trajectory,
     show_traces: bool = True,
     show_shaded: bool = True,
-) -> matplotlib.figure.Figure:
+    ax: matplotlib.axes.Axes | None = None,
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot mean squared displacement per element.
 
     Parameters
@@ -28,15 +31,17 @@ def msd_per_element(
         If True, show traces of individual trajectories for each element
     show_shaded : bool
         If True, show standard deviation as shaded area
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
     species = list(set(trajectory.species))
 
-    fig, ax = plt.subplots()
+    fig, ax = get_axes(ax)
 
     time_ps = trajectory.time_step_ps
     t_values = np.arange(len(trajectory)) * time_ps
@@ -76,4 +81,4 @@ def msd_per_element(
         ylabel='MSD (Å$^2$)',
     )
 
-    return fig
+    return ax if fig is None else fig

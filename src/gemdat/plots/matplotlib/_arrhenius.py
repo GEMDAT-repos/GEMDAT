@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
 import numpy as np
 
+from ._axes import get_axes
+
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat.metrics import ArrheniusFit
@@ -15,7 +17,8 @@ def arrhenius(
     *,
     fit: ArrheniusFit,
     show_std: bool = True,
-) -> 'matplotlib.figure.Figure':
+    ax: matplotlib.axes.Axes | None = None,
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot Arrhenius fit.
 
     Parameters
@@ -25,13 +28,15 @@ def arrhenius(
     show_std
         If True, show error bars (from diffusivities_std) and a ±1σ fit band
         (from cov).
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure.
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
-    fig, ax = plt.subplots()
+    fig, ax = get_axes(ax)
 
     T = fit.temperatures
     x = 1000.0 / T
@@ -64,4 +69,4 @@ def arrhenius(
     ax.set_ylabel(r'ln(D)')
 
     ax.legend()
-    return fig
+    return ax if fig is None else fig

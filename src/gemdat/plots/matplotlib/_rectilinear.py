@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
 import numpy as np
 
+from ._axes import get_axes
+
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat.orientations import Orientations
@@ -16,7 +18,8 @@ def rectilinear(
     orientations: Orientations,
     shape: tuple[int, int] = (90, 360),
     normalize_histo: bool = True,
-) -> matplotlib.figure.Figure:
+    ax: matplotlib.axes.Axes | None = None,
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot a rectilinear projection of a spherical function.
 
     This function uses the transformed trajectory.
@@ -29,11 +32,13 @@ def rectilinear(
         The shape of the spherical sector in which the trajectory is plotted
     normalize_histo : bool, optional
         If True, normalize the histogram by the area of the bins, by default True
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
     from gemdat.orientations import calculate_spherical_areas
 
@@ -56,7 +61,7 @@ def rectilinear(
 
     x, y = np.meshgrid(phi, theta)
 
-    fig, ax = plt.subplots()
+    fig, ax = get_axes(ax)
 
     cs = ax.contourf(x, y, hist)
 
@@ -66,6 +71,6 @@ def rectilinear(
     ax.set_xlabel('Azimuthal angle φ (°)')
     ax.set_ylabel('Elevation θ (°)')
 
-    fig.colorbar(cs, label='Areal probability', format='')
+    ax.figure.colorbar(cs, ax=ax, label='Areal probability', format='')
 
-    return fig
+    return ax if fig is None else fig
