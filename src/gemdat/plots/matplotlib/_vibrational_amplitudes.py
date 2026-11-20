@@ -2,21 +2,26 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
 from .._shared import _get_vibrational_amplitudes_hist
+from ._axes import get_axes
 
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat.trajectory import Trajectory
 
 
 def vibrational_amplitudes(
-    *, trajectory: Trajectory, bins: int = 50, n_parts: int = 1
-) -> matplotlib.figure.Figure:
+    *,
+    trajectory: Trajectory,
+    bins: int = 50,
+    n_parts: int = 1,
+    ax: matplotlib.axes.Axes | None = None,
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot histogram of vibrational amplitudes with fitted Gaussian.
 
     Parameters
@@ -27,20 +32,22 @@ def vibrational_amplitudes(
         Number of bins for the histogram
     n_parts : int
         Number of parts for error analysis
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
     metrics = trajectory.metrics()
 
     trajectories = trajectory.split(n_parts)
 
     hist = _get_vibrational_amplitudes_hist(trajectories=trajectories, bins=bins)
-    fig, ax = plt.subplots()
+    fig, ax = get_axes(ax)
 
-    plt.bar(hist.amplitudes + hist.offset, hist.counts, width=hist.width, yerr=hist.std)
+    ax.bar(hist.amplitudes + hist.offset, hist.counts, width=hist.width, yerr=hist.std)
 
     x = np.linspace(hist.min_amp, hist.max_amp, 100)
     y_gauss = stats.norm.pdf(x, 0, metrics.vibration_amplitude())
@@ -52,4 +59,4 @@ def vibrational_amplitudes(
         ylabel='Occurrence (a.u.)',
     )
 
-    return fig
+    return ax if fig is None else fig

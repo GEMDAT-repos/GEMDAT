@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from helpers import image_comparison2
 
 from gemdat.io import load_known_material
@@ -155,3 +157,56 @@ def test_crystallizer_sites(na3sbs4_scan):
 @image_comparison2(baseline_images=['crystallizer_site_images'])
 def test_crystallizer_site_images(na3sbs4_scan):
     na3sbs4_scan.plot_site_images(backend=BACKEND)
+
+
+SINGLE_AXES_PLOTS = [
+    ('arrhenius_data', lambda d: d.plot_arrhenius),
+    ('vasp_traj', lambda d: d.plot_displacement_per_element),
+    ('vasp_traj', lambda d: d.filter('Li').plot_displacement_per_atom),
+    ('vasp_traj', lambda d: d.filter('Li').plot_displacement_histogram),
+    ('vasp_traj', lambda d: d.filter('Li').plot_frequency_vs_occurence),
+    ('vasp_traj', lambda d: d.filter('Li').plot_vibrational_amplitudes),
+    ('vasp_traj', lambda d: d[-500:].plot_msd_per_element),
+    ('vasp_jumps', lambda d: d.plot_jumps_vs_distance),
+    ('vasp_jumps', lambda d: d.plot_jumps_vs_time),
+    ('vasp_jumps', lambda d: d.plot_collective_jumps),
+    ('vasp_rdf_data', lambda d: next(iter(d.values())).plot),
+    ('vasp_path', lambda d: d.plot_energy_along_path),
+    ('vasp_orientations', lambda d: d.plot_rectilinear),
+    ('vasp_orientations', lambda d: d.plot_bond_length_distribution),
+    ('vasp_orientations', lambda d: d.plot_autocorrelation),
+]
+
+
+@pytest.mark.parametrize('fixture,get_plot', SINGLE_AXES_PLOTS)
+def test_plot_into_axes(fixture, get_plot, request):
+    fig, (ax, other) = plt.subplots(1, 2)
+    n_figs = len(plt.get_fignums())
+
+    result = get_plot(request.getfixturevalue(fixture))(backend=BACKEND, ax=ax)
+
+    assert result is ax
+    assert ax.has_data()
+    assert not other.has_data()
+    assert len(plt.get_fignums()) == n_figs  # no stray figure
+    plt.close(fig)
+
+
+@pytest.mark.parametrize(
+    'fixture,get_plot',
+    [
+        ('vasp_jumps', lambda d: d.plot_jumps_3d),
+        ('na3sbs4_scan', lambda d: d.plot_sites),
+    ],
+)
+def test_plot_into_3d_axes(fixture, get_plot, request):
+    plot = get_plot(request.getfixturevalue(fixture))
+    fig = plt.figure()
+
+    with pytest.raises(TypeError, match='3D axes'):
+        plot(backend=BACKEND, ax=fig.add_subplot(1, 2, 1))
+
+    ax = fig.add_subplot(1, 2, 2, projection='3d')
+    assert plot(backend=BACKEND, ax=ax) is ax
+    assert ax.has_data()
+    plt.close(fig)

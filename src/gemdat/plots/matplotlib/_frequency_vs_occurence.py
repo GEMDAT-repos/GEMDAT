@@ -2,27 +2,33 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
 import numpy as np
 
+from ._axes import get_axes
+
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat.trajectory import Trajectory
 
 
-def frequency_vs_occurence(*, trajectory: Trajectory) -> matplotlib.figure.Figure:
+def frequency_vs_occurence(
+    *, trajectory: Trajectory, ax: matplotlib.axes.Axes | None = None
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot attempt frequency vs occurence.
 
     Parameters
     ----------
     trajectory : Trajectory
         Input trajectory, i.e. for the diffusing atom
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
     metrics = trajectory.metrics()
     speed = metrics.speed()
@@ -35,7 +41,7 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> matplotlib.figure.Figur
     two_sided = np.abs(trans / length)
     one_sided = two_sided[:, :half_length]
 
-    fig, ax = plt.subplots()
+    fig, ax = get_axes(ax)
 
     f = trajectory.sampling_frequency * np.arange(half_length) / length
 
@@ -67,4 +73,4 @@ def frequency_vs_occurence(*, trajectory: Trajectory) -> matplotlib.figure.Figur
     ax.set_ylim((0, y_max))
     ax.set_xlim((-0.1e13, 2.5e13))
 
-    return fig
+    return ax if fig is None else fig

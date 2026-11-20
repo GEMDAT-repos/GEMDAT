@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
 from pymatgen.core import Structure
 
+from ._axes import get_axes
+
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat.path import Pathway
@@ -16,7 +18,8 @@ def energy_along_path(
     *,
     structure: Structure | None = None,
     other_paths: list[Pathway] | None = None,
-) -> matplotlib.figure.Figure:
+    ax: matplotlib.axes.Axes | None = None,
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot energy along specified path.
 
     Parameters
@@ -27,13 +30,15 @@ def energy_along_path(
         Structure object to get the site information
     other_paths : Pathway | list[Pathway]
         Optional list of alternative paths to plot
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = get_axes(ax, figsize=(8, 4))
 
     ax.plot(path.energy, marker='o', color='r', label='Optimal path')
     ax.set_xlabel('Step')
@@ -84,4 +89,4 @@ def energy_along_path(
 
         ax.legend(fontsize=8)
 
-    return fig
+    return ax if fig is None else fig

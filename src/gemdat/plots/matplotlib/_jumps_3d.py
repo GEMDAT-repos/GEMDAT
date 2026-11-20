@@ -2,28 +2,34 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
 import numpy as np
 from pymatgen.electronic_structure import plotter
 
+from ._axes import get_axes
+
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat import Jumps
 
 
-def jumps_3d(*, jumps: Jumps) -> matplotlib.figure.Figure:
+def jumps_3d(
+    *, jumps: Jumps, ax: matplotlib.axes.Axes | None = None
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot jumps in 3D.
 
     Parameters
     ----------
     jumps : Jumps
         Input data
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
     trajectory = jumps.trajectory
     sites = jumps.sites
@@ -39,8 +45,7 @@ def jumps_3d(*, jumps: Jumps) -> matplotlib.figure.Figure:
     coords = sites.frac_coords
     lattice = trajectory.get_lattice()
 
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
+    fig, ax = get_axes(ax, projection='3d')
 
     site_labels = LabelItems(jumps.sites.labels, coords)
 
@@ -90,4 +95,4 @@ def jumps_3d(*, jumps: Jumps) -> matplotlib.figure.Figure:
 
     ax.set_aspect('equal')  # only auto is supported
 
-    return fig
+    return ax if fig is None else fig

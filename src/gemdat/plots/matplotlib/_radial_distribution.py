@@ -2,28 +2,33 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Iterable
 
-import matplotlib.pyplot as plt
+from ._axes import get_axes
 
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
 
     from gemdat.rdf import RDFData
 
 
-def radial_distribution(rdfs: Iterable[RDFData]) -> matplotlib.figure.Figure:
+def radial_distribution(
+    rdfs: Iterable[RDFData], *, ax: matplotlib.axes.Axes | None = None
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot radial distribution function.
 
     Parameters
     ----------
     rdfs : Iterable[RDFData]
         List of RDF data to plot
+    ax : matplotlib.axes.Axes | None
+        Draw into this axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
-    fig, ax = plt.subplots()
+    fig, ax = get_axes(ax)
 
     for rdf in rdfs:
         ax.plot(rdf.x, rdf.y, label=rdf.label)
@@ -38,4 +43,4 @@ def radial_distribution(rdfs: Iterable[RDFData]) -> matplotlib.figure.Figure:
         ylabel='g(r)',
     )
 
-    return fig
+    return ax if fig is None else fig

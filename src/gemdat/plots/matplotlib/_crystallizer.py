@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,8 +12,12 @@ from gemdat.plots._shared import (
     density_matching_cmap_mpl,
 )
 
+from ._axes import get_axes
+
 if TYPE_CHECKING:
+    import matplotlib.axes
     import matplotlib.figure
+    from mpl_toolkits.mplot3d import Axes3D
 
     from gemdat.crystallizer import CrystallizerScan
 
@@ -24,7 +28,8 @@ def crystallizer_sites(
     symprec: float | None = None,
     specie: str | None = None,
     background_level: float = 0.1,
-) -> matplotlib.figure.Figure:
+    ax: matplotlib.axes.Axes | None = None,
+) -> matplotlib.figure.Figure | matplotlib.axes.Axes:
     """Plot the idealised sites of one species of a symmetry fit in 3D, inside
     the density of their species.
 
@@ -44,17 +49,19 @@ def crystallizer_sites(
         A framework species' sites are its time-averaged atom positions.
     background_level : float
         Voxels below this fraction of the maximum density are not drawn.
+    ax : matplotlib.axes.Axes | None
+        Draw into this 3D axes instead of a new figure; the axes is then returned.
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        Output figure
+    fig : matplotlib.figure.Figure | matplotlib.axes.Axes
+        Output figure, or `ax` if given.
     """
     title, sites, density = _crystallizer_sites(scan, symprec, specie)
     lattice = sites.lattice
 
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(projection='3d')
+    fig, ax = get_axes(ax, projection='3d', figsize=(8, 8))
+    ax = cast('Axes3D', ax)
     plotter.plot_lattice_vectors(lattice, ax=ax, linewidth=1)
 
     data = density.data / density.data.max()
@@ -82,7 +89,7 @@ def crystallizer_sites(
     ax.set_aspect('equal')
     ax.legend(loc='upper left', title='orbit (sites)')
 
-    return fig
+    return ax if fig is None else fig
 
 
 def crystallizer_site_images(
